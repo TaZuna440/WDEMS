@@ -27,3 +27,12 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Inertia devtools session data
+/storage/inertia-devtools/
+
+# Local dev tooling worktrees
+/.kilo/
+
+# Local-only mockups and design references
+/docs/mockups/
