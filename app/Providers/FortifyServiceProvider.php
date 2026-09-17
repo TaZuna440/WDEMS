@@ -10,6 +10,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
+use Laravel\Fortify\Contracts\LoginResponse;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 
@@ -31,6 +32,7 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
+        $this->configureRedirects();
     }
 
     /**
@@ -80,5 +82,26 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($throttleKey);
         });
 
+    }
+
+    /**
+     * Configure role-based post-login redirects.
+     *
+     * admin  → /admin/dashboard
+     * staff  → /dashboard
+     */
+    private function configureRedirects(): void
+    {
+        $this->app->singleton(LoginResponse::class, function () {
+            return new class implements LoginResponse
+            {
+                public function toResponse($request)
+                {
+                    return $request->wantsJson()
+                        ? response()->json('', 204)
+                        : redirect()->intended($request->user()->homePath());
+                }
+            };
+        });
     }
 }
