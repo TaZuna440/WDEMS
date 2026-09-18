@@ -7,6 +7,7 @@ export type ConfirmOptions = {
     variant?: ConfirmVariant;
     title: string;
     description?: string;
+    children?: React.ReactNode;
     confirmLabel?: string;
     cancelLabel?: string;
     onConfirm: () => void;
@@ -41,7 +42,9 @@ export function useConfirmDialog() {
             confirmLabel={options?.confirmLabel}
             cancelLabel={options?.cancelLabel}
             onConfirm={handleConfirm}
-        />
+        >
+            {options?.children}
+        </ConfirmDialog>
     );
 
     return { dialog, openConfirm } as const;

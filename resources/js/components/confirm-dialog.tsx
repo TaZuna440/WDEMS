@@ -16,6 +16,7 @@ type Props = {
     variant?: ConfirmVariant;
     title: string;
     description?: string;
+    children?: React.ReactNode;
     confirmLabel?: string;
     cancelLabel?: string;
     onConfirm: () => void;
@@ -24,7 +25,7 @@ type Props = {
 const confirmButtonStyles: Record<ConfirmVariant, string> = {
     primary: 'bg-lime-brand text-navy-900 hover:bg-lime-brand/90',
     warning: 'bg-yellow-500 text-navy-900 hover:bg-yellow-500/90',
-    danger: '', // uses the destructive variant instead
+    danger: '',
 };
 
 export default function ConfirmDialog({
@@ -33,6 +34,7 @@ export default function ConfirmDialog({
     variant = 'primary',
     title,
     description,
+    children,
     confirmLabel = 'Confirm',
     cancelLabel = 'Cancel',
     onConfirm,
@@ -46,6 +48,8 @@ export default function ConfirmDialog({
                         <DialogDescription>{description}</DialogDescription>
                     )}
                 </DialogHeader>
+
+                {children}
 
                 <DialogFooter className="gap-2">
                     <Button
