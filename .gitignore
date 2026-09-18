@@ -36,3 +36,12 @@ yarn-error.log
 
 # Local-only mockups and design references
 /docs/mockups/
+
+# Local env backups
+.env.bak
+.env.local
+
+# Ad-hoc shell artifacts
+/Event::*
+/[
+/it
