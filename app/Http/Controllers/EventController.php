@@ -38,9 +38,10 @@ class EventController extends Controller
         ]);
     }
 
-    public function show(Event $event): Response
+    public function show(Request $request, Event $event): Response
     {
-        $event->load('creator:id,name');
+        $event->load('creator:id,name', 'registrationSetup');
+        $related = $event->relatedRecordCounts();
 
         return Inertia::render('events/show', [
             'event' => [
@@ -63,6 +64,12 @@ class EventController extends Controller
                 'can_open_registration' => $event->canOpenRegistration(),
                 'can_close_registration' => $event->canCloseRegistration(),
             ],
+            'related' => $related,
+            'has_related_records' => array_sum($related) > 0,
+            'requires_otp' => ! $request->user()->isAdmin(),
+            'has_registration_setup' => $event->registrationSetup !== null,
+            'registration_form_url' => $event->registrationSetup?->form_url,
+            'registration_has_sheet' => $event->registrationSetup?->google_sheet_id !== null,
         ]);
     }
 
@@ -149,7 +156,6 @@ class EventController extends Controller
             'start_time' => $validated['start_time'] ?? null,
             'end_time' => $validated['end_time'] ?? null,
             'venue' => $validated['venue'] ?? null,
-            // event_type, status, created_by, registration_start, registration_end NOT touched
         ]);
 
         return redirect()->route('events.show', $event);
