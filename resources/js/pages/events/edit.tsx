@@ -1,6 +1,8 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, Save } from 'lucide-react';
+import DatePicker from '@/components/date-picker';
 import InputError from '@/components/input-error';
+import TimePicker from '@/components/time-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,7 +69,6 @@ export default function EventsEdit({ event }: Props) {
                     onSubmit={submit}
                     className="glass-panel flex flex-col gap-6 rounded-xl p-8"
                 >
-                    {/* Event Name */}
                     <div className="grid gap-2">
                         <Label htmlFor="event_name">
                             Event Name{' '}
@@ -85,7 +86,6 @@ export default function EventsEdit({ event }: Props) {
                         <InputError message={errors.event_name} />
                     </div>
 
-                    {/* Description */}
                     <div className="grid gap-2">
                         <Label htmlFor="description">Description</Label>
                         <textarea
@@ -107,46 +107,36 @@ export default function EventsEdit({ event }: Props) {
                                 Event Date{' '}
                                 <span className="text-destructive">*</span>
                             </Label>
-                            <Input
+                            <DatePicker
                                 id="event_date"
-                                type="date"
                                 value={data.event_date}
-                                onChange={(e) =>
-                                    setData('event_date', e.target.value)
-                                }
-                                required
+                                onChange={(v) => setData('event_date', v)}
+                                placeholder="Pick a date"
                             />
                             <InputError message={errors.event_date} />
                         </div>
 
                         <div className="grid gap-2">
                             <Label htmlFor="start_time">Start Time</Label>
-                            <Input
+                            <TimePicker
                                 id="start_time"
-                                type="time"
                                 value={data.start_time}
-                                onChange={(e) =>
-                                    setData('start_time', e.target.value)
-                                }
+                                onChange={(v) => setData('start_time', v)}
                             />
                             <InputError message={errors.start_time} />
                         </div>
 
                         <div className="grid gap-2">
                             <Label htmlFor="end_time">End Time</Label>
-                            <Input
+                            <TimePicker
                                 id="end_time"
-                                type="time"
                                 value={data.end_time}
-                                onChange={(e) =>
-                                    setData('end_time', e.target.value)
-                                }
+                                onChange={(v) => setData('end_time', v)}
                             />
                             <InputError message={errors.end_time} />
                         </div>
                     </div>
 
-                    {/* Venue */}
                     <div className="grid gap-2">
                         <Label htmlFor="venue">Venue</Label>
                         <Input
@@ -159,7 +149,6 @@ export default function EventsEdit({ event }: Props) {
                         <InputError message={errors.venue} />
                     </div>
 
-                    {/* Actions */}
                     <div className="flex items-center justify-end gap-3 pt-2">
                         <Button
                             type="button"

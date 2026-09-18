@@ -16,11 +16,13 @@
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
 
-    /* WDEMS Brand Colors */
+    /* WDEMS Fixed Brand Colors (non-mode-dependent) */
     --color-navy-900: #0b1a2e;
     --color-navy-800: #0f2744;
-    --color-lime-brand: #b6ff3b;
     --color-teal-accent: #14b8a6;
+
+    /* Note: --color-lime-brand is intentionally NOT here — it's mode-dependent.
+       See @theme inline below. */
 }
 
 /* =====================================================
@@ -54,6 +56,9 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Mode-dependent brand lime — dimmer in light, bright in dark */
+    --color-lime-brand: var(--lime-brand);
 }
 
 /* =====================================================
@@ -62,13 +67,16 @@
 :root {
     --radius: 0.5rem;
 
+    /* Brand lime — dimmed for readability on light backgrounds */
+    --lime-brand: oklch(0.60 0.19 130);
+
     --background: oklch(0.98 0.005 250);
     --foreground: oklch(0.15 0.04 250);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.15 0.04 250);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.15 0.04 250);
-    --primary: oklch(0.9 0.2 120);
+    --primary: var(--lime-brand);
     --primary-foreground: oklch(0.15 0.04 250);
     --secondary: oklch(0.95 0.005 250);
     --secondary-foreground: oklch(0.15 0.04 250);
@@ -80,28 +88,31 @@
     --destructive-foreground: oklch(1 0 0);
     --border: oklch(0.9 0.005 250);
     --input: oklch(0.95 0.005 250);
-    --ring: oklch(0.9 0.2 120);
+    --ring: var(--lime-brand);
     --sidebar: oklch(1 0 0);
     --sidebar-foreground: oklch(0.15 0.04 250);
-    --sidebar-primary: oklch(0.9 0.2 120);
+    --sidebar-primary: var(--lime-brand);
     --sidebar-primary-foreground: oklch(0.15 0.04 250);
     --sidebar-accent: oklch(0.95 0.005 250);
     --sidebar-accent-foreground: oklch(0.15 0.04 250);
     --sidebar-border: oklch(0.9 0.005 250);
-    --sidebar-ring: oklch(0.9 0.2 120);
+    --sidebar-ring: var(--lime-brand);
 }
 
 /* =====================================================
    DARK MODE — WDEMS Navy
    ===================================================== */
 .dark {
+    /* Brand lime — bright and saturated (original #b6ff3b) */
+    --lime-brand: oklch(0.88 0.21 129);
+
     --background: oklch(0.15 0.04 250);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.2 0.05 250);
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.2 0.05 250);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.9 0.2 120);
+    --primary: var(--lime-brand);
     --primary-foreground: oklch(0.15 0.04 250);
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
@@ -113,15 +124,15 @@
     --destructive-foreground: oklch(0.637 0.237 25.331);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 5%);
-    --ring: oklch(0.9 0.2 120);
+    --ring: var(--lime-brand);
     --sidebar: oklch(0.15 0.04 250);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.9 0.2 120);
+    --sidebar-primary: var(--lime-brand);
     --sidebar-primary-foreground: oklch(0.15 0.04 250);
     --sidebar-accent: oklch(1 0 0 / 5%);
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.9 0.2 120);
+    --sidebar-ring: var(--lime-brand);
 }
 
 @layer base {

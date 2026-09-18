@@ -1,18 +1,25 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import {
+    AlertCircle,
     ArrowLeft,
     Calendar,
+    Check,
     Clock,
+    Copy,
+    FileSpreadsheet,
     FileText,
     MapPin,
     Settings,
     Pencil,
     Tag,
+    Trash2,
     UserPlus,
     UserMinus,
     Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import EventDeletionOtpDialog from '@/components/event-deletion-otp-dialog';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 
 type EventData = {
@@ -36,8 +43,21 @@ type EventData = {
     can_close_registration: boolean;
 };
 
+type RelatedCounts = {
+    event_options: number;
+    registrations: number;
+    registration_options: number;
+    attendances: number;
+};
+
 type Props = {
     event: EventData;
+    related: RelatedCounts;
+    has_related_records: boolean;
+    requires_otp: boolean;
+    has_registration_setup: boolean;
+    registration_form_url: string | null;
+    registration_has_sheet: boolean;
 };
 
 const statusStyles: Record<string, string> = {
@@ -74,18 +94,49 @@ function DetailRow({
     );
 }
 
-export default function EventsShow({ event }: Props) {
+export default function EventsShow({
+    event,
+    related,
+    has_related_records,
+    requires_otp,
+    has_registration_setup,
+    registration_form_url,
+    registration_has_sheet,
+}: Props) {
     const { dialog, openConfirm } = useConfirmDialog();
+    const [otpOpen, setOtpOpen] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const copyRegistrationLink = async () => {
+        if (! registration_form_url) return;
+        try {
+            await navigator.clipboard.writeText(registration_form_url);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // Clipboard unavailable — silently fail
+        }
+    };
 
     const openRegistration = () => {
+        const missingSheet = ! registration_has_sheet;
+
         openConfirm({
-            variant: 'primary',
+            variant: missingSheet ? 'warning' : 'primary',
             title: 'Open registration?',
-            description:
-                'Participants will be able to register for this event.',
-            confirmLabel: 'Open Registration',
-            onConfirm: () =>
-                router.post(`/events/${event.id}/open-registration`),
+            description: missingSheet
+                ? 'Participants will be able to register, but no Sheet is linked to the form yet. Responses will still be collected by Google Forms, but won\'t sync to WDEMS. You can link a Sheet from the Registration Setup page anytime.'
+                : 'Participants will be able to register for this event.',
+            confirmLabel: missingSheet ? 'Open Anyway' : 'Open Registration',
+            children: missingSheet ? (
+                <div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
+                    <p className="text-xs text-yellow-500">
+                        You can link a Sheet later from the Registration Setup page.
+                    </p>
+                </div>
+            ) : null,
+            onConfirm: () => router.post(`/events/${event.id}/open-registration`),
         });
     };
 
@@ -96,17 +147,56 @@ export default function EventsShow({ event }: Props) {
             description:
                 'No new participants can register after this. This action cannot be undone.',
             confirmLabel: 'Close Registration',
-            onConfirm: () =>
-                router.post(`/events/${event.id}/close-registration`),
+            onConfirm: () => router.post(`/events/${event.id}/close-registration`),
         });
     };
+
+    const requestDelete = () => {
+        openConfirm({
+            variant: 'danger',
+            title: has_related_records
+                ? 'Delete Event and Related Data?'
+                : 'Delete Event?',
+            description: has_related_records
+                ? 'This event already has related records. Deleting it will permanently remove the event and its associated data. This action cannot be undone. We recommend exporting or backing up important event records before continuing.'
+                : 'This will permanently delete this event. This action cannot be undone.',
+            confirmLabel: has_related_records ? 'Delete Everything' : 'Delete Event',
+            children: has_related_records ? (
+                <ul className="ml-1 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+                    {related.event_options > 0 && (
+                        <li>Event Options: {related.event_options}</li>
+                    )}
+                    {related.registrations > 0 && (
+                        <li>Registrations: {related.registrations}</li>
+                    )}
+                    {related.registration_options > 0 && (
+                        <li>Registration Options: {related.registration_options}</li>
+                    )}
+                    {related.attendances > 0 && (
+                        <li>Attendance Records: {related.attendances}</li>
+                    )}
+                </ul>
+            ) : null,
+            onConfirm: () => {
+                if (requires_otp) {
+                    setOtpOpen(true);
+                } else {
+                    router.delete(`/events/${event.id}`);
+                }
+            },
+        });
+    };
+
+    const registrationSetupLabel = has_registration_setup
+        ? 'Manage Registration Form'
+        : 'Set Up Registration Form';
+    const registrationSetupDisabled = event.status === 'draft';
 
     return (
         <>
             <Head title={event.event_name} />
 
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
-                {/* Back link */}
                 <Link
                     href="/events"
                     className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -115,7 +205,6 @@ export default function EventsShow({ event }: Props) {
                     Back to Events
                 </Link>
 
-                {/* Header */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold text-foreground">
@@ -124,8 +213,7 @@ export default function EventsShow({ event }: Props) {
                         <div className="mt-2 flex items-center gap-3">
                             <span
                                 className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                                    statusStyles[event.status] ??
-                                    statusStyles.draft
+                                    statusStyles[event.status] ?? statusStyles.draft
                                 }`}
                             >
                                 {event.status_label}
@@ -139,24 +227,14 @@ export default function EventsShow({ event }: Props) {
                     </div>
                 </div>
 
-                {/* Two-column layout */}
                 <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-                    {/* Left: Event details */}
                     <div className="glass-panel rounded-xl p-6">
                         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                             Event Details
                         </h2>
 
-                        <DetailRow
-                            icon={Tag}
-                            label="Event Type"
-                            value={event.event_type_label}
-                        />
-                        <DetailRow
-                            icon={Calendar}
-                            label="Event Date"
-                            value={event.event_date}
-                        />
+                        <DetailRow icon={Tag} label="Event Type" value={event.event_type_label} />
+                        <DetailRow icon={Calendar} label="Event Date" value={event.event_date} />
                         <DetailRow
                             icon={Clock}
                             label="Time"
@@ -166,22 +244,13 @@ export default function EventsShow({ event }: Props) {
                                     : event.start_time ?? event.end_time
                             }
                         />
-                        <DetailRow
-                            icon={MapPin}
-                            label="Venue"
-                            value={event.venue}
-                        />
-                        <DetailRow
-                            icon={FileText}
-                            label="Description"
-                            value={event.description}
-                        />
+                        <DetailRow icon={MapPin} label="Venue" value={event.venue} />
+                        <DetailRow icon={FileText} label="Description" value={event.description} />
                         <DetailRow
                             icon={Clock}
                             label="Registration Window"
                             value={
-                                event.registration_start &&
-                                event.registration_end
+                                event.registration_start && event.registration_end
                                     ? `${event.registration_start} → ${event.registration_end}`
                                     : event.registration_start
                                       ? `Opened ${event.registration_start}`
@@ -192,7 +261,6 @@ export default function EventsShow({ event }: Props) {
                         />
                     </div>
 
-                    {/* Right: Workflow actions */}
                     <div className="glass-panel flex flex-col gap-4 rounded-xl p-6">
                         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                             Workflow Actions
@@ -203,13 +271,8 @@ export default function EventsShow({ event }: Props) {
                         </p>
 
                         <div className="flex flex-col gap-2">
-                            {/* Edit — enabled when the event is still editable */}
                             {event.can_edit ? (
-                                <Button
-                                    variant="outline"
-                                    className="justify-start"
-                                    asChild
-                                >
+                                <Button variant="outline" className="justify-start" asChild>
                                     <Link href={`/events/${event.id}/edit`}>
                                         <Pencil className="mr-2 h-4 w-4" />
                                         Edit Event
@@ -227,19 +290,52 @@ export default function EventsShow({ event }: Props) {
                                 </Button>
                             )}
 
-                            {/* Configure — links to the options page */}
-                            <Button
-                                variant="outline"
-                                className="justify-start"
-                                asChild
-                            >
+                            <Button variant="outline" className="justify-start" asChild>
                                 <Link href={`/events/${event.id}/options`}>
                                     <Settings className="mr-2 h-4 w-4" />
                                     Configure Options
                                 </Link>
                             </Button>
 
-                            {/* Open/Close Registration — dynamic */}
+                            {registrationSetupDisabled ? (
+                                <Button
+                                    disabled
+                                    variant="outline"
+                                    className="justify-start"
+                                    title="Configure event options first — the registration form will be built from them."
+                                >
+                                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                    {registrationSetupLabel}
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant="outline"
+                                    className="justify-start"
+                                    asChild
+                                >
+                                    <Link href={`/events/${event.id}/registration/setup`}>
+                                        <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                        {registrationSetupLabel}
+                                    </Link>
+                                </Button>
+                            )}
+
+                            {registration_form_url && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="justify-start"
+                                    onClick={copyRegistrationLink}
+                                >
+                                    {copied ? (
+                                        <Check className="mr-2 h-4 w-4 text-lime-brand" />
+                                    ) : (
+                                        <Copy className="mr-2 h-4 w-4" />
+                                    )}
+                                    {copied ? 'Copied!' : 'Copy Registration Link'}
+                                </Button>
+                            )}
+
                             {event.can_open_registration ? (
                                 <Button
                                     onClick={openRegistration}
@@ -279,9 +375,34 @@ export default function EventsShow({ event }: Props) {
                         </div>
                     </div>
                 </div>
+
+                <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6">
+                    <h2 className="text-sm font-semibold uppercase tracking-wider text-destructive">
+                        Danger Zone
+                    </h2>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                        Deleting this event is permanent and cannot be undone. Related records
+                        (options, registrations, attendance) will also be removed. Participants
+                        are preserved.
+                    </p>
+                    <Button
+                        variant="destructive"
+                        className="mt-4"
+                        onClick={requestDelete}
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Event
+                    </Button>
+                </div>
             </div>
 
             {dialog}
+
+            <EventDeletionOtpDialog
+                eventId={event.id}
+                open={otpOpen}
+                onOpenChange={setOtpOpen}
+            />
         </>
     );
 }
