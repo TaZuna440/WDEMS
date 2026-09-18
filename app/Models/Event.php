@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'created_by',
@@ -50,6 +51,31 @@ class Event extends Model
     public function registrations(): HasMany
     {
         return $this->hasMany(Registration::class);
+    }
+
+    public function registrationSetup(): HasOne
+    {
+        return $this->hasOne(RegistrationSetup::class);
+    }
+
+    /**
+     * Counts of records that will be deleted along with this event.
+     *
+     * Participants are intentionally excluded — participant records are
+     * shared across events and must not be deleted when an event is removed.
+     *
+     * @return array{event_options: int, registrations: int, registration_options: int, attendances: int}
+     */
+    public function relatedRecordCounts(): array
+    {
+        $registrationIds = $this->registrations()->pluck('id');
+
+        return [
+            'event_options' => $this->eventOptions()->count(),
+            'registrations' => $registrationIds->count(),
+            'registration_options' => RegistrationOption::whereIn('registration_id', $registrationIds)->count(),
+            'attendances' => Attendance::whereIn('registration_id', $registrationIds)->count(),
+        ];
     }
 
     /**

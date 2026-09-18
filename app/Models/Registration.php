@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'participant_id',
     'registration_date',
     'registration_status',
+    'source',
+    'google_form_response_id',
+    'registered_at',
 ])]
 class Registration extends Model
 {
@@ -21,6 +24,7 @@ class Registration extends Model
     {
         return [
             'registration_date' => 'datetime',
+            'registered_at' => 'datetime',
             'registration_status' => RegistrationStatus::class,
         ];
     }
