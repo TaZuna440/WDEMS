@@ -40,7 +40,7 @@ class EventController extends Controller
 
     public function show(Request $request, Event $event): Response
     {
-        $event->load('creator:id,name', 'registrationSetup');
+        $event->load('creator:id,name');
         $related = $event->relatedRecordCounts();
 
         return Inertia::render('events/show', [
@@ -67,9 +67,7 @@ class EventController extends Controller
             'related' => $related,
             'has_related_records' => array_sum($related) > 0,
             'requires_otp' => ! $request->user()->isAdmin(),
-            'has_registration_setup' => $event->registrationSetup !== null,
-            'registration_form_url' => $event->registrationSetup?->form_url,
-            'registration_has_sheet' => $event->registrationSetup?->google_sheet_id !== null,
+            'can_record_attendance' => $event->canRecordAttendance(),
         ]);
     }
 

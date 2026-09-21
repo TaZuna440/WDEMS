@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'registration_date',
     'registration_status',
     'source',
-    'google_form_response_id',
     'registered_at',
 ])]
 class Registration extends Model

@@ -12,7 +12,7 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request): Response
     {
-        $events = Event::with(['creator:id,name', 'registrationSetup:id,event_id'])
+        $events = Event::with('creator:id,name')
             ->orderBy('event_date')
             ->orderBy('id')
             ->get();
@@ -20,23 +20,10 @@ class DashboardController extends Controller
         $actionItems = $this->buildActionItems($events);
         $upcoming = $this->buildUpcoming($events);
 
-        $recentActivity = \App\Models\RegistrationSetupChange::with('user:id,name')
-            ->latest('id')
-            ->limit(5)
-            ->get()
-            ->map(fn ($c) => [
-                'id' => $c->id,
-                'action' => $c->action,
-                'item_title' => $c->item_title,
-                'user_name' => $c->user?->name,
-                'changes' => $c->changes,
-                'created_at' => $c->created_at?->toIso8601String(),
-            ]);
-
         return Inertia::render('dashboard', [
             'actionItems' => $actionItems,
             'upcoming' => $upcoming,
-            'recentActivity' => $recentActivity,
+            'recentActivity' => [],
         ]);
     }
 
@@ -57,10 +44,8 @@ class DashboardController extends Controller
                 : null;
 
             $status = $event->status;
-            $hasForm = $event->registrationSetup !== null;
 
             [$urgency, $reason, $action] = match (true) {
-                // Overdue: event date passed but still active
                 $daysUntil !== null && $daysUntil < 0
                     => [
                         'overdue',
@@ -68,7 +53,6 @@ class DashboardController extends Controller
                         ['label' => 'Mark as completed', 'href' => route('events.show', $event)],
                     ],
 
-                // Urgent: event within 7 days and not fully set up
                 $daysUntil !== null && $daysUntil <= 7 && in_array($status, [EventStatus::Draft, EventStatus::Configured], true)
                     => [
                         'urgent',
@@ -76,7 +60,6 @@ class DashboardController extends Controller
                         $this->nextActionFor($event),
                     ],
 
-                // Action needed by state
                 $status === EventStatus::Draft
                     => [
                         'action',
@@ -84,21 +67,13 @@ class DashboardController extends Controller
                         ['label' => 'Configure event', 'href' => route('events.show', $event)],
                     ],
 
-                $status === EventStatus::Configured && ! $hasForm
+                $status === EventStatus::Configured
                     => [
                         'action',
-                        'Configured — no registration form yet',
-                        ['label' => 'Set up form', 'href' => route('events.registration.setup', $event)],
-                    ],
-
-                $status === EventStatus::Configured && $hasForm
-                    => [
-                        'action',
-                        'Ready — registration not yet open',
+                        'Configured — ready to open registration',
                         ['label' => 'Open registration', 'href' => route('events.show', $event)],
                     ],
 
-                // Waiting states
                 $status === EventStatus::RegistrationOpen
                     => [
                         'waiting',
@@ -144,7 +119,6 @@ class DashboardController extends Controller
             ];
         }
 
-        // Sort: overdue → urgent → action → waiting. Ties broken by days_until ascending.
         $order = ['overdue' => 0, 'urgent' => 1, 'action' => 2, 'waiting' => 3];
         usort($items, function ($a, $b) use ($order) {
             $diff = $order[$a['urgency']] - $order[$b['urgency']];
@@ -190,10 +164,6 @@ class DashboardController extends Controller
     {
         if ($event->status === EventStatus::Draft) {
             return ['label' => 'Configure event', 'href' => route('events.show', $event)];
-        }
-
-        if ($event->registrationSetup === null) {
-            return ['label' => 'Set up form', 'href' => route('events.registration.setup', $event)];
         }
 
         return ['label' => 'Open registration', 'href' => route('events.show', $event)];

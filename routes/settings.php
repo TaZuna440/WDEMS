@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\GoogleIntegrationController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -25,14 +24,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('user-password.update');
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
-
-    // Google integration
-    Route::get('settings/google', [GoogleIntegrationController::class, 'show'])
-        ->name('settings.google');
-    Route::get('auth/google/redirect', [GoogleIntegrationController::class, 'redirect'])
-        ->name('google.redirect');
-    Route::get('auth/google/callback', [GoogleIntegrationController::class, 'callback'])
-        ->name('google.callback');
-    Route::delete('settings/google', [GoogleIntegrationController::class, 'destroy'])
-        ->name('settings.google.destroy');
 });

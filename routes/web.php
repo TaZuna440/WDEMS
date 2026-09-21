@@ -1,10 +1,10 @@
 <?php
 
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventDeletionController;
 use App\Http\Controllers\EventOptionController;
-use App\Http\Controllers\RegistrationSetupController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -34,10 +34,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('events/{event}/deletion/verify-otp', [EventDeletionController::class, 'verifyOtp'])
         ->middleware('throttle:event-deletion-otp-verify')->name('events.deletion.verify-otp');
 
-    Route::get('events/{event}/registration/setup', [RegistrationSetupController::class, 'show'])->name('events.registration.setup');
-    Route::post('events/{event}/registration/setup', [RegistrationSetupController::class, 'store'])->name('events.registration.setup.store');
-    Route::post('events/{event}/registration/setup/questions/sync', [RegistrationSetupController::class, 'syncQuestions'])->name('events.registration.setup.questions.sync');
-    Route::post('events/{event}/registration/setup/verify-sheet', [RegistrationSetupController::class, 'verifySheet'])->name('events.registration.setup.verify-sheet');
+    Route::get('events/{event}/attendance', [AttendanceController::class, 'show'])->name('events.attendance');
+    Route::post('events/{event}/attendance/{registration}/mark', [AttendanceController::class, 'mark'])->name('events.attendance.mark');
 });
 
 Route::middleware(['auth', 'verified', 'admin'])->group(function () {

@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'created_by',
@@ -53,19 +52,6 @@ class Event extends Model
         return $this->hasMany(Registration::class);
     }
 
-    public function registrationSetup(): HasOne
-    {
-        return $this->hasOne(RegistrationSetup::class);
-    }
-
-    /**
-     * Counts of records that will be deleted along with this event.
-     *
-     * Participants are intentionally excluded — participant records are
-     * shared across events and must not be deleted when an event is removed.
-     *
-     * @return array{event_options: int, registrations: int, registration_options: int, attendances: int}
-     */
     public function relatedRecordCounts(): array
     {
         $registrationIds = $this->registrations()->pluck('id');
@@ -78,10 +64,6 @@ class Event extends Model
         ];
     }
 
-    /**
-     * Whether the event's descriptive fields can be edited.
-     * Locked once the event is running or past.
-     */
     public function canEdit(): bool
     {
         return in_array($this->status, [
@@ -92,10 +74,6 @@ class Event extends Model
         ], true);
     }
 
-    /**
-     * Whether the event's options can be added, edited, or removed.
-     * Locked once registration opens.
-     */
     public function canConfigure(): bool
     {
         return in_array($this->status, [
@@ -104,35 +82,34 @@ class Event extends Model
         ], true);
     }
 
-    /**
-     * Whether registration can be opened for this event.
-     * Only from `configured`.
-     */
     public function canOpenRegistration(): bool
     {
         return $this->status === EventStatus::Configured;
     }
 
-    /**
-     * Whether registration can be closed for this event.
-     * Only from `registration_open`.
-     */
     public function canCloseRegistration(): bool
     {
         return $this->status === EventStatus::RegistrationOpen;
     }
 
     /**
-     * Whether this event is a Community Run.
+     * Whether the event is in a state where attendance can be recorded.
+     * Attendance is meaningful once registration has opened.
      */
+    public function canRecordAttendance(): bool
+    {
+        return in_array($this->status, [
+            EventStatus::RegistrationOpen,
+            EventStatus::RegistrationClosed,
+            EventStatus::Ongoing,
+        ], true);
+    }
+
     public function isCommunityRun(): bool
     {
         return $this->event_type === EventType::CommunityRun;
     }
 
-    /**
-     * Whether this event is a Fun Run.
-     */
     public function isFunRun(): bool
     {
         return $this->event_type === EventType::FunRun;

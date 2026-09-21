@@ -1,13 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import {
-    AlertCircle,
     ArrowLeft,
     Calendar,
-    Check,
+    ClipboardCheck,
     Clock,
-    Copy,
-    FileSpreadsheet,
     FileText,
     MapPin,
     Settings,
@@ -55,9 +52,7 @@ type Props = {
     related: RelatedCounts;
     has_related_records: boolean;
     requires_otp: boolean;
-    has_registration_setup: boolean;
-    registration_form_url: string | null;
-    registration_has_sheet: boolean;
+    can_record_attendance: boolean;
 };
 
 const statusStyles: Record<string, string> = {
@@ -99,43 +94,18 @@ export default function EventsShow({
     related,
     has_related_records,
     requires_otp,
-    has_registration_setup,
-    registration_form_url,
-    registration_has_sheet,
+    can_record_attendance,
 }: Props) {
     const { dialog, openConfirm } = useConfirmDialog();
     const [otpOpen, setOtpOpen] = useState(false);
-    const [copied, setCopied] = useState(false);
-
-    const copyRegistrationLink = async () => {
-        if (! registration_form_url) return;
-        try {
-            await navigator.clipboard.writeText(registration_form_url);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 2000);
-        } catch {
-            // Clipboard unavailable — silently fail
-        }
-    };
 
     const openRegistration = () => {
-        const missingSheet = ! registration_has_sheet;
-
         openConfirm({
-            variant: missingSheet ? 'warning' : 'primary',
+            variant: 'primary',
             title: 'Open registration?',
-            description: missingSheet
-                ? 'Participants will be able to register, but no Sheet is linked to the form yet. Responses will still be collected by Google Forms, but won\'t sync to WDEMS. You can link a Sheet from the Registration Setup page anytime.'
-                : 'Participants will be able to register for this event.',
-            confirmLabel: missingSheet ? 'Open Anyway' : 'Open Registration',
-            children: missingSheet ? (
-                <div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3">
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
-                    <p className="text-xs text-yellow-500">
-                        You can link a Sheet later from the Registration Setup page.
-                    </p>
-                </div>
-            ) : null,
+            description:
+                'Participants will be able to register for this event.',
+            confirmLabel: 'Open Registration',
             onConfirm: () => router.post(`/events/${event.id}/open-registration`),
         });
     };
@@ -158,7 +128,7 @@ export default function EventsShow({
                 ? 'Delete Event and Related Data?'
                 : 'Delete Event?',
             description: has_related_records
-                ? 'This event already has related records. Deleting it will permanently remove the event and its associated data. This action cannot be undone. We recommend exporting or backing up important event records before continuing.'
+                ? 'This event already has related records. Deleting it will permanently remove the event and its associated data. This action cannot be undone.'
                 : 'This will permanently delete this event. This action cannot be undone.',
             confirmLabel: has_related_records ? 'Delete Everything' : 'Delete Event',
             children: has_related_records ? (
@@ -186,11 +156,6 @@ export default function EventsShow({
             },
         });
     };
-
-    const registrationSetupLabel = has_registration_setup
-        ? 'Manage Registration Form'
-        : 'Set Up Registration Form';
-    const registrationSetupDisabled = event.status === 'draft';
 
     return (
         <>
@@ -297,42 +262,16 @@ export default function EventsShow({
                                 </Link>
                             </Button>
 
-                            {registrationSetupDisabled ? (
-                                <Button
-                                    disabled
-                                    variant="outline"
-                                    className="justify-start"
-                                    title="Configure event options first — the registration form will be built from them."
-                                >
-                                    <FileSpreadsheet className="mr-2 h-4 w-4" />
-                                    {registrationSetupLabel}
-                                </Button>
-                            ) : (
+                            {can_record_attendance && (
                                 <Button
                                     variant="outline"
-                                    className="justify-start"
+                                    className="justify-start border-lime-brand/40 text-lime-brand hover:border-lime-brand hover:bg-lime-brand hover:text-navy-900"
                                     asChild
                                 >
-                                    <Link href={`/events/${event.id}/registration/setup`}>
-                                        <FileSpreadsheet className="mr-2 h-4 w-4" />
-                                        {registrationSetupLabel}
+                                    <Link href={`/events/${event.id}/attendance`}>
+                                        <ClipboardCheck className="mr-2 h-4 w-4" />
+                                        Record Attendance
                                     </Link>
-                                </Button>
-                            )}
-
-                            {registration_form_url && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="justify-start"
-                                    onClick={copyRegistrationLink}
-                                >
-                                    {copied ? (
-                                        <Check className="mr-2 h-4 w-4 text-lime-brand" />
-                                    ) : (
-                                        <Copy className="mr-2 h-4 w-4" />
-                                    )}
-                                    {copied ? 'Copied!' : 'Copy Registration Link'}
                                 </Button>
                             )}
 

@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowRight, Calendar, Clock, Inbox } from 'lucide-react';
+import { ArrowRight, Calendar, Inbox } from 'lucide-react';
 
 type ActionItem = {
     id: number;
@@ -22,19 +22,9 @@ type UpcomingEvent = {
     status_label: string;
 };
 
-type RecentActivity = {
-    id: number;
-    action: string;
-    item_title: string | null;
-    user_name: string | null;
-    changes: Record<string, number> | null;
-    created_at: string | null;
-};
-
 type Props = {
     actionItems: ActionItem[];
     upcoming: UpcomingEvent[];
-    recentActivity: RecentActivity[];
 };
 
 const URGENCY: Record<string, { label: string; dot: string; border: string; text: string; btn: string }> = {
@@ -77,39 +67,7 @@ function daysText(days: number | null): string {
     return `${Math.abs(days)} days ago`;
 }
 
-function describeActivity(a: RecentActivity): string {
-    switch (a.action) {
-        case 'form_created':
-            return 'Created the registration form';
-        case 'question_added':
-            return `Added question "${a.item_title ?? ''}"`;
-        case 'question_deleted':
-            return `Removed question "${a.item_title ?? ''}"`;
-        case 'questions_synced': {
-            const c = a.changes ?? {};
-            const parts = [];
-            if (c.created) parts.push(`${c.created} added`);
-            if (c.updated) parts.push(`${c.updated} edited`);
-            if (c.deleted) parts.push(`${c.deleted} removed`);
-            return parts.length > 0 ? `Saved changes (${parts.join(', ')})` : 'Saved changes';
-        }
-        default:
-            return a.action;
-    }
-}
-
-function formatWhen(iso: string | null): string {
-    if (!iso) return '';
-    return new Date(iso).toLocaleString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-}
-
-export default function Dashboard({ actionItems, upcoming, recentActivity }: Props) {
-    // Group action items by urgency for headers
+export default function Dashboard({ actionItems, upcoming }: Props) {
     let lastUrgency: string | null = null;
 
     return (
@@ -191,80 +149,48 @@ export default function Dashboard({ actionItems, upcoming, recentActivity }: Pro
                     )}
                 </div>
 
-                {/* Two-column lower section */}
-                <div className="grid gap-6 lg:grid-cols-2">
-                    {/* Coming Up */}
-                    <div className="glass-panel rounded-xl p-6">
-                        <div className="mb-4 flex items-center justify-between">
-                            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                                Coming Up
-                            </h2>
-                            <Link
-                                href="/events"
-                                className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-                            >
-                                View all →
-                            </Link>
-                        </div>
-
-                        {upcoming.length === 0 ? (
-                            <p className="py-6 text-center text-xs text-muted-foreground">
-                                No upcoming events.
-                            </p>
-                        ) : (
-                            <ul className="flex flex-col">
-                                {upcoming.map((e) => (
-                                    <li key={e.id} className="border-b border-white/5 last:border-b-0">
-                                        <Link
-                                            href={`/events/${e.id}`}
-                                            className="flex items-center justify-between gap-3 py-2.5 transition-colors hover:bg-white/[0.02]"
-                                        >
-                                            <div className="flex-1">
-                                                <p className="text-sm text-foreground">{e.event_name}</p>
-                                                <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                                                    <Calendar className="h-3 w-3" />
-                                                    {e.event_date}
-                                                    <span className="text-lime-brand">{daysText(e.days_until)}</span>
-                                                </p>
-                                            </div>
-                                            <span className="shrink-0 text-xs text-muted-foreground">
-                                                {e.status_label}
-                                            </span>
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-
-                    {/* Recent Activity */}
-                    <div className="glass-panel rounded-xl p-6">
-                        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                            Recent Activity
+                {/* Coming Up */}
+                <div className="glass-panel rounded-xl p-6">
+                    <div className="mb-4 flex items-center justify-between">
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                            Coming Up
                         </h2>
-
-                        {recentActivity.length === 0 ? (
-                            <p className="py-6 text-center text-xs text-muted-foreground">
-                                No activity recorded yet.
-                            </p>
-                        ) : (
-                            <ul className="flex flex-col gap-3">
-                                {recentActivity.map((a) => (
-                                    <li key={a.id} className="flex items-start gap-2">
-                                        <Clock className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-                                        <div className="flex flex-1 flex-col">
-                                            <span className="text-xs text-foreground">
-                                                {describeActivity(a)}
-                                            </span>
-                                            <span className="mt-0.5 text-[10px] text-muted-foreground">
-                                                {a.user_name ?? '—'} · {formatWhen(a.created_at)}
-                                            </span>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+                        <Link
+                            href="/events"
+                            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                            View all →
+                        </Link>
                     </div>
+
+                    {upcoming.length === 0 ? (
+                        <p className="py-6 text-center text-xs text-muted-foreground">
+                            No upcoming events.
+                        </p>
+                    ) : (
+                        <ul className="flex flex-col">
+                            {upcoming.map((e) => (
+                                <li key={e.id} className="border-b border-white/5 last:border-b-0">
+                                    <Link
+                                        href={`/events/${e.id}`}
+                                        className="flex items-center justify-between gap-3 py-2.5 transition-colors hover:bg-white/[0.02]"
+                                    >
+                                        <div className="flex-1">
+                                            <p className="text-sm text-foreground">{e.event_name}</p>
+                                            <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                                                <Calendar className="h-3 w-3" />
+                                                {e.event_date}
+                                                <span className="text-lime-brand">{daysText(e.days_until)}</span>
+                                            </p>
+                                        </div>
+                                        <span className="shrink-0 text-xs text-muted-foreground">
+                                            {e.status_label}
+                                        </span>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
             </div>
         </>
