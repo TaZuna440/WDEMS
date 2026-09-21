@@ -1,0 +1,395 @@
+.
+├── app
+│   ├── Actions
+│   │   └── Fortify
+│   │       └── ResetUserPassword.php
+│   ├── Concerns
+│   │   ├── PasswordValidationRules.php
+│   │   └── ProfileValidationRules.php
+│   ├── Console
+│   │   └── Commands
+│   ├── Enums
+│   │   ├── AttendanceStatus.php
+│   │   ├── EventStatus.php
+│   │   ├── EventType.php
+│   │   └── RegistrationStatus.php
+│   ├── Http
+│   │   ├── Controllers
+│   │   │   ├── AttendanceController.php
+│   │   │   ├── Controller.php
+│   │   │   ├── DashboardController.php
+│   │   │   ├── EventController.php
+│   │   │   ├── EventDeletionController.php
+│   │   │   ├── EventOptionController.php
+│   │   │   ├── GoogleIntegrationController.php
+│   │   │   ├── RegistrationSetupController.php
+│   │   │   └── Settings
+│   │   │       ├── ProfileController.php
+│   │   │       └── SecurityController.php
+│   │   ├── Middleware
+│   │   │   ├── AdminMiddleware.php
+│   │   │   ├── HandleAppearance.php
+│   │   │   └── HandleInertiaRequests.php
+│   │   └── Requests
+│   │       └── Settings
+│   │           ├── PasswordUpdateRequest.php
+│   │           ├── ProfileDeleteRequest.php
+│   │           ├── ProfileUpdateRequest.php
+│   │           └── TwoFactorAuthenticationRequest.php
+│   ├── Mail
+│   │   └── EventDeletionOtpMail.php
+│   ├── Models
+│   │   ├── Attendance.php
+│   │   ├── EventOption.php
+│   │   ├── Event.php
+│   │   ├── GoogleIntegration.php
+│   │   ├── Participant.php
+│   │   ├── RegistrationOption.php
+│   │   ├── Registration.php
+│   │   ├── RegistrationSetupChange.php
+│   │   ├── RegistrationSetup.php
+│   │   └── User.php
+│   ├── Providers
+│   │   ├── AppServiceProvider.php
+│   │   └── FortifyServiceProvider.php
+│   └── Services
+│       ├── EventDeletion
+│       │   ├── EventDeletionOtpService.php
+│       │   ├── EventDeletionService.php
+│       │   ├── OtpResendTooSoonException.php
+│       │   └── OtpVerificationResult.php
+│       ├── EventWorkflow.php
+│       └── Google
+│           ├── GoogleFormService.php
+│           └── GoogleOAuthService.php
+├── artisan
+├── bootstrap
+│   ├── app.php
+│   ├── cache
+│   │   ├── .gitignore
+│   │   ├── packages.php
+│   │   └── services.php
+│   └── providers.php
+├── components.json
+├── composer.json
+├── composer.lock
+├── config
+│   ├── app.php
+│   ├── auth.php
+│   ├── cache.php
+│   ├── database.php
+│   ├── filesystems.php
+│   ├── fortify.php
+│   ├── inertia.php
+│   ├── logging.php
+│   ├── mail.php
+│   ├── queue.php
+│   ├── services.php
+│   └── session.php
+├── database
+│   ├── database.sqlite
+│   ├── factories
+│   │   └── UserFactory.php
+│   ├── .gitignore
+│   ├── migrations
+│   │   ├── 0001_01_01_000000_create_users_table.php
+│   │   ├── 0001_01_01_000001_create_cache_table.php
+│   │   ├── 0001_01_01_000002_create_jobs_table.php
+│   │   ├── 2026_09_16_150233_add_role_to_users_table.php
+│   │   ├── 2026_09_16_160221_create_events_table.php
+│   │   ├── 2026_09_16_160308_create_event_options_table.php
+│   │   ├── 2026_09_16_160315_create_participants_table.php
+│   │   ├── 2026_09_16_160321_create_registrations_table.php
+│   │   ├── 2026_09_16_160335_create_registration_options_table.php
+│   │   ├── 2026_09_16_160345_create_attendances_table.php
+│   │   ├── 2026_09_17_181907_add_event_type_to_events_table.php
+│   │   ├── 2026_09_18_090923_create_google_integrations_table.php
+│   │   ├── 2026_09_18_105753_create_registration_setups_and_changes_tables.php
+│   │   ├── 2026_09_18_141400_add_sheet_columns_to_registration_setups.php
+│   │   └── 2026_09_18_141401_add_source_columns_to_registrations.php
+│   └── seeders
+│       └── DatabaseSeeder.php
+├── docs
+│   ├── architecture.md
+│   ├── development-log.md
+│   ├── google-integration.md
+│   ├── phase-a-b-report.md
+│   ├── TinkerManual.md
+│   └── tree.txt
+├── .editorconfig
+├── .env
+├── .env.example
+├── .gitattributes
+├── .github
+│   ├── dependabot.yml
+│   └── workflows
+│       └── tests.yml
+├── .gitignore
+├── .npmrc
+├── package.json
+├── package-lock.json
+├── phpstan.neon
+├── phpunit.xml
+├── pint.json
+├── pnpm-workspace.yaml
+├── public
+│   ├── apple-touch-icon.png
+│   ├── brand
+│   │   ├── login-background.png
+│   │   └── wdems-logo.svg
+│   ├── favicon.ico
+│   ├── favicon.svg
+│   ├── fonts-manifest.dev.json
+│   ├── hot
+│   ├── .htaccess
+│   ├── index.php
+│   └── robots.txt
+├── README.md
+├── resources
+│   ├── css
+│   │   └── app.css
+│   ├── js
+│   │   ├── actions
+│   │   │   ├── App
+│   │   │   │   ├── Http
+│   │   │   │   │   ├── Controllers
+│   │   │   │   │   │   ├── AttendanceController.ts
+│   │   │   │   │   │   ├── DashboardController.ts
+│   │   │   │   │   │   ├── EventController.ts
+│   │   │   │   │   │   ├── EventDeletionController.ts
+│   │   │   │   │   │   ├── EventOptionController.ts
+│   │   │   │   │   │   ├── GoogleIntegrationController.ts
+│   │   │   │   │   │   ├── index.ts
+│   │   │   │   │   │   ├── RegistrationSetupController.ts
+│   │   │   │   │   │   └── Settings
+│   │   │   │   │   │       ├── index.ts
+│   │   │   │   │   │       ├── ProfileController.ts
+│   │   │   │   │   │       └── SecurityController.ts
+│   │   │   │   │   └── index.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── Illuminate
+│   │   │   │   ├── index.ts
+│   │   │   │   └── Routing
+│   │   │   │       ├── index.ts
+│   │   │   │       └── RedirectController.ts
+│   │   │   ├── Inertia
+│   │   │   │   ├── Controller.ts
+│   │   │   │   ├── DevTools
+│   │   │   │   │   ├── Http
+│   │   │   │   │   │   ├── EntriesController.ts
+│   │   │   │   │   │   └── index.ts
+│   │   │   │   │   └── index.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── Laravel
+│   │   │   │   ├── Fortify
+│   │   │   │   │   ├── Http
+│   │   │   │   │   │   ├── Controllers
+│   │   │   │   │   │   │   ├── AuthenticatedSessionController.ts
+│   │   │   │   │   │   │   ├── ConfirmablePasswordController.ts
+│   │   │   │   │   │   │   ├── ConfirmedPasswordStatusController.ts
+│   │   │   │   │   │   │   ├── EmailVerificationNotificationController.ts
+│   │   │   │   │   │   │   ├── EmailVerificationPromptController.ts
+│   │   │   │   │   │   │   ├── index.ts
+│   │   │   │   │   │   │   ├── NewPasswordController.ts
+│   │   │   │   │   │   │   ├── PasswordResetLinkController.ts
+│   │   │   │   │   │   │   └── VerifyEmailController.ts
+│   │   │   │   │   │   └── index.ts
+│   │   │   │   │   └── index.ts
+│   │   │   │   └── index.ts
+│   │   │   └── Resend
+│   │   │       ├── index.ts
+│   │   │       └── Laravel
+│   │   │           ├── Http
+│   │   │           │   ├── Controllers
+│   │   │           │   │   ├── index.ts
+│   │   │           │   │   └── WebhookController.ts
+│   │   │           │   └── index.ts
+│   │   │           └── index.ts
+│   │   ├── app.tsx
+│   │   ├── components
+│   │   │   ├── alert-error.tsx
+│   │   │   ├── app-content.tsx
+│   │   │   ├── appearance-tabs.tsx
+│   │   │   ├── app-header.tsx
+│   │   │   ├── app-logo-icon.tsx
+│   │   │   ├── app-logo.tsx
+│   │   │   ├── app-shell.tsx
+│   │   │   ├── app-sidebar-header.tsx
+│   │   │   ├── app-sidebar.tsx
+│   │   │   ├── breadcrumbs.tsx
+│   │   │   ├── confirm-dialog.tsx
+│   │   │   ├── date-picker.tsx
+│   │   │   ├── delete-user.tsx
+│   │   │   ├── event-deletion-otp-dialog.tsx
+│   │   │   ├── heading.tsx
+│   │   │   ├── input-error.tsx
+│   │   │   ├── nav-main.tsx
+│   │   │   ├── nav-user.tsx
+│   │   │   ├── password-input.tsx
+│   │   │   ├── question-editor-dialog.tsx
+│   │   │   ├── text-link.tsx
+│   │   │   ├── time-picker.tsx
+│   │   │   ├── ui
+│   │   │   │   ├── alert.tsx
+│   │   │   │   ├── avatar.tsx
+│   │   │   │   ├── badge.tsx
+│   │   │   │   ├── breadcrumb.tsx
+│   │   │   │   ├── button.tsx
+│   │   │   │   ├── card.tsx
+│   │   │   │   ├── checkbox.tsx
+│   │   │   │   ├── collapsible.tsx
+│   │   │   │   ├── dialog.tsx
+│   │   │   │   ├── dropdown-menu.tsx
+│   │   │   │   ├── icon.tsx
+│   │   │   │   ├── input.tsx
+│   │   │   │   ├── label.tsx
+│   │   │   │   ├── navigation-menu.tsx
+│   │   │   │   ├── placeholder-pattern.tsx
+│   │   │   │   ├── select.tsx
+│   │   │   │   ├── separator.tsx
+│   │   │   │   ├── sheet.tsx
+│   │   │   │   ├── sidebar.tsx
+│   │   │   │   ├── skeleton.tsx
+│   │   │   │   ├── sonner.tsx
+│   │   │   │   ├── spinner.tsx
+│   │   │   │   ├── toggle-group.tsx
+│   │   │   │   ├── toggle.tsx
+│   │   │   │   └── tooltip.tsx
+│   │   │   ├── user-info.tsx
+│   │   │   ├── user-menu-content.tsx
+│   │   │   └── wdems-logo.tsx
+│   │   ├── hooks
+│   │   │   ├── use-appearance.tsx
+│   │   │   ├── use-clipboard.ts
+│   │   │   ├── use-confirm-dialog.tsx
+│   │   │   ├── use-current-url.ts
+│   │   │   ├── use-flash-toast.ts
+│   │   │   ├── use-initials.tsx
+│   │   │   ├── use-mobile-navigation.ts
+│   │   │   └── use-mobile.tsx
+│   │   ├── layouts
+│   │   │   ├── app
+│   │   │   │   ├── app-header-layout.tsx
+│   │   │   │   └── app-sidebar-layout.tsx
+│   │   │   ├── app-layout.tsx
+│   │   │   ├── auth
+│   │   │   │   ├── auth-card-layout.tsx
+│   │   │   │   ├── auth-login-layout.tsx
+│   │   │   │   ├── auth-simple-layout.tsx
+│   │   │   │   └── auth-split-layout.tsx
+│   │   │   ├── auth-layout.tsx
+│   │   │   └── settings
+│   │   │       └── layout.tsx
+│   │   ├── lib
+│   │   │   └── utils.ts
+│   │   ├── pages
+│   │   │   ├── admin
+│   │   │   │   └── dashboard.tsx
+│   │   │   ├── auth
+│   │   │   │   ├── confirm-password.tsx
+│   │   │   │   ├── forgot-password.tsx
+│   │   │   │   ├── login.tsx
+│   │   │   │   ├── reset-password.tsx
+│   │   │   │   └── verify-email.tsx
+│   │   │   ├── dashboard.tsx
+│   │   │   ├── events
+│   │   │   │   ├── attendance.tsx
+│   │   │   │   ├── create.tsx
+│   │   │   │   ├── edit.tsx
+│   │   │   │   ├── index.tsx
+│   │   │   │   ├── options.tsx
+│   │   │   │   ├── registration-setup.tsx
+│   │   │   │   └── show.tsx
+│   │   │   ├── settings
+│   │   │   │   ├── appearance.tsx
+│   │   │   │   ├── google.tsx
+│   │   │   │   ├── profile.tsx
+│   │   │   │   └── security.tsx
+│   │   │   └── welcome.tsx
+│   │   ├── routes
+│   │   │   ├── admin
+│   │   │   │   └── index.ts
+│   │   │   ├── appearance
+│   │   │   │   └── index.ts
+│   │   │   ├── boost
+│   │   │   │   └── index.ts
+│   │   │   ├── events
+│   │   │   │   ├── attendance
+│   │   │   │   │   └── index.ts
+│   │   │   │   ├── deletion
+│   │   │   │   │   └── index.ts
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── options
+│   │   │   │   │   └── index.ts
+│   │   │   │   └── registration
+│   │   │   │       ├── index.ts
+│   │   │   │       └── setup
+│   │   │   │           ├── index.ts
+│   │   │   │           └── questions
+│   │   │   │               └── index.ts
+│   │   │   ├── google
+│   │   │   │   └── index.ts
+│   │   │   ├── index.ts
+│   │   │   ├── login
+│   │   │   │   └── index.ts
+│   │   │   ├── password
+│   │   │   │   ├── confirm
+│   │   │   │   │   └── index.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── profile
+│   │   │   │   └── index.ts
+│   │   │   ├── resend
+│   │   │   │   └── index.ts
+│   │   │   ├── security
+│   │   │   │   └── index.ts
+│   │   │   ├── settings
+│   │   │   │   ├── google
+│   │   │   │   │   └── index.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── user-password
+│   │   │   │   └── index.ts
+│   │   │   └── verification
+│   │   │       └── index.ts
+│   │   ├── types
+│   │   │   ├── auth.ts
+│   │   │   ├── global.d.ts
+│   │   │   ├── index.ts
+│   │   │   ├── navigation.ts
+│   │   │   ├── ui.ts
+│   │   │   └── vite-env.d.ts
+│   │   └── wayfinder
+│   │       └── index.ts
+│   └── views
+│       ├── app.blade.php
+│       └── emails
+│           └── event-deletion-otp.blade.php
+├── routes
+│   ├── console.php
+│   ├── settings.php
+│   └── web.php
+├── tests
+│   ├── Feature
+│   │   ├── Auth
+│   │   │   ├── AuthenticationTest.php
+│   │   │   ├── EmailVerificationTest.php
+│   │   │   ├── PasswordConfirmationTest.php
+│   │   │   ├── PasswordResetTest.php
+│   │   │   └── VerificationNotificationTest.php
+│   │   ├── DashboardTest.php
+│   │   ├── Events
+│   │   │   ├── EventDeletionAdminTest.php
+│   │   │   └── EventDeletionStaffTest.php
+│   │   ├── ExampleTest.php
+│   │   └── Settings
+│   │       ├── ProfileUpdateTest.php
+│   │       └── SecurityTest.php
+│   ├── Pest.php
+│   ├── TestCase.php
+│   └── Unit
+│       ├── ExampleTest.php
+│       └── Services
+│           └── EventDeletionOtpServiceTest.php
+├── tsconfig.json
+└── vite.config.ts
+
+100 directories, 293 files
