@@ -37,9 +37,9 @@ export default function Welcome() {
                         </h1>
 
                         <p className="mb-8 max-w-md text-base text-muted-foreground sm:text-lg">
-                            Centralized event operations from inquiry to
-                            completion. Secure access for authorized personnel
-                            only.
+                            Manage Community Run events from registration setup
+                            to attendance through a centralized workflow.
+                            Secure access for authorized personnel only.
                         </p>
 
                         <div className="flex flex-col gap-3 sm:flex-row">

@@ -52,8 +52,8 @@ export default function AuthLoginLayout({
                     </Link>
 
                     <p className="mt-10 text-base leading-relaxed text-white/85">
-                        Centralized event operations from inquiry to
-                        completion.
+                        Manage Community Run events from registration setup to
+                        attendance through a centralized workflow.
                     </p>
                     <p className="mt-2 text-sm text-white/60">
                         Secure access for authorized personnel only.
