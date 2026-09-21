@@ -17,12 +17,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'event_date',
     'start_time',
     'end_time',
+    'distance_value',
+    'distance_unit',
+    'course_url',
     'venue',
     'venue_address',
     'venue_latitude',
     'venue_longitude',
-    'distance_label',
-    'course_url',
     'status',
     'registration_start',
     'registration_end',
@@ -44,27 +45,23 @@ class Event extends Model
     protected function casts(): array
     {
         return [
-            // Existing
             'event_type' => EventType::class,
             'event_date' => 'date',
             'start_time' => 'datetime:H:i',
             'end_time' => 'datetime:H:i',
+            'distance_value' => 'decimal:2',
             'registration_start' => 'datetime',
             'registration_end' => 'datetime',
             'status' => EventStatus::class,
 
-            // Venue coordinates
             'venue_latitude' => 'decimal:7',
             'venue_longitude' => 'decimal:7',
 
-            // Registration extras
             'rsvp_required' => 'boolean',
 
-            // Structured JSON
             'partners' => 'array',
             'faq' => 'array',
 
-            // Accessibility booleans
             'walkers_welcome' => 'boolean',
             'all_paces_welcome' => 'boolean',
             'all_ages_welcome' => 'boolean',
@@ -132,10 +129,6 @@ class Event extends Model
         return $this->status === EventStatus::RegistrationOpen;
     }
 
-    /**
-     * Whether the event is in a state where attendance can be recorded.
-     * Attendance is meaningful once registration has opened.
-     */
     public function canRecordAttendance(): bool
     {
         return in_array($this->status, [
@@ -153,5 +146,21 @@ class Event extends Model
     public function isFunRun(): bool
     {
         return $this->event_type === EventType::FunRun;
+    }
+
+    /**
+     * Human-readable distance label — e.g. "5.00 KM" or "3.11 Miles".
+     * Returns null if no distance is set.
+     */
+    public function distanceLabel(): ?string
+    {
+        if ($this->distance_value === null) {
+            return null;
+        }
+
+        $unit = $this->distance_unit === 'mi' ? 'Miles' : 'KM';
+        $value = rtrim(rtrim(number_format((float) $this->distance_value, 2, '.', ''), '0'), '.');
+
+        return "{$value} {$unit}";
     }
 }

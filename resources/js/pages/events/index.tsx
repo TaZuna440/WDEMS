@@ -9,6 +9,7 @@ type EventRow = {
     event_type_label: string;
     event_date: string | null;
     venue: string | null;
+    distance_label: string | null;
     status: string;
     status_label: string;
     creator: string | null;
@@ -87,85 +88,93 @@ export default function EventsIndex({ events }: Props) {
                 ) : (
                     /* Table */
                     <div className="glass-panel overflow-hidden rounded-xl">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-white/10 text-left">
-                                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                        Event
-                                    </th>
-                                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                        Type
-                                    </th>
-                                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                        Date
-                                    </th>
-                                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                        Venue
-                                    </th>
-                                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                        Status
-                                    </th>
-                                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                        Created by
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {events.map((event) => (
-                                    <tr
-                                        key={event.id}
-                                        className="border-b border-white/5 transition-colors last:border-b-0 hover:bg-white/5"
-                                    >
-                                        <td className="px-6 py-4">
-                                            <Link
-                                                href={`/events/${event.id}`}
-                                                className="font-medium text-foreground hover:text-lime-brand"
-                                            >
-                                                {event.event_name}
-                                            </Link>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span
-                                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                    typeStyles[event.event_type] ??
-                                                    typeStyles.fun_run
-                                                }`}
-                                            >
-                                                {event.event_type_label}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-muted-foreground">
-                                            <span className="inline-flex items-center gap-2">
-                                                <Calendar className="h-3.5 w-3.5" />
-                                                {event.event_date ?? '—'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-muted-foreground">
-                                            <span className="inline-flex items-center gap-2">
-                                                <MapPin className="h-3.5 w-3.5" />
-                                                {event.venue ?? '—'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span
-                                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                    statusStyles[event.status] ??
-                                                    statusStyles.draft
-                                                }`}
-                                            >
-                                                {event.status_label}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-muted-foreground">
-                                            <span className="inline-flex items-center gap-2">
-                                                <User className="h-3.5 w-3.5" />
-                                                {event.creator ?? '—'}
-                                            </span>
-                                        </td>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-white/10 text-left">
+                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Event
+                                        </th>
+                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Type
+                                        </th>
+                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Date
+                                        </th>
+                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Distance
+                                        </th>
+                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Venue
+                                        </th>
+                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Status
+                                        </th>
+                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Created by
+                                        </th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {events.map((event) => (
+                                        <tr
+                                            key={event.id}
+                                            className="border-b border-white/5 transition-colors last:border-b-0 hover:bg-white/5"
+                                        >
+                                            <td className="px-6 py-4">
+                                                <Link
+                                                    href={`/events/${event.id}`}
+                                                    className="font-medium text-foreground hover:text-lime-brand"
+                                                >
+                                                    {event.event_name}
+                                                </Link>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span
+                                                    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                                                        typeStyles[event.event_type] ??
+                                                        typeStyles.fun_run
+                                                    }`}
+                                                >
+                                                    {event.event_type_label}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-muted-foreground">
+                                                <span className="inline-flex items-center gap-2">
+                                                    <Calendar className="h-3.5 w-3.5" />
+                                                    {event.event_date ?? '—'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-muted-foreground">
+                                                {event.distance_label ?? '—'}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-muted-foreground">
+                                                <span className="inline-flex items-center gap-2">
+                                                    <MapPin className="h-3.5 w-3.5" />
+                                                    {event.venue ?? '—'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span
+                                                    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                                                        statusStyles[event.status] ??
+                                                        statusStyles.draft
+                                                    }`}
+                                                >
+                                                    {event.status_label}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-muted-foreground">
+                                                <span className="inline-flex items-center gap-2">
+                                                    <User className="h-3.5 w-3.5" />
+                                                    {event.creator ?? '—'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>

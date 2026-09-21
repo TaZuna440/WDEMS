@@ -1,18 +1,10 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Save } from 'lucide-react';
-import DatePicker from '@/components/date-picker';
-import InputError from '@/components/input-error';
-import TimePicker from '@/components/time-picker';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { ArrowLeft } from 'lucide-react';
+import Wizard, { type WizardStepConfig } from '@/components/wizard';
+import BasicsStep from './step/BasicsStep';
+import ExtrasStep from './step/ExtrasStep';
+import ScheduleStep from './step/ScheduleStep';
+import VenueStep from './step/VenueStep';
 
 type EventTypeOption = {
     value: string;
@@ -23,19 +15,102 @@ type Props = {
     event_types: EventTypeOption[];
 };
 
+const STEPS: WizardStepConfig[] = [
+    {
+        id: 'basics',
+        label: 'Basics',
+        fields: ['event_type', 'event_name', 'description'],
+        requiredFields: ['event_type', 'event_name'],
+    },
+    {
+        id: 'schedule',
+        label: 'Schedule',
+        fields: [
+            'event_date',
+            'start_time',
+            'end_time',
+            'distance_value',
+            'distance_unit',
+            'course_url',
+        ],
+        requiredFields: [
+            'event_date',
+            'start_time',
+            'distance_value',
+            'distance_unit',
+        ],
+    },
+    {
+        id: 'venue',
+        label: 'Venue',
+        fields: [
+            'venue',
+            'venue_address',
+            'venue_latitude',
+            'venue_longitude',
+        ],
+        requiredFields: [
+            'venue',
+            'venue_address',
+            'venue_latitude',
+            'venue_longitude',
+        ],
+    },
+    {
+        id: 'extras',
+        label: 'Extras',
+        fields: [
+            'rsvp_required',
+            'partners',
+            'walkers_welcome',
+            'all_paces_welcome',
+            'all_ages_welcome',
+            'stroller_friendly',
+            'wheelchair_accessible',
+            'sweeper_present',
+            'service_animals_allowed',
+            'leashed_pets_allowed',
+            'quiet_space_available',
+        ],
+    },
+];
+
 export default function EventsCreate({ event_types }: Props) {
     const { data, setData, post, processing, errors } = useForm({
+        // Step 1 — Basics
         event_type: '',
         event_name: '',
         description: '',
+
+        // Step 2 — Schedule
         event_date: '',
         start_time: '',
         end_time: '',
+        distance_value: null as number | null,
+        distance_unit: 'km' as 'km' | 'mi',
+        course_url: '',
+
+        // Step 3 — Venue
         venue: '',
+        venue_address: '',
+        venue_latitude: null as number | null,
+        venue_longitude: null as number | null,
+
+        // Step 4 — Extras
+        rsvp_required: false,
+        partners: [] as { name: string; type: string }[],
+        walkers_welcome: false,
+        all_paces_welcome: false,
+        all_ages_welcome: false,
+        stroller_friendly: false,
+        wheelchair_accessible: false,
+        sweeper_present: false,
+        service_animals_allowed: false,
+        leashed_pets_allowed: false,
+        quiet_space_available: false,
     });
 
-    const submit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const submit = () => {
         post('/events');
     };
 
@@ -57,147 +132,61 @@ export default function EventsCreate({ event_types }: Props) {
                         Create Event
                     </h1>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Set up a new running event. Choose the event type
-                        first — it determines the workflow WDEMS will follow.
+                        Set up a new running event. Your progress is saved
+                        automatically — you can leave and come back.
                     </p>
                 </div>
 
-                <form
+                <Wizard
+                    steps={STEPS}
+                    storageKey="wdems-wizard-create"
+                    data={data}
+                    setData={setData}
+                    errors={errors as Record<string, string>}
+                    processing={processing}
                     onSubmit={submit}
-                    className="glass-panel flex flex-col gap-6 rounded-xl p-8"
+                    submitLabel="Create Event"
                 >
-                    <div className="grid gap-2">
-                        <Label htmlFor="event_type">
-                            Event Type{' '}
-                            <span className="text-destructive">*</span>
-                        </Label>
-                        <Select
-                            value={data.event_type}
-                            onValueChange={(value) =>
-                                setData('event_type', value)
-                            }
-                        >
-                            <SelectTrigger id="event_type">
-                                <SelectValue placeholder="Select event type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {event_types.map((type) => (
-                                    <SelectItem
-                                        key={type.value}
-                                        value={type.value}
-                                    >
-                                        {type.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <InputError message={errors.event_type} />
-                        <p className="text-xs text-muted-foreground">
-                            Event type cannot be changed after creation.
-                        </p>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="event_name">
-                            Event Name{' '}
-                            <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                            id="event_name"
-                            value={data.event_name}
-                            onChange={(e) =>
-                                setData('event_name', e.target.value)
-                            }
-                            required
-                            placeholder="e.g. Young Professionals Community Run #1"
-                        />
-                        <InputError message={errors.event_name} />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="description">Description</Label>
-                        <textarea
-                            id="description"
-                            value={data.description}
-                            onChange={(e) =>
-                                setData('description', e.target.value)
-                            }
-                            rows={3}
-                            className="border-input bg-input placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-20 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
-                            placeholder="Brief description of the event..."
-                        />
-                        <InputError message={errors.description} />
-                    </div>
-
-                    {/* Date + Times */}
-                    <div className="grid gap-4 sm:grid-cols-3">
-                        <div className="grid gap-2">
-                            <Label htmlFor="event_date">
-                                Event Date{' '}
-                                <span className="text-destructive">*</span>
-                            </Label>
-                            <DatePicker
-                                id="event_date"
-                                value={data.event_date}
-                                onChange={(v) => setData('event_date', v)}
-                                placeholder="Pick a date"
-                            />
-                            <InputError message={errors.event_date} />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="start_time">Start Time</Label>
-                            <TimePicker
-                                id="start_time"
-                                value={data.start_time}
-                                onChange={(v) => setData('start_time', v)}
-                            />
-                            <InputError message={errors.start_time} />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="end_time">End Time</Label>
-                            <TimePicker
-                                id="end_time"
-                                value={data.end_time}
-                                onChange={(v) => setData('end_time', v)}
-                            />
-                            <InputError message={errors.end_time} />
-                        </div>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="venue">Venue</Label>
-                        <Input
-                            id="venue"
-                            value={data.venue}
-                            onChange={(e) =>
-                                setData('venue', e.target.value)
-                            }
-                            placeholder="e.g. Sports Arena"
-                        />
-                        <InputError message={errors.venue} />
-                    </div>
-
-                    <div className="flex items-center justify-end gap-3 pt-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            asChild
-                            disabled={processing}
-                        >
-                            <Link href="/events">Cancel</Link>
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={processing}
-                            className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
-                        >
-                            <Save className="mr-2 h-4 w-4" />
-                            {processing ? 'Creating...' : 'Create Event'}
-                        </Button>
-                    </div>
-                </form>
+                    {(stepId) => {
+                        switch (stepId) {
+                            case 'basics':
+                                return (
+                                    <BasicsStep
+                                        data={data}
+                                        setData={setData}
+                                        errors={errors}
+                                        eventTypes={event_types}
+                                    />
+                                );
+                            case 'schedule':
+                                return (
+                                    <ScheduleStep
+                                        data={data}
+                                        setData={setData}
+                                        errors={errors}
+                                    />
+                                );
+                            case 'venue':
+                                return (
+                                    <VenueStep
+                                        data={data}
+                                        setData={setData}
+                                        errors={errors}
+                                    />
+                                );
+                            case 'extras':
+                                return (
+                                    <ExtrasStep
+                                        data={data}
+                                        setData={setData}
+                                        errors={errors}
+                                    />
+                                );
+                            default:
+                                return null;
+                        }
+                    }}
+                </Wizard>
             </div>
         </>
     );

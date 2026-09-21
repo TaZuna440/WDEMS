@@ -1,20 +1,39 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Save } from 'lucide-react';
-import DatePicker from '@/components/date-picker';
-import InputError from '@/components/input-error';
-import TimePicker from '@/components/time-picker';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { ArrowLeft } from 'lucide-react';
+import Wizard, { type WizardStepConfig } from '@/components/wizard';
+import BasicsStep from './step/BasicsStep';
+import ExtrasStep from './step/ExtrasStep';
+import ScheduleStep from './step/ScheduleStep';
+import VenueStep from './step/VenueStep';
 
 type EventData = {
     id: number;
+    event_type: string;
+    event_type_label: string;
     event_name: string;
     description: string | null;
     event_date: string | null;
     start_time: string | null;
     end_time: string | null;
+    distance_value: number | null;
+    distance_unit: string;
+    course_url: string | null;
     venue: string | null;
+    venue_address: string | null;
+    venue_latitude: number | null;
+    venue_longitude: number | null;
+    rsvp_required: boolean;
+    partners: { name: string; type: string }[] | null;
+    faq: { question: string; answer: string }[] | null;
+    walkers_welcome: boolean;
+    all_paces_welcome: boolean;
+    all_ages_welcome: boolean;
+    stroller_friendly: boolean;
+    wheelchair_accessible: boolean;
+    sweeper_present: boolean;
+    service_animals_allowed: boolean;
+    leashed_pets_allowed: boolean;
+    quiet_space_available: boolean;
     status: string;
     status_label: string;
 };
@@ -23,18 +42,112 @@ type Props = {
     event: EventData;
 };
 
+const STEPS: WizardStepConfig[] = [
+    {
+        id: 'basics',
+        label: 'Basics',
+        fields: ['event_type', 'event_name', 'description'],
+        requiredFields: ['event_name'],
+    },
+    {
+        id: 'schedule',
+        label: 'Schedule',
+        fields: [
+            'event_date',
+            'start_time',
+            'end_time',
+            'distance_value',
+            'distance_unit',
+            'course_url',
+        ],
+        requiredFields: [
+            'event_date',
+            'start_time',
+            'distance_value',
+            'distance_unit',
+        ],
+    },
+    {
+        id: 'venue',
+        label: 'Venue',
+        fields: [
+            'venue',
+            'venue_address',
+            'venue_latitude',
+            'venue_longitude',
+        ],
+        requiredFields: [
+            'venue',
+            'venue_address',
+            'venue_latitude',
+            'venue_longitude',
+        ],
+    },
+    {
+        id: 'extras',
+        label: 'Extras',
+        fields: [
+            'rsvp_required',
+            'partners',
+            'walkers_welcome',
+            'all_paces_welcome',
+            'all_ages_welcome',
+            'stroller_friendly',
+            'wheelchair_accessible',
+            'sweeper_present',
+            'service_animals_allowed',
+            'leashed_pets_allowed',
+            'quiet_space_available',
+        ],
+    },
+];
+
+function normalizeDistance(value: number | string | null): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    return isNaN(num) ? null : num;
+}
+
+function normalizeUnit(unit: string): 'km' | 'mi' {
+    return unit === 'mi' ? 'mi' : 'km';
+}
+
 export default function EventsEdit({ event }: Props) {
     const { data, setData, put, processing, errors } = useForm({
-        event_name: event.event_name ?? '',
+        // Step 1 — Basics
+        event_type: event.event_type,
+        event_name: event.event_name,
         description: event.description ?? '',
+
+        // Step 2 — Schedule
         event_date: event.event_date ?? '',
         start_time: event.start_time ?? '',
         end_time: event.end_time ?? '',
+        distance_value: normalizeDistance(event.distance_value),
+        distance_unit: normalizeUnit(event.distance_unit),
+        course_url: event.course_url ?? '',
+
+        // Step 3 — Venue
         venue: event.venue ?? '',
+        venue_address: event.venue_address ?? '',
+        venue_latitude: event.venue_latitude,
+        venue_longitude: event.venue_longitude,
+
+        // Step 4 — Extras
+        rsvp_required: event.rsvp_required,
+        partners: event.partners ?? [],
+        walkers_welcome: event.walkers_welcome,
+        all_paces_welcome: event.all_paces_welcome,
+        all_ages_welcome: event.all_ages_welcome,
+        stroller_friendly: event.stroller_friendly,
+        wheelchair_accessible: event.wheelchair_accessible,
+        sweeper_present: event.sweeper_present,
+        service_animals_allowed: event.service_animals_allowed,
+        leashed_pets_allowed: event.leashed_pets_allowed,
+        quiet_space_available: event.quiet_space_available,
     });
 
-    const submit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const submit = () => {
         put(`/events/${event.id}`);
     };
 
@@ -65,109 +178,62 @@ export default function EventsEdit({ event }: Props) {
                     </div>
                 </div>
 
-                <form
+                <Wizard
+                    steps={STEPS}
+                    storageKey={`wdems-wizard-edit-${event.id}`}
+                    data={data}
+                    setData={setData}
+                    errors={errors as Record<string, string>}
+                    processing={processing}
                     onSubmit={submit}
-                    className="glass-panel flex flex-col gap-6 rounded-xl p-8"
+                    submitLabel="Save Changes"
                 >
-                    <div className="grid gap-2">
-                        <Label htmlFor="event_name">
-                            Event Name{' '}
-                            <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                            id="event_name"
-                            value={data.event_name}
-                            onChange={(e) =>
-                                setData('event_name', e.target.value)
-                            }
-                            required
-                            autoFocus
-                        />
-                        <InputError message={errors.event_name} />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="description">Description</Label>
-                        <textarea
-                            id="description"
-                            value={data.description}
-                            onChange={(e) =>
-                                setData('description', e.target.value)
-                            }
-                            rows={3}
-                            className="border-input bg-input placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-20 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
-                        />
-                        <InputError message={errors.description} />
-                    </div>
-
-                    {/* Date + Times */}
-                    <div className="grid gap-4 sm:grid-cols-3">
-                        <div className="grid gap-2">
-                            <Label htmlFor="event_date">
-                                Event Date{' '}
-                                <span className="text-destructive">*</span>
-                            </Label>
-                            <DatePicker
-                                id="event_date"
-                                value={data.event_date}
-                                onChange={(v) => setData('event_date', v)}
-                                placeholder="Pick a date"
-                            />
-                            <InputError message={errors.event_date} />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="start_time">Start Time</Label>
-                            <TimePicker
-                                id="start_time"
-                                value={data.start_time}
-                                onChange={(v) => setData('start_time', v)}
-                            />
-                            <InputError message={errors.start_time} />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="end_time">End Time</Label>
-                            <TimePicker
-                                id="end_time"
-                                value={data.end_time}
-                                onChange={(v) => setData('end_time', v)}
-                            />
-                            <InputError message={errors.end_time} />
-                        </div>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="venue">Venue</Label>
-                        <Input
-                            id="venue"
-                            value={data.venue}
-                            onChange={(e) =>
-                                setData('venue', e.target.value)
-                            }
-                        />
-                        <InputError message={errors.venue} />
-                    </div>
-
-                    <div className="flex items-center justify-end gap-3 pt-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            asChild
-                            disabled={processing}
-                        >
-                            <Link href={`/events/${event.id}`}>Cancel</Link>
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={processing}
-                            className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
-                        >
-                            <Save className="mr-2 h-4 w-4" />
-                            {processing ? 'Saving...' : 'Save Changes'}
-                        </Button>
-                    </div>
-                </form>
+                    {(stepId) => {
+                        switch (stepId) {
+                            case 'basics':
+                                return (
+                                    <BasicsStep
+                                        data={data}
+                                        setData={setData}
+                                        errors={errors}
+                                        eventTypes={[
+                                            {
+                                                value: event.event_type,
+                                                label: event.event_type_label,
+                                            },
+                                        ]}
+                                        isEdit
+                                    />
+                                );
+                            case 'schedule':
+                                return (
+                                    <ScheduleStep
+                                        data={data}
+                                        setData={setData}
+                                        errors={errors}
+                                    />
+                                );
+                            case 'venue':
+                                return (
+                                    <VenueStep
+                                        data={data}
+                                        setData={setData}
+                                        errors={errors}
+                                    />
+                                );
+                            case 'extras':
+                                return (
+                                    <ExtrasStep
+                                        data={data}
+                                        setData={setData}
+                                        errors={errors}
+                                    />
+                                );
+                            default:
+                                return null;
+                        }
+                    }}
+                </Wizard>
             </div>
         </>
     );
@@ -175,7 +241,7 @@ export default function EventsEdit({ event }: Props) {
 
 EventsEdit.layout = {
     breadcrumbs: [
-        { title: 'Events', href: '/events' },
+        { title: 'Events', href: '#' },
         { title: 'Edit', href: '#' },
     ],
 };
