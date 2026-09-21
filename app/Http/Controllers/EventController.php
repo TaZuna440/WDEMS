@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Enums\EventStatus;
 use App\Enums\EventType;
+use App\Http\Requests\EventRequest;
 use App\Models\Event;
 use App\Services\EventWorkflow;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,6 +28,7 @@ class EventController extends Controller
                 'event_type_label' => $event->event_type->label(),
                 'event_date' => $event->event_date?->toDateString(),
                 'venue' => $event->venue,
+                'distance_label' => $event->distance_label,
                 'status' => $event->status->value,
                 'status_label' => $event->status->label(),
                 'creator' => $event->creator?->name,
@@ -54,6 +55,23 @@ class EventController extends Controller
                 'start_time' => $event->start_time?->format('H:i'),
                 'end_time' => $event->end_time?->format('H:i'),
                 'venue' => $event->venue,
+                'venue_address' => $event->venue_address,
+                'venue_latitude' => $event->venue_latitude,
+                'venue_longitude' => $event->venue_longitude,
+                'distance_label' => $event->distance_label,
+                'course_url' => $event->course_url,
+                'rsvp_required' => $event->rsvp_required,
+                'partners' => $event->partners,
+                'faq' => $event->faq,
+                'walkers_welcome' => $event->walkers_welcome,
+                'all_paces_welcome' => $event->all_paces_welcome,
+                'all_ages_welcome' => $event->all_ages_welcome,
+                'stroller_friendly' => $event->stroller_friendly,
+                'wheelchair_accessible' => $event->wheelchair_accessible,
+                'sweeper_present' => $event->sweeper_present,
+                'service_animals_allowed' => $event->service_animals_allowed,
+                'leashed_pets_allowed' => $event->leashed_pets_allowed,
+                'quiet_space_available' => $event->quiet_space_available,
                 'status' => $event->status->value,
                 'status_label' => $event->status->label(),
                 'registration_start' => $event->registration_start?->toDateTimeString(),
@@ -83,17 +101,9 @@ class EventController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(EventRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'event_type' => ['required', Rule::enum(EventType::class)],
-            'event_name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:2000'],
-            'event_date' => ['required', 'date'],
-            'start_time' => ['nullable', 'date_format:H:i'],
-            'end_time' => ['nullable', 'date_format:H:i'],
-            'venue' => ['nullable', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         Event::create([
             'created_by' => $request->user()->id,
@@ -103,7 +113,24 @@ class EventController extends Controller
             'event_date' => $validated['event_date'],
             'start_time' => $validated['start_time'] ?? null,
             'end_time' => $validated['end_time'] ?? null,
-            'venue' => $validated['venue'] ?? null,
+            'venue' => $validated['venue'],
+            'venue_address' => $validated['venue_address'],
+            'venue_latitude' => $validated['venue_latitude'],
+            'venue_longitude' => $validated['venue_longitude'],
+            'distance_label' => $validated['distance_label'] ?? null,
+            'course_url' => $validated['course_url'] ?? null,
+            'rsvp_required' => $validated['rsvp_required'] ?? false,
+            'partners' => $validated['partners'] ?? null,
+            'faq' => $this->defaultFaq(),
+            'walkers_welcome' => $validated['walkers_welcome'] ?? false,
+            'all_paces_welcome' => $validated['all_paces_welcome'] ?? false,
+            'all_ages_welcome' => $validated['all_ages_welcome'] ?? false,
+            'stroller_friendly' => $validated['stroller_friendly'] ?? false,
+            'wheelchair_accessible' => $validated['wheelchair_accessible'] ?? false,
+            'sweeper_present' => $validated['sweeper_present'] ?? false,
+            'service_animals_allowed' => $validated['service_animals_allowed'] ?? false,
+            'leashed_pets_allowed' => $validated['leashed_pets_allowed'] ?? false,
+            'quiet_space_available' => $validated['quiet_space_available'] ?? false,
             'status' => EventStatus::Draft,
         ]);
 
@@ -119,6 +146,7 @@ class EventController extends Controller
         return Inertia::render('events/edit', [
             'event' => [
                 'id' => $event->id,
+                'event_type' => $event->event_type->value,
                 'event_type_label' => $event->event_type->label(),
                 'event_name' => $event->event_name,
                 'description' => $event->description,
@@ -126,26 +154,36 @@ class EventController extends Controller
                 'start_time' => $event->start_time?->format('H:i'),
                 'end_time' => $event->end_time?->format('H:i'),
                 'venue' => $event->venue,
+                'venue_address' => $event->venue_address,
+                'venue_latitude' => $event->venue_latitude,
+                'venue_longitude' => $event->venue_longitude,
+                'distance_label' => $event->distance_label,
+                'course_url' => $event->course_url,
+                'rsvp_required' => $event->rsvp_required,
+                'partners' => $event->partners,
+                'faq' => $event->faq,
+                'walkers_welcome' => $event->walkers_welcome,
+                'all_paces_welcome' => $event->all_paces_welcome,
+                'all_ages_welcome' => $event->all_ages_welcome,
+                'stroller_friendly' => $event->stroller_friendly,
+                'wheelchair_accessible' => $event->wheelchair_accessible,
+                'sweeper_present' => $event->sweeper_present,
+                'service_animals_allowed' => $event->service_animals_allowed,
+                'leashed_pets_allowed' => $event->leashed_pets_allowed,
+                'quiet_space_available' => $event->quiet_space_available,
                 'status' => $event->status->value,
                 'status_label' => $event->status->label(),
             ],
         ]);
     }
 
-    public function update(Request $request, Event $event): RedirectResponse
+    public function update(EventRequest $request, Event $event): RedirectResponse
     {
         if (! $event->canEdit()) {
             abort(403, 'This event can no longer be edited.');
         }
 
-        $validated = $request->validate([
-            'event_name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:2000'],
-            'event_date' => ['required', 'date'],
-            'start_time' => ['nullable', 'date_format:H:i'],
-            'end_time' => ['nullable', 'date_format:H:i'],
-            'venue' => ['nullable', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $event->update([
             'event_name' => $validated['event_name'],
@@ -153,7 +191,23 @@ class EventController extends Controller
             'event_date' => $validated['event_date'],
             'start_time' => $validated['start_time'] ?? null,
             'end_time' => $validated['end_time'] ?? null,
-            'venue' => $validated['venue'] ?? null,
+            'venue' => $validated['venue'],
+            'venue_address' => $validated['venue_address'],
+            'venue_latitude' => $validated['venue_latitude'],
+            'venue_longitude' => $validated['venue_longitude'],
+            'distance_label' => $validated['distance_label'] ?? null,
+            'course_url' => $validated['course_url'] ?? null,
+            'rsvp_required' => $validated['rsvp_required'] ?? false,
+            'partners' => $validated['partners'] ?? null,
+            'walkers_welcome' => $validated['walkers_welcome'] ?? false,
+            'all_paces_welcome' => $validated['all_paces_welcome'] ?? false,
+            'all_ages_welcome' => $validated['all_ages_welcome'] ?? false,
+            'stroller_friendly' => $validated['stroller_friendly'] ?? false,
+            'wheelchair_accessible' => $validated['wheelchair_accessible'] ?? false,
+            'sweeper_present' => $validated['sweeper_present'] ?? false,
+            'service_animals_allowed' => $validated['service_animals_allowed'] ?? false,
+            'leashed_pets_allowed' => $validated['leashed_pets_allowed'] ?? false,
+            'quiet_space_available' => $validated['quiet_space_available'] ?? false,
         ]);
 
         return redirect()->route('events.show', $event);
@@ -210,5 +264,40 @@ class EventController extends Controller
         $workflow->closeRegistration($event);
 
         return redirect()->route('events.show', $event);
+    }
+
+    /**
+     * Default FAQ entries seeded on event creation.
+     *
+     * @return array<int, array{question: string, answer: string}>
+     */
+    private function defaultFaq(): array
+    {
+        return [
+            [
+                'question' => 'Is it OK if I walk?',
+                'answer' => 'Yes — all paces are welcome. A sweeper stays at the back so nobody is left alone.',
+            ],
+            [
+                'question' => 'Can I bring my family?',
+                'answer' => 'Yes — all ages are welcome. Strollers and young children are fine unless noted otherwise.',
+            ],
+            [
+                'question' => 'Are dogs allowed?',
+                'answer' => 'Friendly, leashed dogs are welcome at most events. Check the accessibility section for this specific event.',
+            ],
+            [
+                'question' => 'Do I need to RSVP?',
+                'answer' => 'Check the event details — some events ask for a headcount while others welcome walk-ins.',
+            ],
+            [
+                'question' => 'What should I bring?',
+                'answer' => 'Water, comfortable running shoes, and weather-appropriate clothing.',
+            ],
+            [
+                'question' => 'Where do we meet?',
+                'answer' => 'See the venue address above. Arrive 10–15 minutes early to check in.',
+            ],
+        ];
     }
 }

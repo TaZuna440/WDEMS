@@ -18,15 +18,33 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'start_time',
     'end_time',
     'venue',
+    'venue_address',
+    'venue_latitude',
+    'venue_longitude',
+    'distance_label',
+    'course_url',
     'status',
     'registration_start',
     'registration_end',
+    'rsvp_required',
+    'partners',
+    'faq',
+    'walkers_welcome',
+    'all_paces_welcome',
+    'all_ages_welcome',
+    'stroller_friendly',
+    'wheelchair_accessible',
+    'sweeper_present',
+    'service_animals_allowed',
+    'leashed_pets_allowed',
+    'quiet_space_available',
 ])]
 class Event extends Model
 {
     protected function casts(): array
     {
         return [
+            // Existing
             'event_type' => EventType::class,
             'event_date' => 'date',
             'start_time' => 'datetime:H:i',
@@ -34,6 +52,28 @@ class Event extends Model
             'registration_start' => 'datetime',
             'registration_end' => 'datetime',
             'status' => EventStatus::class,
+
+            // Venue coordinates
+            'venue_latitude' => 'decimal:7',
+            'venue_longitude' => 'decimal:7',
+
+            // Registration extras
+            'rsvp_required' => 'boolean',
+
+            // Structured JSON
+            'partners' => 'array',
+            'faq' => 'array',
+
+            // Accessibility booleans
+            'walkers_welcome' => 'boolean',
+            'all_paces_welcome' => 'boolean',
+            'all_ages_welcome' => 'boolean',
+            'stroller_friendly' => 'boolean',
+            'wheelchair_accessible' => 'boolean',
+            'sweeper_present' => 'boolean',
+            'service_animals_allowed' => 'boolean',
+            'leashed_pets_allowed' => 'boolean',
+            'quiet_space_available' => 'boolean',
         ];
     }
 
