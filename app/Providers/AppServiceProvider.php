@@ -41,15 +41,19 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
-        Password::defaults(fn (): ?Password => app()->isProduction()
-            ? Password::min(12)
+        Password::defaults(function (): Password {
+            $rules = Password::min(8)
                 ->mixedCase()
                 ->letters()
                 ->numbers()
-                ->symbols()
-                ->uncompromised()
-            : null,
-        );
+                ->symbols();
+
+            // The uncompromised() check hits a live API. Skip it in
+            // testing to keep the suite fast and network-independent.
+            return app()->environment('testing')
+                ? $rules
+                : $rules->uncompromised();
+        });
     }
 
     /**

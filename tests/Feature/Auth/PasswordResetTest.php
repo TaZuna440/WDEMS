@@ -49,11 +49,13 @@ test('password can be reset with valid token', function () {
     $this->post(route('password.email'), ['email' => $user->email]);
 
     Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+        $newPassword = 'Wdems@Secure2026!';
+
         $response = $this->post(route('password.update'), [
             'token' => $notification->token,
             'email' => $user->email,
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => $newPassword,
+            'password_confirmation' => $newPassword,
         ]);
 
         $response
@@ -70,8 +72,8 @@ test('password cannot be reset with invalid token', function () {
     $response = $this->post(route('password.update'), [
         'token' => 'invalid-token',
         'email' => $user->email,
-        'password' => 'newpassword123',
-        'password_confirmation' => 'newpassword123',
+        'password' => 'Wdems@Secure2026!',
+        'password_confirmation' => 'Wdems@Secure2026!',
     ]);
 
     $response->assertSessionHasErrors('email');

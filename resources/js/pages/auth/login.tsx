@@ -88,8 +88,8 @@ export default function Login({ status, canResetPassword }: Props) {
                                 Security notice
                             </p>
                             <p className="text-muted-foreground">
-                                Repeated failed attempts lock the account, not
-                                the whole login page.
+                                Repeated failed attempts are slowed to prevent
+                                abuse.
                             </p>
                         </div>
                     </>
