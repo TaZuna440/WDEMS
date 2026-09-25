@@ -3,7 +3,6 @@ import { useState } from 'react';
 import {
     ArrowLeft,
     Calendar,
-    ChevronDown,
     ClipboardCheck,
     Clock,
     ExternalLink,
@@ -16,22 +15,12 @@ import {
     UserMinus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import EventDeletionOtpDialog from '@/components/event-deletion-otp-dialog';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 
 type Partner = {
     name: string;
     type: string;
-};
-
-type FaqEntry = {
-    question: string;
-    answer: string;
 };
 
 type EventData = {
@@ -50,7 +39,6 @@ type EventData = {
     distance_label: string | null;
     course_url: string | null;
     partners: Partner[] | null;
-    faq: FaqEntry[] | null;
     walkers_welcome: boolean;
     all_paces_welcome: boolean;
     all_ages_welcome: boolean;
@@ -143,26 +131,6 @@ function DetailRow({
     );
 }
 
-function FaqItem({ entry }: { entry: FaqEntry }) {
-    const [open, setOpen] = useState(false);
-
-    return (
-        <Collapsible open={open} onOpenChange={setOpen}>
-            <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-white/[0.04]">
-                {entry.question}
-                <ChevronDown
-                    className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
-                        open ? 'rotate-180' : ''
-                    }`}
-                />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="px-4 pt-2 pb-3 text-sm text-muted-foreground">
-                {entry.answer}
-            </CollapsibleContent>
-        </Collapsible>
-    );
-}
-
 export default function EventsShow({
     event,
     related,
@@ -174,15 +142,10 @@ export default function EventsShow({
     const [otpOpen, setOtpOpen] = useState(false);
 
     // The registration form is editable only while the event is Draft.
-    // After Open Registration, the form is locked. The show page uses
-    // this to enable/disable the "Create Registration Form" action.
-    // The server enforces the same rule via canEditRegistrationForm().
     const canEditRegistrationForm = event.status === 'draft';
 
     // Open Registration is enabled by the server only when the event is
-    // Draft AND the registration form has been saved at least once. The
-    // disabled tooltip explains both cases so the organizer knows which
-    // prerequisite is missing.
+    // Draft AND the registration form has been saved at least once.
     const openRegistrationTooltip =
         event.status === 'draft'
             ? 'Save the registration form first.'
@@ -248,8 +211,6 @@ export default function EventsShow({
     );
 
     const hasPartners = event.partners !== null && event.partners.length > 0;
-
-    const hasFaq = event.faq !== null && event.faq.length > 0;
 
     const hasCoordinates =
         event.venue_latitude !== null && event.venue_longitude !== null;
@@ -457,20 +418,6 @@ export default function EventsShow({
                                         </li>
                                     ))}
                                 </ul>
-                            </div>
-                        )}
-
-                        {/* FAQ */}
-                        {hasFaq && (
-                            <div className="glass-panel rounded-xl p-6">
-                                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                                    Frequently Asked Questions
-                                </h2>
-                                <div className="flex flex-col gap-2">
-                                    {event.faq!.map((entry, i) => (
-                                        <FaqItem key={i} entry={entry} />
-                                    ))}
-                                </div>
                             </div>
                         )}
                     </div>

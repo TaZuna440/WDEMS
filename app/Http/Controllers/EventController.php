@@ -64,7 +64,6 @@ class EventController extends Controller
                 'venue_latitude' => $event->venue_latitude,
                 'venue_longitude' => $event->venue_longitude,
                 'partners' => $event->partners,
-                'faq' => $event->faq,
                 'walkers_welcome' => $event->walkers_welcome,
                 'all_paces_welcome' => $event->all_paces_welcome,
                 'all_ages_welcome' => $event->all_ages_welcome,
@@ -125,7 +124,6 @@ class EventController extends Controller
             'venue_latitude' => $validated['venue_latitude'] ?? null,
             'venue_longitude' => $validated['venue_longitude'] ?? null,
             'partners' => $validated['partners'] ?? null,
-            'faq' => $this->defaultFaq(),
             'walkers_welcome' => $validated['walkers_welcome'] ?? false,
             'all_paces_welcome' => $validated['all_paces_welcome'] ?? false,
             'all_ages_welcome' => $validated['all_ages_welcome'] ?? false,
@@ -166,7 +164,6 @@ class EventController extends Controller
                 'venue_latitude' => $event->venue_latitude,
                 'venue_longitude' => $event->venue_longitude,
                 'partners' => $event->partners,
-                'faq' => $event->faq,
                 'walkers_welcome' => $event->walkers_welcome,
                 'all_paces_welcome' => $event->all_paces_welcome,
                 'all_ages_welcome' => $event->all_ages_welcome,
@@ -219,7 +216,6 @@ class EventController extends Controller
         return redirect()->route('events.show', $event);
     }
 
-
     public function openRegistration(Event $event): RedirectResponse
     {
         if (! $event->canOpenRegistration()) {
@@ -258,40 +254,5 @@ class EventController extends Controller
         $workflow->closeRegistration($event);
 
         return redirect()->route('events.show', $event);
-    }
-
-    /**
-     * Default FAQ entries seeded on event creation.
-     *
-     * @return array<int, array{question: string, answer: string}>
-     */
-    private function defaultFaq(): array
-    {
-        return [
-            [
-                'question' => 'Is it OK if I walk?',
-                'answer' => 'Yes — all paces are welcome. A sweeper stays at the back so nobody is left alone.',
-            ],
-            [
-                'question' => 'Can I bring my family?',
-                'answer' => 'Yes — all ages are welcome. Strollers and young children are fine unless noted otherwise.',
-            ],
-            [
-                'question' => 'Are dogs allowed?',
-                'answer' => 'Friendly, leashed dogs are welcome at most events. Check the accessibility section for this specific event.',
-            ],
-            [
-                'question' => 'Do I need to RSVP?',
-                'answer' => 'Check the event details — some events ask for a headcount while others welcome walk-ins.',
-            ],
-            [
-                'question' => 'What should I bring?',
-                'answer' => 'Water, comfortable running shoes, and weather-appropriate clothing.',
-            ],
-            [
-                'question' => 'Where do we meet?',
-                'answer' => 'See the venue address above. Arrive 10–15 minutes early to check in.',
-            ],
-        ];
     }
 }

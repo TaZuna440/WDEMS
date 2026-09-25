@@ -30,7 +30,6 @@ type EventData = {
     venue_latitude: number | null;
     venue_longitude: number | null;
     partners: { name: string; type: string }[] | null;
-    faq: { question: string; answer: string }[] | null;
     walkers_welcome: boolean;
     all_paces_welcome: boolean;
     all_ages_welcome: boolean;

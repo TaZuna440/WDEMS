@@ -30,7 +30,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'registration_end',
     'registration_form_saved_at',
     'partners',
-    'faq',
     'walkers_welcome',
     'all_paces_welcome',
     'all_ages_welcome',
@@ -60,7 +59,6 @@ class Event extends Model
             'venue_longitude' => 'decimal:7',
 
             'partners' => 'array',
-            'faq' => 'array',
 
             'walkers_welcome' => 'boolean',
             'all_paces_welcome' => 'boolean',
