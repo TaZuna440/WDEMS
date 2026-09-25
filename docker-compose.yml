@@ -1,0 +1,89 @@
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wdems-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: wdems
+      DB_USERNAME: wdems
+      DB_PASSWORD: wdems_password
+
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    volumes:
+      - wdems-storage:/var/www/html/storage
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wdems-worker
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: wdems
+      DB_USERNAME: wdems
+      DB_PASSWORD: wdems_password
+
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    volumes:
+      - wdems-storage:/var/www/html/storage
+
+  db:
+    image: mysql:8.0
+    container_name: wdems-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: wdems
+      MYSQL_USER: wdems
+      MYSQL_PASSWORD: wdems_password
+      MYSQL_ROOT_PASSWORD: wdems_root_password
+      MYSQL_INITDB_SKIP_TZINFO: "1"
+
+    ports:
+      - "3307:3306"
+
+    volumes:
+      - wdems-db:/var/lib/mysql
+
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 180s
+
+
+volumes:
+  wdems-db:
+  wdems-storage:
