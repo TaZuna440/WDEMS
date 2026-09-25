@@ -300,3 +300,47 @@ implementation.
 ## Changelog
 
 - **2026-09-25** — File created. Spec for the registration feature.
+
+---
+
+## Corrections
+
+### §5 field types — `textarea` added
+
+The field type list in §5 originally read:
+
+    text, number, email, select, checkbox, radio, date
+
+A `textarea` type is now included. Use case: long-form text — dietary
+restrictions, medical notes, "anything else we should know." Rendered
+as a `<textarea>` with a character counter, not a single-line input.
+
+Current v1 list:
+
+    text, textarea, number, email, select, checkbox, radio, date
+
+### §5 example use cases — distance removed
+
+Earlier drafts of the Phase 2 discussion (not this spec — see
+`docs/registration-development-plan.md`) listed "distance preference"
+as an example for a `select` field. That example is discarded. The
+event already declares `distance_value` and `distance_unit`, so every
+participant does the same distance. Multi-distance events are a
+separate future feature, not v1.
+
+### Validation
+
+The spec §5 statement "custom field rules mirror `EventValidationRules`
+conventions" stands. The concrete input strategy — HTML5 types,
+autocomplete hints, phone regex, inline hints, blur-time validation,
+client-server mirror — is recorded in
+`docs/registration-development-plan.md` under "Validation strategy —
+improved inputs."
+
+AI-assisted validation is out of scope for v1. See the same section
+for rationale.
+
+## Changelog addendum
+
+- **2026-09-25** — `textarea` added to §5 field types. Distance
+  example removed. Validation strategy cross-referenced.

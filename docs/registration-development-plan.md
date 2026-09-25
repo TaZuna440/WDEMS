@@ -810,3 +810,121 @@ the next session sees them before starting.
   recorded (Open Registration clickable, no URL behind it). C-1, C-3,
   C-6, C-7 resolved. C-2, C-4, C-5 deferred. Three Phase 2 decisions
   recorded.
+
+---
+
+## Phase 2 decisions (2026-09-25)
+
+Three decisions answered before Phase 2 code begins. All three reshape
+the Phase 2 scope from what the original section said.
+
+### D1 — New `registration_fields` table, not an extension
+
+The Phase 2 plan originally said "extend `event_options` with
+`field_type`, `validation_rules`, `display_order`." That is rejected.
+
+**Reason.** `event_options` models choices (one row per shirt size). A
+form field models a field with nested choices (one row per field, with
+`options` as a JSON array). Extending the existing table would require
+overloading `option_name` to sometimes mean "field label" and sometimes
+mean "choice value" — a semantic ambiguity future readers cannot
+resolve from column names alone.
+
+**Decision.** New table `registration_fields`:
+
+    id, event_id (FK, cascade), label, field_type, options (JSON nullable),
+    validation_rules (JSON nullable), is_required (bool),
+    display_order (int), created_at, updated_at
+
+**Deprecation path.** `event_options` is not dropped in Phase 2. It has
+no live rows. Phase 6 cleanup drops it in a single migration.
+
+### D2 — Walk-in email optional
+
+The spec §4 lists `email` as required on the common fields. Walk-ins
+added on-site may not have one.
+
+**Decision.** Public submission form: email required, validated,
+unique per event. Walk-in form: email optional; if blank, no duplicate
+check runs.
+
+**Data separation.** `registrations.source` distinguishes walk-in from
+pre-registered. Walk-in data is often paper-based and less complete —
+allowing a null email on walk-ins keeps the schema honest about what
+was actually captured.
+
+**Action item.** Verify `participants.email` is nullable in the schema
+during Phase 2. If not, a small migration is required.
+
+### D3 — Seven field types plus `textarea`
+
+**Decision.** The v1 field-type list is:
+
+- `text`
+- `textarea` (new)
+- `number`
+- `email`
+- `select`
+- `checkbox`
+- `radio`
+- `date`
+
+**Removed from consideration.** "Distance preference" as an example
+use case. The event already declares `distance_value` and
+`distance_unit` — every participant does the same distance. Multi-
+distance events (5K/10K/half at one venue) are a separate future
+feature not in v1 scope.
+
+### Validation strategy — improved inputs
+
+The spec §5 says custom field rules mirror `EventValidationRules`.
+Concrete plan for Phase 2:
+
+**HTML5 input mapping:**
+
+| Field type | Rendered input |
+|---|---|
+| `text` | `<input type="text">` |
+| `textarea` | `<textarea>` with character counter |
+| `number` | `<input type="number" inputmode="numeric">` |
+| `email` | `<input type="email" inputmode="email" autocomplete="email">` |
+| `date` | `<input type="date">` |
+| `select` / `radio` / `checkbox` | native controls |
+
+**Autocomplete hints** on common participant fields — `given-name`,
+`family-name`, `email`, `tel` — for browser autofill from the user's
+saved contact card.
+
+**Phone validation** — `inputmode="tel"` for the mobile keyboard, plus
+a loose regex `+?\d[\d\s\-()]{8,15}` that accepts international formats
+without rejecting legitimate variation.
+
+**Inline hints** under each common field (first name, email, contact,
+age) explaining the expected input.
+
+**Real-time validation** on blur only — never on keystroke. Valid
+inputs get a subtle tick; invalid inputs get a red border and inline
+error. Typing is never blocked.
+
+**Client-server mirror.** Every rule has an identical server-side
+counterpart in `app/Concerns/RegistrationFormValidationRules.php` (or
+similar). Client gives fast feedback; server remains authoritative.
+
+### AI validation — out of scope
+
+Considered and rejected for v1. An LLM in the submit path adds latency
+(1–3s per submission), non-determinism (same input, different answers),
+privacy concerns (participant PII sent to a third party), and cost.
+The HTML5 + regex + autocomplete approach catches the same 95% that a
+per-field LLM would — deterministically, offline, at zero cost.
+
+If AI-assisted review is ever added, it belongs as a batch background
+job (Phase 7+) that flags suspicious submissions for organizer review,
+not in the field-level validation path.
+
+## Changelog addendum
+
+- **2026-09-25** — Phase 2 decisions recorded. D1 (new
+  `registration_fields` table), D2 (walk-in email optional), D3
+  (eight field types). Validation strategy and AI out-of-scope
+  rationale captured.
