@@ -1131,3 +1131,81 @@ Estimate: 2–3 sessions.
 ## Changelog addendum
 
 - **2026-09-25** — Phase 2 plan recorded. Decisions Q1–Q5, C1, C3. File inventory 14 new / 7 modified / 4 deleted. Block structure 11 blocks. Cascade of Path A (five dependent files) documented.
+
+---
+
+## Phase 2 plan correction — Block 1 must not include the drop (2026-09-25)
+
+The Phase 2 plan's block table says:
+
+    Block 1 | Migrations — create + drop
+    Block 6 | Delete four files + test update
+
+That is wrong. The drop migration must not exist on disk until Block 6
+lands. Reason below.
+
+### What went wrong
+
+`2026_09_25_180100_drop_event_options_scaffolding.php` was written in
+Block 1 alongside the create migration. The assumption was that a
+migration file is inert until `php artisan migrate` is manually
+invoked. It is not.
+
+`RefreshDatabase` — used by every Feature test via `tests/Pest.php` —
+runs every migration in `database/migrations/` against the SQLite
+in-memory database at the start of each test. The drop became live in
+the test environment the moment the file was saved.
+
+Three tests failed on the next run:
+
+- `EventDeletionAdminTest::it lets an admin delete an event with no
+  related records` — `Event::relatedRecordCounts()` queries
+  `event_options`
+- `EventDeletionAdminTest::it removes event options, registrations,
+  registration options and attendances` — the test itself inserts
+  into `event_options`
+- `EventDeletionStaffTest::it deletes the event when staff verifies
+  with the correct code` — same `relatedRecordCounts()` path
+
+Recovery: move the drop migration file out of `database/migrations/`
+(`mv ... /tmp/wdems-drop-migration.php`). Both suites immediately
+returned to green (71/167 Events, 44/119 Auth).
+
+### Revised block table
+
+| Block | Concern |
+|---|---|
+| 1 | **Create migration only** — `registration_fields` |
+| 2 | `RegistrationField` model + `HumanNameQualityRules` extraction |
+| 3 | `RegistrationFieldValidationRules` + `RegistrationFieldRequest` |
+| 4 | `RegistrationFormController` |
+| 5 | Routes + `Event` model relation + `EventController::show` payload cleanup |
+| 6 | **Drop migration** + delete four files + `EventDeletionService` update + `EventDeletionAdminTest` update |
+| 7 | `registration-field-types.ts` + `registration-field-validation.ts` |
+| 8 | `sortable-field-list.tsx` + `registration-field-editor.tsx` |
+| 9 | `registration-form.tsx` page |
+| 10 | `events/show.tsx` link relabel + related-counts block |
+| 11 | Tests — new + updated |
+
+The drop migration currently lives at `/tmp/wdems-drop-migration.php`.
+Block 6 moves it back into `database/migrations/` as part of the same
+change set that updates the five dependent files. Order within Block 6:
+
+1. Delete `EventOptionController.php`
+2. Delete `EventOption.php`
+3. Delete `RegistrationOption.php`
+4. Delete `options.tsx`
+5. Update `Event::relatedRecordCounts()`
+6. Update `EventDeletionService::delete()`
+7. Update `EventController::show()`
+8. Update `EventDeletionAdminTest`
+9. Move the drop migration into `database/migrations/`
+10. Run `php artisan migrate` against the dev MySQL database
+11. Run the full suite
+
+## Changelog addendum
+
+- **2026-09-25** — Block 1 correction. Drop migration removed from
+  Block 1 scope. `RefreshDatabase` runs all migrations on every test
+  run — migration files are not inert. Drop migration restored to
+  Block 6 alongside its dependents.

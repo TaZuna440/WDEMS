@@ -9,6 +9,8 @@ use Illuminate\Validation\Validator;
 
 trait EventValidationRules
 {
+    use HumanNameQualityRules;
+
     /**
      * Minimum duration of an event, in minutes, when end_time is set.
      * Mirrored in resources/js/lib/event-validation.ts as
@@ -239,12 +241,7 @@ trait EventValidationRules
     /**
      * Validation rules for the event name.
      *
-     * Catches the most common human errors:
-     *  - too short (min 3)
-     *  - doesn't start with a letter or number
-     *  - has no vowels (keyboard mashing like "dfdsfdsfd")
-     *  - has no consonants (only vowels)
-     *  - 3+ identical characters in a row ("aaaa")
+     * Composes length rules with the shared humanNameQualityRules().
      *
      * @return array<int, string>
      */
@@ -276,30 +273,6 @@ trait EventValidationRules
             'media',
             'logistics',
             'other',
-        ];
-    }
-    /**
-     * Quality checks shared by every free-text "name" field.
-     *
-     * Catches keyboard mashing:
-     *  - doesn't start with a letter or number
-     *  - has no vowels (e.g. "dfdsfdsfd")
-     *  - has no consonants (e.g. "aeiou")
-     *  - 3+ identical characters in a row (e.g. "aaaa")
-     *
-     * Used by event_name and partners.*.name. Mirrored in
-     * resources/js/lib/event-validation.ts as humanNameQualityError().
-     * Keep both in sync.
-     *
-     * @return array<int, string>
-     */
-    protected function humanNameQualityRules(): array
-    {
-        return [
-            'regex:/^[A-Za-z0-9]/',
-            'regex:/[aeiouyAEIOUY]/',
-            'regex:/[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]/',
-            'not_regex:/(.)\1\1/',
         ];
     }
 }

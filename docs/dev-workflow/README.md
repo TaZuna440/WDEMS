@@ -363,3 +363,50 @@ ignored the next time someone is in a hurry.
 
 - **2026-09-25** — P9 verification note appended. Both named commits
   confirmed accurate against their diffs.
+
+---
+
+## P11 — Migration files are live in tests the moment they exist
+
+**Rule.** A migration file under `database/migrations/` is not inert.
+It runs against the test suite's in-memory database on every test run
+via `RefreshDatabase`. Any migration that would break the codebase —
+drops a table, changes a column, adds a NOT NULL without default —
+must not exist on disk until the code that depends on it is also on
+disk and ready.
+
+**Why.** This session (2026-09-25) wrote a drop migration in the same
+block as a create migration, intending the drop to run after the
+dependents were updated. The dependent files were still pointing at
+the dropped tables. The next test run applied the drop and three tests
+failed with `SQLSTATE[HY000]: General error: 1 no such table: event_options`.
+
+The error message was specific enough to diagnose in one pass, but the
+underlying assumption — "migration files are inactive until
+`php artisan migrate` is called" — was wrong. `RefreshDatabase`
+changes that assumption in every Feature test.
+
+**Detection.** Any migration that drops a table, drops a column, or
+alters a column's nullability should be checked against the current
+code that reads it:
+
+    grep -rn "<table_name>\|<column_name>" app/ tests/
+
+If any of those files are on the current commit and unchanged, the
+migration must not be on disk until they are updated in the same
+change set.
+
+**Recovery.** Move the migration file out of `database/migrations/`
+(temporary location is fine — `/tmp` works). The next test run will
+not see it. When the dependents are updated, move it back as part of
+the same change set and re-run tests.
+
+**Application.** The Phase 2 plan for the registration feature splits
+migration drops into a separate block (Block 6) that also touches the
+five dependent files. This is the pattern to follow going forward.
+
+## Changelog addendum
+
+- **2026-09-25** — P11 added. Migration files are live in tests via
+  `RefreshDatabase`. Drop migrations must not exist on disk until
+  dependents are updated.
