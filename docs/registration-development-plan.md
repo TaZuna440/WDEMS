@@ -688,3 +688,125 @@ not the protocol.
 - **2026-09-25** — Phase 0 correction. `DashboardController` identified
   as a missed file. Three `Configured` references added to Phase 1
   scope. D-1 and D-2 answered in-session.
+
+---
+
+## Phase 1 complete (2026-09-25)
+
+State machine collapse + sidebar Registration tab + queue page. Three
+commits.
+
+### Commits landed
+
+- `ec88543` — refactor: collapse event workflow — remove Configured
+  state. Six files, +20/−43.
+- `7ffee27` — feat(registration): add queue page and sidebar tab;
+  clean up Configured remnants. Seven files, +246/−7.
+- `bd6be34` — test(events): pin the collapsed state machine. One new
+  file, 170 lines, 17 tests.
+
+### What shipped
+
+Backend:
+- `EventStatus` — Configured case removed; six cases remain
+- `EventWorkflow::configure()` — removed
+- `Event::canConfigure()` renamed to `canEditRegistrationForm()`;
+  guard is now `status === Draft`
+- `Event::canEdit()` no longer lists Configured
+- `Event::canOpenRegistration()` guard changes from Configured to Draft
+- `EventController::configure()` action removed
+- `DashboardController` — three Configured references removed, Draft
+  reason text reworded to "Draft — no registration form yet"
+- `EventOptionController` — four call sites renamed; `can_configure`
+  Inertia prop key preserved
+- Route `events.configure` removed
+- New route `registrations.index`
+
+Frontend:
+- Sidebar Registration tab (between Dashboard and Events)
+- New page `resources/js/pages/registrations/index.tsx` — three
+  sections (Needs Registration Form, Open, Closed), empty states
+- Three `statusStyles` maps cleaned of the `configured:` key
+
+Tests:
+- `EventWorkflowTest.php` — 17 tests pinning the collapsed state
+  machine. Full Events suite 71 passed / 167 assertions.
+
+### Interim state
+
+Open Registration is clickable on any Draft event. Clicking it sets
+status to `registration_open` and stamps `registration_start`, but no
+public URL exists behind it yet. Phase 3 of this plan closes that gap
+by generating a slug, setting `registration_form_locked_at`, and
+publishing `/r/{slug}`.
+
+Decision recorded: leave the interim state as-is rather than adding a
+temporary guard that Phase 3 would remove. Rationale: short window,
+development-only environment, guard-then-unguard is churn.
+
+### Block numbering note
+
+Commits labeled Blocks 1, 2, 3, 4, 7. Blocks 5 and 6 were not
+separate code changes — they were the "route changes" and "new page"
+concerns, which landed inside Block 4's frontend half. The numbering
+was planned but not followed literally. Phase 1 is Blocks 1–4 plus the
+transition tests (labeled 7 because 5 and 6 were collapsed).
+
+Future sessions should not look for missing Blocks 5 or 6. The phase
+plan is the authoritative scope, not the block numbers.
+
+### C-1 through C-7 resolution status
+
+- **C-1** — `configured` key in three statusStyles maps — **resolved**
+  in `7ffee27`
+- **C-2** — public layout case in `app.tsx` — deferred to **Phase 3**
+- **C-3** — Wayfinder routes breaking on `events.configure` removal —
+  **no issue existed**. Grep before removal found only the route
+  definition itself; no frontend file imported the generated route.
+  No action needed.
+- **C-4** — `registration_end` auto-close middleware — deferred to
+  **Phase 3**
+- **C-5** — Participant name search strategy — deferred to **Phase 4**
+  (indexes on first_name and last_name)
+- **C-6** — sidebar grouping decision — **resolved**: single group
+- **C-7** — `canConfigure()` rename touches prop key — **resolved**:
+  method renamed, prop key preserved
+
+### Open decisions for Phase 2
+
+Three decisions block the first Phase 2 change. All recorded here so
+the next session sees them before starting.
+
+1. **`event_options` extension vs new table.** The Phase 2 plan
+   assumes extending `event_options` with `field_type`,
+   `validation_rules`, and `display_order`. Alternative: create a new
+   `registration_fields` table and deprecate `event_options`. Decision
+   needed before Phase 2 begins.
+
+2. **Walk-in email.** Spec §4 lists `email` as required on the common
+   fields. Walk-in participants added on-site may not have an email.
+   The Phase 4 walk-in flow needs a decision: make email optional for
+   walk-ins only, or require the organizer to enter a placeholder.
+
+3. **Custom field types.** Spec §5 lists seven types: text, number,
+   email, select, checkbox, radio, date. Confirm this is the v1 list,
+   or add/remove before Phase 2 implements the field-type selector.
+
+### Verification at close
+
+| Check | Result |
+|---|---|
+| `php artisan test tests/Feature/Events` | 71 passed / 167 assertions |
+| `php artisan test tests/Feature/Auth` | 44 passed / 119 assertions |
+| `npx tsc --noEmit` | silent |
+| Browser: `/registrations` renders three sections | confirmed |
+| Browser: sidebar shows three items with Registration active | confirmed |
+| Browser: existing `/dashboard`, `/events`, `/events/{id}` still render | confirmed |
+| `grep -rn "events.configure\|EventStatus::Configured" app/ routes/ resources/js/ tests/` | only the intentional comment on `routes/web.php:55` |
+
+## Changelog addendum
+
+- **2026-09-25** — Phase 1 complete. Three commits. Interim state
+  recorded (Open Registration clickable, no URL behind it). C-1, C-3,
+  C-6, C-7 resolved. C-2, C-4, C-5 deferred. Three Phase 2 decisions
+  recorded.
