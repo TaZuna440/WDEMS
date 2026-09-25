@@ -1,12 +1,10 @@
 import AccessibilityGrid, {
     type AccessibilityField,
 } from '@/components/accessibility-grid';
+import InputError from '@/components/input-error';
 import PartnerEditor, { type Partner } from '@/components/partner-editor';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 
 type FormData = {
-    rsvp_required: boolean;
     partners: Partner[];
 } & Partial<Record<AccessibilityField, boolean>>;
 
@@ -28,11 +26,16 @@ const ACCESSIBILITY_FIELDS: AccessibilityField[] = [
     'quiet_space_available',
 ];
 
+const MAX_PARTNERS = 20;
+
 export default function ExtrasStep({ data, setData, errors }: Props) {
     const accessibilityValue: Partial<Record<AccessibilityField, boolean>> = {};
     for (const field of ACCESSIBILITY_FIELDS) {
         accessibilityValue[field] = data[field] === true;
     }
+
+    const partners = data.partners ?? [];
+    const atCap = partners.length >= MAX_PARTNERS;
 
     return (
         <div className="flex flex-col gap-8">
@@ -45,52 +48,36 @@ export default function ExtrasStep({ data, setData, errors }: Props) {
                 </p>
             </div>
 
-            {/* RSVP */}
-            <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                    Registration
-                </h3>
-
-                <div className="flex items-start gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3">
-                    <Checkbox
-                        id="rsvp_required"
-                        checked={data.rsvp_required === true}
-                        onCheckedChange={(checked) =>
-                            setData('rsvp_required', checked === true)
-                        }
-                        className="mt-0.5"
-                    />
-                    <div className="flex flex-1 flex-col">
-                        <Label
-                            htmlFor="rsvp_required"
-                            className="cursor-pointer text-sm font-medium"
-                        >
-                            RSVP is required
-                        </Label>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                            If checked, participants must register before the
-                            event. Otherwise, walk-ins are welcome.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
             {/* Partners */}
             <section className="flex flex-col gap-3">
-                <div>
+                <div className="flex items-baseline justify-between">
                     <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                         Partners
                     </h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                        Hosts, sponsors, food, beverage, or support
-                        organizations involved in this event.
-                    </p>
+                    <span className="text-xs text-muted-foreground">
+                        {partners.length} / {MAX_PARTNERS}
+                    </span>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                    Hosts, sponsors, food, beverage, or support organizations
+                    involved in this event.
+                </p>
 
                 <PartnerEditor
-                    value={data.partners ?? []}
-                    onChange={(partners) => setData('partners', partners)}
+                    value={partners}
+                    onChange={(next) => setData('partners', next)}
                 />
+
+                {errors.partners && (
+                    <InputError message={errors.partners} />
+                )}
+
+                {atCap && !errors.partners && (
+                    <p className="text-xs text-muted-foreground">
+                        You have reached the maximum of {MAX_PARTNERS}{' '}
+                        partners. Remove one to add another.
+                    </p>
+                )}
             </section>
 
             {/* Accessibility */}

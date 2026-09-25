@@ -22,12 +22,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'course_url',
     'venue',
     'venue_address',
+    'venue_map_url',
     'venue_latitude',
     'venue_longitude',
     'status',
     'registration_start',
     'registration_end',
-    'rsvp_required',
     'partners',
     'faq',
     'walkers_welcome',
@@ -57,7 +57,6 @@ class Event extends Model
             'venue_latitude' => 'decimal:7',
             'venue_longitude' => 'decimal:7',
 
-            'rsvp_required' => 'boolean',
 
             'partners' => 'array',
             'faq' => 'array',

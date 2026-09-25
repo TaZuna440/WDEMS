@@ -1,6 +1,12 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import Wizard, { type WizardStepConfig } from '@/components/wizard';
+import {
+    validateBasics,
+    validateExtras,
+    validateSchedule,
+    validateVenue,
+} from '@/lib/event-validation';
 import BasicsStep from './step/BasicsStep';
 import ExtrasStep from './step/ExtrasStep';
 import ScheduleStep from './step/ScheduleStep';
@@ -20,9 +26,9 @@ type EventData = {
     course_url: string | null;
     venue: string | null;
     venue_address: string | null;
+    venue_map_url: string | null;
     venue_latitude: number | null;
     venue_longitude: number | null;
-    rsvp_required: boolean;
     partners: { name: string; type: string }[] | null;
     faq: { question: string; answer: string }[] | null;
     walkers_welcome: boolean;
@@ -45,9 +51,10 @@ type Props = {
 const STEPS: WizardStepConfig[] = [
     {
         id: 'basics',
-        label: 'Basics',
+        label: 'Details',
         fields: ['event_type', 'event_name', 'description'],
         requiredFields: ['event_name'],
+        validate: validateBasics,
     },
     {
         id: 'schedule',
@@ -66,6 +73,7 @@ const STEPS: WizardStepConfig[] = [
             'distance_value',
             'distance_unit',
         ],
+        validate: validateSchedule,
     },
     {
         id: 'venue',
@@ -73,21 +81,18 @@ const STEPS: WizardStepConfig[] = [
         fields: [
             'venue',
             'venue_address',
-            'venue_latitude',
-            'venue_longitude',
+            'venue_map_url',
         ],
         requiredFields: [
             'venue',
             'venue_address',
-            'venue_latitude',
-            'venue_longitude',
         ],
+        validate: validateVenue,
     },
     {
         id: 'extras',
         label: 'Extras',
         fields: [
-            'rsvp_required',
             'partners',
             'walkers_welcome',
             'all_paces_welcome',
@@ -99,6 +104,7 @@ const STEPS: WizardStepConfig[] = [
             'leashed_pets_allowed',
             'quiet_space_available',
         ],
+        validate: validateExtras,
     },
 ];
 
@@ -112,9 +118,23 @@ function normalizeUnit(unit: string): 'km' | 'mi' {
     return unit === 'mi' ? 'mi' : 'km';
 }
 
+/**
+ * Normalizes a coordinate returned from Laravel's decimal:7 cast —
+ * which is a string, not a number — into a float. Kept for backward
+ * compatibility with events created before the map picker was
+ * removed; those rows still carry coordinates in the database.
+ */
+function normalizeCoordinate(
+    value: number | string | null | undefined,
+): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    return isNaN(num) ? null : num;
+}
+
 export default function EventsEdit({ event }: Props) {
     const { data, setData, put, processing, errors } = useForm({
-        // Step 1 — Basics
+        // Step 1 — Details
         event_type: event.event_type,
         event_name: event.event_name,
         description: event.description ?? '',
@@ -130,11 +150,11 @@ export default function EventsEdit({ event }: Props) {
         // Step 3 — Venue
         venue: event.venue ?? '',
         venue_address: event.venue_address ?? '',
-        venue_latitude: event.venue_latitude,
-        venue_longitude: event.venue_longitude,
+        venue_map_url: event.venue_map_url ?? '',
+        venue_latitude: normalizeCoordinate(event.venue_latitude),
+        venue_longitude: normalizeCoordinate(event.venue_longitude),
 
         // Step 4 — Extras
-        rsvp_required: event.rsvp_required,
         partners: event.partners ?? [],
         walkers_welcome: event.walkers_welcome,
         all_paces_welcome: event.all_paces_welcome,
@@ -188,14 +208,14 @@ export default function EventsEdit({ event }: Props) {
                     onSubmit={submit}
                     submitLabel="Save Changes"
                 >
-                    {(stepId) => {
+                    {(stepId, stepErrors) => {
                         switch (stepId) {
                             case 'basics':
                                 return (
                                     <BasicsStep
                                         data={data}
                                         setData={setData}
-                                        errors={errors}
+                                        errors={stepErrors}
                                         eventTypes={[
                                             {
                                                 value: event.event_type,
@@ -210,7 +230,7 @@ export default function EventsEdit({ event }: Props) {
                                     <ScheduleStep
                                         data={data}
                                         setData={setData}
-                                        errors={errors}
+                                        errors={stepErrors}
                                     />
                                 );
                             case 'venue':
@@ -218,7 +238,7 @@ export default function EventsEdit({ event }: Props) {
                                     <VenueStep
                                         data={data}
                                         setData={setData}
-                                        errors={errors}
+                                        errors={stepErrors}
                                     />
                                 );
                             case 'extras':
@@ -226,7 +246,7 @@ export default function EventsEdit({ event }: Props) {
                                     <ExtrasStep
                                         data={data}
                                         setData={setData}
-                                        errors={errors}
+                                        errors={stepErrors}
                                     />
                                 );
                             default:

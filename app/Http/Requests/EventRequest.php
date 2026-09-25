@@ -27,4 +27,23 @@ class EventRequest extends FormRequest
     {
         return $this->eventRules();
     }
+
+    /**
+     * Register the min-duration check that runs after the standard rules.
+     */
+    public function withValidator($validator): void
+    {
+        $this->validateEventDuration($validator);
+        $this->validatePartnerDuplicates($validator);
+    }
+
+    /**
+     * Custom messages for rules whose Laravel defaults do not read well.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->eventMessages();
+    }
 }

@@ -1,6 +1,12 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import Wizard, { type WizardStepConfig } from '@/components/wizard';
+import {
+    validateBasics,
+    validateExtras,
+    validateSchedule,
+    validateVenue,
+} from '@/lib/event-validation';
 import BasicsStep from './step/BasicsStep';
 import ExtrasStep from './step/ExtrasStep';
 import ScheduleStep from './step/ScheduleStep';
@@ -18,9 +24,10 @@ type Props = {
 const STEPS: WizardStepConfig[] = [
     {
         id: 'basics',
-        label: 'Basics',
+        label: 'Details',
         fields: ['event_type', 'event_name', 'description'],
         requiredFields: ['event_type', 'event_name'],
+        validate: validateBasics,
     },
     {
         id: 'schedule',
@@ -39,6 +46,7 @@ const STEPS: WizardStepConfig[] = [
             'distance_value',
             'distance_unit',
         ],
+        validate: validateSchedule,
     },
     {
         id: 'venue',
@@ -46,21 +54,18 @@ const STEPS: WizardStepConfig[] = [
         fields: [
             'venue',
             'venue_address',
-            'venue_latitude',
-            'venue_longitude',
+            'venue_map_url',
         ],
         requiredFields: [
             'venue',
             'venue_address',
-            'venue_latitude',
-            'venue_longitude',
         ],
+        validate: validateVenue,
     },
     {
         id: 'extras',
         label: 'Extras',
         fields: [
-            'rsvp_required',
             'partners',
             'walkers_welcome',
             'all_paces_welcome',
@@ -72,12 +77,13 @@ const STEPS: WizardStepConfig[] = [
             'leashed_pets_allowed',
             'quiet_space_available',
         ],
+        validate: validateExtras,
     },
 ];
 
 export default function EventsCreate({ event_types }: Props) {
     const { data, setData, post, processing, errors } = useForm({
-        // Step 1 — Basics
+        // Step 1 — Details
         event_type: '',
         event_name: '',
         description: '',
@@ -93,11 +99,11 @@ export default function EventsCreate({ event_types }: Props) {
         // Step 3 — Venue
         venue: '',
         venue_address: '',
+        venue_map_url: '',
         venue_latitude: null as number | null,
         venue_longitude: null as number | null,
 
         // Step 4 — Extras
-        rsvp_required: false,
         partners: [] as { name: string; type: string }[],
         walkers_welcome: false,
         all_paces_welcome: false,
@@ -147,14 +153,14 @@ export default function EventsCreate({ event_types }: Props) {
                     onSubmit={submit}
                     submitLabel="Create Event"
                 >
-                    {(stepId) => {
+                    {(stepId, stepErrors) => {
                         switch (stepId) {
                             case 'basics':
                                 return (
                                     <BasicsStep
                                         data={data}
                                         setData={setData}
-                                        errors={errors}
+                                        errors={stepErrors}
                                         eventTypes={event_types}
                                     />
                                 );
@@ -163,7 +169,7 @@ export default function EventsCreate({ event_types }: Props) {
                                     <ScheduleStep
                                         data={data}
                                         setData={setData}
-                                        errors={errors}
+                                        errors={stepErrors}
                                     />
                                 );
                             case 'venue':
@@ -171,7 +177,7 @@ export default function EventsCreate({ event_types }: Props) {
                                     <VenueStep
                                         data={data}
                                         setData={setData}
-                                        errors={errors}
+                                        errors={stepErrors}
                                     />
                                 );
                             case 'extras':
@@ -179,7 +185,7 @@ export default function EventsCreate({ event_types }: Props) {
                                     <ExtrasStep
                                         data={data}
                                         setData={setData}
-                                        errors={errors}
+                                        errors={stepErrors}
                                     />
                                 );
                             default:

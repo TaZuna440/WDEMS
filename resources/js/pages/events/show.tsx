@@ -51,7 +51,6 @@ type EventData = {
     venue_longitude: number | null;
     distance_label: string | null;
     course_url: string | null;
-    rsvp_required: boolean;
     partners: Partner[] | null;
     faq: FaqEntry[] | null;
     walkers_welcome: boolean;
@@ -324,15 +323,6 @@ export default function EventsShow({
                                     value={event.distance_label}
                                 />
                             )}
-                            <DetailRow
-                                icon={FileText}
-                                label="RSVP"
-                                value={
-                                    event.rsvp_required
-                                        ? 'Required'
-                                        : 'Not required — walk-ins welcome'
-                                }
-                            />
                             <DetailRow
                                 icon={FileText}
                                 label="Description"

@@ -62,6 +62,11 @@ const GROUPS: Group[] = [
                 label: 'Wheelchair accessible',
                 hint: 'Route is passable for wheelchairs',
             },
+            {
+                field: 'quiet_space_available',
+                label: 'Quiet space available',
+                hint: 'A low-noise area exists for breaks',
+            },
         ],
     },
     {
@@ -76,16 +81,6 @@ const GROUPS: Group[] = [
                 field: 'leashed_pets_allowed',
                 label: 'Leashed pets allowed',
                 hint: 'Family pets on a leash are permitted',
-            },
-        ],
-    },
-    {
-        title: 'Sensory',
-        features: [
-            {
-                field: 'quiet_space_available',
-                label: 'Quiet space available',
-                hint: 'A low-noise area exists for breaks',
             },
         ],
     },
