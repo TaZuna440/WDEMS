@@ -10,7 +10,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
 
-// Device verification routes — must be OUTSIDE the device.trusted middleware
+// Device verification routes — must be OUTSIDE the device.trusted middleware.
+// These stay under strict `verified` — an unverified user must verify their
+// email before touching the 2FA challenge. Admins never reach this group
+// because EnsureDeviceIsTrusted exempts them before redirecting.
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('verify-device', [DeviceVerificationController::class, 'show'])
         ->name('device.verify');
@@ -23,9 +26,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // Protected application routes — require a trusted device.
-// Admins are self-exempt inside EnsureDeviceIsTrusted, so the
-// admin dashboard lives on the same pipeline as everything else.
-Route::middleware(['auth', 'verified', 'device.trusted'])->group(function () {
+// Admins are self-exempt from both email verification
+// (EnsureEmailIsVerifiedOrAdmin) and the device challenge
+// (EnsureDeviceIsTrusted), so the admin dashboard lives on the same
+// pipeline as everything else.
+Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('events', [EventController::class, 'index'])->name('events.index');

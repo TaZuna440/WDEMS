@@ -12,7 +12,8 @@ Route::middleware(['auth', 'device.trusted'])->group(function () {
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 
-Route::middleware(['auth', 'verified', 'device.trusted'])->group(function () {
+// Admins bypass email verification (EnsureEmailIsVerifiedOrAdmin).
+Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])

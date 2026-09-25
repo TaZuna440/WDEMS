@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AdminMiddleware;
 use App\Http\Middleware\EnsureDeviceIsTrusted;
+use App\Http\Middleware\EnsureEmailIsVerifiedOrAdmin;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => AdminMiddleware::class,
             'device.trusted' => EnsureDeviceIsTrusted::class,
+            'verified.or.admin' => EnsureEmailIsVerifiedOrAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
