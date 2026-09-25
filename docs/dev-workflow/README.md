@@ -410,3 +410,125 @@ five dependent files. This is the pattern to follow going forward.
 - **2026-09-25** — P11 added. Migration files are live in tests via
   `RefreshDatabase`. Drop migrations must not exist on disk until
   dependents are updated.
+
+---
+
+## 10. AI response rules (2026-09-26)
+
+Sections 1–9 describe what work gets done and how. This section
+describes how the AI should respond while doing it — the shape of
+messages, the language, and the discipline. Recorded at the developer's
+request so future sessions start with the standard in hand.
+
+### 10.1 — Response shape by task type
+
+| The task is... | The response is... |
+|---|---|
+| A decision needed | Trade-offs, one recommendation, ask for yes/no |
+| A cat request | File list, one-line reason per file, expected observations |
+| A code block | One file per message, heredoc with a unique delimiter, verify commands, expected values |
+| A commit | Read the diff first, message sourced from what the diff shows (P9) |
+| A doc append | Single heredoc, verify with wc -l + delimiter grep + tail |
+| A browser test | Numbered steps, expected observation per step, stop condition |
+| A failure diagnostic | Ask for the missing output. Do not infer from a partial paste |
+| A claim about the code | Verify with a fresh cat or grep before stating it as fact |
+
+### 10.2 — What to do consistently
+
+- Read the file before proposing a change to it. P1.
+- Heredoc for every write. Unique delimiter per heredoc. Verify
+  after every write. P2, P3, P5.
+- One file per block. One block per message. P4.
+- Corrections append, never rewrite. P7.
+- Every commit message comes from a diff read in the same session. P9.
+- Every staged file is a file read this session. P10.
+- Before proposing a migration that drops or alters, grep for every
+  reader of the affected table or column. P11.
+- When the state is unclear, ask for a fresh diagnostic instead of
+  inferring from a paste.
+- When a claim is not verified — a line count, a behavior, a
+  convention — say so. "I do not have access to X" beats a
+  fabricated answer.
+- Size the response to the ask. A one-line change does not need a
+  thousand-word explanation.
+
+### 10.3 — What I have done poorly this session
+
+Recorded honestly. Every entry below happened during the 2026-09-25
+to 2026-09-26 sessions. They are kept as concrete reminders.
+
+1. **Fabricated a "search."** Asked to research common community-run
+   registration questions, I opened with "I'll search for..." and
+   then produced nothing. I do not have web access in this session.
+   The developer caught it before I recovered. The correct opening
+   would have been: "I cannot search. What I have is training-data
+   recall, offered as unverified."
+
+2. **Repeatedly over-projected line counts.** Estimated 200 for a
+   302-line file, 155 for 143, 290 for 340, 266 for 242, 28 for 24,
+   and others. Every prediction was wrong in the same direction — I
+   assume brevity and get length. Stop predicting. Wait for `wc -l`.
+
+3. **Misread "nothing to commit" as failure — twice.** Both times the
+   commit had already landed in a prior run and the paste was a
+   duplicate of the same block. Neither was a real failure. The fix:
+   when a commit returns "nothing to commit", the first response is
+   `git log --oneline -3`. If the commit is there, it landed. If not,
+   retry. Do not treat the message as authoritative on its own.
+
+4. **Over-documented in migration files.** The
+   `registration_form_saved_at` migration grew a 20-line "KNOWN RISK"
+   block. The actual schema change is one line. The risk belongs in
+   the plan and the progress log — it does not need to be restated at
+   the migration level. Two locations are enough; four is noise.
+
+5. **Inferred state from incomplete pastes.** Truncated output arrived
+   several times this session and I proceeded as if it were complete,
+   then discovered the missing data was material. The fix: when a
+   paste is missing an expected line, ask for it before proceeding.
+
+### 10.4 — What has worked
+
+Also recorded honestly. The patterns worth repeating.
+
+1. **Heredoc-only writes throughout.** Every code and doc write used a
+   heredoc with a unique delimiter. Zero accidental file corruption
+   from editor state.
+
+2. **Diff-before-commit discipline.** Every commit message was sourced
+   from `git diff --cached --stat` output read the same session, not
+   from memory. P9 held across every commit.
+
+3. **Reconstruction when git could not help.** When
+   `event-validation.ts` was corrupted and `git checkout` had nothing
+   to restore from (file was untracked), the file was rebuilt from a
+   snapshot the developer had pasted earlier, then verified with
+   `wc -l` and `tsc`.
+
+4. **Turning failures into rules.** The `event-validation.ts`
+   corruption became the single-quoted-grep rule. The untracked-file
+   recovery failure became "check `git ls-files` before proposing
+   split-edit patterns". The migration that ran in tests the moment
+   it hit disk became P11. Each was recorded the same session.
+
+5. **Asking for cats before proposing.** Every phase this session
+   started with a cat request, and every code block was written
+   against bytes seen in the same session.
+
+### 10.5 — When to stop and ask
+
+- When the request has two readings and the responses would differ.
+- When the file to change has not been read in this session.
+- When a paste is incomplete, truncated, or shows output that does
+  not match expectation.
+- When a rule in this document is about to be violated.
+- When a claim is about to be stated that has not been verified.
+- When a decision is genuinely the developer's — a product choice, a
+  threshold, a naming convention — and not a technical default.
+
+## Changelog addendum
+
+- **2026-09-26** — §10 added. AI response rules — response shape by
+  task type, consistent practices, observed failures, working
+  patterns, and stop-and-ask conditions. Recorded at the developer's
+  request.
