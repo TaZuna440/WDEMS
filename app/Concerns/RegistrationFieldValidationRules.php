@@ -34,6 +34,24 @@ trait RegistrationFieldValidationRules
     public const MIN_OPTIONS_PER_CHOICE_FIELD = 2;
 
     /**
+     * Labels of this length or longer must pass the full human-name
+     * quality checks (at least one vowel AND at least one consonant).
+     *
+     * Shorter labels — "KM", "10K", "M/F", "BP", "3M" — are legitimate
+     * field names for a running event and have no vowel. Enforcing the
+     * vowel check on them would reject real labels while catching
+     * nothing.
+     *
+     * Long labels ("gfdgfdfgfd", "dfdsfdsfd") are keyboard mashing and
+     * should be rejected. Five is the smallest threshold that keeps every
+     * legitimate short label while catching the mashing case.
+     *
+     * Mirrored in resources/js/lib/registration-field-validation.ts as
+     * MIN_STRICT_LABEL_LENGTH. Keep both in sync.
+     */
+    public const MIN_STRICT_LABEL_LENGTH = 5;
+
+    /**
      * All eight supported field types.
      *
      * @return array<int, string>
@@ -67,19 +85,17 @@ trait RegistrationFieldValidationRules
      *
      * The payload is a batch: a `fields` array containing the entire
      * form definition. Each row is validated independently; cross-row
-     * checks (choice-field options, duplicate labels) run in
-     * withValidator() closures.
+     * checks (choice-field options, duplicate labels, label quality)
+     * run in withValidator() closures.
      *
-     * Label quality uses a relaxed subset of humanNameQualityRules:
-     * only "starts with letter or digit" and "no 3+ repeats". The full
-     * rules (vowel/consonant requirements) reject legitimate short
-     * labels such as "KM", "10K", and "M/F" which are natural for a
-     * running event. Labels are internal — the organizer sees them and
-     * fixes mistakes immediately — so strict quality is not warranted.
+     * Labels are always required, bounded, and checked for the two
+     * relaxed quality rules (start with letter/digit, no 3+ repeats).
+     * The full human-name quality rules (vowel + consonant) apply only
+     * to labels of MIN_STRICT_LABEL_LENGTH or more — see
+     * validateFieldLabelQuality.
      *
-     * display_order is not a rule. The batch endpoint assigns
-     * display_order from array position, so client and server cannot
-     * diverge.
+     * display_order is not a rule. The batch endpoint assigns it from
+     * array position, so client and server cannot diverge.
      *
      * validation_rules is stored as a freeform JSON blob in Phase 2.
      * Its internal structure is validated in Phase 3 when the public
@@ -217,6 +233,61 @@ trait RegistrationFieldValidationRules
                         ? 'One field has the same label as another row.'
                         : "{$duplicateCount} fields have the same label as other rows.",
                 );
+            }
+        });
+    }
+
+    /**
+     * Reject keyboard-mashing labels.
+     *
+     * Two rules are always applied by the rules array: the label must
+     * start with a letter or digit, and it must not contain 3+ identical
+     * characters in a row.
+     *
+     * This closure adds the vowel and consonant checks, but only for
+     * labels of MIN_STRICT_LABEL_LENGTH characters or longer. Shorter
+     * labels like "KM", "10K", "M/F", "BP", and "3M" are legitimate
+     * field names for a running event and would fail a vowel check.
+     * Longer labels that contain no vowels ("gfdgfdfgfd") are mashing.
+     *
+     * Registered by RegistrationFieldRequest::withValidator().
+     */
+    protected function validateFieldLabelQuality(Validator $validator): void
+    {
+        $validator->after(function (Validator $v): void {
+            $data = $v->getData();
+            $fields = $data['fields'] ?? null;
+
+            if (! is_array($fields)) {
+                return;
+            }
+
+            foreach ($fields as $index => $field) {
+                if (! is_array($field)) {
+                    continue;
+                }
+
+                $rawLabel = $field['label'] ?? '';
+
+                if (! is_string($rawLabel)) {
+                    continue;
+                }
+
+                $label = trim($rawLabel);
+
+                if (mb_strlen($label) < self::MIN_STRICT_LABEL_LENGTH) {
+                    continue;
+                }
+
+                $hasVowel = preg_match('/[aeiouyAEIOUY]/', $label) === 1;
+                $hasConsonant = preg_match('/[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]/', $label) === 1;
+
+                if (! $hasVowel || ! $hasConsonant) {
+                    $v->errors()->add(
+                        "fields.{$index}.label",
+                        'Please enter a valid field label.',
+                    );
+                }
             }
         });
     }

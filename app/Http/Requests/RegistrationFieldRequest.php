@@ -33,12 +33,13 @@ class RegistrationFieldRequest extends FormRequest
 
     /**
      * Register the cross-field checks that run after the standard
-     * rules. Both read the whole payload.
+     * rules. Each one reads the whole payload.
      */
     public function withValidator($validator): void
     {
         $this->validateChoiceFieldOptions($validator);
         $this->validateFieldLabelDuplicates($validator);
+        $this->validateFieldLabelQuality($validator);
     }
 
     /**

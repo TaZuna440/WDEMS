@@ -40,6 +40,15 @@ export const MAX_LABEL_LENGTH = 255;
  */
 export const MIN_OPTIONS_PER_CHOICE_FIELD = 2;
 
+/**
+ * Labels of this length or longer must contain at least one vowel AND
+ * at least one consonant. Shorter labels like "KM", "10K", and "M/F"
+ * are legitimate field names and skip the vowel check.
+ *
+ * Mirrors RegistrationFieldValidationRules::MIN_STRICT_LABEL_LENGTH.
+ */
+export const MIN_STRICT_LABEL_LENGTH = 5;
+
 export type FieldFormData = {
     label: string;
     field_type: string;
@@ -52,9 +61,32 @@ function asString(value: unknown): string {
     return typeof value === 'string' ? value : '';
 }
 
-function isRelaxedLabelValid(label: string): boolean {
+/**
+ * Relaxed check — always applied. Starts with a letter or digit, and
+ * no 3+ identical characters in a row.
+ */
+function passesRelaxedLabelChecks(label: string): boolean {
     if (!/^[A-Za-z0-9]/.test(label)) return false;
     if (/(.)\1\1/.test(label)) return false;
+    return true;
+}
+
+/**
+ * Full name-quality check — applied only to labels of
+ * MIN_STRICT_LABEL_LENGTH or more characters. Requires a vowel and a
+ * consonant.
+ */
+function passesStrictLabelChecks(label: string): boolean {
+    if (!/[aeiouyAEIOUY]/.test(label)) return false;
+    if (!/[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]/.test(label)) return false;
+    return true;
+}
+
+function isLabelValid(label: string): boolean {
+    if (!passesRelaxedLabelChecks(label)) return false;
+    if (label.length >= MIN_STRICT_LABEL_LENGTH && !passesStrictLabelChecks(label)) {
+        return false;
+    }
     return true;
 }
 
@@ -81,13 +113,13 @@ export function validateRegistrationForm(
         const type = asString(field.field_type).trim();
         const options = Array.isArray(field.options) ? field.options : [];
 
-        // Label — required, length, relaxed quality.
+        // Label — required, length, then quality.
         if (!label) {
             errors[`fields.${index}.label`] = 'Field label is required.';
         } else if (label.length > MAX_LABEL_LENGTH) {
             errors[`fields.${index}.label`] =
                 `Field label must not exceed ${MAX_LABEL_LENGTH} characters.`;
-        } else if (!isRelaxedLabelValid(label)) {
+        } else if (!isLabelValid(label)) {
             errors[`fields.${index}.label`] =
                 'Please enter a valid field label.';
         }
