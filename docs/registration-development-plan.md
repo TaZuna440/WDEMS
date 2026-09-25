@@ -928,3 +928,206 @@ not in the field-level validation path.
   `registration_fields` table), D2 (walk-in email optional), D3
   (eight field types). Validation strategy and AI out-of-scope
   rationale captured.
+
+---
+
+## Phase 2 plan — scope, decisions, and file inventory (2026-09-25)
+
+Supersedes the "Phase 2 — Create Registration Form" section above.
+The original section assumed extending `event_options` with per-field
+CRUD. Both assumptions are rejected.
+
+### Decisions
+
+**Q1 — FormRequest.** `RegistrationFormController` uses a FormRequest
+(`RegistrationFieldRequest`), not inline `$request->validate()`. The
+registration form has enough field-specific rules (field_type enum,
+label quality, options-required-for-select, etc.) that a FormRequest
+pays off. The trait `RegistrationFieldValidationRules` is consumed by
+the request, and its mirror lives in
+`resources/js/lib/registration-field-validation.ts`.
+
+**Q2 — `option_value` concept dropped.** The new schema has no
+equivalent column. Its only purpose was an ambiguous "optional
+metadata" string whose actual use was never defined.
+
+**Q3 — Entire options scaffolding deleted in Phase 2**, not deferred to
+Phase 6. The clean break preserves code integrity — no code path
+reaches the old scaffolding after Phase 2 ships.
+
+**Q4 — Drag-to-reorder via `@dnd-kit`.** Three packages:
+`@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`. About 30KB
+gzipped. React 19 compatible. Order persists via the batch save (see
+C3 below) — drag is local-only until Save.
+
+**Q5 — Inline field editor**, matching the current `options.tsx`
+pattern. No modal.
+
+**C1 — Path A.** Both `event_options` and `registration_options` are
+dropped in Phase 2. `RegistrationOption` model is deleted. Phase 3
+creates `registration_field_responses` fresh. Zero rows exist today;
+no data is lost.
+
+**C3 — Batch save.** One `PUT /events/{event}/registration-form`
+endpoint replaces the whole form in a single transaction. The frontend
+holds local state, one Save button, one confirm modal. This differs
+from the current per-field immediate-round-trip pattern in
+`options.tsx`.
+
+The spec §2 was right: a registration form is a coherent artifact,
+not a list of independent options. Batch save simplifies the drag
+reorder (local only until Save), reduces server round-trips, and gives
+the confirm modal a natural scope.
+
+### Cascade of C1 — five dependent files must change in Phase 2
+
+Dropping `event_options` and `registration_options` breaks five
+dependents. All five must be updated in the same commit sequence:
+
+| File | Change |
+|---|---|
+| `app/Models/RegistrationOption.php` | **Delete** — the table is gone |
+| `app/Models/EventOption.php` | **Delete** — the table is gone |
+| `app/Models/Event.php` | Swap `eventOptions()` relation for `registrationFields()`. Update `relatedRecordCounts()` to drop `event_options` and `registration_options` keys |
+| `app/Services/EventDeletion/EventDeletionService.php` | Drop steps 3 (delete registration_options) and 5 (delete event_options) from the ordered delete. The remaining order is: collect registration IDs, delete attendances, delete registrations, delete event |
+| `tests/Feature/Events/EventDeletionAdminTest.php` | Rename the test "it removes event options, registrations, registration options and attendances" and drop the event-options assertions. The renamed test becomes "it removes registrations and attendances" |
+| `app/Http/Controllers/EventController.php` | `show()` payload sends `related.event_options` and `related.registration_options` — remove those keys |
+
+### File inventory
+
+**New files (14):**
+
+1. `database/migrations/2026_09_25_XXXXXX_create_registration_fields_table.php`
+2. `database/migrations/2026_09_25_XXXXXX_drop_event_options_scaffolding.php`
+3. `app/Models/RegistrationField.php`
+4. `app/Http/Controllers/RegistrationFormController.php`
+5. `app/Http/Requests/RegistrationFieldRequest.php`
+6. `app/Concerns/RegistrationFieldValidationRules.php`
+7. `app/Concerns/HumanNameQualityRules.php` (extracted from `EventValidationRules`)
+8. `resources/js/pages/events/registration-form.tsx`
+9. `resources/js/components/registration-field-editor.tsx`
+10. `resources/js/components/sortable-field-list.tsx`
+11. `resources/js/lib/registration-field-types.ts`
+12. `resources/js/lib/registration-field-validation.ts`
+13. `tests/Feature/Events/RegistrationFormTest.php`
+14. `tests/Feature/Events/RegistrationFieldCrudTest.php`
+
+**Modified files (7):**
+
+1. `routes/web.php` — add `events.registration-form.show` and `.update`, remove `events.options.*`
+2. `app/Models/Event.php` — `registrationFields()` relation + `relatedRecordCounts()` update
+3. `app/Concerns/EventValidationRules.php` — remove `humanNameQualityRules()` (moved to new trait)
+4. `app/Http/Controllers/EventController.php` — `show()` payload cleanup
+5. `app/Services/EventDeletion/EventDeletionService.php` — ordered delete trimmed
+6. `resources/js/pages/events/show.tsx` — "Configure Options" → "Create Registration Form", new href, related-counts block
+7. `package.json` + `package-lock.json` — add `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`
+
+**Deleted files (4):**
+
+1. `app/Http/Controllers/EventOptionController.php`
+2. `app/Models/EventOption.php`
+3. `app/Models/RegistrationOption.php`
+4. `resources/js/pages/events/options.tsx`
+
+**Tests updated (1):**
+
+- `tests/Feature/Events/EventDeletionAdminTest.php`
+
+### New table — `registration_fields`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | bigint PK | |
+| `event_id` | FK → `events`, cascade | |
+| `label` | string(255) | Human-readable field name |
+| `field_type` | string(20) | One of the eight types |
+| `options` | JSON nullable | Only for `select`, `radio`, `checkbox` |
+| `validation_rules` | JSON nullable | min/max, regex, length — shape TBD during implementation |
+| `is_required` | boolean default false | |
+| `display_order` | integer | Sort key |
+| `created_at`, `updated_at` | timestamps | |
+
+Index on `[event_id, display_order]`.
+
+### Migrations
+
+**Migration 1 — create:**
+
+    Schema::create('registration_fields', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('event_id')->constrained('events')->cascadeOnDelete();
+        $table->string('label');
+        $table->string('field_type', 20);
+        $table->json('options')->nullable();
+        $table->json('validation_rules')->nullable();
+        $table->boolean('is_required')->default(false);
+        $table->integer('display_order')->default(0);
+        $table->timestamps();
+        $table->index(['event_id', 'display_order']);
+    });
+
+**Migration 2 — drop:**
+
+    Schema::table('registration_options', function (Blueprint $table) {
+        $table->dropForeign(['event_option_id']);
+    });
+    Schema::dropIfExists('registration_options');
+    Schema::dropIfExists('event_options');
+
+Foreign key must be dropped before the referenced table. `registration_options` drops first, then `event_options`.
+
+### Controller shape — batch
+
+    class RegistrationFormController extends Controller
+    {
+        public function show(Event $event): Response
+        // Renders events/registration-form with the event + its fields.
+
+        public function update(RegistrationFieldRequest $request, Event $event): RedirectResponse
+        // Guard: $event->canEditRegistrationForm()
+        // Reads validated fields array
+        // In a transaction: delete all event's registration_fields, re-insert from payload with display_order = array index
+        // Redirects to show
+    }
+
+No per-field store/update/destroy. The batch update replaces everything.
+
+### UI shape
+
+- Top: page header + status pill + locked banner if !canEditRegistrationForm
+- Section: Common Fields (read-only list — six fixed fields, no editing)
+- Section: Custom Fields
+  - Sortable list via `@dnd-kit/sortable`
+  - Each row: drag handle, label input, field_type select, options textarea (only for select/radio/checkbox), required toggle, remove button
+  - Add Field button appends a new row
+- Bottom: Save Registration Form button + confirm modal
+
+When the form locks, drag/inputs/add/remove all disable.
+
+### Block structure — 11 blocks
+
+| Block | Concern |
+|---|---|
+| 1 | Migrations — create + drop |
+| 2 | `RegistrationField` model + `HumanNameQualityRules` extraction |
+| 3 | `RegistrationFieldValidationRules` trait + `RegistrationFieldRequest` |
+| 4 | `RegistrationFormController` |
+| 5 | Routes + `Event` model relation + `EventDeletionService` + `EventController::show` cleanup |
+| 6 | Delete four files + test update |
+| 7 | `registration-field-types.ts` + `registration-field-validation.ts` |
+| 8 | `sortable-field-list.tsx` + `registration-field-editor.tsx` |
+| 9 | `registration-form.tsx` page |
+| 10 | `events/show.tsx` link relabel + related-counts block |
+| 11 | Tests — new + updated |
+
+Estimate: 2–3 sessions.
+
+### Open items for Phase 2 implementation
+
+- `validation_rules` JSON shape — decided during Block 3 based on what the eight field types actually need. No fixed format yet.
+- `@dnd-kit` React 19 compatibility — confirmed by the package's peer dep range; will verify during `npm install` in Block 8.
+- Form lock enforcement — the controller guard `canEditRegistrationForm()` is the server gate. The frontend also disables controls. Both must agree.
+
+## Changelog addendum
+
+- **2026-09-25** — Phase 2 plan recorded. Decisions Q1–Q5, C1, C3. File inventory 14 new / 7 modified / 4 deleted. Block structure 11 blocks. Cascade of Path A (five dependent files) documented.
