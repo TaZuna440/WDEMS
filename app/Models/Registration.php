@@ -6,7 +6,6 @@ use App\Enums\RegistrationStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
@@ -36,11 +35,6 @@ class Registration extends Model
     public function participant(): BelongsTo
     {
         return $this->belongsTo(Participant::class);
-    }
-
-    public function registrationOptions(): HasMany
-    {
-        return $this->hasMany(RegistrationOption::class);
     }
 
     public function attendance(): HasOne

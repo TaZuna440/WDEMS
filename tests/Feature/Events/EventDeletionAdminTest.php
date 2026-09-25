@@ -2,10 +2,8 @@
 
 use App\Models\Attendance;
 use App\Models\Event;
-use App\Models\EventOption;
 use App\Models\Participant;
 use App\Models\Registration;
-use App\Models\RegistrationOption;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -32,7 +30,7 @@ it('lets an admin delete an event with no related records', function () {
     expect(Event::find($event->id))->toBeNull();
 });
 
-it('removes event options, registrations, registration options and attendances', function () {
+it('removes registrations and attendances', function () {
     $admin = User::factory()->create(['role' => 'admin']);
     $event = wdems_make_event($admin);
 
@@ -42,20 +40,9 @@ it('removes event options, registrations, registration options and attendances',
         'contact_number' => '09000000000',
     ]);
 
-    $option = EventOption::create([
-        'event_id' => $event->id,
-        'option_type' => 'distance',
-        'option_name' => '5KM',
-    ]);
-
     $registration = Registration::create([
         'event_id' => $event->id,
         'participant_id' => $participant->id,
-    ]);
-
-    $regOption = RegistrationOption::create([
-        'registration_id' => $registration->id,
-        'event_option_id' => $option->id,
     ]);
 
     $attendance = Attendance::create([
@@ -65,9 +52,7 @@ it('removes event options, registrations, registration options and attendances',
     $this->actingAs($admin)->delete("/events/{$event->id}");
 
     expect(Event::find($event->id))->toBeNull();
-    expect(EventOption::find($option->id))->toBeNull();
     expect(Registration::find($registration->id))->toBeNull();
-    expect(RegistrationOption::find($regOption->id))->toBeNull();
     expect(Attendance::find($attendance->id))->toBeNull();
 });
 
