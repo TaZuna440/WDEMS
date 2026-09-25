@@ -22,7 +22,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('device.verify.confirm');
 });
 
-// Protected application routes — require a trusted device
+// Protected application routes — require a trusted device.
+// Admins are self-exempt inside EnsureDeviceIsTrusted, so the
+// admin dashboard lives on the same pipeline as everything else.
 Route::middleware(['auth', 'verified', 'device.trusted'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
@@ -50,10 +52,11 @@ Route::middleware(['auth', 'verified', 'device.trusted'])->group(function () {
 
     Route::get('events/{event}/attendance', [AttendanceController::class, 'show'])->name('events.attendance');
     Route::post('events/{event}/attendance/{registration}/mark', [AttendanceController::class, 'mark'])->name('events.attendance.mark');
-});
 
-Route::middleware(['auth', 'verified', 'admin'])->group(function () {
-    Route::get('admin/dashboard', DashboardController::class)->name('admin.dashboard');
+    // Admin-only routes — same trusted-device pipeline, admin gate layered on top.
+    Route::middleware('admin')->group(function () {
+        Route::get('admin/dashboard', DashboardController::class)->name('admin.dashboard');
+    });
 });
 
 require __DIR__.'/settings.php';
