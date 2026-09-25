@@ -22,7 +22,7 @@ class EventOptionController extends Controller
                 'event_name' => $event->event_name,
                 'status' => $event->status->value,
                 'status_label' => $event->status->label(),
-                'can_configure' => $event->canConfigure(),
+                'can_configure' => $event->canEditRegistrationForm(),
                 'can_mark_configured' => $event->status === EventStatus::Draft,
             ],
             'options' => $event->eventOptions
@@ -41,7 +41,7 @@ class EventOptionController extends Controller
 
     public function store(Request $request, Event $event): RedirectResponse
     {
-        if (! $event->canConfigure()) {
+        if (! $event->canEditRegistrationForm()) {
             abort(403, 'This event can no longer be configured.');
         }
 
@@ -70,7 +70,7 @@ class EventOptionController extends Controller
             abort(404);
         }
 
-        if (! $event->canConfigure()) {
+        if (! $event->canEditRegistrationForm()) {
             abort(403, 'This event can no longer be configured.');
         }
 
@@ -99,7 +99,7 @@ class EventOptionController extends Controller
             abort(404);
         }
 
-        if (! $event->canConfigure()) {
+        if (! $event->canEditRegistrationForm()) {
             abort(403, 'This event can no longer be configured.');
         }
 

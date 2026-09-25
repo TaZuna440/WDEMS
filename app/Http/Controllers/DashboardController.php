@@ -53,7 +53,7 @@ class DashboardController extends Controller
                         ['label' => 'Mark as completed', 'href' => route('events.show', $event)],
                     ],
 
-                $daysUntil !== null && $daysUntil <= 7 && in_array($status, [EventStatus::Draft, EventStatus::Configured], true)
+                $daysUntil !== null && $daysUntil <= 7 && $status === EventStatus::Draft
                     => [
                         'urgent',
                         'Event in '.$daysUntil.' day'.($daysUntil === 1 ? '' : 's').' — still in '.$status->label(),
@@ -63,16 +63,10 @@ class DashboardController extends Controller
                 $status === EventStatus::Draft
                     => [
                         'action',
-                        'Draft — needs configuration',
+                        'Draft — no registration form yet',
                         ['label' => 'Configure event', 'href' => route('events.show', $event)],
                     ],
 
-                $status === EventStatus::Configured
-                    => [
-                        'action',
-                        'Configured — ready to open registration',
-                        ['label' => 'Open registration', 'href' => route('events.show', $event)],
-                    ],
 
                 $status === EventStatus::RegistrationOpen
                     => [

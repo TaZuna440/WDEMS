@@ -5,7 +5,6 @@ namespace App\Enums;
 enum EventStatus: string
 {
     case Draft = 'draft';
-    case Configured = 'configured';
     case RegistrationOpen = 'registration_open';
     case RegistrationClosed = 'registration_closed';
     case Ongoing = 'ongoing';
@@ -28,8 +27,7 @@ enum EventStatus: string
     public function allowedTransitions(): array
     {
         return match ($this) {
-            self::Draft => [self::Configured, self::Cancelled],
-            self::Configured => [self::RegistrationOpen, self::Cancelled],
+            self::Draft => [self::RegistrationOpen, self::Cancelled],
             self::RegistrationOpen => [self::RegistrationClosed, self::Cancelled],
             self::RegistrationClosed => [self::Ongoing, self::Cancelled],
             self::Ongoing => [self::Completed, self::Cancelled],
@@ -53,7 +51,6 @@ enum EventStatus: string
     {
         return match ($this) {
             self::Draft => 'Draft',
-            self::Configured => 'Configured',
             self::RegistrationOpen => 'Registration Open',
             self::RegistrationClosed => 'Registration Closed',
             self::Ongoing => 'Ongoing',

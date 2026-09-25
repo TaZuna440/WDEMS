@@ -57,7 +57,6 @@ class Event extends Model
             'venue_latitude' => 'decimal:7',
             'venue_longitude' => 'decimal:7',
 
-
             'partners' => 'array',
             'faq' => 'array',
 
@@ -104,23 +103,27 @@ class Event extends Model
     {
         return in_array($this->status, [
             EventStatus::Draft,
-            EventStatus::Configured,
             EventStatus::RegistrationOpen,
             EventStatus::RegistrationClosed,
         ], true);
     }
 
-    public function canConfigure(): bool
+    /**
+     * Can the organizer edit the registration form for this event?
+     *
+     * Renamed from canConfigure() in Phase 1 of the registration plan.
+     * The workflow no longer has a "configured" state — an event is
+     * either still editable (Draft) or has been published to the public
+     * registration URL (registration_open and beyond).
+     */
+    public function canEditRegistrationForm(): bool
     {
-        return in_array($this->status, [
-            EventStatus::Draft,
-            EventStatus::Configured,
-        ], true);
+        return $this->status === EventStatus::Draft;
     }
 
     public function canOpenRegistration(): bool
     {
-        return $this->status === EventStatus::Configured;
+        return $this->status === EventStatus::Draft;
     }
 
     public function canCloseRegistration(): bool

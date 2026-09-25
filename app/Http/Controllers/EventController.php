@@ -218,18 +218,6 @@ class EventController extends Controller
         return redirect()->route('events.show', $event);
     }
 
-    public function configure(Event $event): RedirectResponse
-    {
-        $workflow = app(EventWorkflow::class);
-
-        if (! $workflow->canTransition($event, EventStatus::Configured)) {
-            abort(403, 'Cannot configure event in its current state.');
-        }
-
-        $workflow->configure($event);
-
-        return redirect()->route('events.show', $event);
-    }
 
     public function openRegistration(Event $event): RedirectResponse
     {

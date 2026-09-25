@@ -39,11 +39,6 @@ class EventWorkflow
     /**
      * Convenience helpers — each checks the transition rule internally.
      */
-    public function configure(Event $event): Event
-    {
-        return $this->transition($event, EventStatus::Configured);
-    }
-
     public function openRegistration(Event $event): Event
     {
         return $this->transition($event, EventStatus::RegistrationOpen);
