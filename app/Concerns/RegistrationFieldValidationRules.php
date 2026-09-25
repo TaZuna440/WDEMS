@@ -101,7 +101,7 @@ trait RegistrationFieldValidationRules
             ],
             'fields.*.field_type' => ['required', 'string', Rule::in($this->fieldTypes())],
             'fields.*.options' => ['nullable', 'array', 'max:'.self::MAX_OPTIONS_PER_FIELD],
-            'fields.*.options.*' => ['string', 'max:'.self::MAX_LABEL_LENGTH],
+            'fields.*.options.*' => ['string', 'min:1', 'max:'.self::MAX_LABEL_LENGTH],
             'fields.*.is_required' => ['boolean'],
             'fields.*.validation_rules' => ['nullable', 'array'],
         ];
