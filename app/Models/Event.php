@@ -77,9 +77,9 @@ class Event extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function eventOptions(): HasMany
+    public function registrationFields(): HasMany
     {
-        return $this->hasMany(EventOption::class);
+        return $this->hasMany(RegistrationField::class);
     }
 
     public function registrations(): HasMany
@@ -87,14 +87,21 @@ class Event extends Model
         return $this->hasMany(Registration::class);
     }
 
+    /**
+     * Counts shown on the deletion confirmation dialog.
+     *
+     * Only keys whose models still exist appear here. event_options
+     * and registration_options were dropped in Phase 2 of the
+     * registration plan — see EventDeletionService for their removal
+     * from the ordered delete.
+     */
     public function relatedRecordCounts(): array
     {
         $registrationIds = $this->registrations()->pluck('id');
 
         return [
-            'event_options' => $this->eventOptions()->count(),
+            'registration_fields' => $this->registrationFields()->count(),
             'registrations' => $registrationIds->count(),
-            'registration_options' => RegistrationOption::whereIn('registration_id', $registrationIds)->count(),
             'attendances' => Attendance::whereIn('registration_id', $registrationIds)->count(),
         ];
     }
