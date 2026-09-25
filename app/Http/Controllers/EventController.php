@@ -78,6 +78,7 @@ class EventController extends Controller
                 'status_label' => $event->status->label(),
                 'registration_start' => $event->registration_start?->toDateTimeString(),
                 'registration_end' => $event->registration_end?->toDateTimeString(),
+                'registration_form_saved_at' => $event->registration_form_saved_at?->toDateTimeString(),
                 'creator' => $event->creator?->name,
                 'created_at' => $event->created_at?->toDateTimeString(),
                 'can_edit' => $event->canEdit(),

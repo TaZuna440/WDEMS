@@ -63,6 +63,12 @@ class RegistrationFormController extends Controller
      *     for a table that will be rewritten anyway.
      *   - Once the event moves past Draft (form locked), no further
      *     saves happen. IDs are stable from that moment.
+     *
+     * On every successful save, `events.registration_form_saved_at` is
+     * stamped. This is the sole signal that a form exists for the event
+     * — the Open Registration action is gated on a non-null value.
+     * Saving an empty form (just the common fields) still counts:
+     * the organizer has explicitly decided what the form contains.
      */
     public function update(RegistrationFieldRequest $request, Event $event): RedirectResponse
     {
@@ -85,8 +91,11 @@ class RegistrationFormController extends Controller
                     'display_order' => $index,
                 ]);
             }
+
+            $event->registration_form_saved_at = now();
+            $event->save();
         });
 
-        return redirect()->route('events.registration-form.show', $event);
+        return redirect()->route('events.show', $event);
     }
 }

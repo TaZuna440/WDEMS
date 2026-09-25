@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'status',
     'registration_start',
     'registration_end',
+    'registration_form_saved_at',
     'partners',
     'faq',
     'walkers_welcome',
@@ -52,6 +53,7 @@ class Event extends Model
             'distance_value' => 'decimal:2',
             'registration_start' => 'datetime',
             'registration_end' => 'datetime',
+            'registration_form_saved_at' => 'datetime',
             'status' => EventStatus::class,
 
             'venue_latitude' => 'decimal:7',
@@ -92,8 +94,7 @@ class Event extends Model
      *
      * Only keys whose models still exist appear here. event_options
      * and registration_options were dropped in Phase 2 of the
-     * registration plan — see EventDeletionService for their removal
-     * from the ordered delete.
+     * registration plan.
      */
     public function relatedRecordCounts(): array
     {
@@ -128,9 +129,32 @@ class Event extends Model
         return $this->status === EventStatus::Draft;
     }
 
+    /**
+     * Can registration be opened for this event?
+     *
+     * Two conditions must hold:
+     *
+     *  1. The event is in Draft — the only state from which
+     *     RegistrationOpen is reachable.
+     *  2. The registration form has been saved at least once.
+     *     `registration_form_saved_at` is set by
+     *     RegistrationFormController::update() on every successful save.
+     *     A null value means the organizer has not built the form yet,
+     *     so participants have nothing to fill in.
+     *
+     * Without the second condition, an event could move to
+     * registration_open with zero custom fields configured — a state
+     * where registration is nominally "open" but no submission surface
+     * exists.
+     *
+     * See the migration for
+     * events.registration_form_saved_at for the backfill trade-off and
+     * the known risk to pre-existing Draft events.
+     */
     public function canOpenRegistration(): bool
     {
-        return $this->status === EventStatus::Draft;
+        return $this->status === EventStatus::Draft
+            && $this->registration_form_saved_at !== null;
     }
 
     public function canCloseRegistration(): bool

@@ -64,6 +64,7 @@ type EventData = {
     status_label: string;
     registration_start: string | null;
     registration_end: string | null;
+    registration_form_saved_at: string | null;
     creator: string | null;
     created_at: string | null;
     can_edit: boolean;
@@ -177,6 +178,15 @@ export default function EventsShow({
     // this to enable/disable the "Create Registration Form" action.
     // The server enforces the same rule via canEditRegistrationForm().
     const canEditRegistrationForm = event.status === 'draft';
+
+    // Open Registration is enabled by the server only when the event is
+    // Draft AND the registration form has been saved at least once. The
+    // disabled tooltip explains both cases so the organizer knows which
+    // prerequisite is missing.
+    const openRegistrationTooltip =
+        event.status === 'draft'
+            ? 'Save the registration form first.'
+            : 'Registration actions are not available in this state';
 
     const openRegistration = () => {
         openConfirm({
@@ -339,6 +349,15 @@ export default function EventsShow({
                                           : event.registration_end
                                             ? `Closed ${event.registration_end}`
                                             : null
+                                }
+                            />
+                            <DetailRow
+                                icon={FileText}
+                                label="Registration Form"
+                                value={
+                                    event.registration_form_saved_at
+                                        ? `Saved on ${event.registration_form_saved_at}`
+                                        : 'Not saved yet'
                                 }
                             />
                         </div>
@@ -540,7 +559,7 @@ export default function EventsShow({
                                     disabled
                                     variant="outline"
                                     className="justify-start"
-                                    title="Registration actions are not available in this state"
+                                    title={openRegistrationTooltip}
                                 >
                                     <UserPlus className="mr-2 h-4 w-4" />
                                     Open Registration
