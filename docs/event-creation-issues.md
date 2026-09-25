@@ -796,3 +796,115 @@ SCH-03 (`data:`/`javascript:` URLs) and SCH-06c (today warning).
 
 - **2026-09-25** — SCH-04, SCH-06, SCH-06c, SCH-07 marked fixed.
   Consolidated list of every closed issue added.
+
+---
+
+## EC-03 — Partner errors not displayed in ExtrasStep (CLOSED)
+
+**Severity:** Medium
+**Status:** **Fixed — 2026-09-25** — see FIX-021
+**Found in:** `resources/js/components/partner-editor.tsx`,
+`resources/js/pages/events/step/ExtrasStep.tsx`
+
+### What was broken
+
+Partner sub-errors (`partners.0.name`, `partners.0.type`) triggered the
+wizard's top-level banner ("Please fix the highlighted fields before
+continuing") but no field was highlighted and no inline error text
+rendered. The wizard correctly routed to Extras; the fields were blank
+of any indication what was wrong.
+
+### Root cause
+
+`PartnerEditor.tsx` had no `errors` prop. `ExtrasStep.tsx` passed only
+`value` and `onChange`. The error values existed in
+`errors['partners.0.name']` — set by `validateExtras` on the client or
+by `validatePartnerDuplicates` on the server — but the component had
+no channel to receive them.
+
+### Fix
+
+Two files:
+
+- `partner-editor.tsx` — added `errors?: Record<string, string>` prop
+  (default `{}`). Added `InputError` import. Renders inline errors
+  under the name and type fields for each row.
+- `ExtrasStep.tsx` — passes `errors={errors}` to `<PartnerEditor>`.
+
+Full record: `docs/fixes.md` FIX-021.
+
+### Verification
+
+Browser: adding a partner with name `hgsd` (no vowel) shows inline
+**"Please enter a valid partner name."** Adding an empty partner row
+shows **"Partner name is required."** Both render under the field, on
+the same row as the input. The top-level banner remains and now
+actually corresponds to visible errors.
+
+---
+
+## EC-12 — No test coverage for partner duplicate + quality rules
+
+**Severity:** Low
+**Status:** Open
+**Found in:** `app/Concerns/EventValidationRules.php`,
+`resources/js/lib/event-validation.ts`
+**Related:** FIX-018, FIX-020
+
+### Symptoms
+
+Two partner validation rules — duplicate detection (name+type pair)
+and human-name quality checks (via `humanNameQualityRules`) — are
+written, wired, and type-check. Nothing proves they fire. A future
+change to normalization logic, key format, or the skip-on-missing
+condition could silently break either rule.
+
+### Root cause
+
+Both rules were added mid-session without a matching test file. Same
+class of gap as `EventDeletionService::delete()` (see
+`docs/event-deletion.md` §11) — a real behavior left unpinned.
+
+### Fix outline
+
+New test file `tests/Feature/Events/EventPartnerRulesTest.php`. Follow
+the pattern in `EventUrlRulesTest.php` — local `payload()` and
+`staff()` helpers, `$this->actingAs($user)->post(route('events.store'), ...)`.
+
+Cases to cover:
+
+**Duplicate rule:**
+- Two identical name+type pairs → rejected with `partners.N.name`
+- `nike/sponsor` + `Nike/sponsor` → rejected (case-insensitive)
+- `Nike /sponsor` + `Nike/sponsor` → rejected (trim)
+- `Nike/sponsor` + `Nike/host` → accepted (different type)
+- `Nike/sponsor` + `Adidas/sponsor` → accepted (different name)
+- Three rows, third duplicating the first only → rejected on the third
+- Two rows with missing name → shape errors, no duplicate error fires
+
+**Quality rule:**
+- `dfdffdfd` (no vowels) → rejected
+- `aeiou` (no consonants) → rejected
+- `aaaa` (3+ repeats) → rejected
+- `-abc` (bad first char) → rejected
+- `Barangay San Roque` → accepted
+
+### Verification when fixed
+
+    php artisan test tests/Feature/Events/EventPartnerRulesTest.php
+
+All tests pass. Then `php artisan test tests/Feature/Events` — nothing
+regresses.
+
+### Cross-references
+
+- FIX-018 — duplicate rule
+- FIX-020 — partner name quality rules
+- FIX-021 — inline error display
+
+---
+
+## Change log addendum
+
+- **2026-09-25** — EC-03 marked closed (fixed via FIX-021). EC-12
+  opened — no test coverage for duplicate + quality rules.

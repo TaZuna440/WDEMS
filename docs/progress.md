@@ -589,3 +589,207 @@ for the current list.
 For the narrative story behind these changes — what was built, in what
 order, and why — see `development-log.md`. This file lists what
 changed; that file explains the arc.
+
+---
+
+## 2026-09-25 — RSVP removal, partner hygiene, and git consolidation
+
+### Summary
+
+Seventh work block of the same day. Three feature changes plus one
+infrastructure recovery:
+
+1. **RSVP flag fully removed** — column dropped, validation removed,
+   controller reads/writes removed, wizard field removed, show page
+   DetailRow removed. Five FIX entries: FIX-017 for the removal,
+   FIX-018 for the partner duplicate rule that was added in the same
+   commit, FIX-019 for the Sensory accessibility group merge, FIX-020
+   for the shared `humanNameQualityRules()` extraction, FIX-021 for
+   the inline partner error display.
+
+2. **Partner hygiene** — duplicate rule (client + server, (ii)
+   semantics: name AND type must both match), quality rules
+   (`humanNameQualityRules()` shared with `event_name`), inline error
+   rendering (closes EC-03).
+
+3. **Git consolidation** — 20 untracked files were brought into git in
+   commit `84c33a0`, including all of `docs/`, the
+   `EnsureEmailIsVerifiedOrAdmin` middleware, `DemoUsersSeeder`, the
+   `venue_map_url` migration, and three test files. Before this commit
+   the entire documentation system was untracked.
+
+Two new workflow protocols recorded as §9 in
+`docs/dev-workflow/README.md`: P9 (commit messages from diffs, not
+docs) and P10 (do not commit unread files). Both were motivated by
+failures during this session.
+
+**Test suite at end of session:** 54 passed, 145 assertions —
+unchanged from the previous block. Both `php artisan test
+tests/Feature/Events` and `php artisan test tests/Feature/Auth` run
+clean.
+
+### Documentation created
+
+None.
+
+### Documentation appended
+
+| File | Change |
+|---|---|
+| `docs/fixes.md` | FIX-017 through FIX-021 |
+| `docs/progress.md` | This entry |
+| `docs/dev-workflow/README.md` | §9 — P9, P10, plus P9 verification addendum |
+| `docs/event-creation-issues.md` | EC-03 marked closed, EC-12 opened |
+| `README.md` | Four drift corrections — Map picker row dropped, `forceCreate` in Tinker snippet, middleware list updated, docs index expanded |
+| `docs/event-creation-issues.md` | (also) RSVP + partner section resolutions |
+
+### Code changes
+
+| File | Change | Rationale |
+|---|---|---|
+| `database/migrations/2026_09_25_170000_remove_rsvp_required_from_events_table.php` | **New** | Drops the column. `down()` re-adds at original position |
+| `app/Models/Event.php` | Removed `rsvp_required` from fillable + cast | FIX-017 |
+| `app/Concerns/EventValidationRules.php` | Removed `rsvp_required` rule. Added `humanNameQualityRules()` and `validatePartnerDuplicates()`. Refactored `eventNameRules()`. Expanded `partners.*.name` | FIX-017, FIX-018, FIX-020 |
+| `app/Http/Controllers/EventController.php` | Removed 4 `rsvp_required` references | FIX-017 |
+| `app/Http/Requests/EventRequest.php` | `withValidator()` calls both duration and duplicate validators | FIX-018 |
+| `resources/js/lib/event-validation.ts` | **Restored** after untracked-file corruption. Added `humanNameQualityError()`. Duplicate pass in `validateExtras`. Now git-tracked | FIX-018, FIX-020 |
+| `resources/js/components/accessibility-grid.tsx` | Removed Sensory group, merged into Physical Access | FIX-019 |
+| `resources/js/components/partner-editor.tsx` | Accepts `errors?` prop, renders inline `<InputError>` per row | FIX-021 |
+| `resources/js/pages/events/create.tsx` | Removed `rsvp_required` from fields + defaults | FIX-017 |
+| `resources/js/pages/events/edit.tsx` | Same as create | FIX-017 |
+| `resources/js/pages/events/show.tsx` | Removed `rsvp_required` type field + `<DetailRow>` | FIX-017 |
+| `resources/js/pages/events/step/ExtrasStep.tsx` | Rewrote without Registration section. Added partner counter, cap message, top-level error slot. Passes errors down | FIX-017, FIX-021 |
+
+### Test changes
+
+None. Suite stayed at 54 / 145 across the entire block.
+
+**Gap:** the partner duplicate rule and partner name quality rules have
+no test coverage. Recorded as EC-12.
+
+### Database changes
+
+| Change | Note |
+|---|---|
+| New migration drops `rsvp_required` | Reversible via `down()` |
+| Base migration `2026_09_21_093134_*` untouched | Per AI-CONTEXT §8 |
+
+### Environment changes
+
+None.
+
+### Bugs fixed
+
+| # | Bug | Fix | Evidence |
+|---|---|---|---|
+| FIX-017 | RSVP flag survived two refactor passes; no longer decided anything | Removed column, validation, controller references, wizard field, show page DetailRow | 54/145 stable |
+| FIX-018 | Same partner+role could appear twice | Duplicate rule on client + server, (ii) semantics | `tsc` + `php -l` clean |
+| FIX-019 | Single-item Sensory category header | Merged into Physical Access | Browser: 3 groups render |
+| FIX-020 | Partner names had no quality filter (unlike event_name) | Extracted `humanNameQualityRules()`, applied to both | Browser: garbage name shows "Please enter a valid partner name." |
+| FIX-021 | Partner errors triggered the top banner but rendered nowhere | Added `errors` prop to PartnerEditor, inline `<InputError>` per row | Browser: garbage name shows inline red text (screenshot) |
+
+### Bugs found but not fixed
+
+| # | Bug | Where documented |
+|---|---|---|
+| EC-12 | Partner duplicate rule has no test coverage | `docs/event-creation-issues.md` |
+| — | Walk-in messaging vanished from the wizard with the RSVP helper text | `docs/event-creation-issues.md` |
+
+### Failures during the session
+
+**Two.**
+
+**1. `sed` over-consumed on `show.tsx` (Block 2).** A fixed-count
+`N;N;N;N;N;N;N;N` navigation instead of a loop-until-terminator pattern
+grabbed a 9-line window that spanned two `<DetailRow>` blocks. It
+deleted the wrong one. Recovered via `git checkout` — the file was
+tracked. Re-ran with `/<DetailRow$/{:a;N;/\/>$/!ba;/label="RSVP"/d}`,
+which consumes one JSX element per match. Verified against
+`sed -n '310,360p'` before re-running.
+
+**2. `event-validation.ts` corrupted by bash history expansion.**
+`grep -Fn "    if (!eventName) {"` inside `$(...)` command
+substitution triggered bash history expansion on `!eventName`. The
+`START` variable went empty, `head -n $((START - 1))` became
+`head -n -1` (all lines but the last), and the file was corrupted to
+614 lines with duplicated validators.
+
+The recovery path — `git checkout resources/js/lib/event-validation.ts`
+— **failed** because the file was not tracked (`??` in git status).
+This was the highest-impact failure of the session: the file had to be
+reconstructed from a known-good snapshot pasted earlier in the session.
+
+Both root causes have been addressed:
+
+- **Bash history expansion:** grep patterns in `$(...)` command
+  substitution must be single-quoted unless shell interpolation is
+  required.
+- **Untracked files:** before proposing any split-edit pattern, run
+  `git ls-files <target>` to confirm the file is tracked. If untracked,
+  `git add` first or use a non-destructive write.
+
+The second lesson led directly to commit `84c33a0`, which brought 20
+untracked files into git.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `php artisan test tests/Feature/Events` (after `533658e`) | 54 passed, 145 assertions |
+| `php artisan migrate` (drop rsvp_required) | DONE in 3s |
+| `php artisan test tests/Feature/Events` (after migration) | 54 passed, 145 assertions |
+| `php artisan test tests/Feature/Auth` | 44 passed, 119 assertions |
+| `npx tsc --noEmit` | silent |
+| Browser: Extras step renders without Registration section | confirmed |
+| Browser: partners counter increments on add | confirmed |
+| Browser: garbage partner name shows inline error | confirmed |
+| Browser: empty partner row shows inline error | confirmed |
+
+### Cross-reference
+
+| Subsystem | Primary doc |
+|---|---|
+| Fixed problems reference | `docs/fixes.md` (FIX-017 through FIX-021) |
+| Open event-creation issues | `docs/event-creation-issues.md` (EC-12 new, EC-03 closed) |
+| Workflow protocols | `docs/dev-workflow/README.md` §9 |
+| Event schema and wizard | `docs/event-creation-wizard.md` |
+
+### Files touched this date — full inventory
+
+
+    Documentation (appended):
+      docs/fixes.md
+      docs/progress.md
+      docs/dev-workflow/README.md
+      docs/event-creation-issues.md
+      README.md
+
+    Code:
+      app/Concerns/EventValidationRules.php
+      app/Http/Controllers/EventController.php
+      app/Http/Requests/EventRequest.php
+      app/Models/Event.php
+      resources/js/components/accessibility-grid.tsx
+      resources/js/components/partner-editor.tsx
+      resources/js/lib/event-validation.ts                    (restored after corruption)
+      resources/js/pages/events/create.tsx
+      resources/js/pages/events/edit.tsx
+      resources/js/pages/events/show.tsx
+      resources/js/pages/events/step/ExtrasStep.tsx
+
+    Database:
+      database/migrations/2026_09_25_170000_remove_rsvp_required_from_events_table.php   (new)
+
+    Commits (newest to oldest):
+      c3e1590  docs: land Google-removal README pass; correct four drift items
+      84c33a0  chore: track middleware, migrations, seeders, tests, and documentation
+      0d7328f  fix: render partner errors inline; drop rsvp_required from EventController
+      533658e  refactor: remove RSVP flag; add partner duplicate rule; merge Sensory into Physical Access; extract humanNameQualityRules
+
+---
+
+## See also
+
+For the narrative story behind these changes — what was built, in what
+order, and why — see `development-log.md`. This file lists what
+changed; that file explains the arc.

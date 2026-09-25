@@ -1034,3 +1034,219 @@ field.
 
 - **2026-09-25** — FIX-016b recorded. URL regex tightened to reject
   bare domains.
+
+---
+
+## FIX-017 — RSVP flag removed from schema, UI, and validation
+
+**Severity:** Medium (dead data modeling; removal, not a bug fix)
+**Date fixed:** 2026-09-25
+**Related:** `docs/event-creation-issues.md` (RSVP resolution section)
+
+### What was broken
+
+Not a bug. A boolean field carried forward from an earlier design where Community Run had one registration path. Once both pre-registration and walk-in became unconditionally available, the flag stopped deciding anything — but still appeared on the Extras step, still got validated, still got persisted, and still drove a copy line on the show page ("Required" vs "Not required — walk-ins welcome"). Every one of those was a single-branch outcome disguised as a user-facing choice.
+
+### Root cause
+
+Schema evolution without pruning. The wizard, the lifecycle, and the registration model all moved forward — the RSVP flag was never revisited. It survived two refactor passes because it was well-typed (boolean, cast, validated) and did not throw.
+
+### What changed
+
+| File | Change |
+|---|---|
+| `database/migrations/2026_09_25_170000_remove_rsvp_required_from_events_table.php` | **New** — `dropColumn('rsvp_required')`. `down()` re-adds it at `after('registration_end')` with `default(false)`, matching the original add-column migration |
+| `app/Models/Event.php` | Removed `'rsvp_required'` from `#[Fillable]` and from `casts()` |
+| `app/Concerns/EventValidationRules.php` | Removed `'rsvp_required' => ['boolean']` |
+| `app/Http/Controllers/EventController.php` | Removed 4 references — 2 reads (`show`, `edit`), 2 writes (`store`, `update`) |
+| `resources/js/pages/events/create.tsx` | Removed from `fields` array and initial `useForm` payload |
+| `resources/js/pages/events/edit.tsx` | Removed from `FormData` type, `fields` array, and initial values |
+| `resources/js/pages/events/show.tsx` | Removed from `Event` type and the `<DetailRow label="RSVP">` block |
+| `resources/js/pages/events/step/ExtrasStep.tsx` | Rewrote without the Registration section. Removed now-unused `Checkbox` and `Label` imports |
+
+**Deliberately not removed:** the `rsvp_required` reference in the base migration `2026_09_21_093134_add_event_metadata_to_events_table.php`. Base migrations are append-only (AI-CONTEXT §8).
+
+**Deliberately not removed:** three test payloads that still carry `'rsvp_required' => false` (`EventUrlRulesTest`, `EventScheduleRulesTest`, `EventDateRulesTest`). Inert — the controller no longer reads the key. Cosmetic cleanup deferred.
+
+### Evidence
+
+- Test suite before: **54 passed, 145 assertions**
+- Test suite after: **54 passed, 145 assertions** — no regression
+- Migration ran: `2026_09_25_170000_remove_rsvp_required_from_events_table ............ 3s DONE`
+- Browser: Extras step renders without a Registration section
+
+### Related
+
+- `docs/event-creation-issues.md` — walk-in messaging that lived in the RSVP helper text is now gone from the wizard. Whether it reappears on the show page is deferred.
+
+---
+
+## FIX-018 — Partner duplicate rule (client + server)
+
+**Severity:** Medium (silent accept of meaningless duplicates)
+**Date fixed:** 2026-09-25
+**Related:** `docs/event-creation-issues.md` EC-12 (test coverage gap)
+
+### What was broken
+
+`Nike / sponsor` and `Nike / sponsor` passed validation and persisted as two entries. The rules array validated shape (`partners.*.name` required, type in enum) and quantity (`max:20`), but nothing cross-referenced rows.
+
+### Root cause
+
+Laravel's `distinct` rule operates on a single column across array indices, not on a pair of columns. No custom validator existed.
+
+### The design decision — (ii), not (iii)
+
+Two candidates were considered:
+
+| Rule | Meaning |
+|---|---|
+| **(ii)** | Duplicates iff name AND type match |
+| **(iii)** | Duplicates iff name matches, regardless of type |
+
+**Chosen: (ii).** A partner is a **relationship**, not an entity. Nike can be both a sponsor (funds) and a host (venue) of the same event — two contributions with two operational consequences. Forcing the organizer to write "Nike Philippines" and "Nike Inc." to dodge a name-collision rule would be fake differentiation: worse data, not cleaner.
+
+The same entity in the same role twice is a typo. The same entity in two roles is a fact. The pair-key captures the typo without suppressing the fact.
+
+**Normalization:** `trim().toLowerCase()` on both fields. `Nike ` and `nike` collide; `Nike` and `Adidas` do not.
+
+### What changed
+
+**Server — `app/Concerns/EventValidationRules.php`:**
+
+New `validatePartnerDuplicates(Validator $validator)` in the `Validator::after` closure style. Iterates partners, skips rows missing name or type (their own rules report those), builds a `name|type` key, adds `partners.{index}.name` pointing at the first offending row, aggregates a top-level `partners` message.
+
+**Server — `app/Http/Requests/EventRequest.php`:**
+
+`withValidator()` now calls both `validateEventDuration` and `validatePartnerDuplicates`.
+
+**Client — `resources/js/lib/event-validation.ts`:**
+
+New `normalizePartnerPart(value: unknown)` helper mirroring the server. `validateExtras` gained a duplicate pass using a `Map<string, number>`. Same key construction, same messages, same skip-on-missing.
+
+The two sides are intentionally symmetric. This is the same discipline used for `HTTP_URL_PATTERN` and `MIN_EVENT_DURATION_MINUTES`.
+
+### Evidence
+
+- `npx tsc --noEmit` — silent
+- `php -l` — clean on both files
+- Test suite unchanged: **54 passed, 145 assertions**
+
+### Not covered by tests
+
+**No test currently exercises the duplicate rule.** Recorded as EC-12 in `docs/event-creation-issues.md`.
+
+---
+
+## FIX-019 — Sensory accessibility group merged into Physical Access
+
+**Severity:** Cosmetic (single-item category header)
+**Date fixed:** 2026-09-25
+
+### What was broken
+
+The Accessibility grid rendered four category groups. Three contained multiple flags. The fourth — `Sensory` — contained one flag (`quiet_space_available`). A category header over a single item reads as scaffolding that was never finished.
+
+### What changed
+
+| File | Change |
+|---|---|
+| `resources/js/components/accessibility-grid.tsx` | Removed the fourth `GROUPS` entry (`title: 'Sensory'`). Moved the `quiet_space_available` feature into the `Physical Access` group |
+
+`Physical Access` now contains three features: `stroller_friendly`, `wheelchair_accessible`, `quiet_space_available`.
+
+The `AccessibilityField` union type was not modified — the field survived the move.
+
+### Evidence
+
+- `grep -c "field: '"` = 9 — all fields present, only reparented
+- `grep "title: 'Sensory'"` — silent
+- `npx tsc --noEmit` — silent
+- Browser: Physical Access shows three checkboxes, no Sensory group
+
+---
+
+## FIX-020 — Partner name quality rules via shared `humanNameQualityRules()`
+
+**Severity:** Medium (silent accept of keyboard-mashing partner names)
+**Date fixed:** 2026-09-25
+**Related:** FIX-018 (duplicate rule), `docs/dev-workflow/README.md` P10
+
+### What was broken
+
+`event_name` was protected by five validation rules (starts-with-letter-or-number, must-contain-vowel, must-contain-consonant, no 3+ repeats, length). `partners.*.name` was protected by two (`required_with`, `max:255`). Keyboard-mashing like `dfdffdfd` or `dfgddgfd` passed partner validation and persisted. Screenshot from this session showed exactly that — two garbage names saved on an event.
+
+### Root cause
+
+The rules for `event_name` were written inline in `eventNameRules()`. There was no shared unit to call from `partners.*.name`. When partner validation was added, the quality checks were simply not copied.
+
+### The design decision — DRY extraction, matching `ProfileValidationRules`
+
+`app/Concerns/ProfileValidationRules.php` already used the pattern: `profileRules()` calls extracted `nameRules()` and `emailRules()`. The fix mirrors that convention — no new pattern invented.
+
+New shared method `humanNameQualityRules()` returns the four quality regex rules. Both `eventNameRules()` and `partners.*.name` call it via spread (`...$this->humanNameQualityRules()`).
+
+Client side mirrors: `humanNameQualityError(value, label)` returns `null` on pass or a message string on failure. Both `validateBasics` and `validateExtras` call it.
+
+### What changed
+
+| File | Change |
+|---|---|
+| `app/Concerns/EventValidationRules.php` | New `humanNameQualityRules()` method. `eventNameRules()` refactored to use the spread. `partners.*.name` expanded to include `'min:3'` and the spread |
+| `resources/js/lib/event-validation.ts` | New `humanNameQualityError()` helper. `validateBasics` and `validateExtras` both call it |
+
+### Evidence
+
+- `npx tsc --noEmit` — silent
+- `php -l` — clean
+- Test suite unchanged: **54 passed, 145 assertions**
+
+### Untracked-file incident during the fix
+
+The original attempt to apply this change used head/tail splits anchored by `grep -Fn` with double-quoted patterns containing `!`. Bash history expansion fired (`bash: !eventName: event not found`), the `START`/`END` variables went empty, and `event-validation.ts` was corrupted to 644 lines with duplicated functions.
+
+Recovery was complicated by the fact that `event-validation.ts` was **not tracked in git** — `git checkout` had nothing to restore from. The file had to be reconstructed from a known-good snapshot pasted earlier in the session.
+
+Two rules emerged (recorded as P9/P10 in `docs/dev-workflow/README.md`, with an additional shell-safety rule noted below):
+
+1. **Grep patterns in `$(...)` command substitution must be single-quoted** unless shell interpolation is required. `!`, `$`, backticks, and `\` all survive single quotes literally.
+2. **Before proposing any split-edit pattern, verify the target is tracked** via `git ls-files <path>`. If untracked, `git add` first or use a non-destructive write.
+
+The second rule was applied in the same session — a broader consolidation commit (`84c33a0`) brought 20 untracked files (including all of `docs/`, the `EnsureEmailIsVerifiedOrAdmin` middleware, and the `venue_map_url` migration) into git.
+
+---
+
+## FIX-021 — Partner errors rendered inline per row (closes EC-03)
+
+**Severity:** Medium (UX dead-end — banner fired but nothing was highlighted)
+**Date fixed:** 2026-09-25
+**Related:** `docs/event-creation-issues.md` EC-03 (closed)
+
+### What was broken
+
+When a partner was invalid, the wizard correctly routed to the Extras step and the banner said "Please fix the highlighted fields before continuing." No field was highlighted. The `errors['partners.0.name']` message had nowhere to render.
+
+### Root cause
+
+`PartnerEditor.tsx` had no `errors` prop. `ExtrasStep.tsx` called it with only `value` and `onChange`. The errors from `validateExtras` were set — `errors.partners.0.name` existed — but the component had no channel to receive them.
+
+### What changed
+
+| File | Change |
+|---|---|
+| `resources/js/components/partner-editor.tsx` | Added `errors?: Record<string, string>` prop with default `{}`. Added `InputError` import. Renders `<InputError message={errors[\`partners.${index}.name\`]} />` under the name input, and same for type |
+| `resources/js/pages/events/step/ExtrasStep.tsx` | Passes `errors={errors}` to `<PartnerEditor>` |
+
+### Evidence
+
+- `npx tsc --noEmit` — silent after both changes
+- Browser: adding `hgsd` (no vowel) as a partner name now shows **"Please enter a valid partner name."** under the field, matching the presentation of the top-level banner
+- Browser: adding an empty partner row shows **"Partner name is required."** under the field
+- Top-level banner remains — same behavior as before, now with visible inline errors underneath
+
+---
+
+## Change log addendum
+
+- **2026-09-25** — FIX-017 through FIX-021 recorded. Six commits landed this session: `533658e` (RSVP removal + duplicate rule + Sensory merge + humanNameQualityRules), `0d7328f` (partner errors inline + EventController rsvp cleanup), `84c33a0` (consolidation — 20 untracked files added), `c3e1590` (README drift + dev-workflow §9).
+- **2026-09-25** — Additional protocols P9 and P10 recorded in `docs/dev-workflow/README.md` §9. Both motivated by commit-message discipline failures during this session. P9 verification addendum appended after confirming all 14 commit-message claims against their diffs.
