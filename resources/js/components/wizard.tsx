@@ -19,9 +19,22 @@ export type WizardStepConfig = WizardStep & {
 
     /**
      * Fields that must not be empty before advancing past this step.
-     * Complex rules (URL format, ranges, enums) are enforced server-side.
+     * Used as a fallback when no `validate` function is provided.
      */
     requiredFields?: string[];
+
+    /**
+     * Optional client-side validator for this step.
+     *
+     * Receives the full form data and returns a Record keyed by field
+     * name. An empty object means the step is valid. When omitted, the
+     * wizard falls back to the emptiness check on `requiredFields`.
+     *
+     * The server remains the source of truth. These rules exist so the
+     * user sees format errors before submitting, not so we can skip
+     * server validation.
+     */
+    validate?: (data: Record<string, unknown>) => Record<string, string>;
 };
 
 type Props<T extends Record<string, unknown>> = {
@@ -33,7 +46,18 @@ type Props<T extends Record<string, unknown>> = {
     processing: boolean;
     onSubmit: () => void;
     submitLabel?: string;
-    children: (stepId: string) => ReactNode;
+    /**
+     * Render function for the current step.
+     *
+     * The second argument carries the merged errors for the current
+     * step — client-side validation errors from this wizard, combined
+     * with server-side errors from the parent form. Pass these down to
+     * the step component so its `<InputError>` slots actually fire.
+     */
+    children: (
+        stepId: string,
+        errors: Record<string, string>,
+    ) => ReactNode;
 };
 
 export default function Wizard<T extends Record<string, unknown>>({
@@ -78,12 +102,18 @@ export default function Wizard<T extends Record<string, unknown>>({
         save(maxStep, data);
     }, [maxStep, data, save, isReady]);
 
-    // Jump to the first step containing a server error
+    // Jump to the first step containing a server error.
+    // Uses prefix matching so `partners.0.name` routes to the step
+    // that owns the `partners` field.
     useEffect(() => {
         if (!errors || Object.keys(errors).length === 0) return;
 
+        const errorKeys = Object.keys(errors);
+
         const failingIndex = steps.findIndex((s) =>
-            s.fields.some((f) => f in errors),
+            s.fields.some((f) =>
+                errorKeys.some((k) => k === f || k.startsWith(f + '.')),
+            ),
         );
 
         if (failingIndex !== -1 && failingIndex !== currentStep) {
@@ -93,29 +123,52 @@ export default function Wizard<T extends Record<string, unknown>>({
 
     const validateCurrentStep = useCallback((): boolean => {
         const step = steps[currentStep];
-        const required = step.requiredFields ?? [];
         const next: Record<string, string> = {};
 
-        for (const field of required) {
-            const value = data[field];
-            const isEmpty =
-                value === '' ||
-                value === null ||
-                value === undefined ||
-                (Array.isArray(value) && value.length === 0);
+        if (step.validate) {
+            Object.assign(next, step.validate(data as Record<string, unknown>));
+        } else {
+            const required = step.requiredFields ?? [];
 
-            if (isEmpty) {
-                next[field] =
-                    field
-                        .replace(/_/g, ' ')
-                        .replace(/\b\w/g, (c) => c.toUpperCase()) +
-                    ' is required.';
+            for (const field of required) {
+                const value = data[field];
+                const isEmpty =
+                    value === '' ||
+                    value === null ||
+                    value === undefined ||
+                    (Array.isArray(value) && value.length === 0);
+
+                if (isEmpty) {
+                    next[field] =
+                        field
+                            .replace(/_/g, ' ')
+                            .replace(/\b\w/g, (c) => c.toUpperCase()) +
+                        ' is required.';
+                }
             }
         }
 
         setStepErrors(next);
         return Object.keys(next).length === 0;
     }, [steps, currentStep, data]);
+
+    // Live re-validation — clears errors as the user fixes the fields.
+    //
+    // Runs only when errors are already visible. A fresh form with no
+    // errors does not nag on every keystroke; errors only appear after
+    // the user has attempted to advance (Next or Submit) and are then
+    // re-evaluated as the user edits.
+    //
+    // `stepErrors` and `validateCurrentStep` are intentionally not in
+    // the dependency list — we want this effect to fire on `data` or
+    // `currentStep` changes only, not on every render that touches
+    // those references. The guard below handles the "no visible
+    // errors" case.
+    useEffect(() => {
+        if (Object.keys(stepErrors).length === 0) return;
+        validateCurrentStep();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data, currentStep]);
 
     const handleNext = useCallback(() => {
         if (!validateCurrentStep()) return;
@@ -177,7 +230,7 @@ export default function Wizard<T extends Record<string, unknown>>({
             )}
 
             <div className="glass-panel rounded-xl p-8">
-                {children(steps[currentStep].id)}
+                {children(steps[currentStep].id, mergedErrors)}
             </div>
 
             <div className="flex items-center justify-between">

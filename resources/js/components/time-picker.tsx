@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -13,10 +14,25 @@ type Props = {
     onChange: (value: string) => void;
     disabled?: boolean;
     className?: string;
+    /**
+     * When true, shows a small X button on the right whenever a value
+     * is set. Clicking it clears the field back to its empty state.
+     * Used for optional time fields (e.g. end_time in ScheduleStep).
+     */
+    clearable?: boolean;
 };
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
-const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
+
+/**
+ * Minutes are restricted to 15-minute intervals. Only four options are
+ * offered — the user cannot pick an intermediate value, so there is no
+ * snapping behavior to explain. Existing events with arbitrary minutes
+ * remain valid on the server; the picker is the entry point for new
+ * values only.
+ */
+const MINUTES = [0, 15, 30, 45];
+
 type Period = 'AM' | 'PM';
 
 function parse(value: string): {
@@ -37,7 +53,9 @@ function parse(value: string): {
     if (h === 0) h = 12;
     else if (h > 12) h -= 12;
 
-    const snapped = Math.min(55, Math.round(m / 5) * 5);
+    // Snap legacy values to the nearest 15-minute interval, capped at 45.
+    // New values come from the picker and are already on a 15-minute mark.
+    const snapped = Math.min(45, Math.round(m / 15) * 15);
 
     return { hour: h, minute: snapped, period };
 }
@@ -56,6 +74,7 @@ export default function TimePicker({
     onChange,
     disabled,
     className,
+    clearable = false,
 }: Props) {
     const { hour, minute, period } = parse(value);
 
@@ -64,10 +83,12 @@ export default function TimePicker({
         onChange(to24(h, m, p));
     };
 
+    const hasValue = value !== '';
+
     return (
         <div className={cn('flex items-center gap-1', className)}>
             <Select
-                value={hour !== null ? String(hour) : undefined}
+                value={hour !== null ? String(hour) : ''}
                 onValueChange={(v) => update(parseInt(v, 10), minute ?? 0, period)}
                 disabled={disabled}
             >
@@ -86,7 +107,7 @@ export default function TimePicker({
             <span className="text-sm text-muted-foreground">:</span>
 
             <Select
-                value={minute !== null ? String(minute) : undefined}
+                value={minute !== null ? String(minute) : ''}
                 onValueChange={(v) => update(hour ?? 12, parseInt(v, 10), period)}
                 disabled={disabled}
             >
@@ -115,6 +136,19 @@ export default function TimePicker({
                     <SelectItem value="PM">PM</SelectItem>
                 </SelectContent>
             </Select>
+
+            {clearable && hasValue && (
+                <button
+                    type="button"
+                    onClick={() => onChange('')}
+                    disabled={disabled}
+                    aria-label="Clear time"
+                    title="Clear time"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                >
+                    <X className="h-4 w-4" />
+                </button>
+            )}
         </div>
     );
 }

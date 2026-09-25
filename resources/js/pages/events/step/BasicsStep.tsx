@@ -39,7 +39,7 @@ export default function BasicsStep({
         <div className="flex flex-col gap-6">
             <div>
                 <h2 className="text-lg font-semibold text-foreground">
-                    Event Basics
+                    Event Details
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                     The core details of your event.
@@ -68,9 +68,7 @@ export default function BasicsStep({
                 </Select>
                 <InputError message={errors.event_type} />
                 <p className="text-xs text-muted-foreground">
-                    {isEdit
-                        ? 'Event type cannot be changed after creation.'
-                        : 'Event type cannot be changed after creation.'}
+                    Event type cannot be changed after creation.
                 </p>
             </div>
 

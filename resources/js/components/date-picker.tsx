@@ -9,6 +9,16 @@ type Props = {
     placeholder?: string;
     disabled?: boolean;
     className?: string;
+    /**
+     * Earliest selectable date (inclusive). Days before this are
+     * rendered disabled. Pass a Date at local midnight.
+     */
+    minDate?: Date | null;
+    /**
+     * Latest selectable date (inclusive). Days after this are rendered
+     * disabled. Pass a Date at local midnight.
+     */
+    maxDate?: Date | null;
 };
 
 const MONTHS = [
@@ -41,6 +51,22 @@ function formatDisplay(d: Date): string {
     });
 }
 
+function isBeforeDay(a: Date, b: Date): boolean {
+    const a0 = new Date(a);
+    const b0 = new Date(b);
+    a0.setHours(0, 0, 0, 0);
+    b0.setHours(0, 0, 0, 0);
+    return a0 < b0;
+}
+
+function isAfterDay(a: Date, b: Date): boolean {
+    const a0 = new Date(a);
+    const b0 = new Date(b);
+    a0.setHours(0, 0, 0, 0);
+    b0.setHours(0, 0, 0, 0);
+    return a0 > b0;
+}
+
 export default function DatePicker({
     id,
     value,
@@ -48,6 +74,8 @@ export default function DatePicker({
     placeholder = 'Pick a date',
     disabled,
     className,
+    minDate = null,
+    maxDate = null,
 }: Props) {
     const [open, setOpen] = useState(false);
     const [viewDate, setViewDate] = useState<Date>(() => parseISO(value) ?? new Date());
@@ -98,7 +126,14 @@ export default function DatePicker({
         cells.push({ date: new Date(year, month + 1, d), inMonth: false });
     }
 
+    const isCellDisabled = (d: Date): boolean => {
+        if (minDate && isBeforeDay(d, minDate)) return true;
+        if (maxDate && isAfterDay(d, maxDate)) return true;
+        return false;
+    };
+
     const pick = (d: Date) => {
+        if (isCellDisabled(d)) return;
         onChange(toISO(d));
         setOpen(false);
     };
@@ -108,7 +143,12 @@ export default function DatePicker({
         onChange('');
     };
 
+    const canPickToday =
+        (!minDate || !isBeforeDay(today, minDate)) &&
+        (!maxDate || !isAfterDay(today, maxDate));
+
     const goToday = () => {
+        if (!canPickToday) return;
         const t = new Date();
         setViewDate(t);
         onChange(toISO(t));
@@ -198,18 +238,25 @@ export default function DatePicker({
                                 cell.date.toDateString() === selected.toDateString();
                             const isToday =
                                 cell.date.toDateString() === today.toDateString();
+                            const isDisabled = isCellDisabled(cell.date);
 
                             return (
                                 <button
                                     key={i}
                                     type="button"
+                                    disabled={isDisabled}
                                     onClick={() => pick(cell.date)}
                                     className={cn(
                                         'flex h-8 items-center justify-center rounded-md text-xs transition-colors',
-                                        !cell.inMonth && 'text-muted-foreground/40 hover:bg-white/[0.03]',
-                                        cell.inMonth && 'text-foreground hover:bg-white/5',
-                                        isToday && !isSelected && 'border border-lime-brand/40 text-lime-brand',
-                                        isSelected &&
+                                        isDisabled &&
+                                            'cursor-not-allowed text-muted-foreground/30',
+                                        !isDisabled && !cell.inMonth &&
+                                            'text-muted-foreground/40 hover:bg-white/[0.03]',
+                                        !isDisabled && cell.inMonth &&
+                                            'text-foreground hover:bg-white/5',
+                                        !isDisabled && isToday && !isSelected &&
+                                            'border border-lime-brand/40 text-lime-brand',
+                                        !isDisabled && isSelected &&
                                             'bg-lime-brand font-medium text-navy-900 hover:bg-lime-brand/90',
                                     )}
                                 >
@@ -223,7 +270,13 @@ export default function DatePicker({
                         <button
                             type="button"
                             onClick={goToday}
-                            className="text-xs font-medium text-lime-brand transition-opacity hover:opacity-80"
+                            disabled={!canPickToday}
+                            className={cn(
+                                'text-xs font-medium transition-opacity',
+                                canPickToday
+                                    ? 'text-lime-brand hover:opacity-80'
+                                    : 'cursor-not-allowed text-muted-foreground/40',
+                            )}
                         >
                             Today
                         </button>
