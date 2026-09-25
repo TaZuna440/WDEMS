@@ -793,3 +793,144 @@ untracked files into git.
 For the narrative story behind these changes — what was built, in what
 order, and why — see `development-log.md`. This file lists what
 changed; that file explains the arc.
+
+---
+
+## 2026-09-26 -- Registration form builder (Phase 2 complete)
+
+### Summary
+
+Phase 2 of the registration plan -- the form builder -- shipped across
+twelve commits. Replaces the old "Configure Options" page with a real
+registration form builder: Common Fields (read-only, six structural),
+Custom Fields (editable, drag-to-reorder, capped at 5), batch save via
+a single PUT, form lock at Open Registration.
+
+Also landed: field choice cap (10 per field), label quality rules
+(strict vowel+consonant check at 5+ chars, relaxed below), label
+collision guard against the six common field names (with NFKC
+normalization to block lookalike-label spoofing), Selection rename
+from Dropdown, and full FAQ removal.
+
+Two bugs surfaced and were fixed mid-phase:
+- Open Registration was enabled on any Draft event, including those
+  with no saved form. Now gated on `registration_form_saved_at`.
+- The drop migration for `event_options` / `registration_options`
+  ran in the test suite before the dependent files were updated.
+  `RefreshDatabase` executes every migration on every test run. See
+  P11 in docs/dev-workflow/README.md.
+
+### Documentation created
+
+None.
+
+### Documentation appended
+
+| File | Change |
+|---|---|
+| docs/registration-development-plan.md | Phase 2 plan, decisions, corrections, close |
+| docs/dev-workflow/README.md | P11: migration files are live in tests |
+| docs/progress.md | This entry |
+| docs/fixes.md | (not updated this phase -- see note below) |
+
+### Code changes
+
+Twelve commits. See the Phase 2 close section of
+docs/registration-development-plan.md for the full inventory.
+
+### Test changes
+
+New: tests/Feature/Events/RegistrationFormTest.php
+  - 18 tests, 46 assertions
+  - Covers show, save (empty, single field, select, ordering,
+    replacement), validation failures (cap, label quality, duplicates,
+    collisions, choice rules), and the lock-at-Open-Registration rule
+
+Events suite: 71 -> 89 tests, 165 -> 211 assertions.
+Auth suite: unchanged at 44/119.
+
+### Database changes
+
+| Change | Note |
+|---|---|
+| New migration creates `registration_fields` | 2026_09_25_180000 |
+| New migration drops `event_options` + `registration_options` | 2026_09_25_180100 |
+| New migration adds `events.registration_form_saved_at` | 2026_09_26_090000 |
+| Column `events.faq` retained but unused | Read/write paths removed in f03f450 |
+
+### Environment changes
+
+- Added @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities to
+  package.json. 0 vulnerabilities at install.
+
+### Bugs fixed
+
+Five fixes, all landed in Phase 2:
+
+1. `event_options` scaffolding was Google-era, no longer reached by
+   any code. Removed entirely.
+2. FAQ was unreachable and out of sync with the rest of the event
+   model. Removed entirely; column preserved.
+3. Custom labels could collide with the six common field names,
+   producing two "Email" fields on the public form. Collision guard
+   added with NFKC normalization.
+4. Label field accepted keyboard mashing. Strict rules apply at 5+
+   characters, relaxed below.
+5. Open Registration was enabled on Draft events with no saved form.
+   Gated on `registration_form_saved_at`.
+
+### Bugs found but not fixed
+
+| # | Bug | Where |
+|---|---|---|
+| -- | registration_form_saved_at is not backfilled for Draft events | Migration docblock + this entry |
+| -- | validation_rules JSON shape is freeform | Deferred to Phase 3 |
+| -- | No public submission surface behind Open Registration | Interim state, Phase 3 |
+
+### Failures during the session
+
+**One.** The drop migration for `event_options` /
+`registration_options` ran in the SQLite in-memory test database the
+moment the file was saved -- because `RefreshDatabase` runs every
+migration on every test run. Three tests failed with "no such table:
+event_options". Recovered by moving the migration to `/tmp` until the
+dependent files were updated in Block 6.
+
+Lesson recorded as P11 in docs/dev-workflow/README.md.
+
+### Known risk -- registration_form_saved_at
+
+Draft events whose form was saved before the 2026_09_26_090000
+migration will read as "never saved" and be locked out of Open
+Registration. The organizer re-saves the form once through the UI to
+clear this. No live events affected at commit time.
+
+Do not backfill by editing the migration. Use an explicit UPDATE if a
+future deployment requires it.
+
+### Verification at close
+
+| Check | Result |
+|---|---|
+| php artisan test tests/Feature/Events | 89 passed / 211 assertions |
+| php artisan test tests/Feature/Auth | 44 passed / 119 assertions |
+| npx tsc --noEmit | silent |
+| Browser: form builder renders, saves, persists | confirmed |
+| Browser: /events/2 Open Registration disabled until form saved | confirmed |
+| Browser: FAQ section gone from event show page | confirmed |
+
+### Cross-reference
+
+| Subsystem | Primary doc |
+|---|---|
+| Registration feature spec | docs/registration.md |
+| Phase plan and close | docs/registration-development-plan.md |
+| Workflow protocols (P1-P11) | docs/dev-workflow/README.md |
+
+## Changelog addendum
+
+- **2026-09-26** -- Phase 2 complete. Twelve commits. Two fixes
+  (Open Registration gate, FAQ removal) plus three new guardrails
+  (label quality, label collision, choice caps). One failure recorded
+  (P11 -- migration files are live in tests). registration_form_saved_at
+  backfill risk recorded.

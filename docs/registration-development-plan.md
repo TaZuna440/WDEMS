@@ -1209,3 +1209,105 @@ change set that updates the five dependent files. Order within Block 6:
   Block 1 scope. `RefreshDatabase` runs all migrations on every test
   run — migration files are not inert. Drop migration restored to
   Block 6 alongside its dependents.
+
+---
+
+## Phase 2 complete (2026-09-26)
+
+Feature-complete. Eleven commits across two calendar days.
+
+### Commits landed
+
+    877901f  extract HumanNameQualityRules; add RegistrationField
+    f37521f  add RegistrationFieldRequest and its validation trait
+    a04d455  add RegistrationFormController
+    b6ddd3d  wire RegistrationForm routes; swap Event relation
+    1ec697d  drop options scaffolding; trim delete cascade
+    5ccca46  frontend constants + client validation mirror
+    b8bd19d  sortable list, field editor, textarea primitive
+    481b0ab  form builder page; repoint show-page action
+    6b38979  reject keyboard-mashing field labels (strict at 5+ chars)
+    6c2327f  gate Open Registration on a saved form
+    caeab79  field and choice caps; label collision guard; Selection rename
+    f03f450  remove FAQ end-to-end; preserve column
+
+### What shipped
+
+Schema
+- New `registration_fields` table (label, field_type, options,
+  validation_rules, is_required, display_order)
+- New `events.registration_form_saved_at` timestamp column
+- Dropped `event_options` and `registration_options`
+- `events.faq` column preserved but no longer read/written
+
+Backend
+- `RegistrationField` model
+- `RegistrationFormController` (show + batch update)
+- `RegistrationFieldRequest` + `RegistrationFieldValidationRules` trait
+- `HumanNameQualityRules` trait extracted from `EventValidationRules`
+- `Event::canEditRegistrationForm()` and updated
+  `Event::canOpenRegistration()`
+
+Frontend
+- `registration-field-types.ts` and `registration-field-validation.ts`
+- `sortable-field-list.tsx` (dnd-kit wrapper)
+- `registration-field-editor.tsx` (row editor with choices counter)
+- `events/registration-form.tsx` (the page)
+- `events/show.tsx` relabeled to point at the new page; adds
+  Registration Form DetailRow
+
+Rules and caps
+- MAX_FIELDS = 5
+- MAX_OPTIONS_PER_FIELD = 10
+- MIN_OPTIONS_PER_CHOICE_FIELD = 2
+- MIN_STRICT_LABEL_LENGTH = 5 (labels >= 5 chars require vowel +
+  consonant)
+- Custom labels cannot collide with the six common field names after
+  NFKC normalization
+
+### Known risk — registration_form_saved_at is not backfilled
+
+Any Draft event whose registration form was saved BEFORE the
+2026_09_26_090000 migration will read as `registration_form_saved_at
+= null` and be locked out of Open Registration until the organizer
+opens the form builder and clicks Save once more.
+
+The event itself is fine. The guard just cannot tell a form exists.
+
+Do not edit the migration to fix this. Migrations are append-only.
+If a future deployment needs a backfill -- for example, a data
+restoration that precedes the migration -- do so with an explicit
+UPDATE against the events table, not by editing the file.
+
+See also:
+- The migration docblock records this at the schema level.
+- The Event::canOpenRegistration() docblock records it at the guard
+  level.
+- docs/progress.md Phase 2 close entry records it at the log level.
+
+### Interim state — no public submission surface yet
+
+Clicking Open Registration flips status to `registration_open` and
+stamps `registration_start`, but there is no `/r/{slug}` route, no
+public form, and no slug generation. Phase 3 closes this.
+
+### Deferred from the original Phase 2 plan
+
+- `RegistrationFieldCrudTest.php` — not written. The final design is
+  batch save (one PUT, no per-field endpoints). Per-field CRUD does
+  not exist at the HTTP level, so there is nothing for that file to
+  test. Coverage folded into `RegistrationFormTest.php`.
+- `validation_rules` JSON shape — still freeform. Phase 3 defines the
+  structure when the public form needs to enforce it.
+
+### Verification at close
+
+    php artisan test tests/Feature/Events   89 passed / 211 assertions
+    php artisan test tests/Feature/Auth     44 passed / 119 assertions
+    npx tsc --noEmit                        silent
+
+## Changelog addendum
+
+- **2026-09-26** — Phase 2 complete. Twelve commits. registration_form_saved_at
+  backfill risk recorded in migration docblock, Event model docblock,
+  and this plan. Interim state: no public form until Phase 3.
