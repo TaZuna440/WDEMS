@@ -1311,3 +1311,261 @@ public form, and no slug generation. Phase 3 closes this.
 - **2026-09-26** — Phase 2 complete. Twelve commits. registration_form_saved_at
   backfill risk recorded in migration docblock, Event model docblock,
   and this plan. Interim state: no public form until Phase 3.
+
+---
+
+## Phase 3 plan — public submission surface (2026-09-26)
+
+Opens the anonymous submission path. When the organizer clicks Open
+Registration, a public URL goes live at `/r/{slug}`. Anyone with the
+link can submit. Submissions create a participant + a registration + a
+set of field responses.
+
+### Decisions (D1–D6)
+
+**D1 — Slug alphabet.** 31 characters, excluding the confusables I, L,
+O, 0, 1:
+
+    abcdefghjkmnpqrstuvwxyz23456789
+
+Length 8. 31^8 = 8.5 × 10^11 possible slugs. Readable over the phone,
+paste-able in chat. Collisions retried up to 3 times before throwing
+an exception — probability is astronomically low but the loop costs
+nothing.
+
+**D2 — No separate lock timestamp.** `registration_start` (already
+stamped by EventController::openRegistration) is the sole "form is
+locked" signal. No `registration_form_locked_at` column. Add it later
+only if an unlock feature ships — YAGNI today.
+
+**D3 — Close-time enforcement via middleware.**
+`EnsureRegistrationIsOpen` runs on the `/r/{slug}` route group. Both
+GET and POST are gated. If `status !== registration_open` or
+`registration_end` has passed, renders a "registration closed" page
+with a 200. No scheduled job.
+
+**D4 — Dedicated public layout.**
+`resources/js/layouts/public/public-layout.tsx`. Minimal brand header,
+centered content, no sidebar, no navigation. Wired via a
+`registrations/public` case in `resources/js/app.tsx`. Success is
+inline on the same page — no separate success route.
+
+**D5 — One registration per email per event.** Duplicate email is
+rejected with a friendly message. Participant identity is reused
+across events (the same Maria who ran in January is the same Maria
+who runs in June), but a single event cannot host two registrations
+under one email. Enforced by a controller-level check plus the
+existing unique constraint on `registrations (event_id, participant_id)`.
+
+**D6 — Form permanently locked after Open.** No reopen path.
+`canEditRegistrationForm()` remains `status === 'draft'`. Adding reopen
+later requires a real design (versioned forms or field-level locking)
+— not in scope, not pretended.
+
+### Phase 0 correction — C-5 participant indexes
+
+Phase 0 claimed "Phase 4 needs a migration for `participants.first_name`
+and `participants.last_name` indexes." That is wrong. The base
+migration `2026_09_16_160315_create_participants_table.php` already
+declares:
+
+    $table->index(['last_name', 'first_name']);
+    $table->index('email');
+
+The composite index covers a `last_name`-first search. A `first_name`-
+only LIKE search may benefit from an additional single-column index,
+but that is optional and profiling-driven. Phase 4's index migration
+is downgraded from required to optional.
+
+### New table — `registration_field_responses`
+
+    id
+    registration_id (FK -> registrations, CASCADE)
+    registration_field_id (FK -> registration_fields, RESTRICT)
+    value (text, nullable)
+    timestamps
+    unique (registration_id, registration_field_id)
+
+RESTRICT on `registration_field_id` matches the pattern the old
+`registration_options` table used: a field with responses cannot be
+silently deleted. Combined with D6, no such path exists in practice.
+
+CASCADE on `registration_id` cleans responses when a registration is
+deleted. Event deletion already cascades registrations, so responses
+clean up for free.
+
+### New events column
+
+    registration_slug varchar(32) nullable unique
+    after: registration_form_saved_at
+
+Index on `registration_slug` is unique (implicit via the column
+definition). The route uses implicit model binding on this key.
+
+### Slug generation
+
+In `EventController::openRegistration()`, before the workflow
+transition:
+
+    $event->registration_slug = $this->generateSlug();
+    $event->registration_start = now();
+    $event->save();
+
+`generateSlug()` loops up to 3 times, calling
+`Event::where('registration_slug', $candidate)->exists()` and retrying
+on collision. Throws `RuntimeException` if 3 attempts all collide
+(cannot happen at this scale, but the exception makes the failure
+mode explicit rather than silent).
+
+### Public routes
+
+At the top level of `routes/web.php`, outside every auth group and
+below the existing `/` welcome route:
+
+    Route::middleware([EnsureRegistrationIsOpen::class])->group(function () {
+        Route::get('r/{event:registration_slug}', [PublicRegistrationController::class, 'show'])
+            ->name('public-registration.show');
+        Route::post('r/{event:registration_slug}', [PublicRegistrationController::class, 'store'])
+            ->middleware('throttle:public-registration-submit')
+            ->name('public-registration.store');
+    });
+
+Implicit route model binding on the `registration_slug` key. The
+middleware receives the bound Event and can inspect status and
+registration_end.
+
+### Middleware — `EnsureRegistrationIsOpen`
+
+Custom logic — no framework middleware to delegate to:
+
+1. Read `$event = $request->route('event')`. If null, pass through
+   (safety — the route always binds).
+2. If `$event->status !== EventStatus::RegistrationOpen`, render the
+   closed page with 200.
+3. If `$event->registration_end !== null && now()->isAfter($event->registration_end)`,
+   render the closed page with 200.
+
+The closed page is a dedicated Inertia render — not `abort()`. 404 is
+wrong (the URL is valid). 403 is wrong (no auth to fail). 200 with a
+clear message is right.
+
+### Controller — `PublicRegistrationController`
+
+Two actions:
+
+    show(Event $event): Response
+    // Renders registrations/public with event + its registrationFields
+
+    store(PublicRegistrationRequest $request, Event $event): RedirectResponse
+    // Creates participant (or reuses) + registration + field responses
+    // inside a transaction
+
+Store logic:
+
+1. Read validated payload: six common fields + `field_responses`
+   (array keyed by `registration_field_id`).
+2. Duplicate check: does a Registration exist for this event whose
+   participant has the submitted email? If yes, reject with an error
+   on `email`.
+3. `DB::transaction`:
+   a. Find or create Participant by (email, first_name, last_name).
+      Reuse if all three match. Otherwise create new. The `email`
+      column is not unique — the composite match on all three is what
+      preserves identity.
+   b. Create Registration with `event_id`, `participant_id`,
+      `registration_status = Confirmed`, `source = 'form'`,
+      `registered_at = now()`.
+   c. For each custom field with a submitted non-null value, create
+      a `RegistrationFieldResponse`.
+4. Redirect to `public-registration.show` with a success flash.
+
+Concurrency note: two simultaneous submissions with the same email
+could both pass the duplicate check before either creates a
+registration. The unique constraint on `registrations (event_id,
+participant_id)` catches this at the second INSERT. The controller
+catches the `QueryException` and returns the same "already registered"
+error message. No `lockForUpdate` — overkill for this scale.
+
+### Page — `registrations/public.tsx`
+
+Single page. No redirect on submit — success is inline.
+
+Content:
+
+- Event name, date, time
+- Venue + map link if set
+- Course link if set
+- Description if set
+- Common fields section (six live inputs)
+- Custom fields section (dynamic — one input per
+  `event.registrationFields` row, rendered by field_type)
+- Submit button
+
+Success state: replace the form with a confirmation card. Same URL.
+No page navigation.
+
+### Client validation — `resources/js/lib/public-registration-validation.ts`
+
+Mirrors the server rules from PublicRegistrationRequest. Same pattern
+as `event-validation.ts` and `registration-field-validation.ts`. The
+server is the source of truth; the client catches format errors before
+the user clicks submit.
+
+### Block structure — 8 blocks
+
+| Block | Concern |
+|---|---|
+| 1 | Migrations — add `registration_slug` + create `registration_field_responses` |
+| 2 | `RegistrationFieldResponse` model + `Registration::fieldResponses()` relation |
+| 3 | Slug generation in `EventController::openRegistration()` + test |
+| 4 | `PublicRegistrationRequest` + `PublicRegistrationController` (show + store) |
+| 5 | Middleware + routes + rate limiter + `bootstrap/app.php` alias |
+| 6 | Public layout + `app.tsx` case |
+| 7 | `registrations/public.tsx` page + `public-registration-validation.ts` |
+| 8 | `RegistrationSubmissionTest` + Phase 3 close docs |
+
+Estimate: 2–3 sessions.
+
+### File inventory
+
+**New files (11):**
+
+1. `database/migrations/2026_09_26_100000_add_registration_slug_to_events_table.php`
+2. `database/migrations/2026_09_26_100100_create_registration_field_responses_table.php`
+3. `app/Models/RegistrationFieldResponse.php`
+4. `app/Http/Controllers/PublicRegistrationController.php`
+5. `app/Http/Requests/PublicRegistrationRequest.php`
+6. `app/Http/Middleware/EnsureRegistrationIsOpen.php`
+7. `resources/js/layouts/public/public-layout.tsx`
+8. `resources/js/pages/registrations/public.tsx`
+9. `resources/js/pages/registrations/closed.tsx`
+10. `resources/js/lib/public-registration-validation.ts`
+11. `tests/Feature/Public/RegistrationSubmissionTest.php`
+
+**Modified files (7):**
+
+1. `routes/web.php` — add `/r/{slug}` routes at top level
+2. `bootstrap/app.php` — register `registration.open` middleware alias
+3. `app/Models/Event.php` — add `registration_slug` to fillable + cast
+4. `app/Models/Registration.php` — add `fieldResponses()` HasMany relation
+5. `app/Http/Controllers/EventController.php` — generate slug on `openRegistration()`
+6. `app/Providers/AppServiceProvider.php` — rate limiter `public-registration-submit`
+7. `resources/js/app.tsx` — layout case for `registrations/public` and `registrations/closed`
+
+### Open items for Block-level decisions
+
+- `registration_field_responses.value` type per field_type — text is
+  the storage column for all types. Rendered on output based on the
+  field's type. Checkbox (multi-select) stored as JSON. Decided
+  during Block 4.
+- Public rate limiter bound — 5 per IP per minute per spec. Confirm
+  during Block 5.
+- Duplicate email rule is per-event. Same email across two events is
+  allowed and produces two registrations tied to one participant row.
+
+## Changelog addendum
+
+- **2026-09-26** — Phase 3 plan recorded. D1–D6 decisions. Eleven new
+  files, seven modified. `registration_field_responses` table added
+  to close the gap left by Phase 2. Phase 0 C-5 corrected —
+  participant indexes already exist. Eight blocks, 2–3 sessions.
