@@ -39,6 +39,7 @@ class RegistrationFieldRequest extends FormRequest
     {
         $this->validateChoiceFieldOptions($validator);
         $this->validateFieldLabelDuplicates($validator);
+        $this->validateFieldLabelCollisions($validator);
         $this->validateFieldLabelQuality($validator);
     }
 

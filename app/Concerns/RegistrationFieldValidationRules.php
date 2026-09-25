@@ -11,16 +11,20 @@ trait RegistrationFieldValidationRules
     /**
      * Maximum number of custom fields per event.
      *
-     * Thirty is the realistic ceiling for a Community Run registration
-     * form. Beyond that the organizer is building a survey, not a signup.
+     * Five is the ceiling for a Community Run registration form. Each
+     * event already has six common fields (first name, last name, email,
+     * contact number, age, address). Five customs brings the total to
+     * eleven questions — the practical ceiling before participants
+     * abandon the form.
      */
-    public const MAX_FIELDS = 30;
+    public const MAX_FIELDS = 5;
 
     /**
      * Maximum number of choices for a select / radio / checkbox field.
-     * Beyond 50, the field should be split.
+     * Beyond 10, the field should be split into multiple questions or
+     * a different field type.
      */
-    public const MAX_OPTIONS_PER_FIELD = 50;
+    public const MAX_OPTIONS_PER_FIELD = 10;
 
     /**
      * Maximum length of a field label or option value.
@@ -52,6 +56,28 @@ trait RegistrationFieldValidationRules
     public const MIN_STRICT_LABEL_LENGTH = 5;
 
     /**
+     * The six structural participant fields every registration form
+     * includes automatically. Custom labels may not collide with these
+     * after normalization — see validateFieldLabelCollisions().
+     *
+     * Mirrored in resources/js/lib/registration-field-validation.ts as
+     * COMMON_FIELD_LABELS_NORMALIZED. Keep both in sync.
+     *
+     * @return array<int, string>
+     */
+    protected function commonFieldLabelsNormalized(): array
+    {
+        return [
+            'firstname',
+            'lastname',
+            'email',
+            'contactnumber',
+            'age',
+            'address',
+        ];
+    }
+
+    /**
      * All eight supported field types.
      *
      * @return array<int, string>
@@ -81,25 +107,29 @@ trait RegistrationFieldValidationRules
     }
 
     /**
+     * Normalize a label for collision comparison.
+     *
+     * Lowercase, NFKC (if the intl extension is available), then strip
+     * everything except [a-z0-9]. "First Name", "first_name",
+     * "FIRST-NAME", and Cyrillic-lookalike "Fіrst Nаme" all normalize to
+     * "firstname".
+     */
+    protected function normalizeLabelForCollision(string $label): string
+    {
+        $label = trim($label);
+
+        if (class_exists(\Normalizer::class)) {
+            $normalized = \Normalizer::normalize($label, \Normalizer::FORM_KC);
+            if (is_string($normalized)) {
+                $label = $normalized;
+            }
+        }
+
+        return (string) preg_replace('/[^a-z0-9]/', '', mb_strtolower($label));
+    }
+
+    /**
      * Get the validation rules used to validate the registration form.
-     *
-     * The payload is a batch: a `fields` array containing the entire
-     * form definition. Each row is validated independently; cross-row
-     * checks (choice-field options, duplicate labels, label quality)
-     * run in withValidator() closures.
-     *
-     * Labels are always required, bounded, and checked for the two
-     * relaxed quality rules (start with letter/digit, no 3+ repeats).
-     * The full human-name quality rules (vowel + consonant) apply only
-     * to labels of MIN_STRICT_LABEL_LENGTH or more — see
-     * validateFieldLabelQuality.
-     *
-     * display_order is not a rule. The batch endpoint assigns it from
-     * array position, so client and server cannot diverge.
-     *
-     * validation_rules is stored as a freeform JSON blob in Phase 2.
-     * Its internal structure is validated in Phase 3 when the public
-     * form consumes it.
      *
      * @return array<string, array<int, ValidationRule|array<mixed>|string>>
      */
@@ -127,8 +157,7 @@ trait RegistrationFieldValidationRules
      * Cross-field check: choice types require options; non-choice types
      * must not carry any.
      *
-     * Runs inside a Validator::after closure so it can read the whole
-     * payload. Registered by RegistrationFieldRequest::withValidator().
+     * Registered by RegistrationFieldRequest::withValidator().
      */
     protected function validateChoiceFieldOptions(Validator $validator): void
     {
@@ -177,11 +206,7 @@ trait RegistrationFieldValidationRules
      * Reject duplicate field labels.
      *
      * Two fields are duplicates iff the normalized label matches
-     * (trim + lowercase). Same pattern as the partner duplicate check.
-     *
-     * Non-string labels are skipped without casting — a bad label type
-     * already produces a shape error from the rules array, and casting
-     * an array to string emits a warning.
+     * (trim + lowercase). Non-string labels are skipped without casting.
      *
      * Registered by RegistrationFieldRequest::withValidator().
      */
@@ -238,17 +263,61 @@ trait RegistrationFieldValidationRules
     }
 
     /**
+     * Reject labels that collide with the six structural common fields.
+     *
+     * A custom field labeled "Email" would render alongside the
+     * structural Email field on the public form, confusing participants
+     * about which one to fill in. The collision check normalizes both
+     * sides (lowercase, NFKC, strip non-alphanumeric) so "First Name",
+     * "first_name", "FIRST-NAME", and Cyrillic-lookalike "First Nаme"
+     * all match.
+     *
+     * Registered by RegistrationFieldRequest::withValidator().
+     */
+    protected function validateFieldLabelCollisions(Validator $validator): void
+    {
+        $validator->after(function (Validator $v): void {
+            $data = $v->getData();
+            $fields = $data['fields'] ?? null;
+
+            if (! is_array($fields)) {
+                return;
+            }
+
+            $common = $this->commonFieldLabelsNormalized();
+
+            foreach ($fields as $index => $field) {
+                if (! is_array($field)) {
+                    continue;
+                }
+
+                $rawLabel = $field['label'] ?? '';
+
+                if (! is_string($rawLabel)) {
+                    continue;
+                }
+
+                $normalized = $this->normalizeLabelForCollision($rawLabel);
+
+                if ($normalized === '') {
+                    continue;
+                }
+
+                if (in_array($normalized, $common, true)) {
+                    $v->errors()->add(
+                        "fields.{$index}.label",
+                        'This label matches a common field that is already on every form.',
+                    );
+                }
+            }
+        });
+    }
+
+    /**
      * Reject keyboard-mashing labels.
      *
-     * Two rules are always applied by the rules array: the label must
-     * start with a letter or digit, and it must not contain 3+ identical
-     * characters in a row.
-     *
-     * This closure adds the vowel and consonant checks, but only for
-     * labels of MIN_STRICT_LABEL_LENGTH characters or longer. Shorter
-     * labels like "KM", "10K", "M/F", "BP", and "3M" are legitimate
-     * field names for a running event and would fail a vowel check.
-     * Longer labels that contain no vowels ("gfdgfdfgfd") are mashing.
+     * Applies the vowel and consonant checks only to labels of
+     * MIN_STRICT_LABEL_LENGTH characters or longer.
      *
      * Registered by RegistrationFieldRequest::withValidator().
      */

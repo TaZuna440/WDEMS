@@ -4,10 +4,6 @@
  * Mirrors app/Concerns/RegistrationFieldValidationRules.php. The server
  * remains the source of truth — these checks exist so the user sees
  * format errors before submitting, not so we can skip server validation.
- *
- * Error keys use the same shape as server errors: `fields.{index}.{col}`
- * for per-row errors, `fields` for aggregate messages. This lets the
- * same rendering code handle both sources.
  */
 
 import {
@@ -20,13 +16,13 @@ import {
  * Maximum number of custom fields per event.
  * Mirrors RegistrationFieldValidationRules::MAX_FIELDS.
  */
-export const MAX_FIELDS = 30;
+export const MAX_FIELDS = 5;
 
 /**
  * Maximum number of choices for a select / radio / checkbox field.
  * Mirrors RegistrationFieldValidationRules::MAX_OPTIONS_PER_FIELD.
  */
-export const MAX_OPTIONS_PER_FIELD = 50;
+export const MAX_OPTIONS_PER_FIELD = 10;
 
 /**
  * Maximum length of a field label or option value.
@@ -42,12 +38,24 @@ export const MIN_OPTIONS_PER_CHOICE_FIELD = 2;
 
 /**
  * Labels of this length or longer must contain at least one vowel AND
- * at least one consonant. Shorter labels like "KM", "10K", and "M/F"
- * are legitimate field names and skip the vowel check.
- *
- * Mirrors RegistrationFieldValidationRules::MIN_STRICT_LABEL_LENGTH.
+ * at least one consonant. Mirrors
+ * RegistrationFieldValidationRules::MIN_STRICT_LABEL_LENGTH.
  */
 export const MIN_STRICT_LABEL_LENGTH = 5;
+
+/**
+ * The six structural common fields, normalized the same way the
+ * collision check normalizes candidate labels.
+ * Mirrors RegistrationFieldValidationRules::commonFieldLabelsNormalized().
+ */
+export const COMMON_FIELD_LABELS_NORMALIZED: readonly string[] = [
+    'firstname',
+    'lastname',
+    'email',
+    'contactnumber',
+    'age',
+    'address',
+];
 
 export type FieldFormData = {
     label: string;
@@ -61,21 +69,12 @@ function asString(value: unknown): string {
     return typeof value === 'string' ? value : '';
 }
 
-/**
- * Relaxed check — always applied. Starts with a letter or digit, and
- * no 3+ identical characters in a row.
- */
 function passesRelaxedLabelChecks(label: string): boolean {
     if (!/^[A-Za-z0-9]/.test(label)) return false;
     if (/(.)\1\1/.test(label)) return false;
     return true;
 }
 
-/**
- * Full name-quality check — applied only to labels of
- * MIN_STRICT_LABEL_LENGTH or more characters. Requires a vowel and a
- * consonant.
- */
 function passesStrictLabelChecks(label: string): boolean {
     if (!/[aeiouyAEIOUY]/.test(label)) return false;
     if (!/[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]/.test(label)) return false;
@@ -91,12 +90,20 @@ function isLabelValid(label: string): boolean {
 }
 
 /**
+ * Normalize a label for collision comparison. Lowercase, NFKC (if the
+ * runtime supports it), then strip everything except [a-z0-9].
+ */
+function normalizeLabelForCollision(label: string): string {
+    let s = label.trim();
+    if (typeof s.normalize === 'function') {
+        s = s.normalize('NFKC');
+    }
+    return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
  * Validate an entire form definition. Returns a map of error messages
- * keyed the same way the server does — `fields.{index}.label`,
- * `fields.{index}.options`, `fields.{index}.options.{j}`, and `fields`
- * for the aggregate.
- *
- * An empty object means the form is valid.
+ * keyed the same way the server does.
  */
 export function validateRegistrationForm(
     fields: FieldFormData[],
@@ -113,7 +120,7 @@ export function validateRegistrationForm(
         const type = asString(field.field_type).trim();
         const options = Array.isArray(field.options) ? field.options : [];
 
-        // Label — required, length, then quality.
+        // Label — required, length, quality, collision.
         if (!label) {
             errors[`fields.${index}.label`] = 'Field label is required.';
         } else if (label.length > MAX_LABEL_LENGTH) {
@@ -122,6 +129,12 @@ export function validateRegistrationForm(
         } else if (!isLabelValid(label)) {
             errors[`fields.${index}.label`] =
                 'Please enter a valid field label.';
+        } else {
+            const normalized = normalizeLabelForCollision(label);
+            if (COMMON_FIELD_LABELS_NORMALIZED.includes(normalized)) {
+                errors[`fields.${index}.label`] =
+                    'This label matches a common field that is already on every form.';
+            }
         }
 
         // Type — must be one of the eight.
@@ -186,15 +199,8 @@ export function validateRegistrationForm(
     return errors;
 }
 
-/**
- * Convenience — returns true when the entire form passes client-side
- * validation. Used by the save button.
- */
 export function isRegistrationFormValid(fields: FieldFormData[]): boolean {
     return Object.keys(validateRegistrationForm(fields)).length === 0;
 }
 
-/**
- * Re-export the FieldType union so callers can import it from one place.
- */
 export type { FieldType };

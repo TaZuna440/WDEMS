@@ -16,6 +16,7 @@ import RegistrationFieldEditor, {
 import SortableFieldList from '@/components/sortable-field-list';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import {
+    MAX_FIELDS,
     validateRegistrationForm,
 } from '@/lib/registration-field-validation';
 
@@ -271,7 +272,7 @@ export default function RegistrationForm({ event, fields }: Props) {
                             Custom Fields
                         </h2>
                         <span className="text-xs text-muted-foreground">
-                            {form.data.fields.length} / 30
+                            {form.data.fields.length} / {MAX_FIELDS}
                         </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -331,7 +332,7 @@ export default function RegistrationForm({ event, fields }: Props) {
                                     variant="outline"
                                     onClick={addField}
                                     className="w-fit"
-                                    disabled={form.data.fields.length >= 30}
+                                    disabled={form.data.fields.length >= MAX_FIELDS}
                                 >
                                     <Plus className="mr-2 h-4 w-4" />
                                     Add Field

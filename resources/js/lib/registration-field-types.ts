@@ -27,7 +27,7 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
     textarea: 'Long text',
     number: 'Number',
     email: 'Email',
-    select: 'Dropdown',
+    select: 'Selection',
     checkbox: 'Checkboxes',
     radio: 'Radio buttons',
     date: 'Date',

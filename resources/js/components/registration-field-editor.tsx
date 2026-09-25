@@ -21,14 +21,8 @@ import {
     OPTION_VALUE_PLACEHOLDER,
     type FieldType,
 } from '@/lib/registration-field-types';
+import { MAX_OPTIONS_PER_FIELD } from '@/lib/registration-field-validation';
 
-/**
- * Local draft shape for a single registration field.
- *
- * The `id` is a client-only identifier used by @dnd-kit for reordering.
- * It is never sent to the server — the server assigns display_order
- * from array position, and the batch update replaces all rows.
- */
 export type FieldDraft = {
     id: string;
     label: string;
@@ -61,8 +55,10 @@ export default function RegistrationFieldEditor({
     const typeError = errors[`fields.${index}.field_type`];
     const optionsError = errors[`fields.${index}.options`];
     const isChoice = isChoiceFieldType(field.field_type);
+    const atOptionsCap = field.options.length >= MAX_OPTIONS_PER_FIELD;
 
     const addOption = () => {
+        if (atOptionsCap) return;
         onChange({ options: [...field.options, ''] });
     };
 
@@ -79,10 +75,6 @@ export default function RegistrationFieldEditor({
     };
 
     const handleTypeChange = (value: string) => {
-        // Switching to a non-choice type clears options. The validator
-        // rejects options on text/number/email/date/textarea, so a stale
-        // options array would fail on the next save. Choice-to-choice
-        // changes (select → radio) preserve the options.
         onChange({
             field_type: value,
             options: isChoiceFieldType(value) ? field.options : [],
@@ -149,16 +141,22 @@ export default function RegistrationFieldEditor({
                 {isChoice && (
                     <div className="grid gap-2 rounded-md border border-white/10 bg-white/[0.02] p-3">
                         <div className="flex items-center justify-between">
-                            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                                Choices
-                            </Label>
+                            <div className="flex items-baseline gap-2">
+                                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                                    Choices
+                                </Label>
+                                <span className="text-xs text-muted-foreground">
+                                    {field.options.length} / {MAX_OPTIONS_PER_FIELD}
+                                </span>
+                            </div>
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
                                 onClick={addOption}
-                                disabled={disabled}
+                                disabled={disabled || atOptionsCap}
                                 className="h-7 text-xs"
+                                title={atOptionsCap ? `Maximum ${MAX_OPTIONS_PER_FIELD} choices` : undefined}
                             >
                                 <Plus className="mr-1 h-3 w-3" />
                                 Add choice
@@ -216,6 +214,12 @@ export default function RegistrationFieldEditor({
                                     );
                                 })}
                             </div>
+                        )}
+
+                        {atOptionsCap && !optionsError && (
+                            <p className="text-xs text-muted-foreground">
+                                Maximum of {MAX_OPTIONS_PER_FIELD} choices reached. Remove one to add another.
+                            </p>
                         )}
 
                         <InputError message={optionsError} />
