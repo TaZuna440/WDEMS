@@ -338,3 +338,277 @@ session, that phase is blocked until it has been read.
 
 - **2026-09-25** — File created. Phased plan for building registration
   per `docs/registration.md`.
+
+---
+
+## Phase 0 findings (2026-09-25)
+
+Reconnaissance complete. All 22 files in the Phase 0 list were read in
+the same session. This section records what each file does today, what
+Phases 1–6 will need to change, and what the phase plans were missing.
+
+### State machine and its drivers
+
+**`app/Enums/EventStatus.php`** — Seven-case string enum (`Draft`,
+`Configured`, `RegistrationOpen`, `RegistrationClosed`, `Ongoing`,
+`Completed`, `Cancelled`). `allowedTransitions()` is a `match` returning
+the next states per case. `Draft` currently transitions to
+`Configured` or `Cancelled`. Phase 1 removes the `Configured` case and
+changes `Draft` to transition directly to `RegistrationOpen` or
+`Cancelled`.
+
+**`app/Services/EventWorkflow.php`** — Thin service. `transition()` is
+the single write path; throws `InvalidArgumentException` on illegal
+transitions. `configure()` is one of six convenience helpers. Phase 1
+deletes only `configure()`; the other five remain.
+
+**`app/Models/Event.php`** — Model with Laravel 11 `#[Fillable]`
+attribute. Casts include `EventStatus::class`. Guards: `canEdit()`,
+`canConfigure()`, `canOpenRegistration()`, `canCloseRegistration()`,
+`canRecordAttendance()`. `canEdit()` currently allows editing events in
+`RegistrationOpen` and `RegistrationClosed` — deliberate; the spec
+locks the *registration form*, not the event. `canConfigure()` is used
+only by `EventOptionController`. Phase 1: rename or re-scope
+`canConfigure()`, drop `Configured` from `canEdit()`. Phase 3: add
+`registration_slug` (string, nullable) and `registration_form_locked_at`
+(timestamp, nullable) to fillable + casts.
+
+**`app/Http/Controllers/EventController.php`** — Full CRUD + three
+workflow actions. `configure()` is Phase 1 removal. `openRegistration()`
+sets `registration_start = now()` before calling the service — Phase 3
+also generates the slug and stamps `registration_form_locked_at` here.
+`show()` payload already exposes `can_open_registration`,
+`can_close_registration`, `requires_otp`, `can_record_attendance` — the
+frontend reads these directly.
+
+### Domain models
+
+**`app/Http/Controllers/EventOptionController.php`** — CRUD, gated on
+`$event->canConfigure()`. Validates `option_type`, `option_name`,
+`option_value`, `is_required`, `is_available`. No `field_type` or
+`validation_rules` because those columns do not exist yet. Phase 2
+rewrite adds them and switches the guard.
+
+**`app/Models/EventOption.php`** — Simple model. Fillable + boolean
+casts for `is_required` and `is_available`. Relations: `event()`,
+`registrationOptions()`. Phase 2 extends fillable and casts.
+
+**`app/Models/Registration.php`** — Already has `source` and
+`registered_at` in fillable. **Nothing writes them today.** The schema
+is ready for Phase 3; only the write side needs building.
+
+**`app/Models/RegistrationOption.php`** — Pivot. `registration_id`,
+`event_option_id`, `option_value`. No casts. Phase 3 writes one row per
+custom field per submission.
+
+**`app/Models/Participant.php`** — Exactly matches spec §4: six fields,
+age casts to integer. `fullName()` is a PHP method, not a queryable
+column. Phase 4 name search must either query two columns with
+individual indexes, add a generated `full_name` column, or accept the
+two-column `LIKE` at this scale. See cross-cutting finding C-5.
+
+**`app/Models/Attendance.php`** — Matches spec §7. `attendance_status`
+enum cast, `attendance_time` datetime, `recorded_by` FK to `User`. No
+changes needed for Phase 4 beyond the new write path.
+
+### Schema
+
+**`database/migrations/2026_09_16_160308_create_event_options_table.php`**
+— Five columns: `option_type`, `option_name`, `option_value`,
+`is_required`, `is_available`. Index on `[event_id, option_type]`.
+Confirms Phase 2 migration is required, not optional. Also worth
+considering: index may want to shift to `[event_id, display_order]` for
+ordered rendering once `display_order` is added.
+
+### Routes
+
+**`routes/web.php`** — Three route groups: public (`/` only),
+device-verification (`auth` + `verified`), main app
+(`auth` + `verified.or.admin` + `device.trusted`). No public
+registration route exists. No `registrations` prefix exists. Phase 1
+adds the registrations route group inside the main app group. Phase 3
+adds `/r/{slug}` at the top level, outside all auth groups.
+
+### Frontend shell
+
+**`resources/js/components/app-sidebar.tsx`** — Single
+`mainNavItems` array, two entries (Dashboard, Events). Phase 1 adds a
+third entry.
+
+**`resources/js/components/nav-main.tsx`** — Hardcoded
+`<SidebarGroupLabel>Platform</SidebarGroupLabel>`. Single-group
+assumption. If Registration lives in the same "Platform" group, no
+change. If it needs its own group heading, `NavMain` needs a `label`
+prop. See cross-cutting finding C-6.
+
+**`resources/js/types/navigation.ts`** — `NavItem` is `{ title, href,
+icon?, isActive? }`. No `roles` field. Same issue as ISSUE-001 from the
+auth docs — not fixed, not blocking.
+
+**`resources/js/layouts/app-layout.tsx`** — Thin wrapper. Public
+registration page must bypass this. Phase 3 must add a case to the
+layout switch in `resources/js/app.tsx`. See cross-cutting finding C-2.
+
+### Frontend pages
+
+**`resources/js/pages/events/options.tsx`** — The page Phase 2 replaces.
+Editable list of `{option_type, option_name, option_value, is_required,
+is_available}` rows. Add form, inline toggles, delete confirmation, and
+a "Mark as Configured" call-to-action. `statusStyles` map includes
+`configured` — Phase 1/2 removes that key. **Also note:** the file's
+closing `};` for the layout static property appears to be missing its
+module-closing `}`, based on the snapshot. Either the paste lost a line
+or the file is genuinely malformed. Phase 2 replaces the file whole,
+so this is not blocking.
+
+**`resources/js/pages/events/show.tsx`** — Event detail view with
+Workflow Actions panel. `statusStyles` includes `configured` — Phase
+1/2 removes that key. The "Configure Options" button links to
+`/events/{id}/options` — Phase 2 relabels and re-points. The stale
+panel "These actions are being built in later pages" is now inaccurate
+and should be removed. **Also note:** the current `openRegistration`
+confirmation copy is generic ("Participants will be able to register
+for this event"). Phase 3 needs richer copy that explains the URL is
+about to go public.
+
+**`resources/js/pages/events/index.tsx`** — Event list. `statusStyles`
+includes `configured` — Phase 1/2 removes that key.
+
+### Deletion flow pattern (reference for Phase 5)
+
+**`app/Http/Controllers/EventDeletionController.php`** — Three actions:
+`destroy` (admin only), `requestOtp` (staff only), `verifyOtp` (staff
+only). Each checks `isAdmin()` and aborts the opposite role. Phase 5
+mirrors this shape for registrations — but keyed on
+`registration_id` instead of `event_id`.
+
+**`app/Services/EventDeletion/EventDeletionOtpService.php`** — Cache-
+backed OTP. Constants: `CODE_TTL_SECONDS = 600`, `RESEND_COOLDOWN_SECONDS
+= 60`, `MAX_ATTEMPTS = 5`. Codes hashed with HMAC-SHA256 using
+`APP_KEY`. Phase 5 for registration mirrors this exactly — same
+constants, same hashing, different cache keys.
+
+**`app/Mail/EventDeletionOtpMail.php`** — Mailable with `code`,
+`eventName`, `expiresInMinutes`. View is
+`emails.event-deletion-otp`. Phase 5 needs a parallel
+`RegistrationDeletionOtpMail` with a `participantName` instead of
+`eventName`.
+
+---
+
+## Cross-cutting findings
+
+Numbered for reference in later phases.
+
+### C-1 — `configured` appears in three status-style maps
+
+`events/options.tsx`, `events/show.tsx`, and `events/index.tsx` each
+define a `statusStyles` map with a `configured` key. Phase 1 or 2 must
+remove that key from all three. Not in the original Phase 1 file list.
+**Add to Phase 1 scope.**
+
+### C-2 — Public layout must be wired in `app.tsx`
+
+`resources/js/app.tsx` contains the layout selector — a switch on page
+name that returns `null` for `welcome`, `AuthLayout` for `auth/*`, etc.
+Phase 3 must add a `registrations/public` case returning `null` or a
+dedicated minimal layout. Not in the original Phase 3 file list.
+**Add to Phase 3 scope.**
+
+### C-3 — Wayfinder-generated routes will break on route removal
+
+Phase 1 removes `events.configure`. Wayfinder regenerates
+`resources/js/routes/**` and `resources/js/actions/**` on the next dev-
+server restart. Any file still importing `events.configure` will fail
+to compile. Phase 1 must `grep -rn "events.configure" resources/js/`
+before and after route removal. **Add to Phase 1 scope.**
+
+### C-4 — `registration_end` auto-close is not implemented anywhere
+
+The spec §6 says "if `registration_end` is set, POST rejects after that
+timestamp." Today, `registration_end` is written only when
+`closeRegistration()` is called manually. There is no scheduled task,
+no middleware check, no query that reads it for auto-close logic.
+Phase 3 must add the enforcement. Three options:
+
+1. Check inside `PublicRegistrationController::store` — simple, works
+   for POST, but the public form still renders after close time until
+   the organizer manually closes
+2. Check in a middleware on `/r/{slug}` — covers both GET and POST,
+   shows a friendly "registration closed" page
+3. Scheduled job that transitions status automatically — most correct,
+   most complex
+
+Recommendation: **(2)**. Middleware on the public route group checks
+`registration_end` on every request; if past, aborts with a friendly
+message. Preserves the manual close as well. **Add to Phase 3 scope.**
+
+### C-5 — Participant name search strategy
+
+`Participant::fullName()` is a PHP method, not a column. Phase 4's
+"search by name" needs a query-level answer. Three options:
+
+1. `WHERE first_name LIKE ? OR last_name LIKE ?` with individual indexes
+2. Add a generated `full_name` column
+3. Accept the two-column `LIKE` at this scale
+
+Recommendation: **(1)**. At hundreds of rows, two-column `LIKE` with
+indexes is fast. A generated column can be added later if profiling
+shows a need. **Add to Phase 4 scope: migration for
+`participants.first_name` and `participants.last_name` indexes.**
+
+### C-6 — Sidebar group structure
+
+`NavMain` renders a single "Platform" group. If the Registration tab
+should live in the same group as Dashboard and Events, no change to
+`nav-main.tsx` is needed. If Registration gets its own group heading
+("Registrations" / "Workflows"), `NavMain` needs a `label` prop and
+`AppSidebar` renders two `NavMain` instances. **Decision needed before
+Phase 1.**
+
+### C-7 — `canConfigure()` rename touches frontend prop key
+
+`EventOptionController::index()` passes `can_configure` to the page.
+If Phase 1 renames `canConfigure()` → `canEditRegistrationForm()`, the
+Inertia prop key should rename too, and `events/options.tsx` (or its
+Phase 2 replacement) updates. Keep this pair in sync. **Note for
+Phase 1/2 boundary.**
+
+---
+
+## Phase plan additions
+
+These files were not in the original Phase 1–6 lists but are required
+based on the reconnaissance:
+
+| Phase | File | Reason |
+|---|---|---|
+| 1 | `resources/js/app.tsx` (read only) | Confirms C-2; no edit yet |
+| 1 | Grep of `events.configure` across `resources/js/` | C-3 |
+| 3 | `resources/js/app.tsx` | Layout case for `registrations/public` (C-2) |
+| 3 | Middleware for `/r/{slug}` close-time check | C-4 |
+| 4 | Migration for `participants.first_name` and `participants.last_name` indexes | C-5 |
+
+---
+
+## Open items carried into Phase 1
+
+From the reconnaissance, these need decisions before Phase 1 starts:
+
+1. **Sidebar grouping** — one group or two? (C-6)
+2. **Guard method name** — `canConfigure()` renamed, or kept with new
+   internal list? (C-7)
+3. **`configured` styling** — the `bg-blue-500/15 text-blue-500` used
+   for `configured` in three files. Reuse for another state, or delete
+   entirely? (C-1)
+
+Each is a small decision. None blocks reconnaissance; all block the
+first code change.
+
+---
+
+## Changelog addendum
+
+- **2026-09-25** — Phase 0 complete. 22 files read. Seven cross-cutting
+  findings recorded. Five files added to Phase 1–4 scope. Three open
+  decisions carried forward.
