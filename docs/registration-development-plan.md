@@ -612,3 +612,79 @@ first code change.
 - **2026-09-25** — Phase 0 complete. 22 files read. Seven cross-cutting
   findings recorded. Five files added to Phase 1–4 scope. Three open
   decisions carried forward.
+
+---
+
+## Phase 0 correction — DashboardController omitted (2026-09-25)
+
+P7 correction. The Phase 0 reconnaissance read 22 files and reported
+findings as if complete. A pre-flight grep before Phase 1 code
+identified a 23rd file that was not read:
+`app/Http/Controllers/DashboardController.php`.
+
+### What was missed
+
+`DashboardController` builds the dashboard action items by walking every
+event, filtering terminal states, and sorting the rest into urgency
+buckets by `event_date` and `status`. It references
+`EventStatus::Configured` at three sites:
+
+- Line 56 — inside the "urgent" match arm:
+  `in_array($status, [EventStatus::Draft, EventStatus::Configured], true)`
+- Line 70 — a standalone match arm: `$status === EventStatus::Configured`
+- Line 73 — the reason text for that arm:
+  `'Configured — ready to open registration'`
+
+Phase 1 removes the `Configured` case from `EventStatus`. Without a
+corresponding update to `DashboardController`, these three references
+become runtime errors when a user opens the dashboard.
+
+### Impact on Phase 1
+
+Add `app/Http/Controllers/DashboardController.php` to the Phase 1 file
+list. Changes required:
+
+- Line 56 — collapse `[Draft, Configured]` to `[Draft]`
+- Lines 70–74 — delete the entire `$status === EventStatus::Configured`
+  match arm, including its reason text
+- Line 61–65 — the `Draft` arm's reason text (`'Draft — needs
+  configuration'`) reworded to reflect the new workflow. Proposal:
+  `'Draft — no registration form yet'`
+- `nextActionFor()` — unchanged for Phase 1 (still returns
+  `"Configure event"` as the label for Draft). Label rename deferred to
+  Phase 2 when the actual form page exists.
+
+### Decisions recorded in this session
+
+**D-1 — Dashboard grouping replacement.** Just `Draft`. No new state
+added. Events are either actionable (`Draft`) or not.
+
+**D-2 — Dashboard description replacement.** Option A — drop the
+`Configured` branch entirely. Events fall through to whatever `Draft`
+renders today. No new `registration_form_saved_at` column. Revisit
+after Phase 3 if the dashboard feels underinformative.
+
+### Process note
+
+This is the second time in this session that a file outside the initial
+Phase 0 list was needed for a phase. The first was
+`HandleInertiaRequests.php` in the auth session, where it was needed to
+confirm flash message behavior and was not in the docs' file map.
+
+The pattern: enumerating files from a directory walk misses consumers.
+The correct method is to grep for every identifier the phase will
+touch — status enum values, method names, prop keys — then read every
+file the grep returns. P1 as written ("read before proposing") was
+satisfied against the listed files. The listed files were derived from
+a directory walk, not from a call-graph traversal. The gap is in how
+the file list is built.
+
+Recorded here rather than as a new protocol because P1–P10 already
+require the correction. The deficiency is in the enumeration method,
+not the protocol.
+
+## Changelog addendum
+
+- **2026-09-25** — Phase 0 correction. `DashboardController` identified
+  as a missed file. Three `Configured` references added to Phase 1
+  scope. D-1 and D-2 answered in-session.
