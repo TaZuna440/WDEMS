@@ -145,3 +145,129 @@ Guards on the `Event` model: `canEdit()`, `canConfigure()`, `canOpenRegistration
 
 Two values: `community_run`, `fun_run`. Required on creation, fixed thereafter.
 
+
+---
+
+## What was added since September 18, 2026
+
+This section is a factual update to the log above. It does not rewrite
+earlier sections. Where earlier sections disagree with the code, the
+**Corrections** subsection at the end of this block wins.
+
+### Authentication — email two-factor
+
+Built after the earlier log entries. WDEMS now has:
+
+- **Email 2FA on new devices.** Login is still Fortify (email +
+  password). On top of that, staff users signing in from an unknown
+  device receive a 6-digit code by email and must enter it.
+- **Trusted devices.** A verified device can be remembered for 30 days
+  via a signed cookie. Up to 10 devices per user.
+- **Admin exemption.** Admins skip the challenge entirely — deliberate
+  scope decision, enforced in `EnsureDeviceIsTrusted`.
+- **Security settings page.** Password change, 2FA toggle, trusted-
+  device list with per-device revoke. Lives at `/settings/security`.
+
+**Does not use Fortify's TOTP 2FA.** Fortify's `twoFactorAuthentication`
+feature is not enabled. The email 2FA is a custom service
+(`App\Services\TwoFactor\EmailTwoFactorService`).
+
+Documented in `docs/authentication.md`.
+
+### Event Creation Wizard
+
+Built after the earlier log entries. Event creation moved from a
+single-page form to a 4-step wizard:
+
+1. **Basics** — event type, name, description
+2. **Schedule** — date, times, distance, course URL
+3. **Venue** — name, address, map coordinates
+4. **Extras** — RSVP, partners, 9 accessibility flags
+
+Additional features:
+
+- **Draft checkpoint.** Wizard state is saved to `localStorage` on
+  every change, restored on page reload, expires after 24 hours.
+- **Custom pickers** — DatePicker, TimePicker (5-minute snapping),
+  DistancePicker (KM/Miles with live conversion), MapPicker (Leaflet +
+  OpenStreetMap + Nominatim reverse geocoding).
+- **Stronger event name validation.** Five regex rules layered on top
+  of length checks to catch keyboard mashing.
+- **17 new columns on the events table.** Venue coordinates, distance
+  value + unit, course URL, RSVP flag, partners JSON, FAQ JSON, and
+  nine accessibility booleans. The old `distance_label` column was
+  dropped and replaced by computed `distance_value` + `distance_unit`.
+
+Documented in `docs/event-creation-wizard.md` (feature view) and
+`docs/event-creation.md` (code reference).
+
+### Event Deletion
+
+Built after the earlier log entries. Two paths:
+
+- **Admin** — direct delete, no verification.
+- **Staff** — must request and verify a 6-digit email OTP first.
+
+Both paths funnel through the same ordered-delete service
+(`App\Services\EventDeletion\EventDeletionService`), which deletes
+attendances, registration options, registrations, and event options
+in a strict order inside a transaction. Participants are never
+touched — they are shared across events.
+
+Documented in `docs/event-deletion.md`.
+
+### Google integration — removed
+
+Phases 3, 4, and 5 of the log above describe a Google integration
+(OAuth, Form creation, Sheet linkage) that was designed and built, then
+**removed** from the project. The registration flow is being rebuilt
+without it.
+
+For historical context, see:
+
+- `docs/archive/phase-a-b-report.md`
+- `docs/archive/google-integration.md`
+
+### Documentation
+
+Four subsystem guides were written, in a style aimed at junior
+developers using AI tools:
+
+| Doc | Covers |
+|---|---|
+| `docs/authentication.md` | Login, email 2FA, trusted devices, password management |
+| `docs/event-creation.md` | Event creation code reference, options, workflow |
+| `docs/event-creation-wizard.md` | Wizard as a feature: steps, checkpoint, field components |
+| `docs/event-deletion.md` | Two delete paths, OTP flow, deletion algorithm |
+
+`docs/architecture.md` was updated to correct the auth section and to
+point at `authentication.md`. `README.md` was rewritten to remove
+Google references and to point at all four guides.
+
+---
+
+## Corrections to earlier sections in this file
+
+The following claims in the body above no longer match the code. They
+are listed here rather than edited in place.
+
+| Section | Earlier claim | Current reality |
+|---|---|---|
+| §1.1 | "Participant registration (via Google Forms, not WDEMS)" | Google integration removed. Registration flow being rebuilt. |
+| §1.2 | "Participant registration happens outside WDEMS via Google Forms" | Same as above. |
+| §1.3 | Google OAuth / Form / Sheet rows marked Complete | Removed. |
+| §2.1 | "2FA: disabled (feature exists in Fortify, not enabled)" | Fortify TOTP still disabled, but WDEMS has custom email 2FA. |
+| §2.2 | "`auth` + `verified` group — gates all event routes" | Now `auth` + `verified` + `device.trusted`. |
+| Table of Contents | Lists 12 sections | Body only has §1 and §2. §3–§12 were never written. |
+
+The TOC vs. body mismatch is a pre-existing fact — the log was never
+completed past §2.7. This append does not attempt to fill those
+sections in. It records what has been built since.
+
+---
+
+## See also
+
+For a structured, dated changelog of every file changed per session,
+see `progress.md`. This file (`development-log.md`) tells the story;
+`progress.md` provides the audit trail.

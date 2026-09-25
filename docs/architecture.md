@@ -203,13 +203,13 @@ Implemented in `App\Services\TwoFactor\EmailTwoFactorService`. Backed by Laravel
 3. Middleware allows through if: user is admin, OR `email_two_factor_enabled = false`, OR the request carries a valid `wdems_trusted_device` cookie matching a `trusted_devices` entry.
 4. Otherwise: redirect to `/verify-device`.
 5. User requests a code → `EmailTwoFactorService::issue()` mails a 6-digit code (10-minute TTL, single-use, HMAC-hashed in cache).
-6. User submits code → `verify()` returns one of: `Verified`, `Invalid`, `Expired`, `Locked`, `NotFound`, `TooSoon`.
+6. User submits code → `verify()` returns one of: `Verified`, `Invalid`, `Expired`, `Locked`, `NotFound`.
 7. On `Verified` with remember=true: `trustDevice()` adds an entry to `trusted_devices` and queues a `wdems_trusted_device` cookie (30-day TTL).
 8. Successful login clears the OTP cache keys.
 
 ### Storage shape
 
-    key:   email-2fa:{user_id}
+    key:   email-2fa-otp:{user_id}
     value: {
       code_hash:  HMAC-SHA256(code, APP_KEY),
       attempts:   integer,
@@ -231,7 +231,7 @@ Stored on `users.trusted_devices` (JSON array):
       label:    string  (e.g. "Chrome")
       ip:       string|null
       added_at: ISO 8601 string
-      token_hash: HMAC-SHA256(token, APP_KEY)
+      token:    SHA-256(token)  — plain SHA-256, no APP_KEY
     }
 
 The raw token is only ever sent to the client (as the cookie value) and is never persisted.
@@ -373,4 +373,62 @@ Frontend reads errors from `usePage().props.errors` when using `router.post/dele
 
 ### Current suite size
 
-85 passed, 4 skipped (Fortify gating), 253 assertions.
+Run `php artisan test` for the authoritative count.
+
+---
+
+## Authentication (pointer)
+
+The full, code-accurate reference for the authentication subsystem —
+including the middleware pipeline, trusted-device semantics, and known
+discrepancies between this file and the code — lives in
+[`authentication.md`](./authentication.md). Where the two disagree,
+`authentication.md` wins.
+
+---
+
+## Authentication — Middleware Update (2026-09-25)
+
+The auth pointer section above points at `authentication.md` for
+detail. This section adds two facts that the pointer does not itself
+carry.
+
+### `verified.or.admin` alias
+
+A custom middleware alias was registered on 2026-09-25:
+
+    'verified.or.admin' => EnsureEmailIsVerifiedOrAdmin::class
+
+Registered in `bootstrap/app.php` alongside the existing `admin` and
+`device.trusted` aliases. Defined in
+`app/Http/Middleware/EnsureEmailIsVerifiedOrAdmin.php`.
+
+The middleware extends Laravel's `EnsureEmailIsVerified`, checks
+`$request->user()?->isAdmin()` first, and delegates to the parent for
+everyone else. Admins bypass email verification; everyone else does
+not.
+
+Used by two route groups:
+
+- `routes/web.php` — main protected group
+- `routes/settings.php` — settings group
+
+Not used by the device-verification group in `routes/web.php`. That
+group still uses the framework's strict `verified` alias — an
+unverified user must verify before touching the 2FA challenge.
+
+### `MustVerifyEmail` on the User model
+
+`app/Models/User.php` now implements
+`Illuminate\Contracts\Auth\MustVerifyEmail`. Before 2026-09-25 it did
+not, which made the framework's `verified` middleware a no-op on every
+route that listed it.
+
+This is the reason the alias above exists in the first place — the
+framework's middleware had to be given something to enforce.
+
+### Full record
+
+See `docs/fixes.md` FIX-002 and FIX-003. See
+`docs/authentication.md` `## Corrections — Email Verification` for the
+subsystem-level view.
