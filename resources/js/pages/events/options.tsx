@@ -40,7 +40,6 @@ type Props = {
 
 const statusStyles: Record<string, string> = {
     draft: 'bg-secondary text-foreground',
-    configured: 'bg-blue-500/15 text-blue-500',
     registration_open: 'bg-lime-brand/20 text-lime-brand',
     registration_closed: 'bg-yellow-500/15 text-yellow-500',
     ongoing: 'bg-accent/20 text-accent',

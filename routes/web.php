@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventDeletionController;
 use App\Http\Controllers\EventOptionController;
+use App\Http\Controllers\RegistrationController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -33,6 +34,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
+    // Registration queue — the organizer's daily workflow entry point.
+    // Phase 1 of the registration plan: visual only. Phase 3 adds the
+    // public submission surface.
+    Route::get('registrations', [RegistrationController::class, 'index'])
+        ->name('registrations.index');
+
     Route::get('events', [EventController::class, 'index'])->name('events.index');
     Route::get('events/create', [EventController::class, 'create'])->name('events.create');
     Route::post('events', [EventController::class, 'store'])->name('events.store');
@@ -45,7 +52,10 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(functi
     Route::put('events/{event}/options/{option}', [EventOptionController::class, 'update'])->name('events.options.update');
     Route::delete('events/{event}/options/{option}', [EventOptionController::class, 'destroy'])->name('events.options.destroy');
 
-    Route::post('events/{event}/configure', [EventController::class, 'configure'])->name('events.configure');
+    // events.configure route removed in Phase 1 of the registration plan.
+    // The Configured state no longer exists — Draft transitions directly
+    // to RegistrationOpen. The Mark-as-Configured button on the options
+    // page is orphaned until Phase 2 replaces that page entirely.
     Route::post('events/{event}/open-registration', [EventController::class, 'openRegistration'])->name('events.open-registration');
     Route::post('events/{event}/close-registration', [EventController::class, 'closeRegistration'])->name('events.close-registration');
 
