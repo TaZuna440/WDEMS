@@ -66,6 +66,7 @@ export default function ExtrasStep({ data, setData, errors }: Props) {
                 <PartnerEditor
                     value={partners}
                     onChange={(next) => setData('partners', next)}
+                    errors={errors}
                 />
 
                 {errors.partners && (

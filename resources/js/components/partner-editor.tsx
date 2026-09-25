@@ -1,5 +1,6 @@
 import { Plus, Trash2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -29,9 +30,14 @@ const PARTNER_TYPES: { value: string; label: string }[] = [
 type Props = {
     value: Partner[];
     onChange: (partners: Partner[]) => void;
+    errors?: Record<string, string>;
 };
 
-export default function PartnerEditor({ value, onChange }: Props) {
+export default function PartnerEditor({
+    value,
+    onChange,
+    errors = {},
+}: Props) {
     const addPartner = () => {
         onChange([...value, { name: '', type: 'host' }]);
     };
@@ -77,6 +83,10 @@ export default function PartnerEditor({ value, onChange }: Props) {
                                     }
                                     placeholder="Partner name, e.g. Barangay San Roque"
                                 />
+                                <InputError
+                                    message={errors[`partners.${index}.name`]}
+                                    className="mt-1"
+                                />
                             </div>
 
                             <div className="w-40 shrink-0">
@@ -100,6 +110,10 @@ export default function PartnerEditor({ value, onChange }: Props) {
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                <InputError
+                                    message={errors[`partners.${index}.type`]}
+                                    className="mt-1"
+                                />
                             </div>
 
                             <Button
