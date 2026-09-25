@@ -1,6 +1,6 @@
 # WDEMS — Architecture
 
-A technical overview of how the pieces of WDEMS fit together. For a chronological record of what was built, see `development-log.md`. For Google-specific setup, see `google-integration.md`.
+A technical overview of how the pieces of WDEMS fit together. For a chronological record of what was built, see `development-log.md`. For the Event Creation Wizard in detail, see `event-creation-wizard.md`. For historical context on the removed Google integration, see `archive/`.
 
 ---
 
@@ -14,7 +14,7 @@ A technical overview of how the pieces of WDEMS fit together. For a chronologica
                              │ router.post/delete (client → server)
                              ▼
     ┌─────────────────────────────────────────────────────────┐
-    │  Laravel 13 Controllers (app/Http/Controllers/)         │
+    │  Laravel Controllers (app/Http/Controllers/)            │
     │  Thin: authorize → call service → return redirect/Inertia│
     └────────────────────────┬────────────────────────────────┘
                              │
@@ -22,19 +22,18 @@ A technical overview of how the pieces of WDEMS fit together. For a chronologica
     ┌─────────────────────────────────────────────────────────┐
     │  Services (app/Services/)                               │
     │                                                          │
-    │  EventWorkflow          — lifecycle state machine        │
-    │  EventDeletionService   — ordered transaction delete     │
-    │  EventDeletionOtp       — staff email verification       │
-    │  GoogleOAuthService     — token storage + refresh        │
-    │  GoogleFormService      — Forms + Sheets API             │
+    │  EventWorkflow                 — lifecycle state machine │
+    │  EventDeletion/                — ordered delete + OTP    │
+    │  Otp/OtpCode                   — shared code helper      │
+    │  TwoFactor/EmailTwoFactorService — email 2FA + devices   │
     └────────────────────────┬────────────────────────────────┘
                              │
                              ▼
     ┌─────────────────────────────────────────────────────────┐
-    │  MySQL  ·  Cache  ·  Google APIs  ·  Resend             │
+    │  MySQL  ·  Cache (database)  ·  Resend                  │
     └─────────────────────────────────────────────────────────┘
 
-Key principle: **controllers never call Google APIs directly.** Every external call lives behind a service.
+Key principle: **controllers never touch domain logic directly.** Every multi-step operation lives behind a service.
 
 ---
 
@@ -43,12 +42,21 @@ Key principle: **controllers never call Google APIs directly.** Every external c
 ### Core domain
 
     users
-      id, name, email, role (admin|staff), email_verified_at
+      id, name, email, role (admin|staff), email_verified_at, password
+      email_two_factor_enabled (bool, default true)
+      trusted_devices (JSON, nullable)  ← [{id, label, ip, added_at}]
 
     events
       id, created_by → users (RESTRICT)
       event_type (community_run | fun_run)
-      event_name, description, event_date, start_time, end_time, venue
+      event_name, description, event_date, start_time, end_time
+      venue, venue_address, venue_latitude, venue_longitude
+      distance_value, distance_unit (km|mi)
+      course_url, rsvp_required
+      partners (JSON), faq (JSON)
+      walkers_welcome, all_paces_welcome, all_ages_welcome,
+      stroller_friendly, wheelchair_accessible, sweeper_present,
+      service_animals_allowed, leashed_pets_allowed, quiet_space_available
       status (draft|configured|registration_open|registration_closed|ongoing|completed|cancelled)
       registration_start, registration_end
 
@@ -65,10 +73,9 @@ Key principle: **controllers never call Google APIs directly.** Every external c
       id, event_id → events (CASCADE)
       participant_id → participants (RESTRICT)
       registration_date, registration_status
-      source (form|walk_in|paper)     ← Phase C
-      google_form_response_id          ← Phase C (nullable)
-      registered_at                    ← Phase C (nullable)
-      UNIQUE (event_id, google_form_response_id)
+      source (form|walk_in|paper)     ← nullable, schema ready
+      registered_at                    ← nullable
+      UNIQUE (event_id, google_form_response_id)   ← legacy column, unused
 
     registration_options
       id, registration_id → registrations (CASCADE)
@@ -81,28 +88,7 @@ Key principle: **controllers never call Google APIs directly.** Every external c
       attendance_status, attendance_time
       recorded_by → users (NULL on delete), notes
 
-### Google integration
-
-    google_integrations
-      id, user_id → users (CASCADE, UNIQUE)
-      google_account_id, google_email
-      access_token, refresh_token  (hidden from serialization)
-      expires_at, scopes
-
-    registration_setups
-      id, event_id → events (CASCADE, UNIQUE)
-      google_form_id, form_url
-      status (draft|published)
-      created_by → users
-      google_sheet_id, sheet_url, sheet_linked_at  ← Phase C
-
-    registration_setup_changes          (append-only audit log)
-      id, registration_setup_id → registration_setups (CASCADE)
-      user_id → users, google_email_used
-      action (form_created|sheet_linked|questions_synced|...)
-      google_item_id, item_title
-      changes (JSON: before/after)
-      created_at (no updated_at)
+The `google_form_response_id` column on `registrations` and the `source` / `registered_at` columns are schema remnants from the removed Google integration. They are nullable and no current code reads or writes them; they may be dropped in a future migration.
 
 ---
 
@@ -117,9 +103,6 @@ Key principle: **controllers never call Google APIs directly.** Every external c
 | `registration_options.registration_id` → `registrations` | CASCADE |
 | `registration_options.event_option_id` → `event_options` | **RESTRICT** |
 | `attendances.registration_id` → `registrations` | CASCADE |
-| `google_integrations.user_id` → `users` | CASCADE |
-| `registration_setups.event_id` → `events` | CASCADE |
-| `registration_setup_changes.registration_setup_id` → `registration_setups` | CASCADE |
 
 The **RESTRICT** on `registration_options.event_option_id` is the reason we cannot rely on cascade alone when deleting an event. See "Deletion algorithm" below.
 
@@ -176,7 +159,7 @@ Role branching is handled at the controller layer, not here:
 
 ## OTP Verification (Staff Event Deletion)
 
-Implemented in `App\Services\EventDeletion\EventDeletionOtpService`. Backed by Laravel Cache (database driver).
+Implemented in `App\Services\EventDeletion\EventDeletionOtpService`. Backed by Laravel Cache (database driver). Shares code shape with the 2FA service via `App\Services\Otp\OtpCode`.
 
 Storage shape:
 
@@ -202,144 +185,125 @@ Rules:
 - 60-second resend cooldown.
 - Never logged.
 
-Rate limiters on the endpoints:
+Rate limiters on the endpoints (registered in `AppServiceProvider`):
 
 - `event-deletion-otp-request` — 3 per minute per (user, event)
 - `event-deletion-otp-verify` — 10 per minute per (user, event)
 
 ---
 
-## Google OAuth Connection
+## Email Two-Factor Authentication
 
-Implemented in `App\Services\Google\GoogleOAuthService`.
+Implemented in `App\Services\TwoFactor\EmailTwoFactorService`. Backed by Laravel Cache (database driver). Called from `App\Http\Controllers\Auth\DeviceVerificationController`.
 
-### Scopes requested
+### Flow
 
-    openid
-    https://www.googleapis.com/auth/userinfo.email
-    https://www.googleapis.com/auth/userinfo.profile
-    https://www.googleapis.com/auth/forms.body
-    https://www.googleapis.com/auth/forms.responses.readonly
-    https://www.googleapis.com/auth/spreadsheets
-    https://www.googleapis.com/auth/drive.file
-    https://www.googleapis.com/auth/script.projects
+1. User logs in on a new device.
+2. `EnsureDeviceIsTrusted` middleware intercepts the request.
+3. Middleware allows through if: user is admin, OR `email_two_factor_enabled = false`, OR the request carries a valid `wdems_trusted_device` cookie matching a `trusted_devices` entry.
+4. Otherwise: redirect to `/verify-device`.
+5. User requests a code → `EmailTwoFactorService::issue()` mails a 6-digit code (10-minute TTL, single-use, HMAC-hashed in cache).
+6. User submits code → `verify()` returns one of: `Verified`, `Invalid`, `Expired`, `Locked`, `NotFound`, `TooSoon`.
+7. On `Verified` with remember=true: `trustDevice()` adds an entry to `trusted_devices` and queues a `wdems_trusted_device` cookie (30-day TTL).
+8. Successful login clears the OTP cache keys.
 
-`drive.file` is deliberately narrow: WDEMS can only see files it has created, not the user's whole Drive.
+### Storage shape
 
-### Token refresh
+    key:   email-2fa:{user_id}
+    value: {
+      code_hash:  HMAC-SHA256(code, APP_KEY),
+      attempts:   integer,
+      issued_at:  unix timestamp,
+      expires_at: unix timestamp
+    }
+    ttl:   10 minutes
 
-Before every Google API call, `GoogleFormService::buildClientWithToken()` checks `expires_at`. If expired, it calls `fetchAccessTokenWithRefreshToken()` and persists the new access token. The refresh token is long-lived — a connected account keeps working indefinitely without user interaction.
+    key:   email-2fa-resend:{user_id}
+    value: unix timestamp
+    ttl:   60 seconds
 
-### Acting account resolution
+### Trusted device entry
 
-Which Google account's token gets used depends on context:
+Stored on `users.trusted_devices` (JSON array):
 
-1. If the currently logged-in user has a `google_integration`, use theirs.
-2. Otherwise, if the event creator has one, use theirs.
-3. Otherwise, throw with a clear "connect a Google account" message.
+    {
+      id:       string (UUID)
+      label:    string  (e.g. "Chrome")
+      ip:       string|null
+      added_at: ISO 8601 string
+      token_hash: HMAC-SHA256(token, APP_KEY)
+    }
 
-This lets an admin without a Google connection still manage events created by a staff member who has one.
+The raw token is only ever sent to the client (as the cookie value) and is never persisted.
 
----
+### Admin exemption
 
-## Google Form Creation
+Admins bypass 2FA entirely — enforced inside `EnsureDeviceIsTrusted`. This is a deliberate scope decision: admins control the server and are trusted at a higher level.
 
-`GoogleFormService::createForEvent()`:
+### Rate limiters
 
-1. Resolve the acting Google account (see above).
-2. Build an authenticated Google client.
-3. Call `forms.create()` with a title.
-4. Call `forms.batchUpdate()` with the default question set + one question per distinct `option_type` on the event.
-5. Call `forms.setPublishSettings()` to accept responses.
-6. Write the `registration_setups` row.
-7. Write a `form_created` entry to `registration_setup_changes`.
+- `device-verification-send` — 3 per minute per user
+- `device-verification-verify` — 10 per minute per user
 
-On failure, best-effort deletion removes the Form from Drive.
+### Logout cleanup
 
-### Default questions
-
-    1. First name       — short answer    required
-    2. Last name        — short answer    required
-    3. Contact number   — short answer    required
-    4. Email address    — short answer    required
-    5. Age              — short answer    required
-    6. Address          — paragraph       required
-
-Plus: for each distinct `event_options.option_type` (e.g. `distance` → "Distance"), one multiple-choice question with the option names as choices.
-
----
-
-## Question Editing (Batched Sync)
-
-The initial design issued one API call per question mutation. That was slow — N changes meant N round-trips to Google, each taking 1–3 seconds.
-
-The current design uses **draft-then-save**: all mutations stage locally in React state, and one POST sends the full desired list. The service computes the diff against Google's current state and issues **one** `batchUpdate`.
-
-`GoogleFormService::syncQuestions()`:
-
-1. Fetch the Form.
-2. Build a map of `item_id → current_index`.
-3. Determine which server items aren't in the desired list → those are deletes. Sort descending so later indexes stay valid.
-4. Compute "post-delete index" for each surviving item.
-5. Emit deletes, then updates (using post-delete indexes), then creates (appended).
-
-Result: O(1) API calls regardless of how many changes were made.
-
-The UI shows a sticky "You have unsaved changes" bar whenever local state differs from server state.
+`AppServiceProvider::configureLogoutCleanup()` listens for `Illuminate\Auth\Events\Logout` and queues `Cookie::forget('wdems_trusted_device')`. This clears stale trust state on a shared browser.
 
 ---
 
-## Sheet Linkage (A2 — Manual Apps Script)
+## Event Creation Wizard
 
-The Google Forms API has no method to link a Form to a Sheet. That can only be done from the Forms UI or via an Apps Script bound to the Form.
+A 4-step wizard for creating and editing events, implemented in React with a Laravel-side validation contract. Full feature documentation lives in `event-creation-wizard.md`.
 
-WDEMS uses the "A2" approach: the organizer pastes a small script into the Form's Script Editor once. The script creates the Sheet and calls `form.setDestination()`. After that, responses auto-populate the Sheet.
+### Steps
 
-The setup page walks the organizer through:
+| Step | Fields |
+|---|---|
+| 1 — Basics | `event_type`, `event_name`, `description` |
+| 2 — Schedule | `event_date`, `start_time`, `end_time`, `distance_value`, `distance_unit`, `course_url` |
+| 3 — Venue | `venue`, `venue_address`, `venue_latitude`, `venue_longitude` |
+| 4 — Extras | `rsvp_required`, `partners`, 9 accessibility flags |
 
-1. Open the Form in edit view
-2. Click ⋮ → Apps Script
-3. Paste the snippet
-4. Save + Run + authorize
-5. Return to WDEMS and click "Verify Sheet Link"
+### Key files
 
-Verification (`verifySheetLink()`):
+    resources/js/components/
+      wizard.tsx                    — shell: step state, checkpointing, nav
+      wizard-progress.tsx           — progress bar with clickable visited steps
+      distance-picker.tsx           — whole + decimal input, KM/Miles toggle
+      map-picker.tsx                — dialog wrapper (renders always)
+      map-picker-leaflet.tsx        — Leaflet map, lazy-loaded
+      partner-editor.tsx            — add/remove partner rows
+      accessibility-grid.tsx        — 9 checkboxes in 4 categories
 
-1. Call `forms.get()` on the Form ID.
-2. Read `linkedSheetId`. If null, return false.
-3. Build the Sheet URL from the ID (no Drive API call — see note below).
-4. Write `google_sheet_id`, `sheet_url`, `sheet_linked_at` on the setup.
-5. Log a `sheet_linked` audit entry.
+    resources/js/hooks/
+      use-wizard-persistence.ts     — localStorage save/restore
 
-### Why no Drive API call
+### Checkpoint semantics
 
-The `drive.file` OAuth scope only grants access to files **WDEMS itself created**. Sheets created by the user's Apps Script fall outside that scope — `drive.files.get()` would return 404 even though the Sheet exists.
+The wizard tracks two values separately:
 
-Fix: construct the Sheet URL directly from the ID using the standard Google Sheets URL pattern:
+- **`maxStep`** — the furthest step ever reached. Saved as the checkpoint.
+- **`currentStep`** — the step the user is viewing.
 
-    https://docs.google.com/spreadsheets/d/{sheetId}/edit
+Going back does **not** reduce `maxStep`. On reload, the wizard opens at `maxStep`. The progress bar allows jumps to any step ≤ `maxStep`.
 
-No API call needed, no scope issue.
+Persisted to `localStorage` under `wdems-wizard-create` or `wdems-wizard-edit-{id}`. 24-hour TTL. Version guard (`STORAGE_VERSION`) invalidates drafts on schema change.
 
----
+### Client vs server validation
 
-## Audit Trail
+Client validates **only field emptiness** before advancing a step. Everything else — URL format, enum values, numeric ranges, the event-name heuristics — is server-side in `App\Concerns\EventValidationRules`.
 
-Every mutation to a Google Form or its Sheet linkage writes one row to `registration_setup_changes`. Rows are:
+When the server rejects, the wizard reads `errors` and jumps to the first step containing a failing field.
 
-- **Append-only** — the model declares `public const UPDATED_AT = null` and only ever inserts.
-- **User-attributed** — both the WDEMS user (`user_id`) and the Google account whose token executed the call (`google_email_used`). These can differ because of the actor/creator fallback.
-- **Snapshot-based** — the `changes` JSON field stores before/after for question-level mutations.
+### Map stack
 
-Actions currently logged:
+Free stack — no API key required:
 
-    form_created
-    sheet_linked
-    question_added      (legacy single-item endpoint)
-    question_deleted    (legacy single-item endpoint)
-    questions_synced    (batched save)
+- **Leaflet** for rendering
+- **OpenStreetMap** tiles
+- **Nominatim** for reverse geocoding (1 req/sec limit, silent retry on failure)
 
-The setup page renders the last 50 rows as a History panel.
+The Leaflet bundle (154 KB) is lazy-loaded only when the MapPicker dialog opens — see `map-picker.tsx` / `map-picker-leaflet.tsx` split.
 
 ---
 
@@ -351,49 +315,62 @@ Every page has a `Layout` static property attaching it to a breadcrumb trail. Th
 
 ### Confirm dialog
 
-`useConfirmDialog()` hook + `ConfirmDialog` component. Variants: `primary`, `warning`, `danger`. Accepts `children` for structured content (used by the event deletion warning to list record counts).
+`useConfirmDialog()` hook + `ConfirmDialog` component. Variants: `primary`, `warning`, `danger`. Accepts `children` for structured content (used by the event deletion warning to list record counts, and by the security page to describe trust revocation).
 
 ### OTP dialog
 
 `EventDeletionOtpDialog` — self-contained, handles request-verify flow, countdown, error states.
 
-### Question editor
+### Wizard
 
-`QuestionEditorDialog` — reused for add and edit. Takes an optional `initialValue` prop. Calls back into the parent (`onSave`) rather than doing HTTP itself — the parent owns the draft state.
+See "Event Creation Wizard" above. `Wizard` is a generic shell over `WizardStepConfig[]` — it takes a `children(stepId)` render function and provides step navigation, checkpoint persistence, error jumping, and the progress bar.
 
-### Date + Time pickers
+### Pickers
 
-Custom components built on Radix primitives (no extra npm packages):
+Built on Radix primitives (no extra npm packages):
 
 - `DatePicker` — popover calendar, keyboard-navigable, "Today" shortcut
 - `TimePicker` — hour/minute/period selects, converts between `HH:MM` (24h) and the display format
+- `DistancePicker` — text input with ▲▼ steppers, KM/Miles segmented toggle, auto-conversion on unit switch
+- `MapPicker` / `MapPickerLeaflet` — dialog + lazy Leaflet, Nominatim reverse geocode
 
-Both are DRY-shared between `events/create.tsx` and `events/edit.tsx`.
+All are DRY-shared between `events/create.tsx` and `events/edit.tsx`.
 
----
+### Security page
 
-## HTTP Client Configuration
-
-Google API calls use a Guzzle client with a 25-second timeout and 10-second connect timeout, set inside `GoogleFormService::buildClientWithToken()`. This prevents a stalled Google call from blocking a request indefinitely.
+`resources/js/pages/settings/security.tsx` — password update form + email 2FA toggle + trusted-device list with per-device revoke.
 
 ---
 
 ## Error Handling
 
-Every service method that touches Google APIs is wrapped in `try/catch` at the calling controller. Failures:
+Every service method that can fail is wrapped in `try/catch` at the calling controller. Failures:
 
-1. Are logged with structured context (`event_id`, `user_id`, `error`).
-2. Return a user-friendly error via `back()->withErrors(['...' => ...])`.
+1. Are logged with structured context (`user_id`, `event_id`, `error`).
+2. Return a user-friendly error via `back()->withErrors([...])`.
 3. Never produce a 500 page.
 
-Frontend reads errors from `usePage().props.errors`, not `form.errors` — this is critical because `form.errors` only reflects state from `form.post()`, not from `router.post()`.
+Frontend reads errors from `usePage().props.errors` when using `router.post/delete` (wizard, settings toggles), and from `form.errors` when using `<Form>` (password update, login). This distinction matters — `form.errors` only reflects `<Form>`-submitted requests.
 
 ---
 
 ## Testing Strategy
 
-- **SQLite in-memory** for all tests (`phpunit.xml`). Tests run in ~2.5 seconds instead of minutes.
-- **Feature tests** for HTTP-facing behavior — role gates, redirects, cascade semantics.
-- **Unit tests** for isolated services (OTP service is the canonical example).
-- **No mocked Google tests yet** — the sync algorithm and Google API interactions are verified manually only.
+- **SQLite in-memory** for all tests (`phpunit.xml`). Full suite runs in ~3 seconds.
+- **Feature tests** for HTTP-facing behavior — role gates, redirects, middleware, cascade semantics, wizard submit flow.
+- **Unit tests** for isolated services — `EmailTwoFactorServiceTest`, `EventDeletionOtpServiceTest` are the canonical examples.
+- **Pest** as the test framework. `tests/Pest.php` binds `RefreshDatabase` to the `Feature` suite.
 
+### Notable test files
+
+    tests/Unit/Services/EmailTwoFactorServiceTest.php
+    tests/Unit/Services/EventDeletionOtpServiceTest.php
+    tests/Feature/Auth/DeviceVerificationTest.php
+    tests/Feature/Auth/LogoutDeviceTrustTest.php
+    tests/Feature/Events/EventDeletionAdminTest.php
+    tests/Feature/Events/EventDeletionStaffTest.php
+    tests/Feature/Settings/SecurityTest.php
+
+### Current suite size
+
+85 passed, 4 skipped (Fortify gating), 253 assertions.
