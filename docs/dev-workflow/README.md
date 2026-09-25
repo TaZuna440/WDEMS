@@ -260,3 +260,106 @@ Do not update for one-off incidents that are already documented elsewhere.
 
 - **2026-09-25** — File created. Captures the workflow, protocols, and
   failure modes from the initial documentation and bug-fix arc.
+
+---
+
+## 9. Additional protocols (2026-09-25)
+
+Section §3 is preserved as written. Two new protocols were established
+in the same session that produced the fixes above. They are appended
+here rather than edited into §3 — the file is append-only.
+
+### P9 — Commit messages come from diffs, not docs
+
+**Rule.** Before writing a commit message, either:
+
+1. The change was personally observed landing in this session, **or**
+2. `git diff --cached` (or `git --no-pager show`) has been read for
+   every file the message describes.
+
+Never compose a commit message by reading `docs/fixes.md` (or any other
+document) and listing the FIX-NNN references it claims. Docs describe
+intent. Diffs describe reality. When they agree, the message is
+redundant. When they disagree, the message is a lie.
+
+**Why.** On 2026-09-25, commits `a82b5d3` and `6f11f40` were composed
+from FIX-NNN references in `docs/fixes.md` without reading the actual
+diffs. Two of the fourteen files were spot-checked afterward and
+matched. The remaining twelve carried unverified claims in their
+commit messages.
+
+The repo already contained a drift that would have caught this if it
+had been checked first: `README.md` still listed "Map picker with
+reverse geocoding" as ✅, even though FIX-016 had removed the map
+picker. Docs and code had diverged. The commit message assumed they
+had not.
+
+**Detection.** Any commit message referencing a FIX-NNN, a trap number,
+or a docs section — without the corresponding diff having been read in
+the same session — is suspect.
+
+**Recovery.** If a commit message is found to misdescribe its content,
+do not amend. Add a `## Corrections` block to `docs/progress.md` under
+the same date, stating the actual change and correcting the message.
+
+### P10 — Do not commit unless every staged file has been read this session
+
+A stricter reading of P1 (Read before proposing). The original rule
+said "propose." This extends it to "commit."
+
+**Rule.** Before `git commit`, run:
+
+    git diff --cached --name-only
+
+For each staged file, either:
+
+1. It was read in this session (before the change, or the diff was read
+   after), **or**
+2. It is explicitly listed in the commit message as *"not reviewed this
+   session — carried from prior work."*
+
+Files in the second category must not carry FIX-NNN claims. The commit
+message must be honest about which files were verified and which were
+carried forward.
+
+**Why.** Commit `84c33a0` staged 20 files in the interest of capturing
+disk state into git. Twelve of those files (all of `docs/*.md`, plus
+the four `.bak` removals) had never been read this session. The commit
+message said "files that were on disk but not tracked" — accurately —
+but the surrounding context implied a review that did not happen.
+
+**Application.** For a *state-capture* commit (bringing disk and git
+into agreement), the message should say so explicitly. For a
+*feature-fix* commit, every file must have been read.
+
+---
+
+## Changelog addendum
+
+- **2026-09-25** — P9 (commit messages from diffs) and P10 (do not
+  commit unread files) added. Both arose from the same session's
+  practice of composing commit messages from docs rather than diffs.
+
+---
+
+## P9 verification addendum (2026-09-25)
+
+The two commits named in P9 have now been verified line-by-line against
+their diffs. All fourteen files match their commit-message claims:
+
+- `a82b5d3` — FIX-001 through FIX-007 — 8/8 correct
+- `6f11f40` — FIX-008 through FIX-016 — 6/6 correct
+
+P9 remains in effect as a *process* rule. The commit messages were
+composed from docs rather than diffs, which is exactly what P9 forbids.
+That they turned out to be accurate is a lucky consequence, not a
+vindication. The rule stands: verification before message, not after.
+
+Recorded as a note because a rule that says "we got lucky" without
+recording that the gamble happened to pay off is a rule that will be
+ignored the next time someone is in a hurry.
+
+## Changelog addendum
+
+- **2026-09-25** — P9 verification note appended. Both named commits
+  confirmed accurate against their diffs.
