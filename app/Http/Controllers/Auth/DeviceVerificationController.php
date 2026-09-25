@@ -80,9 +80,6 @@ class DeviceVerificationController extends Controller
             EmailTwoFactorResult::NotFound => back()->withErrors([
                 'code' => 'No active code found. Please request a new one.',
             ]),
-            EmailTwoFactorResult::TooSoon => back()->withErrors([
-                'code' => 'Please wait before requesting another code.',
-            ]),
         };
     }
 

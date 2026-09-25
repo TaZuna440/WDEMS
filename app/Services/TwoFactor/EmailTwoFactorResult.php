@@ -9,5 +9,4 @@ enum EmailTwoFactorResult: string
     case Expired = 'expired';
     case Locked = 'locked';
     case NotFound = 'not_found';
-    case TooSoon = 'too_soon';
 }
