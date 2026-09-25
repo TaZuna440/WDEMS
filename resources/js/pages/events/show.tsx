@@ -9,13 +9,11 @@ import {
     ExternalLink,
     FileText,
     MapPin,
-    Settings,
     Pencil,
     Tag,
     Trash2,
     UserPlus,
     UserMinus,
-    Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -74,9 +72,8 @@ type EventData = {
 };
 
 type RelatedCounts = {
-    event_options: number;
+    registration_fields: number;
     registrations: number;
-    registration_options: number;
     attendances: number;
 };
 
@@ -175,12 +172,18 @@ export default function EventsShow({
     const { dialog, openConfirm } = useConfirmDialog();
     const [otpOpen, setOtpOpen] = useState(false);
 
+    // The registration form is editable only while the event is Draft.
+    // After Open Registration, the form is locked. The show page uses
+    // this to enable/disable the "Create Registration Form" action.
+    // The server enforces the same rule via canEditRegistrationForm().
+    const canEditRegistrationForm = event.status === 'draft';
+
     const openRegistration = () => {
         openConfirm({
             variant: 'primary',
             title: 'Open registration?',
             description:
-                'Participants will be able to register for this event.',
+                'Participants will be able to register for this event. The registration form will lock and can no longer be edited.',
             confirmLabel: 'Open Registration',
             onConfirm: () => router.post(`/events/${event.id}/open-registration`),
         });
@@ -209,14 +212,11 @@ export default function EventsShow({
             confirmLabel: has_related_records ? 'Delete Everything' : 'Delete Event',
             children: has_related_records ? (
                 <ul className="ml-1 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
-                    {related.event_options > 0 && (
-                        <li>Event Options: {related.event_options}</li>
+                    {related.registration_fields > 0 && (
+                        <li>Registration Fields: {related.registration_fields}</li>
                     )}
                     {related.registrations > 0 && (
                         <li>Registrations: {related.registrations}</li>
-                    )}
-                    {related.registration_options > 0 && (
-                        <li>Registration Options: {related.registration_options}</li>
                     )}
                     {related.attendances > 0 && (
                         <li>Attendance Records: {related.attendances}</li>
@@ -486,12 +486,24 @@ export default function EventsShow({
                                 </Button>
                             )}
 
-                            <Button variant="outline" className="justify-start" asChild>
-                                <Link href={`/events/${event.id}/options`}>
-                                    <Settings className="mr-2 h-4 w-4" />
-                                    Configure Options
-                                </Link>
-                            </Button>
+                            {canEditRegistrationForm ? (
+                                <Button variant="outline" className="justify-start" asChild>
+                                    <Link href={`/events/${event.id}/registration-form`}>
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        Create Registration Form
+                                    </Link>
+                                </Button>
+                            ) : (
+                                <Button
+                                    disabled
+                                    variant="outline"
+                                    className="justify-start"
+                                    title="The registration form is locked after registration opens"
+                                >
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    Create Registration Form
+                                </Button>
+                            )}
 
                             {can_record_attendance && (
                                 <Button
@@ -535,14 +547,6 @@ export default function EventsShow({
                                 </Button>
                             )}
                         </div>
-
-                        <div className="mt-2 flex items-start gap-2 rounded-md border border-white/5 bg-white/5 p-3">
-                            <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                            <p className="text-xs text-muted-foreground">
-                                These actions are being built in later pages.
-                                They will enable as each feature lands.
-                            </p>
-                        </div>
                     </div>
                 </div>
 
@@ -552,8 +556,8 @@ export default function EventsShow({
                     </h2>
                     <p className="mt-2 text-xs text-muted-foreground">
                         Deleting this event is permanent and cannot be undone. Related records
-                        (options, registrations, attendance) will also be removed. Participants
-                        are preserved.
+                        (registration fields, registrations, attendance) will also be removed.
+                        Participants are preserved.
                     </p>
                     <Button
                         variant="destructive"

@@ -35,7 +35,7 @@ export type FieldDraft = {
     field_type: string;
     options: string[];
     is_required: boolean;
-    validation_rules: Record<string, unknown> | null;
+    validation_rules: Record<string, string | number | boolean | null> | null;
 };
 
 type Props = {
