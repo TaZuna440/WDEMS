@@ -23,5 +23,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('throttle:6,1')
         ->name('user-password.update');
 
+    Route::put('settings/security/two-factor', [SecurityController::class, 'toggleTwoFactor'])
+        ->middleware(RequirePassword::class)
+        ->name('security.two-factor.toggle');
+
+    Route::delete('settings/security/devices/{deviceId}', [SecurityController::class, 'revokeDevice'])
+        ->middleware(RequirePassword::class)
+        ->name('security.devices.revoke');
+
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
 });

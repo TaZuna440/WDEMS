@@ -17,15 +17,14 @@ use Illuminate\Support\Carbon;
  * @property string $role
  * @property Carbon|null $email_verified_at
  * @property string $password
- * @property string|null $two_factor_secret
- * @property string|null $two_factor_recovery_codes
- * @property Carbon|null $two_factor_confirmed_at
+ * @property bool $email_two_factor_enabled
+ * @property array|null $trusted_devices
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
 #[Fillable(['name', 'email', 'password', 'role'])]
-#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
+#[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -36,6 +35,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'email_two_factor_enabled' => 'boolean',
+            'trusted_devices' => 'array',
         ];
     }
 

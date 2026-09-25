@@ -13,26 +13,17 @@ use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         $this->configureDefaults();
         $this->configureRateLimiters();
     }
 
-    /**
-     * Configure default behaviors for production-ready applications.
-     */
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);
@@ -48,17 +39,12 @@ class AppServiceProvider extends ServiceProvider
                 ->numbers()
                 ->symbols();
 
-            // The uncompromised() check hits a live API. Skip it in
-            // testing to keep the suite fast and network-independent.
             return app()->environment('testing')
                 ? $rules
                 : $rules->uncompromised();
         });
     }
 
-    /**
-     * Configure named rate limiters used by event deletion OTP routes.
-     */
     protected function configureRateLimiters(): void
     {
         RateLimiter::for('event-deletion-otp-request', function (Request $request) {
@@ -71,6 +57,14 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by(
                 $request->user()?->id.'|'.$request->route('event')
             );
+        });
+
+        RateLimiter::for('device-verification-send', function (Request $request) {
+            return Limit::perMinute(3)->by($request->user()?->id);
+        });
+
+        RateLimiter::for('device-verification-verify', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id);
         });
     }
 }

@@ -12,16 +12,8 @@ use Illuminate\Support\Str;
  */
 class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
     protected static ?string $password;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
@@ -30,13 +22,14 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'role' => 'staff',
+            // Tests default to 2FA OFF so existing feature tests are not
+            // forced through the device verification middleware. Tests that
+            // specifically cover 2FA use ->withTwoFactor().
+            'email_two_factor_enabled' => false,
             'remember_token' => Str::random(10),
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
     public function unverified(): static
     {
         return $this->state(fn (array $attributes) => [
@@ -44,9 +37,6 @@ class UserFactory extends Factory
         ]);
     }
 
-    /**
-     * Indicate that the user is an administrator.
-     */
     public function admin(): static
     {
         return $this->state(fn (array $attributes) => [
@@ -54,8 +44,10 @@ class UserFactory extends Factory
         ]);
     }
 
-    /**
-     * Indicate that the model has two-factor authentication configured.
-     */
-    public function withTwoFactor(): static {}
+    public function withTwoFactor(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'email_two_factor_enabled' => true,
+        ]);
+    }
 }

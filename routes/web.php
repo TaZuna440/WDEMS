@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\Auth\DeviceVerificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventDeletionController;
@@ -9,7 +10,20 @@ use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
 
+// Device verification routes — must be OUTSIDE the device.trusted middleware
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('verify-device', [DeviceVerificationController::class, 'show'])
+        ->name('device.verify');
+    Route::post('verify-device/send-code', [DeviceVerificationController::class, 'sendCode'])
+        ->middleware('throttle:device-verification-send')
+        ->name('device.verify.send');
+    Route::post('verify-device/verify', [DeviceVerificationController::class, 'verify'])
+        ->middleware('throttle:device-verification-verify')
+        ->name('device.verify.confirm');
+});
+
+// Protected application routes — require a trusted device
+Route::middleware(['auth', 'verified', 'device.trusted'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('events', [EventController::class, 'index'])->name('events.index');
