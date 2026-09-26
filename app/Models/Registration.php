@@ -6,6 +6,7 @@ use App\Enums\RegistrationStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
@@ -40,5 +41,21 @@ class Registration extends Model
     public function attendance(): HasOne
     {
         return $this->hasOne(Attendance::class);
+    }
+
+    /**
+     * Custom field answers submitted with this registration.
+     *
+     * One row per custom field the participant filled in. The six
+     * common participant fields (first_name, last_name, email,
+     * contact_number, age, address) live on the participants table —
+     * they are not stored here.
+     *
+     * Cascade deletes at the schema level via the FK on
+     * registration_id — deleting a registration removes its responses.
+     */
+    public function fieldResponses(): HasMany
+    {
+        return $this->hasMany(RegistrationFieldResponse::class);
     }
 }
