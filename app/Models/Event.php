@@ -29,6 +29,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'registration_start',
     'registration_end',
     'registration_form_saved_at',
+    'registration_slug',
     'partners',
     'walkers_welcome',
     'all_paces_welcome',

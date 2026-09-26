@@ -11,9 +11,21 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class EventController extends Controller
 {
+    /**
+     * Slug alphabet. Lowercase letters a–z except i, l, o, plus digits
+     * 2–9. Excludes the confusables I, L, O, 0, 1 to keep slugs
+     * readable over the phone and paste-able in chat. 31 characters.
+     */
+    private const SLUG_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+
+    private const SLUG_LENGTH = 8;
+
+    private const SLUG_MAX_ATTEMPTS = 3;
+
     public function index(): Response
     {
         $events = Event::query()
@@ -78,6 +90,7 @@ class EventController extends Controller
                 'registration_start' => $event->registration_start?->toDateTimeString(),
                 'registration_end' => $event->registration_end?->toDateTimeString(),
                 'registration_form_saved_at' => $event->registration_form_saved_at?->toDateTimeString(),
+                'registration_slug' => $event->registration_slug,
                 'creator' => $event->creator?->name,
                 'created_at' => $event->created_at?->toDateTimeString(),
                 'can_edit' => $event->canEdit(),
@@ -229,6 +242,7 @@ class EventController extends Controller
         }
 
         $event->registration_start = now();
+        $event->registration_slug = $this->generateUniqueSlug();
         $event->save();
 
         $workflow->openRegistration($event);
@@ -254,5 +268,49 @@ class EventController extends Controller
         $workflow->closeRegistration($event);
 
         return redirect()->route('events.show', $event);
+    }
+
+    /**
+     * Generate a slug that does not collide with any existing event.
+     *
+     * Format: 8 characters from SLUG_ALPHABET. 31^8 ≈ 8.5×10^11 possible
+     * slugs. Collisions are retried up to SLUG_MAX_ATTEMPTS times; a
+     * persistent collision throws rather than silently producing a
+     * duplicate or an empty slug.
+     *
+     * The throw is effectively unreachable at any realistic scale — the
+     * loop exists so the failure mode is explicit if the invariant is
+     * ever violated (e.g. a manual data import with a hostile seed).
+     */
+    private function generateUniqueSlug(): string
+    {
+        for ($attempt = 0; $attempt < self::SLUG_MAX_ATTEMPTS; $attempt++) {
+            $candidate = $this->randomSlug();
+
+            if (! Event::where('registration_slug', $candidate)->exists()) {
+                return $candidate;
+            }
+        }
+
+        throw new RuntimeException(
+            'Could not generate a unique registration slug after '
+            .self::SLUG_MAX_ATTEMPTS.' attempts.',
+        );
+    }
+
+    /**
+     * Build a random slug from SLUG_ALPHABET. Uniqueness is checked by
+     * the caller, not here.
+     */
+    private function randomSlug(): string
+    {
+        $max = strlen(self::SLUG_ALPHABET) - 1;
+        $slug = '';
+
+        for ($i = 0; $i < self::SLUG_LENGTH; $i++) {
+            $slug .= self::SLUG_ALPHABET[random_int(0, $max)];
+        }
+
+        return $slug;
     }
 }
