@@ -9,15 +9,29 @@ return new class extends Migration
     /**
      * Add events.registration_slug.
      *
-     * Populated by EventController::openRegistration() at the moment
-     * the organizer clicks Open Registration. Null until then.
+     * Set once, inside EventController::openRegistration(), on the
+     * same write that stamps registration_start. Before that moment
+     * the event is Draft and has no public URL. After, the slug is the
+     * event's public identifier at /r/{slug}.
      *
-     * Nullable + unique. MySQL allows multiple NULL values in a unique
-     * index, so Draft events (slug = null) never conflict with each
-     * other.
+     * Format: 8 characters from a 31-character alphabet that excludes
+     * the confusables I, L, O, 0, 1. 31^8 ≈ 8.5×10^11 possible slugs.
+     * Readable over the phone, paste-able in chat. The generation loop
+     * in EventController retries up to 3 times on collision before
+     * throwing — the probability is negligible but the loop makes the
+     * failure mode explicit rather than silent.
      *
-     * The route /r/{event:registration_slug} uses implicit model
-     * binding on this column.
+     * Nullable because Draft events have no slug. There is no code
+     * path that clears the slug once set — D6 of the Phase 3 plan
+     * locks the form permanently at Open Registration.
+     *
+     * The unique index is on the slug alone, not (slug, event_id).
+     * The public route uses implicit model binding on registration_slug
+     * and requires a global namespace.
+     *
+     * Placed after registration_form_saved_at so the events table's
+     * registration columns stay grouped: registration_start,
+     * registration_end, registration_form_saved_at, registration_slug.
      */
     public function up(): void
     {

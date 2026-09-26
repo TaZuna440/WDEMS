@@ -7,26 +7,52 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Create registration_field_responses.
+     * Registration field responses — one row per custom field per
+     * registration.
      *
-     * One row per answered custom field per submission. The six common
-     * participant fields (first_name, last_name, email, contact_number,
-     * age, address) live in the participants table — they are not
-     * stored here.
+     * The six common participant fields (first_name, last_name, email,
+     * contact_number, age, address) live in the participants table.
+     * They are structural — every registration has them — so they are
+     * not stored here. Only custom fields defined via the form builder
+     * produce rows in this table.
      *
-     * CASCADE on registration_id: deleting a registration removes its
-     * responses. Event deletion cascades registrations, so responses
-     * clean up transitively without an explicit step in
-     * EventDeletionService.
+     * value is text for all field types. Rendering interprets it based
+     * on the field's field_type:
+     *   - text, textarea, email, date → the string, as-is
+     *   - number → the string, cast on read
+     *   - select, radio → the string, one of the field's options
+     *   - checkbox → a JSON array of selected option strings
+     *
+     * The JSON-encoded case is the only one that stores structured data.
+     * Everything else is a scalar string. This keeps the storage schema
+     * uniform — one column, one type — and pushes the interpretation to
+     * the read path where the field_type is known.
      *
      * RESTRICT on registration_field_id: a field with responses cannot
-     * be silently deleted. In practice this cannot happen because the
-     * form is locked the moment registration opens (D6 in the Phase 3
-     * plan) and responses only exist after that point.
+     * be silently deleted. In practice this cannot happen — the form
+     * locks at Open Registration (D6), which is the moment responses
+     * can first exist. The RESTRICT matches the pattern used by the
+     * dropped registration_options table; it is defense-in-depth, not a
+     * live guard.
      *
-     * The unique constraint name is explicit. Laravel's auto-generated
-     * name — registration_field_responses_registration_id_registration_field_id_unique
-     * — is 71 characters, over MySQL's 64-character identifier limit.
+     * CASCADE on registration_id: when a registration is deleted (Phase
+     * 5), its responses go with it. Event deletion cascades registrations
+     * via the event_id FK, so responses clean up for free during event
+     * deletion as well. The delete order in EventDeletionService does
+     * not need to change — responses cascade when registrations cascade.
+     *
+     * The unique constraint on (registration_id, registration_field_id)
+     * enforces one response per field per registration. A duplicate
+     * submission of the same field within a single registration is a
+     * controller bug, not a valid state.
+     *
+     * The constraint name is explicit. Laravel's auto-generated name
+     * for this column pair —
+     * registration_field_responses_registration_id_registration_field_id_unique
+     * — is 73 characters, over MySQL's 64-character identifier limit.
+     * SQLite accepts the overlong name; MySQL rejects it with error
+     * 1059. The explicit name 'reg_field_responses_unique' (26 chars)
+     * applies cleanly on both engines.
      */
     public function up(): void
     {
