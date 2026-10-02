@@ -698,3 +698,179 @@ session, that phase is blocked until it has been read.
 - **2026-10-02** — File created. Phased plan for participant
   identity and registration monitoring. Ten phases. Open items
   carried into Phase 1 recorded.
+
+---
+
+## Phase 0 findings (2026-10-02)
+
+Reconnaissance of the identity-relevant files. The form builder and
+monitoring files will be read at the phase where they are needed
+(Phase 4 and Phase 7), not preemptively — holding 20 file contexts
+across 8 sessions is more drift than coverage.
+
+### Data queries — results
+
+    duplicate emails: []      (zero duplicates)
+    total participants: 1
+    with email: 0
+    with phone: 0
+    with neither: 1
+
+The single existing participant is the test submission from the
+Phase 3 verification pass. Email NULL, contact_number NULL. It
+predates the at-least-one rule that Phase 4 introduces. The rule is
+forward-looking — it applies at submission time, not retroactively.
+This row is grandfathered and harmless.
+
+Consequence for Phase 1: no duplicate-email cleanup migration is
+required. The unique-email index can land in a single migration.
+Consequence for Phase 2: the backfill loop iterates zero rows. The
+migration still runs (the column is populated), but there is nothing
+to log.
+
+### `app/Models/Participant.php`
+
+Simple model. Six fields: `first_name`, `last_name`, `contact_number`,
+`email`, `age`, `address`. Fillable includes all six. No mutators, no
+identity logic, no phone normalization. `age` casts to integer.
+Relations: `registrations(): HasMany`. One helper: `fullName()`.
+
+Phase 3 adds: the `setContactNumberAttribute` mutator, the
+`resolveFrom` resolver, the `normalizeContactNumber` helper, and
+new fillable entries for the extra columns. `fullName()` and the
+relations stay unchanged.
+
+### `app/Http/Controllers/PublicRegistrationController.php`
+
+Two actions. `show()` renders `registrations/public` with the event
+payload, the custom field list, the resolved common-field
+requirements, the submit URL, and the session's `success` flash.
+`store()` runs the D5 duplicate check (only when email is provided),
+opens a transaction, does a `firstOrCreate` on
+`(email, first_name, last_name)` or a plain `create()` when email is
+absent, then creates the `Registration` and one
+`RegistrationFieldResponse` per submitted response.
+
+Phase 5 replaces the `firstOrCreate` and the conditional branch with
+a single call to `Participant::resolveFrom()`. The D5 check stays —
+it queries on email, unaffected by the resolver. The transaction
+boundary stays.
+
+### `app/Http/Requests/PublicRegistrationRequest.php`
+
+`rules()` is dynamic — `email`, `contact_number`, and `address`
+each go through a `commonFieldRules()` helper that reads
+`Event::isCommonFieldRequired()` and emits `required` or `nullable`
+as the leading rule. Format rules still apply when a value is
+provided. `withValidator()` runs a two-pass check on custom field
+responses.
+
+Phase 4 adds: an identity check in `withValidator()` — if both
+`email` and `contact_number` are blank (after normalization for the
+phone), add a form-level error. The existing two-pass logic is
+untouched.
+
+### `database/migrations/2026_09_16_160315_create_participants_table.php`
+
+Six columns plus timestamps. `first_name` and `last_name` are
+`string` (255) NOT NULL. `contact_number` is `string` (255) NOT NULL
+in the base migration — flipped to nullable by
+`2026_10_02_110000_make_contact_number_nullable_on_participants_table.php`
+(landed in the registration Phase 3 block C). `email` is
+`string` (255) nullable, indexed, **not unique**. `age` is
+`unsignedTinyInteger` nullable. `address` is `string` (255) nullable.
+
+Two indexes: composite `(last_name, first_name)` and single `email`.
+Phase 1 adds a unique index on `email` — MySQL accepts both a
+non-unique and a unique index on the same column; the non-unique
+index can stay.
+
+### `database/migrations/2026_09_16_160321_create_registrations_table.php`
+
+Seven columns plus timestamps. `event_id` FK to events, CASCADE.
+`participant_id` FK to participants, RESTRICT. `registration_date`
+`dateTime` with `useCurrent()`. `registration_status` string with
+default `pending`, indexed. Timestamps.
+
+**The migration already declares `$table->unique(['event_id', 'participant_id'])`.**
+
+This is a plan deviation — Phase 1 migration #4
+(`add_unique_event_participant_to_registrations_table.php`) is not
+needed. The constraint exists. The plan's table of Phase 1
+migrations is reduced from five to four.
+
+### Plan deviations discovered during Phase 0
+
+**D-1 — Phase 1 migration #4 is redundant.** The unique constraint
+on `(event_id, participant_id)` already exists in the base migration.
+Removed from Phase 1 scope.
+
+**D-2 — Phase 2 is a no-op on current data.** The backfill loop
+iterates zero rows. The migration still runs (as a no-op) so the
+phase is completed in the log, but there is no cleanup to do.
+
+**D-3 — No `google_form_response_id` column exists on
+`registrations`.** `docs/architecture.md` claims
+`UNIQUE (event_id, google_form_response_id)` on that table. The
+migration shows no such column. This is a stale doc claim. The
+correction goes in `architecture.md` at the next doc pass, not in
+this plan. Noted here so the next reader does not go looking for
+the column.
+
+**D-4 — `contact_number` nullability was flipped mid-Phase-3.** The
+base migration declares it NOT NULL, but
+`2026_10_02_110000_make_contact_number_nullable_on_participants_table.php`
+changed it to nullable. This is not a deviation from this plan — it
+happened during the registration work. Recorded here so the reader
+of the participants migration is not confused.
+
+### Data cleanup decision
+
+The single existing participant (email NULL, contact_number NULL)
+is grandfathered. No cleanup migration. If it causes confusion in
+later testing, it can be deleted manually:
+`\App\Models\Participant::truncate()` — cascades to registrations
+and their responses.
+
+### Files read this phase
+
+    app/Models/Participant.php
+    app/Http/Controllers/PublicRegistrationController.php
+    app/Http/Requests/PublicRegistrationRequest.php
+    database/migrations/2026_09_16_160315_create_participants_table.php
+    database/migrations/2026_09_16_160321_create_registrations_table.php
+
+Five of the twenty files the plan listed. The remaining fifteen are
+deferred to the phase where they are needed:
+
+    Phase 4   app/Concerns/RegistrationFieldValidationRules.php
+              app/Http/Requests/RegistrationFieldRequest.php
+              app/Http/Controllers/RegistrationFormController.php
+              resources/js/pages/events/registration-form.tsx
+
+    Phase 6   app/Http/Controllers/AttendanceController.php
+              app/Models/Attendance.php
+              resources/js/pages/events/attendance.tsx
+              resources/js/components/app-sidebar.tsx
+              resources/js/types/navigation.ts
+              resources/js/components/nav-main.tsx
+
+    Phase 7   app/Http/Controllers/RegistrationController.php
+              resources/js/pages/registrations/index.tsx
+              app/Http/Controllers/EventController.php
+              resources/js/pages/events/show.tsx
+              routes/web.php
+
+This is a deviation from the plan's "read everything in Phase 0"
+structure. Rationale: reading fifteen files that will not be touched
+until six phases later is drift risk, not coverage. Each phase's
+"Files to cat first" section is the authoritative list for that
+phase.
+
+## Changelog addendum
+
+- **2026-10-02** — Phase 0 findings recorded. Four deviations
+  discovered: D-1 (unique constraint already exists), D-2 (backfill
+  is a no-op), D-3 (stale `google_form_response_id` claim), D-4
+  (mid-phase contact_number nullability flip). File-read list
+  narrowed from twenty to five for the identity-side work.
