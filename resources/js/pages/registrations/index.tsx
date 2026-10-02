@@ -41,24 +41,42 @@ function EmptySection({
     );
 }
 
-function EventRowItem({ event }: { event: EventRow }) {
+function EventRowItem({
+    event,
+    showMonitor = false,
+}: {
+    event: EventRow;
+    showMonitor?: boolean;
+}) {
     return (
-        <Link
-            href={`/events/${event.id}`}
-            className="flex items-center justify-between gap-4 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3 transition-colors hover:bg-white/[0.04]"
-        >
-            <div className="flex flex-col">
-                <span className="text-sm font-medium text-foreground">
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3 transition-colors hover:bg-white/[0.04]">
+            <Link
+                href={`/events/${event.id}`}
+                className="flex min-w-0 flex-1 flex-col"
+            >
+                <span className="truncate text-sm font-medium text-foreground">
                     {event.event_name}
                 </span>
-                <span className="mt-0.5 text-xs text-muted-foreground">
+                <span className="mt-0.5 truncate text-xs text-muted-foreground">
                     {event.event_date ?? '—'} · {event.venue ?? 'No venue'}
                 </span>
+            </Link>
+
+            <div className="flex shrink-0 items-center gap-3">
+                <span className="text-xs text-muted-foreground">
+                    {event.status_label}
+                </span>
+
+                {showMonitor && (
+                    <Link
+                        href={`/registrations/monitor/${event.id}`}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-lime-brand hover:underline"
+                    >
+                        Monitor
+                    </Link>
+                )}
             </div>
-            <span className="shrink-0 text-xs text-muted-foreground">
-                {event.status_label}
-            </span>
-        </Link>
+        </div>
     );
 }
 
@@ -133,7 +151,11 @@ export default function RegistrationsIndex({
                     ) : (
                         <div className="flex flex-col gap-2">
                             {open.map((event) => (
-                                <EventRowItem key={event.id} event={event} />
+                                <EventRowItem
+                                    key={event.id}
+                                    event={event}
+                                    showMonitor
+                                />
                             ))}
                         </div>
                     )}
