@@ -9,6 +9,7 @@ use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\RegistrationFieldResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -23,12 +24,24 @@ class PublicRegistrationController extends Controller
      * and within registration_end. The payload is the six common
      * fields (rendered as a fixed block on the frontend) plus the
      * event's custom fields.
+     *
+     * `success` is read from the session flash set by store(). The
+     * project does not share flash globally (see authentication.md),
+     * so it is pulled here and passed explicitly. pull() removes it
+     * from the session — subsequent requests do not see it.
+     *
+     * `submit_url` is passed explicitly so the frontend does not have
+     * to reconstruct the route from window.location.
      */
-    public function show(Event $event): Response
+    public function show(Request $request, Event $event): Response
     {
         return Inertia::render('registrations/public', [
             'event' => $this->eventPayload($event),
             'fields' => $this->fieldsPayload($event),
+            'submit_url' => route('public-registration.store', [
+                'event' => $event->registration_slug,
+            ]),
+            'success' => $request->session()->pull('success'),
         ]);
     }
 
