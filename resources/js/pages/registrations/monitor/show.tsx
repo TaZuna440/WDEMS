@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, RefreshCw, UserPlus, UserRound } from 'lucide-react';
+import { ArrowLeft, Check, Link2, RefreshCw, UserPlus, UserRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useClipboard } from '@/hooks/use-clipboard';
 import { usePolling } from '@/hooks/use-polling';
 
 type EventData = {
@@ -62,6 +63,41 @@ function relativeSeconds(seconds: number): string {
     if (minutes === 1) return '1 minute ago';
 
     return `${minutes} minutes ago`;
+}
+
+/**
+ * Copy the public registration URL to the clipboard.
+ *
+ * The URL is built client-side from window.location.origin so no
+ * server round trip is needed. The button is only rendered when the
+ * event is open and has a slug, so the origin is always available
+ * when the component mounts.
+ */
+function PublicLinkButton({ slug }: { slug: string }) {
+    const [copied, copy] = useClipboard();
+    const url = `${window.location.origin}/r/${slug}`;
+    const isCopied = copied === url;
+
+    return (
+        <button
+            type="button"
+            onClick={() => copy(url)}
+            title={url}
+            className="inline-flex items-center gap-1.5 rounded-md border border-lime-brand/40 bg-lime-brand/10 px-2.5 py-1 text-xs font-medium text-lime-brand transition-colors hover:bg-lime-brand/20"
+        >
+            {isCopied ? (
+                <>
+                    <Check className="h-3 w-3" />
+                    Copied
+                </>
+            ) : (
+                <>
+                    <Link2 className="h-3 w-3" />
+                    Copy public link
+                </>
+            )}
+        </button>
+    );
 }
 
 function StatsStrip({
@@ -281,10 +317,14 @@ export default function MonitorShow({ event, stats, registrations }: Props) {
                     </p>
                 </div>
 
-                {/* Stats strip */}
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                {/* Stats strip + actions */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <StatsStrip stats={stats} isOpen={event.is_open} />
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        {event.is_open && event.registration_slug !== null && (
+                            <PublicLinkButton slug={event.registration_slug} />
+                        )}
                         <span>Updated {relativeSeconds(secondsAgo)}</span>
                         <button
                             type="button"
@@ -344,6 +384,6 @@ export default function MonitorShow({ event, stats, registrations }: Props) {
 MonitorShow.layout = {
     breadcrumbs: [
         { title: 'Registration', href: '/registrations' },
-        { title: 'Monitor', href: '/registrations/monitor' },
+        { title: 'Registration Monitor', href: '/registrations/monitor' },
     ],
 };
