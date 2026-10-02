@@ -280,3 +280,123 @@ record), and does not require an approval workflow.
 - **2026-10-02** — File created. Identity model E, at-least-one rule,
   resolution algorithm, normalization rules, and limitations
   recorded.
+
+---
+
+## Status — Partially Implemented (2026-10-02)
+
+The header's §Status line reads:
+
+    **Status:** Planned. No code exists yet.
+
+That was accurate when this file was created on 2026-10-02. It is
+no longer accurate. Two of the ten phases in
+`docs/participant-identity-and-monitoring-plan.md` have shipped.
+
+This is a status block, not a spec rewrite. The body above remains
+the authoritative description of the intended model. Where the body
+says "will be" or "will land", read the shipped state below.
+
+### What exists
+
+**Phase 1 — schema and constraints** (commit `cf6d4df`, 2026-10-02)
+
+- `participants.contact_number_normalized` — varchar(11), nullable,
+  unique on non-null. Populated by the Phase 3 mutator.
+- `registrations.consent_accepted_at` — timestamp, nullable.
+  Not yet written by any code path — the public form's consent
+  checkbox is HTML5-only (see ISSUE-010).
+- `registrations.privacy_notice_version` — varchar(32), nullable.
+  Same status as `consent_accepted_at`.
+- `participants.email` — UNIQUE on non-null. Multiple NULLs
+  permitted.
+- `participants.contact_number_normalized` — UNIQUE on non-null.
+  Multiple NULLs permitted.
+- `registrations (event_id, participant_id)` — UNIQUE. Pre-existed
+  in the base migration; verified, not added.
+- `Participant::$fillable` updated to include
+  `contact_number_normalized`.
+
+**Phase 2 — legacy backfill** — skipped. Phase 0 reconnaissance
+confirmed zero existing phone values (commit `910eff6`). No
+backfill was required. The phase is closed as a no-op.
+
+**Phase 3 — model** (commit `22e603c`, 2026-10-02)
+
+- `Participant::setContactNumberAttribute` — mutator. Writes both
+  `contact_number` (raw, for display) and
+  `contact_number_normalized` (canonical, for identity).
+- `Participant::normalizeContactNumber` — private static helper.
+  Accepts the four PH mobile formats in §5. Returns null for
+  unparseable input.
+- `Participant::resolveFrom` — the resolver described in §6. Email
+  primary, normalized phone fallback, throws
+  `IdentityRequiredException` when neither is present.
+  First-write-wins on match.
+- `App\Exceptions\IdentityRequiredException` — new class in a new
+  `app/Exceptions/` namespace.
+
+### What does not yet exist
+
+- **Phase 4** — the at-least-one rule. `PublicRegistrationRequest`
+  and `RegistrationFieldValidationRules` do not yet reject
+  submissions or form-builder saves where both identity fields
+  are absent. The resolver's throw is currently the only defense.
+- **Phase 5** — the controller rewrite.
+  `PublicRegistrationController::store()` still uses the
+  pre-identity `firstOrCreate` on
+  `(email, first_name, last_name)` and a plain `create()` when
+  email is absent. The resolver is not called from any live code
+  path yet.
+- **Phases 6–10** — attendance sidebar, monitoring pages,
+  monitoring actions, delete-registration OTP, docs close.
+
+### Known gap introduced by Phase 1 + Phase 3
+
+The `contact_number_normalized` UNIQUE constraint (Phase 1) is
+live, but the controller still writes participants the old way
+(Phase 5 has not landed). Result: in an email-optional event, a
+second submission sharing a phone number with the first raises a
+`QueryException` and returns a 500 to the user. Recorded as
+ISSUE-009 in `docs/known-issues.md`. Phase 5 converts this into a
+proper duplicate-detection error by routing through
+`resolveFrom()`.
+
+Until Phase 5 lands, an organizer running an email-optional event
+is exposed to this 500 on duplicate-phone submissions. The
+exposure is bounded — it requires two submissions with the same
+phone but no email — but it is real.
+
+### What "hidden" behaviors exist in the shipped code
+
+Two behaviors of the shipped pieces are non-obvious and worth
+naming here so they are not lost:
+
+1. **The mutator runs on every write to `contact_number`.** Not
+   just create. Any `$participant->update(['contact_number' => ...])`
+   or `->fill()` write recomputes `contact_number_normalized`.
+   This is intentional — the normalized value can never drift from
+   the raw value — but it means a manual edit of the raw phone
+   silently changes the identity key. A future "edit participant"
+   action (monitoring Phase 8) must be aware.
+
+2. **First-write-wins applies to attributes, not to the identity
+   keys themselves.** If a participant matched by email has a
+   different phone in the incoming payload, the phone is discarded.
+   The identity is stable; the descriptive data is frozen at first
+   write. Editing a participant's phone therefore requires an
+   explicit `update()`, not a re-resolve.
+
+### Reference
+
+- Plan: `docs/participant-identity-and-monitoring-plan.md`
+- Issues: `docs/known-issues.md` ISSUE-009 (duplicate-phone 500)
+- Commits: `cf6d4df` (Phase 1), `22e603c` (Phase 3)
+
+## Changelog addendum
+
+- **2026-10-02** — Status block added. Phases 1 and 3 marked
+  shipped. Phase 2 closed as a no-op. Phases 4–10 listed as not
+  yet started. Known gap ISSUE-009 (duplicate-phone 500) named.
+  Two hidden behaviors of the shipped code documented for the
+  first time.

@@ -692,3 +692,254 @@ Open Registration.
   additions". Both surfaced during Phase 3 close. Neither is fixed.
   ISSUE-007 is a latent schema-validation mismatch; ISSUE-008 is a
   UX gap in the form builder.
+
+---
+
+### ISSUE-009 — Duplicate-phone submissions return 500 in email-optional events
+
+**Severity:** Medium (500 on a specific submission shape)
+**Status:** Open — interim, pending identity Phase 5
+**Found in:** `app/Http/Controllers/PublicRegistrationController.php`,
+`app/Models/Participant.php`
+**Related:** `docs/participant-identity.md` (Status block, Known
+gap), `docs/participant-identity-and-monitoring-plan.md` (Phase 5)
+
+### Symptoms
+
+An event is configured with email optional (`email => false` in
+`registration_common_field_requirements`). A participant submits a
+registration with a phone number and no email. A second
+participant submits with the same phone number, also no email. The
+second submission returns a 500 Internal Server Error instead of
+a validation error.
+
+The organizer sees nothing in the UI — the second participant's
+browser shows a generic error page. No registration is created.
+The participant's data is lost if they do not retry.
+
+### Root cause
+
+Two changes from the participant-identity build landed before the
+controller that uses them:
+
+- Phase 1 (`cf6d4df`) added the UNIQUE constraint on
+  `participants.contact_number_normalized`.
+- Phase 3 (`22e603c`) added
+  `Participant::setContactNumberAttribute`, which populates the
+  column via mutator, and `Participant::resolveFrom()`, which
+  matches on the normalized phone.
+
+But Phase 5 — the controller rewrite that actually calls
+`resolveFrom()` — has not landed. The controller still uses the
+pre-identity logic:
+
+    if ($emailProvided) {
+        $participant = Participant::firstOrCreate(
+            ['email' => $email, 'first_name' => ..., 'last_name' => ...],
+            $participantAttributes,
+        );
+    } else {
+        // No email → no identity key. Always create a new row.
+        $participant = Participant::create($participantAttributes);
+    }
+
+The `create()` branch tries to insert a new `Participant` row with
+the same `contact_number_normalized` as the previous submission.
+The UNIQUE index rejects it. No exception handler catches it. The
+500 surfaces.
+
+### Fix outline
+
+Phase 5 of the identity plan. Replace both branches with a single
+call:
+
+    $participant = Participant::resolveFrom(
+        $email,
+        $validated['contact_number'] ?? null,
+        $participantAttributes,
+    );
+
+`resolveFrom` matches on the normalized phone when email is absent,
+finds the existing participant, and returns it. The subsequent
+`Registration::create()` then collides with the
+`(event_id, participant_id)` UNIQUE index — which the controller
+already handles by way of the D5 duplicate check.
+
+**No interim fix recommended.** The permanent fix is one commit
+away. An interim try/catch would be removed by Phase 5.
+
+### Verification when fixed
+
+1. Configure an event with email optional
+2. Submit with phone `09171234567`, no email
+3. Submit again with the same phone, no email, different name
+4. Confirm the second submission shows a validation error (not a 500)
+5. Confirm only one `Participant` row exists for that phone
+
+### Note on exposure window
+
+Until Phase 5 lands, an organizer running an email-optional event
+is exposed to this 500. The window is bounded by how many events
+are configured that way. If any real participant submission is
+expected before Phase 5 ships, the fix should be prioritized.
+
+---
+
+### ISSUE-010 — Legal layer is a UI demo; no server-side consent recording
+
+**Severity:** High (compliance gap under the DPA)
+**Status:** Open
+**Found in:** `resources/js/pages/registrations/public.tsx`,
+`resources/js/lib/demo-legal-content.ts`,
+`app/Http/Requests/PublicRegistrationRequest.php`
+**Related:** `docs/participant-identity.md` §4.4–4.5,
+`docs/known-issues.md` (this entry)
+
+### Symptoms
+
+The public registration page renders a Privacy Notice and Terms &
+Conditions in modals, plus a required consent checkbox. The checkbox
+blocks submission via HTML5 validation. But:
+
+- The consent is not recorded server-side. A participant who
+  unchecks the box after clicking Submit, or who submits via a
+  tool that bypasses HTML5, produces a `Registration` row with
+  `consent_accepted_at = NULL` and `privacy_notice_version = NULL`.
+- The Privacy Notice and Terms content is placeholder text with
+  `[bracketed]` items. It has not been reviewed by a lawyer.
+- Both documents are global — identical for every event. There is
+  no per-event customization.
+- There are no guardian fields for participants under 18. The `age`
+  field is collected but nothing acts on it.
+- The Privacy Notice and Terms have no stable version identifiers.
+  If the content changes, there is no record of which version a
+  prior participant accepted.
+
+### Root cause
+
+The demo was built to close the visible gap on the public page —
+"the form looks like it collects consent" — while the schema
+columns and the per-event content model were deferred to Phase 3.5.
+`consent_accepted_at` and `privacy_notice_version` exist as nullable
+columns (Phase 1 of the identity plan), but nothing writes them.
+
+The demo text lives in `resources/js/lib/demo-legal-content.ts`.
+Every `[bracketed]` item requires an organizer decision: organizer
+name, contact email, retention period, refund policy, event name,
+distance.
+
+### Fix outline
+
+Phase 3.5, not yet planned in a doc. Sketch:
+
+1. **Schema.** `events.privacy_notice` and `events.terms` as text
+   columns. Per-event, editable in the form builder.
+2. **Form builder UI.** Two textareas on `registration-form.tsx`
+   for editing the two documents.
+3. **Public form.** Render the per-event content instead of the
+   demo constants. Pass `consent_accepted` through the request.
+4. **Request.** Add `consent_accepted` (boolean, required, must be
+   `true`). Set `consent_accepted_at = now()` and
+   `privacy_notice_version = <constant>` on the `Registration` row.
+5. **Guardian fields.** When `age < 18`, render a conditional
+   section asking for guardian name, guardian contact, and
+   guardian consent. Store on `registrations` or a new
+   `registration_guardians` table.
+6. **Legal content.** The demo text is a starting point. Real
+   content requires a lawyer's review — this is a Phase 3.5
+   blocker, not a code issue.
+
+### Decisions before implementing
+
+- **Real legal content.** The placeholder text needs to be replaced
+  by reviewed content before this is shared with real participants.
+  This is the blocking decision.
+- **Per-event vs. global.** Do all events share one Privacy Notice,
+  or does each organizer provide their own? Depends on whether WDEMS
+  is single-tenant (one organizer) or multi-tenant.
+- **Guardian data location.** A `guardians` table, or fields on
+  `registrations`? Affects whether guardian data is queryable
+  across events.
+- **Consent version scheme.** What constitutes a new version? Any
+  edit to the notice, or an explicit "publish new version" action?
+  This affects whether old consents remain valid after an edit.
+
+### Verification when fixed
+
+1. Configure an event with a custom Privacy Notice
+2. Submit the public form with consent checked
+3. Confirm the `Registration` row has a non-null
+   `consent_accepted_at` and a matching `privacy_notice_version`
+4. Submit with consent unchecked → rejected with a validation error
+5. Submit with `age < 18` → guardian section renders and is
+   required
+6. Edit the notice text → new submissions record the new version,
+   old records keep the old
+
+---
+
+### ISSUE-011 — `known-issues.md` pointer W-3 references a removed feature
+
+**Severity:** Cosmetic (a documentation pointer)
+**Status:** Open
+**Found in:** `docs/known-issues.md` (Other known issues table,
+row W-3)
+**Related:** `docs/fixes.md` (Phase 2 FAQ removal, commit `f03f450`)
+
+### Symptoms
+
+The pointer table at the top of `known-issues.md` contains:
+
+    | W-3 | FAQ entries cannot be edited through any UI |
+          `docs/event-creation-wizard.md` §11.2 | Medium |
+
+The FAQ feature was removed end-to-end in the registration Phase 2
+build (commit `f03f450`). The `events.faq` column is preserved on
+the schema but nothing reads or writes it. `event-creation-wizard.md`
+§11.2 still describes the gap as if FAQ were live.
+
+A reader following the pointer finds a section about a feature that
+no longer exists.
+
+### Root cause
+
+The FAQ removal landed as part of Phase 2 of the registration build.
+The pointer table was not updated — it predates the removal. The
+`event-creation-wizard.md` file was not corrected either, because
+its §11 section describes the state before the removal.
+
+### Fix outline
+
+Two edits, both small:
+
+1. **Delete the W-3 row** from the pointer table in
+   `known-issues.md`. The feature it references does not exist.
+2. **Add a corrections block** to `event-creation-wizard.md`
+   noting that §11.2 is stale. This is part of the larger
+   doc-sweep work for that file (Tier 3 in the current doc plan),
+   but the one-line correction can be appended independently.
+
+Not urgent. The pointer table has fifteen rows; one stale row
+among them does not mislead most readers.
+
+### Decisions before implementing
+
+None. Both edits are mechanical.
+
+### Verification when fixed
+
+    grep -n "W-3" docs/known-issues.md
+    # Expected: no hits (or a "removed" note)
+
+    grep -n "FAQ" docs/known-issues.md
+    # Expected: no W-3 reference to a nonexistent feature
+
+---
+
+## Change log addendum
+
+- **2026-10-02** — ISSUE-009 (duplicate-phone 500), ISSUE-010
+  (legal layer is a demo), and ISSUE-011 (W-3 pointer stale)
+  added under "Later additions". ISSUE-009 is an interim bug
+  awaiting Phase 5. ISSUE-010 is a compliance gap awaiting Phase
+  3.5 and legal content. ISSUE-011 is cosmetic.
