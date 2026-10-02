@@ -698,7 +698,7 @@ Open Registration.
 ### ISSUE-009 — Duplicate-phone submissions return 500 in email-optional events
 
 **Severity:** Medium (500 on a specific submission shape)
-**Status:** Open — interim, pending identity Phase 5
+**Status:** Fixed — 2026-10-02 — commit cf97486
 **Found in:** `app/Http/Controllers/PublicRegistrationController.php`,
 `app/Models/Participant.php`
 **Related:** `docs/participant-identity.md` (Status block, Known
