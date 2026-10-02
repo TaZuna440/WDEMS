@@ -519,3 +519,176 @@ No 2FA challenge. Redirect to dashboard directly.
 - **2026-09-25** — ISSUE-006 added under "Later additions". Logout no
   longer clears the trusted-device cookie. Fixed in
   `AppServiceProvider`.
+
+---
+
+### ISSUE-007 — `participants.address` column width mismatches validation
+
+**Severity:** Medium (silent data loss in non-strict MySQL)
+**Status:** Open
+**Found in:** `app/Http/Requests/PublicRegistrationRequest.php`,
+`database/migrations/2026_09_16_160315_create_participants_table.php`
+**Related:** `docs/registration.md` §4, `docs/registration-development-plan.md`
+(Phase 3 complete, Known issues carried forward)
+
+### Symptoms
+
+A participant enters an address longer than 255 characters but no
+longer than 500. Client validation passes (the client mirrors the
+server's `max:500` rule). The form submits. On the server, one of
+two things happens depending on MySQL's `sql_mode`:
+
+- **Non-strict mode:** MySQL silently truncates the value to 255
+  characters. The registration succeeds and the participant's
+  address is missing its tail. No error is surfaced.
+- **Strict mode (Laravel's default):** MySQL raises a `Data too long`
+  exception. The transaction rolls back. The user sees a generic 500
+  page.
+
+Both outcomes are wrong. The first loses data silently; the second
+crashes the request when the validation said the input was fine.
+
+### Root cause
+
+Two rule sets disagree:
+
+- `PublicRegistrationRequest::rules()` — `'address' => ['string', 'max:500']`
+- `database/migrations/2026_09_16_160315_create_participants_table.php` —
+  `$table->string('address')` (default 255)
+
+Neither was wrong on its own. The mismatch was latent since the
+public form was built — it only becomes reachable when a participant
+types a long address. The `contact_number` fix in Block C
+(`2026_10_02_110000_make_contact_number_nullable_on_participants_table.php`)
+surfaced the same class of issue on a different column and prompted
+this entry.
+
+### Fix outline
+
+Two options, both valid:
+
+**Option A — widen the column.** Change `participants.address` to
+`varchar(500)` in a new migration. Matches the validation rule, keeps
+the 500-character ceiling the request already advertises.
+
+**Option B — tighten the validation.** Change
+`PublicRegistrationRequest::rules()` to `'max:255'`. Matches the
+column, avoids a schema change. Loses 245 characters of legitimate
+address room.
+
+Recommendation: **Option A**. Addresses are legitimately long. The
+500-character ceiling was chosen deliberately when the public form
+was written; the column just never caught up. Widening is one
+migration, no user-facing change.
+
+### Decisions before implementing
+
+- **Confirm the current column length** — the migration file says
+  `string('address')` which is 255, but a prior migration may have
+  altered it. Verify with `SHOW COLUMNS FROM participants`.
+- **Backfill or migrate in place?** No existing data needs backfill —
+  this is a widening operation. `ALTER TABLE` with no explicit
+  default is enough.
+
+### Verification when fixed
+
+1. Submit a public registration with a 400-character address
+2. Confirm the participant's stored address is 400 characters, not
+   255
+3. Confirm no exception is logged
+
+---
+
+### ISSUE-008 — No-email deduplication limitation is not surfaced in the form builder UI
+
+**Severity:** Low (organizer's choice, just not fully informed)
+**Status:** Open
+**Found in:** `resources/js/pages/events/registration-form.tsx`,
+`app/Http/Controllers/PublicRegistrationController.php`
+**Related:** `docs/registration-development-plan.md` (Phase 3
+complete, Known issues carried forward)
+
+### Symptoms
+
+An organizer unchecks "Required" for the email field in the form
+builder, publishes the event, and shares the URL. Two participants
+submit the same form with no email and the same name. Both
+submissions succeed and produce two `Registration` rows and two
+`Participant` rows — even though a required-email event would have
+rejected the second submission as a duplicate.
+
+There is no warning on the form builder page that unchecking
+"Required" for email disables the D5 duplicate rule. The organizer
+learns this only from reading
+`PublicRegistrationController::store()`'s docblock or from
+`docs/registration.md`.
+
+### Root cause
+
+The D5 duplicate check in `PublicRegistrationController::store()`
+runs only when the submission carries an email:
+
+    $emailProvided = is_string($email) && $email !== '';
+
+    if ($emailProvided) {
+        $alreadyRegistered = Registration::where('event_id', $event->id)
+            ->whereHas('participant', fn ($q) => $q->where('email', $email))
+            ->exists();
+
+        if ($alreadyRegistered) {
+            throw ValidationException::withMessages([...]);
+        }
+    }
+
+When `$emailProvided` is false, both the duplicate check and the
+`Participant::firstOrCreate` identity reuse are skipped. This is
+correct behavior — an anonymous registration has no identity key,
+so deduplication cannot apply. But it is invisible to the organizer
+at the moment they make the decision that causes it.
+
+### Fix outline
+
+Add a helper note beneath the email row in the form builder's common
+fields section. It only shows when the email toggle is unchecked:
+
+    Note: With email optional, participants who do not provide an
+    email cannot be deduplicated. Each submission creates a separate
+    registration and participant.
+
+Optional extensions:
+
+- A confirmation step when the organizer unchecks email-required
+  for the first time — "This disables duplicate detection for this
+  event. Continue?"
+- A small info icon next to the toggle with a tooltip carrying the
+  same text.
+
+Recommendation: the inline note alone. The confirmation step is
+heavier than the decision warrants; the toggle is reversible until
+Open Registration.
+
+### Decisions before implementing
+
+- **Where does the note live?** Below the email row only, or below
+  the whole common-fields grid?
+- **Does the same note apply to contact_number?** Contact number is
+  not currently used for deduplication. No note needed there. But if
+  the deduplication key ever expands (e.g. phone-based identity),
+  this decision reopens.
+
+### Verification when fixed
+
+1. Open the form builder for a Draft event
+2. Uncheck "Required" for email
+3. Confirm the note appears beneath the email row
+4. Re-check "Required"
+5. Confirm the note disappears
+
+---
+
+## Change log addendum
+
+- **2026-10-02** — ISSUE-007 and ISSUE-008 added under "Later
+  additions". Both surfaced during Phase 3 close. Neither is fixed.
+  ISSUE-007 is a latent schema-validation mismatch; ISSUE-008 is a
+  UX gap in the form builder.

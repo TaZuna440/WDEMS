@@ -934,3 +934,190 @@ future deployment requires it.
   (label quality, label collision, choice caps). One failure recorded
   (P11 -- migration files are live in tests). registration_form_saved_at
   backfill risk recorded.
+
+---
+
+## 2026-09-26 (later) — Phase 3 blocks 1–3
+
+### Summary
+
+Continuation of the same day as Phase 2 close. Phase 3 of the
+registration plan began: two migrations, one new model, slug
+generation. Three commits.
+
+Brief entry. The plan
+(`docs/registration-development-plan.md`, "Phase 3 complete") carries
+the detail.
+
+### Code changes
+
+| File | Change |
+|---|---|
+| `database/migrations/2026_09_26_100000_add_registration_slug_to_events_table.php` | **New** — nullable string(32), unique, after `registration_form_saved_at` |
+| `database/migrations/2026_09_26_100100_create_registration_field_responses_table.php` | **New** — one row per answered custom field |
+| `app/Models/RegistrationFieldResponse.php` | **New** — `#[Fillable]`, two BelongsTo relations |
+| `app/Models/Registration.php` | Added `fieldResponses(): HasMany` |
+| `app/Models/Event.php` | `registration_slug` added to fillable |
+| `app/Http/Controllers/EventController.php` | `generateUniqueSlug()` and `randomSlug()`; `openRegistration()` stamps the slug |
+
+### Bugs fixed during the block
+
+- **Migration 100100** failed on MySQL with a 1059 error — the
+  auto-generated unique constraint name was 73 characters, over
+  MySQL's 64-char limit. Fixed by naming the constraint
+  `reg_field_responses_unique` explicitly.
+- The fix was committed but the working tree diverged from HEAD (the
+  disk copy reverted to the buggy version). Diagnosed via
+  `md5sum` mismatch; resolved by re-applying the fix to disk.
+
+### Test changes
+
+| File | Change | Result |
+|---|---|---|
+| `tests/Feature/Events/RegistrationSlugTest.php` | **New** — 7 tests | Pass |
+| `tests/Feature/Events/EventWorkflowTest.php` | Unchanged | Pass |
+
+Events suite: 89 → 96 tests.
+
+### Commits
+
+    ea40f16  feat(registration): add registration_slug and registration_field_responses
+    13fa84b  docs(registration): expand migration docblocks for slug and responses
+    f73db9d  feat(registration): add RegistrationFieldResponse model and relation
+    4e6535c  feat(registration): generate slug on openRegistration
+
+---
+
+## 2026-10-02 — Phase 3 blocks 4–5 + event-flow fixes + common-field-requirements
+
+### Summary
+
+The bulk of Phase 3 landed on this date. Five feature commits and two
+bug-fix commits closed the public submission surface end-to-end, plus
+a mid-session feature request (per-event required/optional for three
+common participant fields) that shipped as three additional blocks.
+
+Two real bugs surfaced during the work, both fixed in the same
+session:
+
+1. **Duplicate active event names.** Two events with the same name
+   for the same user could be created. Fixed with
+   `EventValidationRules::validateEventNameUnique()`.
+2. **Client validation masked by stale server errors.** The wizard
+   merge order put server errors second, so a stale server error
+   overrode the fresh client error. Fixed by swapping the spread in
+   `wizard.tsx`.
+
+One schema mismatch discovered during the common-field-requirements
+feature — `participants.contact_number` was `NOT NULL` while the
+request now allows it to be omitted. Fixed with a migration.
+
+Two new issues recorded for future work: ISSUE-007 (address column
+width mismatch) and ISSUE-008 (no-email dedup not surfaced in the
+form builder UI).
+
+### New files
+
+    app/Http/Middleware/EnsureRegistrationIsOpen.php
+    app/Http/Requests/PublicRegistrationRequest.php
+    app/Http/Controllers/PublicRegistrationController.php
+    resources/js/layouts/public/public-layout.tsx
+    resources/js/pages/registrations/public.tsx
+    resources/js/pages/registrations/closed.tsx
+    resources/js/lib/public-registration-validation.ts
+    database/migrations/2026_10_02_100000_add_registration_common_field_requirements_to_events_table.php
+    database/migrations/2026_10_02_110000_make_contact_number_nullable_on_participants_table.php
+    tests/Feature/Public/RegistrationSubmissionTest.php
+    tests/Feature/Events/EventDuplicateNameTest.php
+    tests/Feature/Events/EventCommonFieldRequirementsTest.php
+    tests/Feature/Events/RegistrationFormCommonFieldRequirementsTest.php
+
+### Modified files
+
+    routes/web.php
+    app/Providers/AppServiceProvider.php
+    app/Concerns/EventValidationRules.php
+    app/Concerns/RegistrationFieldValidationRules.php
+    app/Http/Requests/EventRequest.php
+    app/Http/Requests/PublicRegistrationRequest.php
+    app/Http/Controllers/EventController.php
+    app/Http/Controllers/PublicRegistrationController.php
+    app/Http/Controllers/RegistrationFormController.php
+    app/Models/Event.php
+    resources/js/app.tsx
+    resources/js/components/wizard.tsx
+    resources/js/pages/registrations/public.tsx
+    resources/js/lib/public-registration-validation.ts
+    resources/js/pages/events/registration-form.tsx
+
+### Bugs fixed
+
+| Bug | Severity | Fix |
+|---|---|---|
+| Duplicate active event names allowed | Medium | `validateEventNameUnique()` in `EventValidationRules`, wired via `EventRequest::withValidator()` |
+| Client validation masked by stale server errors | Medium | Swapped spread order in `wizard.tsx` mergedErrors memo |
+| `contact_number` NOT NULL blocked optional submissions | High (blocked the feature) | Migration `2026_10_02_110000` flips nullability |
+| Unique constraint name too long for MySQL | High (blocked migration) | Explicit name `reg_field_responses_unique` (fixed in Sep 26 block, verified here) |
+
+### Bugs found but not fixed
+
+- ISSUE-007 — `participants.address` is varchar(255); request allows
+  max:500. Silent truncation or throw in strict mode.
+- ISSUE-008 — no-email deduplication limitation is documented in the
+  controller but not surfaced to organizers.
+
+### Database changes
+
+| Migration | Purpose |
+|---|---|
+| `2026_10_02_100000_add_registration_common_field_requirements_to_events_table.php` | JSON column, nullable, after `registration_slug` |
+| `2026_10_02_110000_make_contact_number_nullable_on_participants_table.php` | `contact_number` NOT NULL → nullable, length preserved at 255 |
+
+### Test changes
+
+| File | Change | Result |
+|---|---|---|
+| `tests/Feature/Public/RegistrationSubmissionTest.php` | **New** — 19 tests | Pass |
+| `tests/Feature/Events/EventDuplicateNameTest.php` | **New** — 8 tests | Pass |
+| `tests/Feature/Events/EventCommonFieldRequirementsTest.php` | **New** — 12 tests | Pass |
+| `tests/Feature/Events/RegistrationFormCommonFieldRequirementsTest.php` | **New** — 9 tests | Pass |
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `php artisan test tests/Feature/Public` | 19 passed / 71 assertions |
+| `php artisan test tests/Feature/Events` | 125 passed / 286 assertions |
+| `php artisan test tests/Feature/Auth` | 44 passed / 119 assertions |
+| `npx tsc --noEmit` | silent |
+
+### Commits
+
+    c3b4384  fix(events): reject duplicate active event names; prioritize client errors
+    3ef048e  fix(wizard): prioritize client validation errors over stale server errors
+    c351732  feat(registration): public submission surface at /r/{slug}
+    3dc6455  feat(registration): public pages, layout, and client validation
+    093feca  feat(events): per-event required/optional for email, contact, address
+    9c543bf  feat(registration): form builder toggles for common field requirements
+    7aea3c3  feat(registration): public side honors per-event common field requirements
+
+### Documentation appended
+
+    docs/registration-development-plan.md  — Phase 3 complete block
+    docs/registration.md                    — Status: Implemented block
+    docs/known-issues.md                    — ISSUE-007, ISSUE-008
+    docs/progress.md                        — this entry
+
+### Cross-reference
+
+| Subsystem | Primary doc |
+|---|---|
+| Registration feature spec | `docs/registration.md` |
+| Phase plan and close | `docs/registration-development-plan.md` |
+| Backlog additions | `docs/known-issues.md` (ISSUE-007, ISSUE-008) |
+
+## Changelog addendum
+
+- **2026-10-02** — Phase 3 complete. Blocks 4–5, event-flow fixes,
+  and common-field-requirements feature (Blocks A/B/C). Two new
+  issues recorded. All four Phase 3 close docs appended.

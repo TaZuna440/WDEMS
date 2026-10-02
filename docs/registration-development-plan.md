@@ -1569,3 +1569,174 @@ Estimate: 2–3 sessions.
   files, seven modified. `registration_field_responses` table added
   to close the gap left by Phase 2. Phase 0 C-5 corrected —
   participant indexes already exist. Eight blocks, 2–3 sessions.
+
+---
+
+## Phase 3 complete (2026-10-02)
+
+Registration's public submission surface is live end-to-end. Phase 3
+shipped in eight feature commits spanning 2026-09-26 to 2026-10-02.
+Seven new files, five modified, four new migrations, one new model.
+
+### Commits landed
+
+    4e6535c  feat(registration): generate slug on openRegistration
+    c3b4384  fix(events): reject duplicate active event names; prioritize client errors
+    3ef048e  fix(wizard): prioritize client validation errors over stale server errors
+    c351732  feat(registration): public submission surface at /r/{slug}
+    3dc6455  feat(registration): public pages, layout, and client validation
+    093feca  feat(events): per-event required/optional for email, contact, address
+    9c543bf  feat(registration): form builder toggles for common field requirements
+    7aea3c3  feat(registration): public side honors per-event common field requirements
+
+Two commits in this sequence — c3b4384 and 3ef048e — are event-flow
+bug fixes, not Phase 3 features. They landed mid-phase because they
+were discovered while exercising the registration flow. Included here
+so the arc is complete; the fixes are separately documented in
+progress.md and event-creation-issues.md (EC-13).
+
+### What shipped — by block
+
+| Block | Concern | State |
+|---|---|---|
+| 1 | Migrations: registration_slug + registration_field_responses | shipped |
+| 2 | RegistrationFieldResponse model + Registration::fieldResponses() | shipped |
+| 3 | Slug generation in EventController::openRegistration() | shipped |
+| 4 | Public submission surface (middleware + request + controller + tests) | shipped |
+| 5 | Frontend pages (public-layout, public.tsx, closed.tsx, validation) | shipped |
+| A | Common field requirements: migration + Event model | shipped |
+| B | Form builder toggles | shipped |
+| C | Public side reads requirements | shipped |
+
+### Deviations from the plan
+
+1. **No bootstrap/app.php alias registered.** The plan listed
+   `registration.open` as a middleware alias. The actual route group
+   uses the class FQCN directly (`EnsureRegistrationIsOpen::class`).
+   Reason: single-use middleware; the alias would add ceremony without
+   benefit. `bootstrap/app.php` was not modified.
+
+2. **No `registration_form_locked_at` column.** D2 in the plan chose
+   `registration_start` as the sole "form is locked" signal. The
+   migration does not include the column, and no code reads it.
+
+3. **`registration_form_saved_at` is not backfilled.** §3 of this
+   plan accepted the trade-off (recorded in the migration docblock).
+   Any Draft event whose form was saved before the Phase 2 migration
+   reads as "never saved" until the organizer re-saves once.
+
+4. **Inertia page-existence checks are disabled on two assertions.**
+   `tests/Feature/Public/RegistrationSubmissionTest.php` passes
+   `false` as the second argument to `component()`. Both pages now
+   exist (Block 5), so the checks would pass either way — the `false`
+   remains as documentation of the phased build. Removing it is
+   cosmetic.
+
+### The common-field-requirements feature (addendum, outside the original plan)
+
+The original Phase 3 plan did not include per-event required/optional
+control for the six common participant fields. The feature was
+requested mid-phase (2026-10-02) and landed as Blocks A + B + C in the
+same session as Blocks 1–5.
+
+Decisions (from the request session, all recorded):
+
+- **Q1 → D.** Toggleable: email, contact_number, address. Always
+  required: first_name, last_name, age.
+- **Q2 → A.** All toggleable fields default to required.
+- **Q4 → a1.** Accept the address behavior change — address was
+  previously nullable, is now required by default. Organizers who
+  want it optional uncheck it in the builder.
+
+Storage: `events.registration_common_field_requirements` (JSON,
+nullable). NULL means "all toggleable fields required" — the column
+compresses to NULL on save when nothing has been toggled off. Public
+registration reads via `Event::isCommonFieldRequired()`.
+
+The feature's scope was larger than a single block because it touched
+three layers: schema (A), form builder (B), public submission (C).
+Each landed as its own commit for bisectability.
+
+### Files added this phase
+
+    database/migrations/2026_09_26_100000_add_registration_slug_to_events_table.php
+    database/migrations/2026_09_26_100100_create_registration_field_responses_table.php
+    database/migrations/2026_10_02_100000_add_registration_common_field_requirements_to_events_table.php
+    database/migrations/2026_10_02_110000_make_contact_number_nullable_on_participants_table.php
+    app/Models/RegistrationFieldResponse.php
+    app/Http/Controllers/PublicRegistrationController.php
+    app/Http/Requests/PublicRegistrationRequest.php
+    app/Http/Middleware/EnsureRegistrationIsOpen.php
+    resources/js/layouts/public/public-layout.tsx
+    resources/js/pages/registrations/public.tsx
+    resources/js/pages/registrations/closed.tsx
+    resources/js/lib/public-registration-validation.ts
+    tests/Feature/Public/RegistrationSubmissionTest.php
+    tests/Feature/Events/EventCommonFieldRequirementsTest.php
+    tests/Feature/Events/RegistrationFormCommonFieldRequirementsTest.php
+    tests/Feature/Events/EventDuplicateNameTest.php
+    tests/Feature/Events/RegistrationSlugTest.php
+
+### Files modified this phase
+
+    routes/web.php
+    app/Models/Event.php
+    app/Models/Registration.php
+    app/Http/Controllers/EventController.php
+    app/Http/Controllers/PublicRegistrationController.php
+    app/Http/Requests/PublicRegistrationRequest.php
+    app/Providers/AppServiceProvider.php
+    app/Concerns/EventValidationRules.php
+    app/Concerns/RegistrationFieldValidationRules.php
+    app/Http/Requests/EventRequest.php
+    resources/js/app.tsx
+    resources/js/components/wizard.tsx
+    resources/js/lib/public-registration-validation.ts
+    resources/js/pages/registrations/public.tsx
+    resources/js/pages/events/registration-form.tsx
+
+### Test coverage at close
+
+    tests/Feature/Public                 19 passed / 71 assertions
+    tests/Feature/Events                125 passed / 286 assertions
+    tests/Feature/Auth                   44 passed / 119 assertions
+    npx tsc --noEmit                     silent
+
+### Known issues carried forward
+
+Recorded in docs/known-issues.md as ISSUE-007 and ISSUE-008 at Phase 3
+close:
+
+- **ISSUE-007** — `participants.address` is varchar(255) but the
+  request allows max:500. Silent truncation or MySQL strict-mode
+  throw for addresses between 256 and 500 chars.
+- **ISSUE-008** — the "no email = no deduplication" limitation is
+  documented in the controller docblock but not surfaced to
+  organizers in the form builder UI.
+
+Two secondary observations, not worth their own issues:
+
+- `participants.age` is nullable in the DB but required by the
+  request. No functional impact; flagged for a future optional-age
+  toggle.
+- The Inertia page-existence assertions in the public test file pass
+  `false` — see Deviations §4.
+
+### What remains
+
+- **Phase 4** — Attendance rebuild. Not started. Server-side search,
+  filter chips, pagination, walk-in form, mark-present toggle.
+- **Phase 5** — Delete registration with OTP. Not started. Mirrors
+  the existing staff event-deletion flow.
+- **Phase 6** — Documentation sweep. `registration.md` gets its
+  spec-to-reference conversion as part of the Phase 3 close (status
+  block appended to that file). The wider sweep for stale mentions
+  elsewhere (architecture.md, event-creation.md, AI-CONTEXT.md) is
+  Phase 6.
+
+## Changelog addendum
+
+- **2026-10-02** — Phase 3 complete. Eight feature commits. Four
+  deviations from the plan recorded. Common-field-requirements
+  feature recorded as an addendum to the original Phase 3 plan. Two
+  new issues carried to known-issues.md.

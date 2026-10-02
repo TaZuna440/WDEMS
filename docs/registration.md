@@ -344,3 +344,93 @@ for rationale.
 
 - **2026-09-25** — `textarea` added to §5 field types. Distance
   example removed. Validation strategy cross-referenced.
+
+---
+
+## Status — Implemented (2026-10-02)
+
+The §Status line at the top of this document reads:
+
+    **Status:** Planned. No code exists yet.
+
+That was accurate on 2026-09-25 when this file was written. It is no
+longer accurate.
+
+The registration subsystem is live end-to-end. Full commit history
+and design decisions are in
+`docs/registration-development-plan.md` under "Phase 3 complete".
+This block records the minimal set of corrections needed to make the
+spec usable as a map of what exists. It is not the full
+spec-to-reference conversion described in the top-of-file note — that
+conversion is deferred to a future session.
+
+### What exists
+
+- Public submission at `/r/{slug}` — anonymous, rate-limited,
+  gated by `EnsureRegistrationIsOpen` middleware.
+- Form builder at `/events/{event}/registration-form` — the six
+  common fields plus up to five custom fields, drag-to-reorder,
+  batch save via `PUT`.
+- Per-event required/optional toggles for `email`, `contact_number`,
+  and `address`.
+- `registration_fields` table for custom fields;
+  `registration_field_responses` for answers.
+- `events.registration_slug` (8-char, generated at Open
+  Registration), `events.registration_form_saved_at` (the sole
+  "form exists" signal), `events.registration_common_field_requirements`
+  (JSON, nullable).
+
+### Corrections to the spec
+
+**§1 — `event_options` was not extended.** The spec proposed
+ALTER TABLE on `event_options`. It was rejected in Phase 2 (D1 in
+the plan) in favor of a new `registration_fields` table.
+`event_options` and `registration_options` were dropped entirely in
+the same phase. Rows have no live readers.
+
+**§2 — no `configured` state.** The spec's workflow diagram shows
+`Event created (draft)` → `Create Registration Form` → `configured`
+→ `open registration`. The `configured` state was removed in Phase 1
+of the plan. The chain is now `draft → registration_open →
+registration_closed → ongoing → completed`.
+
+**§6 — no `registration_form_locked_at` column.** The spec proposed
+a dedicated lock timestamp. D2 of the Phase 3 plan chose
+`registration_start` as the sole lock signal. The column does not
+exist and no code reads it.
+
+**§6 — the slug is 8 characters from a 31-character alphabet.**
+Excludes the confusables I, L, O, 0, 1. Retry loop in
+`EventController::generateUniqueSlug()` throws after three collisions
+(effectively unreachable).
+
+**§8 — Delete registration with OTP is not implemented.** It is
+Phase 5 of the plan. Not built.
+
+### Sections that match the shipped code
+
+- §4 (Common participant fields) — accurate, except that required-
+  ness of email, contact_number, and address is now per-event.
+- §5 (Custom fields — types, options, validation) — accurate in
+  spirit. The eight types are correct. The `validation_rules` JSON
+  shape remained freeform at Phase 3 close; no schema enforcement
+  beyond "must be an array."
+- §7 (Attendance) — not yet implemented; Phase 4.
+- §9 (Out of scope) — accurate.
+- §10 (Open items) — some are now decided, some remain.
+
+### See also
+
+- `docs/registration-development-plan.md` — Phase 3 complete block,
+  addendum for common-field-requirements
+- `docs/known-issues.md` — ISSUE-007 (address width),
+  ISSUE-008 (no-email dedup)
+- `docs/authentication.md` — for the pattern this file will follow
+  when it fully converts to a reference
+
+## Changelog addendum
+
+- **2026-10-02** — Status block added. File no longer claims "no
+  code exists." Corrections for §1 (table), §2 (state machine),
+  §6 (lock signal + slug length), §8 (deletion). Full
+  spec-to-reference conversion deferred.
