@@ -2,6 +2,7 @@
 
 namespace App\Concerns;
 
+use App\Models\Event;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -135,6 +136,12 @@ trait RegistrationFieldValidationRules
      */
     protected function registrationFieldRules(): array
     {
+        // The allowed keys come from Event::COMMON_FIELDS_TOGGLEABLE —
+        // one source of truth. A payload that carries a key outside
+        // this list (e.g. a hand-crafted request trying to flip
+        // first_name to optional) is rejected with an array:... error.
+        $toggleableKeys = implode(',', Event::COMMON_FIELDS_TOGGLEABLE);
+
         return [
             'fields' => ['nullable', 'array', 'max:'.self::MAX_FIELDS],
             'fields.*.label' => [
@@ -150,6 +157,12 @@ trait RegistrationFieldValidationRules
             'fields.*.options.*' => ['string', 'min:1', 'max:'.self::MAX_LABEL_LENGTH],
             'fields.*.is_required' => ['boolean'],
             'fields.*.validation_rules' => ['nullable', 'array'],
+
+            // Common field requirements — one boolean per toggleable
+            // field. The array:... rule restricts keys; the .* boolean
+            // rule restricts values.
+            'common_field_requirements' => ['nullable', 'array:'.$toggleableKeys],
+            'common_field_requirements.*' => ['boolean'],
         ];
     }
 
@@ -373,6 +386,7 @@ trait RegistrationFieldValidationRules
             'fields.max' => 'You can add up to '.self::MAX_FIELDS.' custom fields.',
             'fields.*.options.max' => 'Each field can have up to '.self::MAX_OPTIONS_PER_FIELD.' choices.',
             'fields.*.label.min' => 'Field labels cannot be empty.',
+            'common_field_requirements.array' => 'The common field requirements contain an unknown key.',
         ];
     }
 }

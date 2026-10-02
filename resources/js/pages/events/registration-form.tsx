@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import InputError from '@/components/input-error';
 import RegistrationFieldEditor, {
     type FieldDraft,
@@ -41,6 +42,7 @@ type ServerField = {
 type Props = {
     event: EventData;
     fields: ServerField[];
+    common_field_requirements: Record<string, boolean>;
 };
 
 const statusStyles: Record<string, string> = {
@@ -54,16 +56,27 @@ const statusStyles: Record<string, string> = {
 
 /**
  * The six structural participant fields. Every registration form
- * includes these automatically. They are not editable — they live in
- * the participants table and are the same for every event.
+ * includes these automatically. They live in the participants table
+ * and cannot be renamed or removed.
+ *
+ * `toggleable` marks the fields whose required/optional state the
+ * organizer can set per event. Always-required fields (first_name,
+ * last_name, age) cannot be toggled — a participant without a name
+ * or an age is unusable for attendance tracking.
  */
-const COMMON_FIELDS: { label: string; required: boolean }[] = [
-    { label: 'First name', required: true },
-    { label: 'Last name', required: true },
-    { label: 'Email', required: true },
-    { label: 'Contact number', required: true },
-    { label: 'Age', required: true },
-    { label: 'Address', required: false },
+type CommonFieldSpec = {
+    key: string;
+    label: string;
+    toggleable: boolean;
+};
+
+const COMMON_FIELDS: CommonFieldSpec[] = [
+    { key: 'first_name', label: 'First name', toggleable: false },
+    { key: 'last_name', label: 'Last name', toggleable: false },
+    { key: 'email', label: 'Email', toggleable: true },
+    { key: 'contact_number', label: 'Contact number', toggleable: true },
+    { key: 'age', label: 'Age', toggleable: false },
+    { key: 'address', label: 'Address', toggleable: true },
 ];
 
 function generateClientId(): string {
@@ -73,7 +86,11 @@ function generateClientId(): string {
     return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-export default function RegistrationForm({ event, fields }: Props) {
+export default function RegistrationForm({
+    event,
+    fields,
+    common_field_requirements,
+}: Props) {
     const { dialog, openConfirm } = useConfirmDialog();
     const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
 
@@ -90,8 +107,12 @@ export default function RegistrationForm({ event, fields }: Props) {
         [fields],
     );
 
-    const form = useForm<{ fields: FieldDraft[] }>({
+    const form = useForm<{
+        fields: FieldDraft[];
+        common_field_requirements: Record<string, boolean>;
+    }>({
         fields: initialFields,
+        common_field_requirements,
     });
 
     const clientErrors = hasAttemptedSave
@@ -147,6 +168,13 @@ export default function RegistrationForm({ event, fields }: Props) {
         form.setData('fields', next);
     };
 
+    const toggleRequirement = (key: string, value: boolean) => {
+        form.setData('common_field_requirements', {
+            ...form.data.common_field_requirements,
+            [key]: value,
+        });
+    };
+
     const saveForm = () => {
         setHasAttemptedSave(true);
 
@@ -170,6 +198,7 @@ export default function RegistrationForm({ event, fields }: Props) {
                         is_required: field.is_required,
                         validation_rules: field.validation_rules,
                     })),
+                    common_field_requirements: data.common_field_requirements,
                 }));
                 form.put(`/events/${event.id}/registration-form`);
             },
@@ -226,43 +255,81 @@ export default function RegistrationForm({ event, fields }: Props) {
                     </div>
                 )}
 
-                {/* Common fields — read-only */}
+                {/* Common fields */}
                 <section className="flex flex-col gap-3">
                     <div className="flex items-baseline justify-between">
                         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                             Common Fields
                         </h2>
                         <span className="text-xs text-muted-foreground">
-                            Automatic · not editable
+                            {canEdit
+                                ? 'Toggle required per field'
+                                : 'Automatic · locked'}
                         </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                        Every registration includes these fields.
+                        Every registration includes these fields. First
+                        name, last name, and age are always required.
+                        Email, contact number, and address can be made
+                        optional.
                     </p>
 
                     <div className="glass-panel grid gap-3 rounded-xl p-4 sm:grid-cols-2">
-                        {COMMON_FIELDS.map((field) => (
-                            <div
-                                key={field.label}
-                                className="flex items-center gap-3 rounded-md border border-white/5 bg-white/[0.02] px-3 py-2"
-                            >
-                                <CheckCircle2 className="h-4 w-4 shrink-0 text-lime-brand/60" />
-                                <span className="text-sm text-foreground">
-                                    {field.label}
-                                </span>
-                                {field.required && (
-                                    <span className="text-xs text-destructive">
-                                        *
+                        {COMMON_FIELDS.map((field) => {
+                            const isRequired = field.toggleable
+                                ? form.data.common_field_requirements[
+                                      field.key
+                                  ] ?? true
+                                : true;
+
+                            return (
+                                <div
+                                    key={field.key}
+                                    className="flex items-center gap-3 rounded-md border border-white/5 bg-white/[0.02] px-3 py-2"
+                                >
+                                    <CheckCircle2 className="h-4 w-4 shrink-0 text-lime-brand/60" />
+                                    <span className="text-sm text-foreground">
+                                        {field.label}
                                     </span>
-                                )}
-                                {!field.required && (
-                                    <span className="ml-auto text-xs text-muted-foreground">
-                                        Optional
-                                    </span>
-                                )}
-                            </div>
-                        ))}
+
+                                    {field.toggleable && canEdit ? (
+                                        <label className="ml-auto flex cursor-pointer items-center gap-2">
+                                            <Checkbox
+                                                checked={isRequired}
+                                                onCheckedChange={(checked) =>
+                                                    toggleRequirement(
+                                                        field.key,
+                                                        checked === true,
+                                                    )
+                                                }
+                                                aria-label={`Require ${field.label}`}
+                                            />
+                                            <span className="text-xs text-muted-foreground">
+                                                Required
+                                            </span>
+                                        </label>
+                                    ) : (
+                                        <>
+                                            {isRequired && (
+                                                <span className="text-xs text-destructive">
+                                                    *
+                                                </span>
+                                            )}
+                                            {field.toggleable &&
+                                                !isRequired && (
+                                                    <span className="ml-auto text-xs text-muted-foreground">
+                                                        Optional
+                                                    </span>
+                                                )}
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
+                    <InputError
+                        message={allErrors.common_field_requirements}
+                    />
                 </section>
 
                 {/* Custom fields */}
