@@ -66,5 +66,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('device-verification-verify', function (Request $request) {
             return Limit::perMinute(10)->by($request->user()?->id);
         });
+
+        // Public registration is anonymous — no user to key on. Per IP,
+        // 5 per minute. Slow enough that a single person filling the
+        // form once never hits it; tight enough that a script cannot
+        // flood.
+        RateLimiter::for('public-registration-submit', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
     }
 }

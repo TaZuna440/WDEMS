@@ -5,11 +5,29 @@ use App\Http\Controllers\Auth\DeviceVerificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventDeletionController;
+use App\Http\Controllers\PublicRegistrationController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationFormController;
+use App\Http\Middleware\EnsureRegistrationIsOpen;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
+
+// Public registration — anonymous submission surface.
+// No auth, no device trust, no email verification. The middleware
+// renders a "closed" page (200) when the event is not accepting
+// submissions. The POST is rate-limited per IP.
+//
+// The {event:registration_slug} binding key means Laravel resolves
+// the Event by slug, not by ID. An unknown slug 404s before the
+// middleware runs (SubstituteBindings fires first).
+Route::middleware([EnsureRegistrationIsOpen::class])->group(function () {
+    Route::get('r/{event:registration_slug}', [PublicRegistrationController::class, 'show'])
+        ->name('public-registration.show');
+    Route::post('r/{event:registration_slug}', [PublicRegistrationController::class, 'store'])
+        ->middleware('throttle:public-registration-submit')
+        ->name('public-registration.store');
+});
 
 // Device verification routes — must be OUTSIDE the device.trusted middleware.
 // These stay under strict `verified` — an unverified user must verify their
@@ -48,9 +66,7 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(functi
     Route::put('events/{event}', [EventController::class, 'update'])->name('events.update');
 
     // Registration form builder — Phase 2 of the registration plan.
-    // Replaces the events.options.* routes from Phase 1. The old
-    // EventOptionController and its page are removed in Block 6 of the
-    // same phase.
+    // Replaces the events.options.* routes from Phase 1.
     Route::get('events/{event}/registration-form', [RegistrationFormController::class, 'show'])
         ->name('events.registration-form.show');
     Route::put('events/{event}/registration-form', [RegistrationFormController::class, 'update'])
