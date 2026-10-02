@@ -30,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'registration_end',
     'registration_form_saved_at',
     'registration_slug',
+    'registration_common_field_requirements',
     'partners',
     'walkers_welcome',
     'all_paces_welcome',
@@ -43,6 +44,32 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class Event extends Model
 {
+    /**
+     * Common participant fields that are always required and cannot
+     * be toggled off by the organizer. A participant without a name
+     * or an age is unusable for attendance tracking.
+     *
+     * @var array<int, string>
+     */
+    public const COMMON_FIELDS_ALWAYS_REQUIRED = [
+        'first_name',
+        'last_name',
+        'age',
+    ];
+
+    /**
+     * Common participant fields the organizer can mark optional per
+     * event. Stored in registration_common_field_requirements as a
+     * JSON boolean map.
+     *
+     * @var array<int, string>
+     */
+    public const COMMON_FIELDS_TOGGLEABLE = [
+        'email',
+        'contact_number',
+        'address',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -54,6 +81,7 @@ class Event extends Model
             'registration_start' => 'datetime',
             'registration_end' => 'datetime',
             'registration_form_saved_at' => 'datetime',
+            'registration_common_field_requirements' => 'array',
             'status' => EventStatus::class,
 
             'venue_latitude' => 'decimal:7',
@@ -71,6 +99,33 @@ class Event extends Model
             'leashed_pets_allowed' => 'boolean',
             'quiet_space_available' => 'boolean',
         ];
+    }
+
+    /**
+     * Is a common participant field required on this event's public
+     * registration form?
+     *
+     * Always-required fields (first_name, last_name, age) return true
+     * regardless of the stored map. Toggleable fields (email,
+     * contact_number, address) read the map, falling back to true
+     * for a missing key or a NULL column.
+     *
+     * Unknown field names return true — a defensive default so a typo
+     * does not silently make a field optional.
+     */
+    public function isCommonFieldRequired(string $field): bool
+    {
+        if (in_array($field, self::COMMON_FIELDS_ALWAYS_REQUIRED, true)) {
+            return true;
+        }
+
+        if (! in_array($field, self::COMMON_FIELDS_TOGGLEABLE, true)) {
+            return true;
+        }
+
+        $requirements = $this->registration_common_field_requirements ?? [];
+
+        return $requirements[$field] ?? true;
     }
 
     public function creator(): BelongsTo
