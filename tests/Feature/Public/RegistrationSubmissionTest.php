@@ -317,6 +317,7 @@ test('two submissions without email for the same event both succeed', function (
     $second = $payload;
     $second['first_name'] = 'Jose';
     $second['last_name'] = 'Rizal';
+    $second['contact_number'] = '09170000001';
 
     $response = $this->post("/r/{$event->registration_slug}", $second);
 
