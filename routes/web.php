@@ -8,6 +8,7 @@ use App\Http\Controllers\EventDeletionController;
 use App\Http\Controllers\PublicRegistrationController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationFormController;
+use App\Http\Controllers\RegistrationMonitorController;
 use App\Http\Middleware\EnsureRegistrationIsOpen;
 use Illuminate\Support\Facades\Route;
 
@@ -55,6 +56,14 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(functi
     // Registration queue — the organizer's daily workflow entry point.
     Route::get('registrations', [RegistrationController::class, 'index'])
         ->name('registrations.index');
+
+    // Registration monitor — landing (all open events) and per-event
+    // feed. Reachable while status is registration_open or
+    // registration_closed; the second case is the read-only snapshot.
+    Route::get('registrations/monitor', [RegistrationMonitorController::class, 'index'])
+        ->name('registration-monitor.index');
+    Route::get('registrations/monitor/{event}', [RegistrationMonitorController::class, 'show'])
+        ->name('registration-monitor.show');
 
     // Attendance directory — lists events eligible for attendance
     // recording. Gate: event_date <= today (see AttendanceController).

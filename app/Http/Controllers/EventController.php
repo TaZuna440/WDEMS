@@ -247,7 +247,7 @@ class EventController extends Controller
 
         $workflow->openRegistration($event);
 
-        return redirect()->route('events.show', $event);
+        return redirect()->route('registration-monitor.show', $event);
     }
 
     public function closeRegistration(Event $event): RedirectResponse
