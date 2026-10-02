@@ -29,12 +29,17 @@ class EventRequest extends FormRequest
     }
 
     /**
-     * Register the min-duration check that runs after the standard rules.
+     * Register the cross-field checks that run after the standard rules.
+     *
+     * - validateEventDuration: minimum 1 hour when end_time is present
+     * - validatePartnerDuplicates: same name+type appears twice
+     * - validateEventNameUnique: same user, same name, still active
      */
     public function withValidator($validator): void
     {
         $this->validateEventDuration($validator);
         $this->validatePartnerDuplicates($validator);
+        $this->validateEventNameUnique($validator);
     }
 
     /**

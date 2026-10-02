@@ -2,7 +2,9 @@
 
 namespace App\Concerns;
 
+use App\Enums\EventStatus;
 use App\Enums\EventType;
+use App\Models\Event;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -216,6 +218,72 @@ trait EventValidationRules
                     $duplicateCount === 1
                         ? 'One partner has the same name and type as another row.'
                         : "{$duplicateCount} partners have the same name and type as other rows.",
+                );
+            }
+        });
+    }
+
+    /**
+     * Reject duplicate event names for the same creator.
+     *
+     * Two events created by the same user cannot share a name while
+     * either is still active (not completed, not cancelled). This
+     * prevents the "same event created twice" duplicate that produced
+     * two Orca Community Run rows on 2026-09-26.
+     *
+     * Scoped to created_by, not global: two organizers may legitimately
+     * run a "Saturday Morning Run" in the same season.
+     *
+     * Excluded on update when the current event is the one being
+     * edited — editing an existing event must not reject against its
+     * own name.
+     *
+     * Registered by EventRequest::withValidator().
+     */
+    protected function validateEventNameUnique(Validator $validator): void
+    {
+        $validator->after(function (Validator $v): void {
+            $data = $v->getData();
+            $name = $data['event_name'] ?? null;
+
+            if (! is_string($name)) {
+                return;
+            }
+
+            $trimmed = trim($name);
+
+            if ($trimmed === '') {
+                return;
+            }
+
+            $userId = auth()->id();
+
+            if ($userId === null) {
+                return;
+            }
+
+            $normalized = strtolower($trimmed);
+
+            $query = Event::query()
+                ->where('created_by', $userId)
+                ->whereNotIn('status', [
+                    EventStatus::Completed->value,
+                    EventStatus::Cancelled->value,
+                ])
+                ->whereRaw('LOWER(TRIM(event_name)) = ?', [$normalized]);
+
+            // On update, exclude the event being edited.
+            $routeEvent = request()->route('event');
+
+            if ($routeEvent instanceof Event) {
+                $query->where('id', '!=', $routeEvent->id);
+            }
+
+            if ($query->exists()) {
+                $v->errors()->add(
+                    'event_name',
+                    'You already have an active event with this name. '
+                    .'Finish or cancel it, or use a different name.',
                 );
             }
         });
