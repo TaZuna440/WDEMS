@@ -21,16 +21,9 @@ class PublicRegistrationController extends Controller
      * Render the public registration form.
      *
      * `common_field_requirements` is a resolved three-key map for the
-     * toggleable common fields (email, contact_number, address). The
-     * frontend uses it to render asterisks and to decide which fields
-     * are required client-side.
-     *
-     * `success` is read from the session flash set by store(). The
-     * project does not share flash globally (see authentication.md),
-     * so it is pulled here and passed explicitly.
-     *
-     * `submit_url` is passed explicitly so the frontend does not have
-     * to reconstruct the route from window.location.
+     * toggleable common fields. `success` is read from the session
+     * flash set by store(). `submit_url` is passed explicitly so the
+     * frontend does not have to reconstruct the route.
      */
     public function show(Request $request, Event $event): Response
     {
@@ -48,65 +41,54 @@ class PublicRegistrationController extends Controller
     /**
      * Accept a submission.
      *
-     * Duplicate rule (D5): one registration per email per event. The
-     * check is a query, not a unique constraint — participants are
-     * shared across events and the email column is not unique.
+     * Identity resolution goes through Participant::resolveFrom().
+     * Email is the primary key when present; normalized phone is the
+     * fallback. The rule that at least one must be present is enforced
+     * upstream by PublicRegistrationRequest::withValidator().
      *
-     * When email is optional and not provided, both the duplicate
-     * check and Participant identity reuse are skipped:
-     *   - No email to match on, so the D5 rule cannot apply. Two
-     *     submissions without email for the same event create two
-     *     registrations. That is a deliberate limitation — an
-     *     anonymous registration is by definition un-deduplicable.
-     *   - firstOrCreate on [email => null, first_name, last_name]
-     *     would match any earlier participant with a null email and
-     *     the same name. A fresh Participant row is created instead.
+     * Duplicate rule (D5): one registration per participant per event.
+     * The check is a pre-query against the resolved participant, not a
+     * whereHas on email — this makes it work uniformly for email-based
+     * and phone-based identities. The (event_id, participant_id) UNIQUE
+     * constraint on the registrations table is the final backstop if
+     * two requests race.
      *
-     * Find-or-create on Participant uses (email, first_name, last_name)
-     * as the composite key when email is present. Same three values →
-     * same person, reuse. Different name → different person.
+     * Behavior change from the pre-identity version: a second
+     * submission sharing a phone number with an earlier registration
+     * on the same event is now rejected with a validation error
+     * (previously produced a 500 from the UNIQUE constraint on
+     * contact_number_normalized). Closes ISSUE-009.
      */
     public function store(PublicRegistrationRequest $request, Event $event): RedirectResponse
     {
         $validated = $request->validated();
 
         $email = $validated['email'] ?? null;
-        $emailProvided = is_string($email) && $email !== '';
+        $phone = $validated['contact_number'] ?? null;
 
-        if ($emailProvided) {
+        // Pre-check: does a participant already exist with this
+        // identity? If so, and they are already registered for this
+        // event, reject with a field-anchored error.
+        $existingParticipant = $this->findExistingParticipant($email, $phone);
+
+        if ($existingParticipant !== null) {
             $alreadyRegistered = Registration::where('event_id', $event->id)
-                ->whereHas('participant', fn ($q) => $q->where('email', $email))
+                ->where('participant_id', $existingParticipant->id)
                 ->exists();
 
             if ($alreadyRegistered) {
-                throw ValidationException::withMessages([
-                    'email' => 'This email is already registered for this event.',
-                ]);
+                throw $this->duplicateRegistrationError($email, $phone);
             }
         }
 
-        DB::transaction(function () use ($event, $validated, $email, $emailProvided): void {
-            $participantAttributes = [
+        DB::transaction(function () use ($event, $validated, $email, $phone): void {
+            $participant = Participant::resolveFrom($email, $phone, [
                 'first_name' => $validated['first_name'],
                 'last_name' => $validated['last_name'],
                 'age' => $validated['age'],
-                'contact_number' => $validated['contact_number'] ?? null,
+                'contact_number' => $phone,
                 'address' => $validated['address'] ?? null,
-            ];
-
-            if ($emailProvided) {
-                $participant = Participant::firstOrCreate(
-                    [
-                        'email' => $email,
-                        'first_name' => $validated['first_name'],
-                        'last_name' => $validated['last_name'],
-                    ],
-                    $participantAttributes,
-                );
-            } else {
-                // No email → no identity key. Always create a new row.
-                $participant = Participant::create($participantAttributes);
-            }
+            ]);
 
             $registration = Registration::create([
                 'event_id' => $event->id,
@@ -129,6 +111,50 @@ class PublicRegistrationController extends Controller
         return redirect()
             ->route('public-registration.show', ['event' => $event->registration_slug])
             ->with('success', 'Your registration is confirmed.');
+    }
+
+    /**
+     * Look up a participant by the identity rule used in §6 of
+     * docs/participant-identity.md: email wins when non-blank,
+     * normalized phone is the fallback. Returns null when neither
+     * key matches an existing participant.
+     */
+    private function findExistingParticipant(?string $email, ?string $phone): ?Participant
+    {
+        $trimmedEmail = is_string($email) ? trim($email) : '';
+
+        if ($trimmedEmail !== '') {
+            return Participant::where('email', $trimmedEmail)->first();
+        }
+
+        $normalized = Participant::normalizeContactNumber($phone);
+
+        if ($normalized !== null) {
+            return Participant::where('contact_number_normalized', $normalized)->first();
+        }
+
+        return null;
+    }
+
+    /**
+     * Build the appropriate validation error for a duplicate
+     * registration. The error key is the identity field that matched
+     * (email or contact_number), so the frontend's InputError slot
+     * lands under the correct field.
+     */
+    private function duplicateRegistrationError(?string $email, ?string $phone): ValidationException
+    {
+        $trimmedEmail = is_string($email) ? trim($email) : '';
+
+        if ($trimmedEmail !== '') {
+            return ValidationException::withMessages([
+                'email' => 'This email is already registered for this event.',
+            ]);
+        }
+
+        return ValidationException::withMessages([
+            'contact_number' => 'This contact number is already registered for this event.',
+        ]);
     }
 
     /**
@@ -168,9 +194,6 @@ class PublicRegistrationController extends Controller
     }
 
     /**
-     * Resolve the toggleable common field requirements into a
-     * three-key map for the page.
-     *
      * @return array<string, bool>
      */
     private function resolveCommonFieldRequirements(Event $event): array
