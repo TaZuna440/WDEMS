@@ -227,3 +227,111 @@ test('a POST to a closed event renders the closed page and does not create a reg
     $response->assertInertia(fn (Assert $page) => $page->component('registrations/closed', false));
     expect(Registration::where('event_id', $event->id)->count())->toBe(0);
 });
+
+// ---------------------------------------------------------------------------
+// Common field requirements — optional toggle changes server validation
+// ---------------------------------------------------------------------------
+
+test('a submission without email succeeds when email is optional', function () {
+    $event = public_event([
+        'registration_common_field_requirements' => ['email' => false],
+    ]);
+
+    $payload = public_payload();
+    unset($payload['email']);
+
+    $response = $this->post("/r/{$event->registration_slug}", $payload);
+
+    $response->assertSessionHasNoErrors();
+    expect(Registration::where('event_id', $event->id)->count())->toBe(1);
+});
+
+test('a submission without contact_number succeeds when contact_number is optional', function () {
+    $event = public_event([
+        'registration_common_field_requirements' => ['contact_number' => false],
+    ]);
+
+    $payload = public_payload();
+    unset($payload['contact_number']);
+
+    $response = $this->post("/r/{$event->registration_slug}", $payload);
+
+    $response->assertSessionHasNoErrors();
+    expect(Registration::where('event_id', $event->id)->count())->toBe(1);
+});
+
+test('a submission without address succeeds when address is optional', function () {
+    $event = public_event([
+        'registration_common_field_requirements' => ['address' => false],
+    ]);
+
+    $payload = public_payload();
+    unset($payload['address']);
+
+    $response = $this->post("/r/{$event->registration_slug}", $payload);
+
+    $response->assertSessionHasNoErrors();
+    expect(Registration::where('event_id', $event->id)->count())->toBe(1);
+});
+
+test('a submission without email is rejected when email is required', function () {
+    $event = public_event([
+        'registration_common_field_requirements' => ['email' => true],
+    ]);
+
+    $payload = public_payload();
+    unset($payload['email']);
+
+    $response = $this->post("/r/{$event->registration_slug}", $payload);
+
+    $response->assertSessionHasErrors('email');
+    expect(Registration::where('event_id', $event->id)->count())->toBe(0);
+});
+
+test('an optional email still validates format when provided', function () {
+    $event = public_event([
+        'registration_common_field_requirements' => ['email' => false],
+    ]);
+
+    $response = $this->post(
+        "/r/{$event->registration_slug}",
+        public_payload(['email' => 'not-an-email']),
+    );
+
+    $response->assertSessionHasErrors('email');
+});
+
+test('two submissions without email for the same event both succeed', function () {
+    $event = public_event([
+        'registration_common_field_requirements' => ['email' => false],
+    ]);
+
+    $payload = public_payload();
+    unset($payload['email']);
+
+    $this->post("/r/{$event->registration_slug}", $payload);
+
+    // Different name so participant identity does not collide — even
+    // though the duplicate check is skipped, we want to prove the
+    // second submission is a distinct participant + registration.
+    $second = $payload;
+    $second['first_name'] = 'Jose';
+    $second['last_name'] = 'Rizal';
+
+    $response = $this->post("/r/{$event->registration_slug}", $second);
+
+    $response->assertSessionHasNoErrors();
+    expect(Registration::where('event_id', $event->id)->count())->toBe(2);
+    expect(Participant::whereNull('email')->count())->toBe(2);
+});
+
+test('the duplicate email rule still applies when email is required', function () {
+    $event = public_event();
+
+    $this->post("/r/{$event->registration_slug}", public_payload());
+
+    $response = $this->post("/r/{$event->registration_slug}", public_payload());
+
+    $response->assertSessionHasErrors('email');
+    expect(Registration::where('event_id', $event->id)->count())->toBe(1);
+});

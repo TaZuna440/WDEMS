@@ -25,6 +25,7 @@ type EventPayload = {
 type Props = {
     event: EventPayload;
     fields: ServerField[];
+    common_field_requirements: Record<string, boolean>;
     submit_url: string;
     success: string | null;
 };
@@ -32,6 +33,7 @@ type Props = {
 export default function PublicRegistration({
     event,
     fields,
+    common_field_requirements,
     submit_url,
     success,
 }: Props) {
@@ -51,6 +53,9 @@ export default function PublicRegistration({
         ...form.errors,
         ...clientErrors,
     };
+
+    const isRequired = (field: string): boolean =>
+        common_field_requirements[field] ?? true;
 
     if (success !== null) {
         return (
@@ -93,7 +98,11 @@ export default function PublicRegistration({
 
     const submit = (event_: FormEvent) => {
         event_.preventDefault();
-        const errors = validateRegistrationForm(form.data, fields);
+        const errors = validateRegistrationForm(
+            form.data,
+            fields,
+            common_field_requirements,
+        );
         setClientErrors(errors);
         if (Object.keys(errors).length > 0) {
             return;
@@ -179,7 +188,9 @@ export default function PublicRegistration({
                         </div>
 
                         <div className="grid gap-1.5">
-                            <Label htmlFor="email">Email *</Label>
+                            <Label htmlFor="email">
+                                Email{isRequired('email') && ' *'}
+                            </Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -193,7 +204,9 @@ export default function PublicRegistration({
                         </div>
 
                         <div className="grid gap-1.5">
-                            <Label htmlFor="contact_number">Contact number *</Label>
+                            <Label htmlFor="contact_number">
+                                Contact number{isRequired('contact_number') && ' *'}
+                            </Label>
                             <Input
                                 id="contact_number"
                                 inputMode="tel"
@@ -221,7 +234,9 @@ export default function PublicRegistration({
                         </div>
 
                         <div className="grid gap-1.5 sm:col-span-2">
-                            <Label htmlFor="address">Address</Label>
+                            <Label htmlFor="address">
+                                Address{isRequired('address') && ' *'}
+                            </Label>
                             <Input
                                 id="address"
                                 value={form.data.address}

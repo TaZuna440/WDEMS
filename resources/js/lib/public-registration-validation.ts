@@ -10,6 +10,12 @@
  * on both server and client errors without any translation layer:
  *   - common fields use their own name: "email", "age", ...
  *   - custom fields use "responses.{field_id}"
+ *
+ * Required-ness of email, contact_number, and address comes from the
+ * event's common_field_requirements map (passed as the third
+ * argument). first_name, last_name, and age are always required and
+ * do not consult the map. A missing key in the map defaults to
+ * required — matches the server's NULL-means-required convention.
  */
 
 export type ServerField = {
@@ -47,11 +53,16 @@ function isBlank(value: unknown): boolean {
 export function validateRegistrationForm(
     data: RegistrationFormData,
     fields: ServerField[],
+    commonFieldRequirements: Record<string, boolean> = {},
 ): Record<string, string> {
     const errors: Record<string, string> = {};
 
+    const isRequired = (field: string): boolean =>
+        commonFieldRequirements[field] ?? true;
+
     // -------- Common fields --------
 
+    // first_name, last_name, age are always required.
     if (isBlank(data.first_name)) {
         errors.first_name = 'First name is required.';
     } else if (data.first_name.length > MAX_NAME) {
@@ -64,18 +75,6 @@ export function validateRegistrationForm(
         errors.last_name = `Last name must not exceed ${MAX_NAME} characters.`;
     }
 
-    if (isBlank(data.email)) {
-        errors.email = 'Email is required.';
-    } else if (!EMAIL_PATTERN.test(data.email)) {
-        errors.email = 'Please enter a valid email address.';
-    }
-
-    if (isBlank(data.contact_number)) {
-        errors.contact_number = 'Contact number is required.';
-    } else if (data.contact_number.length > MAX_CONTACT) {
-        errors.contact_number = `Contact number must not exceed ${MAX_CONTACT} characters.`;
-    }
-
     if (isBlank(data.age)) {
         errors.age = 'Age is required.';
     } else {
@@ -85,7 +84,30 @@ export function validateRegistrationForm(
         }
     }
 
-    if (data.address.length > MAX_ADDRESS) {
+    // email — required-ness from the event.
+    if (isBlank(data.email)) {
+        if (isRequired('email')) {
+            errors.email = 'Email is required.';
+        }
+    } else if (!EMAIL_PATTERN.test(data.email)) {
+        errors.email = 'Please enter a valid email address.';
+    }
+
+    // contact_number — required-ness from the event.
+    if (isBlank(data.contact_number)) {
+        if (isRequired('contact_number')) {
+            errors.contact_number = 'Contact number is required.';
+        }
+    } else if (data.contact_number.length > MAX_CONTACT) {
+        errors.contact_number = `Contact number must not exceed ${MAX_CONTACT} characters.`;
+    }
+
+    // address — required-ness from the event.
+    if (isBlank(data.address)) {
+        if (isRequired('address')) {
+            errors.address = 'Address is required.';
+        }
+    } else if (data.address.length > MAX_ADDRESS) {
         errors.address = `Address must not exceed ${MAX_ADDRESS} characters.`;
     }
 
