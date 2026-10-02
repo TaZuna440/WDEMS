@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'first_name',
     'last_name',
     'contact_number',
+    'contact_number_normalized',
     'email',
     'age',
     'address',
