@@ -201,7 +201,7 @@ export default function Wizard<T extends Record<string, unknown>>({
     }, [validateCurrentStep, clear, onSubmit]);
 
     const mergedErrors = useMemo(
-        () => ({ ...stepErrors, ...errors }),
+        () => ({ ...errors, ...stepErrors }),
         [stepErrors, errors],
     );
 
