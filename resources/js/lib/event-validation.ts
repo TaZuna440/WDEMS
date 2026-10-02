@@ -93,7 +93,7 @@ function isoToLocalMidnight(iso: string): Date {
  * @param label  human-readable field label used in error messages,
  *               e.g. "Event name" or "Partner name"
  */
-function humanNameQualityError(value: string, label: string): string | null {
+export function humanNameQualityError(value: string, label: string): string | null {
     if (!/^[A-Za-z0-9]/.test(value)) {
         return `${label} must start with a letter or number.`;
     }

@@ -15,7 +15,15 @@
  * Required-ness of email, contact_number, and address comes from the
  * event's common_field_requirements map (passed as the third
  * argument). first_name, last_name, and age are always required.
+ *
+ * Name quality checks reuse humanNameQualityError() from
+ * @/lib/event-validation. That function is the client mirror of the
+ * server's HumanNameQualityRules trait — one source of truth for what
+ * counts as keyboard mashing, shared across the wizard, the form
+ * builder, and this file.
  */
+
+import { humanNameQualityError } from '@/lib/event-validation';
 
 export type ServerField = {
     id: number;
@@ -78,6 +86,26 @@ function normalizePhone(raw: string): string | null {
     return null;
 }
 
+/**
+ * Name-field validation: blank, length, quality.
+ *
+ * The quality check reuses the shared humanNameQualityError() helper
+ * so that "sdfasf" is rejected identically here and in the wizard.
+ * Returns the error message or null when the value passes.
+ */
+function validateNameValue(
+    value: string,
+    label: string,
+): string | null {
+    if (isBlank(value)) {
+        return `${label} is required.`;
+    }
+    if (value.length > MAX_NAME) {
+        return `${label} must not exceed ${MAX_NAME} characters.`;
+    }
+    return humanNameQualityError(value, label);
+}
+
 export function validateRegistrationForm(
     data: RegistrationFormData,
     fields: ServerField[],
@@ -90,16 +118,14 @@ export function validateRegistrationForm(
 
     // -------- Common fields --------
 
-    if (isBlank(data.first_name)) {
-        errors.first_name = 'First name is required.';
-    } else if (data.first_name.length > MAX_NAME) {
-        errors.first_name = `First name must not exceed ${MAX_NAME} characters.`;
+    const firstNameError = validateNameValue(data.first_name, 'First name');
+    if (firstNameError) {
+        errors.first_name = firstNameError;
     }
 
-    if (isBlank(data.last_name)) {
-        errors.last_name = 'Last name is required.';
-    } else if (data.last_name.length > MAX_NAME) {
-        errors.last_name = `Last name must not exceed ${MAX_NAME} characters.`;
+    const lastNameError = validateNameValue(data.last_name, 'Last name');
+    if (lastNameError) {
+        errors.last_name = lastNameError;
     }
 
     if (isBlank(data.age)) {

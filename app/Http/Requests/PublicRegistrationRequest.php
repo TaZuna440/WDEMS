@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Concerns\HumanNameQualityRules;
 use App\Models\Event;
 use App\Models\Participant;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PublicRegistrationRequest extends FormRequest
 {
+    use HumanNameQualityRules;
+
     /**
      * No auth on the public submission route. The route middleware
      * (EnsureRegistrationIsOpen) is the gate.
@@ -26,9 +29,11 @@ class PublicRegistrationRequest extends FormRequest
      * Event::isCommonFieldRequired(). First name, last name, and age
      * are always required.
      *
-     * The `nullable` variant of each rule means: if the field is not
-     * provided, skip subsequent rules. If a value IS provided but the
-     * field is optional, the format rules still run.
+     * Name fields (first_name, last_name) go through personNameRules(),
+     * which composes length bounds with the shared
+     * HumanNameQualityRules. That trait is the same one already used
+     * by event_name, partners.*.name, and the form builder's label
+     * field — reused here rather than duplicated.
      *
      * The at-least-one identity rule (email OR contact_number) lives
      * in withValidator() — it depends on the normalized form of the
@@ -39,14 +44,35 @@ class PublicRegistrationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
+            'first_name' => $this->personNameRules(),
+            'last_name' => $this->personNameRules(),
             'email' => $this->commonFieldRules('email', ['string', 'email:rfc', 'max:255']),
             'contact_number' => $this->commonFieldRules('contact_number', ['string', 'max:50']),
             'age' => ['required', 'integer', 'min:1', 'max:120'],
             'address' => $this->commonFieldRules('address', ['string', 'max:500']),
             'responses' => ['nullable', 'array'],
             'responses.*' => ['nullable'],
+        ];
+    }
+
+    /**
+     * Rules for a participant's name field.
+     *
+     * Composes length bounds with the shared humanNameQualityRules().
+     * No minimum length is enforced beyond `required` — two-letter
+     * names ("Bo", "Uy") and short surnames are legitimate. The
+     * quality rules carry the "does this look like a real name"
+     * weight; the length rule only guards the upper bound.
+     *
+     * @return array<int, string>
+     */
+    private function personNameRules(): array
+    {
+        return [
+            'required',
+            'string',
+            'max:255',
+            ...$this->humanNameQualityRules(),
         ];
     }
 
@@ -160,6 +186,31 @@ class PublicRegistrationRequest extends FormRequest
                 );
             }
         });
+    }
+
+    /**
+     * Custom messages for the four name-quality regex rules.
+     *
+     * The rules themselves live in HumanNameQualityRules. Laravel
+     * reports any of the three `regex:` failures under the key
+     * `{field}.regex` and the not_regex failure under
+     * `{field}.not_regex`, so two overrides per field cover all four.
+     *
+     * Without these overrides Laravel defaults to the raw format
+     * message ("The first name format is invalid") which is
+     * technically correct but unhelpful. Same wording the wizard
+     * already uses for event_name.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'first_name.regex' => 'Please enter a valid first name.',
+            'first_name.not_regex' => 'Please enter a valid first name.',
+            'last_name.regex' => 'Please enter a valid last name.',
+            'last_name.not_regex' => 'Please enter a valid last name.',
+        ];
     }
 
     private function isEmpty(mixed $value): bool
