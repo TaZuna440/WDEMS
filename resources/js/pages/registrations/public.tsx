@@ -3,8 +3,17 @@ import { CalendarDays, CheckCircle2, ExternalLink, MapPin } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DEMO_PRIVACY_NOTICE, DEMO_TERMS } from '@/lib/demo-legal-content';
 import {
     validateRegistrationForm,
     type RegistrationFormData,
@@ -48,6 +57,8 @@ export default function PublicRegistration({
     });
 
     const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+    const [privacyOpen, setPrivacyOpen] = useState(false);
+    const [termsOpen, setTermsOpen] = useState(false);
 
     const allErrors: Record<string, string> = {
         ...form.errors,
@@ -374,6 +385,46 @@ export default function PublicRegistration({
                     {form.processing && (
                         <p className="text-xs text-muted-foreground">Submitting…</p>
                     )}
+
+                    {/* Consent — required. Privacy Notice and Terms open
+                        in modals below. HTML5 validation blocks submit
+                        if unchecked. Not recorded server-side yet;
+                        see ISSUE-009. */}
+                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm">
+                        <input
+                            type="checkbox"
+                            required
+                            className="mt-0.5 h-4 w-4 shrink-0"
+                        />
+                        <span className="text-muted-foreground">
+                            I have read and agree to the{' '}
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setPrivacyOpen(true);
+                                }}
+                                className="font-medium text-lime-brand underline-offset-2 hover:underline"
+                            >
+                                Privacy Notice
+                            </button>{' '}
+                            and{' '}
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setTermsOpen(true);
+                                }}
+                                className="font-medium text-lime-brand underline-offset-2 hover:underline"
+                            >
+                                Terms &amp; Conditions
+                            </button>
+                            .
+                        </span>
+                    </label>
+
                     <Button
                         type="submit"
                         disabled={form.processing}
@@ -386,6 +437,56 @@ export default function PublicRegistration({
                     </p>
                 </div>
             </form>
+
+            {/* Privacy Notice modal */}
+            <Dialog open={privacyOpen} onOpenChange={setPrivacyOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Privacy Notice</DialogTitle>
+                        <DialogDescription>
+                            How we handle the personal information you provide.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-[60vh] overflow-y-auto pr-2">
+                        <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-muted-foreground">
+                            {DEMO_PRIVACY_NOTICE}
+                        </pre>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            onClick={() => setPrivacyOpen(false)}
+                        >
+                            Close
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Terms & Conditions modal */}
+            <Dialog open={termsOpen} onOpenChange={setTermsOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Terms &amp; Conditions</DialogTitle>
+                        <DialogDescription>
+                            The rules and agreements for participating in this event.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-[60vh] overflow-y-auto pr-2">
+                        <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-muted-foreground">
+                            {DEMO_TERMS}
+                        </pre>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            onClick={() => setTermsOpen(false)}
+                        >
+                            Close
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
