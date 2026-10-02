@@ -53,10 +53,13 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(functi
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     // Registration queue — the organizer's daily workflow entry point.
-    // Phase 1 of the registration plan: visual only. Phase 3 adds the
-    // public submission surface.
     Route::get('registrations', [RegistrationController::class, 'index'])
         ->name('registrations.index');
+
+    // Attendance directory — lists events eligible for attendance
+    // recording. Gate: event_date <= today (see AttendanceController).
+    Route::get('attendance', [AttendanceController::class, 'index'])
+        ->name('attendance.index');
 
     Route::get('events', [EventController::class, 'index'])->name('events.index');
     Route::get('events/create', [EventController::class, 'create'])->name('events.create');
@@ -66,7 +69,6 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(functi
     Route::put('events/{event}', [EventController::class, 'update'])->name('events.update');
 
     // Registration form builder — Phase 2 of the registration plan.
-    // Replaces the events.options.* routes from Phase 1.
     Route::get('events/{event}/registration-form', [RegistrationFormController::class, 'show'])
         ->name('events.registration-form.show');
     Route::put('events/{event}/registration-form', [RegistrationFormController::class, 'update'])

@@ -225,6 +225,33 @@ class Event extends Model
         ], true);
     }
 
+    /**
+     * Can attendance be recorded for this event right now?
+     *
+     * Composes the existing canRecordAttendance() (status is
+     * registration_open, registration_closed, or ongoing) with a
+     * date gate: the event day must have arrived.
+     *
+     * The gate exists so an organizer cannot pre-mark attendance for
+     * a race that has not happened yet. A same-day registration_open
+     * event passes — the race is underway. A future event does not.
+     *
+     * Distinct from canRecordAttendance() which answers the status
+     * question alone.
+     */
+    public function canRecordAttendanceToday(): bool
+    {
+        if (! $this->canRecordAttendance()) {
+            return false;
+        }
+
+        if ($this->event_date === null) {
+            return false;
+        }
+
+        return $this->event_date->lte(today());
+    }
+
     public function isCommunityRun(): bool
     {
         return $this->event_type === EventType::CommunityRun;

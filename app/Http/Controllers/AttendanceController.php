@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AttendanceStatus;
-use App\Models\Attendance;
+use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\Registration;
 use Illuminate\Http\RedirectResponse;
@@ -14,8 +14,74 @@ use Inertia\Response;
 
 class AttendanceController extends Controller
 {
+    /**
+     * Directory of events eligible for attendance.
+     *
+     * An event is eligible when canRecordAttendanceToday() is true —
+     * status is registration_open, registration_closed, or ongoing,
+     * AND event_date <= today. Events are grouped for display:
+     * "today" (event_date === today) and "recent" (everything else
+     * in the eligible set, which is by definition in the past).
+     *
+     * Completed events are excluded. Attendance should have been
+     * recorded during ongoing; if it was missed, the event is not
+     * the right place to fix it. Same reasoning as the gate.
+     */
+    public function index(): Response
+    {
+        $statuses = [
+            EventStatus::RegistrationOpen->value,
+            EventStatus::RegistrationClosed->value,
+            EventStatus::Ongoing->value,
+        ];
+
+        $today = today()->toDateString();
+
+        $events = Event::query()
+            ->whereIn('status', $statuses)
+            ->whereDate('event_date', '<=', $today)
+            ->orderByDesc('event_date')
+            ->orderByDesc('id')
+            ->get();
+
+        $map = fn (Event $event) => [
+            'id' => $event->id,
+            'event_name' => $event->event_name,
+            'event_date' => $event->event_date?->toDateString(),
+            'venue' => $event->venue,
+            'status' => $event->status->value,
+            'status_label' => $event->status->label(),
+            'registered_count' => $event->registrations()->count(),
+            'marked_count' => $event->registrations()
+                ->whereHas('attendance')
+                ->count(),
+        ];
+
+        $mapped = $events->map($map);
+
+        return Inertia::render('attendance/index', [
+            'today' => $mapped
+                ->filter(fn (array $row) => $row['event_date'] === $today)
+                ->values(),
+            'recent' => $mapped
+                ->filter(fn (array $row) => $row['event_date'] !== $today)
+                ->values(),
+        ]);
+    }
+
+    /**
+     * Attendance page for a single event.
+     *
+     * Gate: canRecordAttendanceToday(). A future event returns 403
+     * with a message the organizer can understand — the event has
+     * not happened yet.
+     */
     public function show(Event $event): Response
     {
+        if (! $event->canRecordAttendanceToday()) {
+            abort(403, 'Attendance can only be recorded on the event day.');
+        }
+
         $rows = $event->registrations()
             ->with([
                 'participant:id,first_name,last_name,email,contact_number',
@@ -63,8 +129,19 @@ class AttendanceController extends Controller
         ]);
     }
 
+    /**
+     * Mark or update a registration's attendance.
+     *
+     * Same gate as show() — a direct POST to a future event is
+     * rejected, not just the UI path. The registration-belongs-to-
+     * event check is a separate 404 for a malformed URL.
+     */
     public function mark(Request $request, Event $event, Registration $registration): RedirectResponse
     {
+        if (! $event->canRecordAttendanceToday()) {
+            abort(403, 'Attendance can only be recorded on the event day.');
+        }
+
         if ($registration->event_id !== $event->id) {
             abort(404);
         }

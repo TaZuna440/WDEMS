@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { CalendarDays, ClipboardList, LayoutGrid } from 'lucide-react';
+import { CalendarDays, ClipboardCheck, ClipboardList, LayoutGrid } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -25,6 +25,11 @@ const mainNavItems: NavItem[] = [
         title: 'Registration',
         href: '/registrations',
         icon: ClipboardList,
+    },
+    {
+        title: 'Attendance',
+        href: '/attendance',
+        icon: ClipboardCheck,
     },
     {
         title: 'Events',
