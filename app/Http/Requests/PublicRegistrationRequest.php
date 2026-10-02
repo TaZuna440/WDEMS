@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Event;
+use App\Models\Participant;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PublicRegistrationRequest extends FormRequest
@@ -27,9 +28,11 @@ class PublicRegistrationRequest extends FormRequest
      *
      * The `nullable` variant of each rule means: if the field is not
      * provided, skip subsequent rules. If a value IS provided but the
-     * field is optional, the format rules still run — an optional
-     * email is still validated as an email when the participant types
-     * one.
+     * field is optional, the format rules still run.
+     *
+     * The at-least-one identity rule (email OR contact_number) lives
+     * in withValidator() — it depends on the normalized form of the
+     * phone, which is not known during the standard rules pass.
      *
      * @return array<string, mixed>
      */
@@ -69,20 +72,19 @@ class PublicRegistrationRequest extends FormRequest
     }
 
     /**
-     * Per-event validation for custom fields. Runs in two passes:
+     * Post-rules validation. Runs in three passes:
      *
-     *   1. Every submitted response key must belong to the bound
-     *      event's registration fields, and each non-empty value must
-     *      match the field's type (and, for choice types, its options).
+     *   1. Custom field responses — key ownership and format.
+     *   2. Required custom fields — iterating the field list, not
+     *      the submitted keys (a required field the participant
+     *      skipped produces no key in `responses`).
+     *   3. At-least-one identity — email or normalizable phone. A
+     *      submitted phone that does not normalize counts as no
+     *      phone. See docs/participant-identity.md §7.
      *
-     *   2. Every required custom field on the event must have a
-     *      non-empty submitted value. This pass iterates the *fields*,
-     *      not the responses — a required field the participant
-     *      skipped produces no key in `responses`, so pass 1 would
-     *      never see it.
-     *
-     * Common fields are handled by rules() above; they do not appear
-     * in this method.
+     * The identity check is form-level: the error key is `identity`,
+     * not `email` or `contact_number`. The rule is about the pair,
+     * not either field in isolation.
      */
     public function withValidator($validator): void
     {
@@ -93,6 +95,8 @@ class PublicRegistrationRequest extends FormRequest
                 return;
             }
 
+            // -------- Pass 1 + 2: custom fields --------
+
             $fields = $event->registrationFields()->get();
             $responses = $this->input('responses', []);
 
@@ -100,7 +104,6 @@ class PublicRegistrationRequest extends FormRequest
                 $responses = [];
             }
 
-            // Pass 1 — validate what was submitted.
             foreach ($responses as $fieldId => $value) {
                 $field = $fields->firstWhere('id', (int) $fieldId);
 
@@ -125,8 +128,6 @@ class PublicRegistrationRequest extends FormRequest
                 );
             }
 
-            // Pass 2 — enforce required-ness against the field list,
-            // not the submitted keys.
             foreach ($fields as $field) {
                 if (! $field->is_required) {
                     continue;
@@ -140,6 +141,23 @@ class PublicRegistrationRequest extends FormRequest
                         'This field is required.',
                     );
                 }
+            }
+
+            // -------- Pass 3: at-least-one identity --------
+
+            $email = $this->input('email');
+            $phone = $this->input('contact_number');
+
+            $emailBlank = ! is_string($email) || trim($email) === '';
+            $phoneBlank = Participant::normalizeContactNumber(
+                is_string($phone) ? $phone : null,
+            ) === null;
+
+            if ($emailBlank && $phoneBlank) {
+                $v->errors()->add(
+                    'identity',
+                    'Please provide at least an email address or a contact number.',
+                );
             }
         });
     }

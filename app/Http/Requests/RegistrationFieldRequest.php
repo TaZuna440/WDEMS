@@ -34,6 +34,14 @@ class RegistrationFieldRequest extends FormRequest
     /**
      * Register the cross-field checks that run after the standard
      * rules. Each one reads the whole payload.
+     *
+     * - validateChoiceFieldOptions: choice types require options
+     * - validateFieldLabelDuplicates: no two fields share a label
+     * - validateFieldLabelCollisions: custom labels cannot collide
+     *   with the six common fields
+     * - validateFieldLabelQuality: reject keyboard mashing
+     * - validateCommonFieldRequirementsIdentity: email and
+     *   contact_number cannot both be toggled optional
      */
     public function withValidator($validator): void
     {
@@ -41,6 +49,7 @@ class RegistrationFieldRequest extends FormRequest
         $this->validateFieldLabelDuplicates($validator);
         $this->validateFieldLabelCollisions($validator);
         $this->validateFieldLabelQuality($validator);
+        $this->validateCommonFieldRequirementsIdentity($validator);
     }
 
     /**

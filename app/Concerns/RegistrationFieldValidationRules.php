@@ -11,19 +11,11 @@ trait RegistrationFieldValidationRules
 {
     /**
      * Maximum number of custom fields per event.
-     *
-     * Five is the ceiling for a Community Run registration form. Each
-     * event already has six common fields (first name, last name, email,
-     * contact number, age, address). Five customs brings the total to
-     * eleven questions — the practical ceiling before participants
-     * abandon the form.
      */
     public const MAX_FIELDS = 5;
 
     /**
      * Maximum number of choices for a select / radio / checkbox field.
-     * Beyond 10, the field should be split into multiple questions or
-     * a different field type.
      */
     public const MAX_OPTIONS_PER_FIELD = 10;
 
@@ -34,35 +26,19 @@ trait RegistrationFieldValidationRules
 
     /**
      * Minimum number of choices required for a select / radio / checkbox
-     * field. A choice field with one option is a hidden constant.
+     * field.
      */
     public const MIN_OPTIONS_PER_CHOICE_FIELD = 2;
 
     /**
      * Labels of this length or longer must pass the full human-name
-     * quality checks (at least one vowel AND at least one consonant).
-     *
-     * Shorter labels — "KM", "10K", "M/F", "BP", "3M" — are legitimate
-     * field names for a running event and have no vowel. Enforcing the
-     * vowel check on them would reject real labels while catching
-     * nothing.
-     *
-     * Long labels ("gfdgfdfgfd", "dfdsfdsfd") are keyboard mashing and
-     * should be rejected. Five is the smallest threshold that keeps every
-     * legitimate short label while catching the mashing case.
-     *
-     * Mirrored in resources/js/lib/registration-field-validation.ts as
-     * MIN_STRICT_LABEL_LENGTH. Keep both in sync.
+     * quality checks.
      */
     public const MIN_STRICT_LABEL_LENGTH = 5;
 
     /**
      * The six structural participant fields every registration form
-     * includes automatically. Custom labels may not collide with these
-     * after normalization — see validateFieldLabelCollisions().
-     *
-     * Mirrored in resources/js/lib/registration-field-validation.ts as
-     * COMMON_FIELD_LABELS_NORMALIZED. Keep both in sync.
+     * includes automatically.
      *
      * @return array<int, string>
      */
@@ -109,11 +85,6 @@ trait RegistrationFieldValidationRules
 
     /**
      * Normalize a label for collision comparison.
-     *
-     * Lowercase, NFKC (if the intl extension is available), then strip
-     * everything except [a-z0-9]. "First Name", "first_name",
-     * "FIRST-NAME", and Cyrillic-lookalike "Fіrst Nаme" all normalize to
-     * "firstname".
      */
     protected function normalizeLabelForCollision(string $label): string
     {
@@ -136,10 +107,6 @@ trait RegistrationFieldValidationRules
      */
     protected function registrationFieldRules(): array
     {
-        // The allowed keys come from Event::COMMON_FIELDS_TOGGLEABLE —
-        // one source of truth. A payload that carries a key outside
-        // this list (e.g. a hand-crafted request trying to flip
-        // first_name to optional) is rejected with an array:... error.
         $toggleableKeys = implode(',', Event::COMMON_FIELDS_TOGGLEABLE);
 
         return [
@@ -158,9 +125,6 @@ trait RegistrationFieldValidationRules
             'fields.*.is_required' => ['boolean'],
             'fields.*.validation_rules' => ['nullable', 'array'],
 
-            // Common field requirements — one boolean per toggleable
-            // field. The array:... rule restricts keys; the .* boolean
-            // rule restricts values.
             'common_field_requirements' => ['nullable', 'array:'.$toggleableKeys],
             'common_field_requirements.*' => ['boolean'],
         ];
@@ -169,8 +133,6 @@ trait RegistrationFieldValidationRules
     /**
      * Cross-field check: choice types require options; non-choice types
      * must not carry any.
-     *
-     * Registered by RegistrationFieldRequest::withValidator().
      */
     protected function validateChoiceFieldOptions(Validator $validator): void
     {
@@ -217,11 +179,6 @@ trait RegistrationFieldValidationRules
 
     /**
      * Reject duplicate field labels.
-     *
-     * Two fields are duplicates iff the normalized label matches
-     * (trim + lowercase). Non-string labels are skipped without casting.
-     *
-     * Registered by RegistrationFieldRequest::withValidator().
      */
     protected function validateFieldLabelDuplicates(Validator $validator): void
     {
@@ -277,15 +234,6 @@ trait RegistrationFieldValidationRules
 
     /**
      * Reject labels that collide with the six structural common fields.
-     *
-     * A custom field labeled "Email" would render alongside the
-     * structural Email field on the public form, confusing participants
-     * about which one to fill in. The collision check normalizes both
-     * sides (lowercase, NFKC, strip non-alphanumeric) so "First Name",
-     * "first_name", "FIRST-NAME", and Cyrillic-lookalike "First Nаme"
-     * all match.
-     *
-     * Registered by RegistrationFieldRequest::withValidator().
      */
     protected function validateFieldLabelCollisions(Validator $validator): void
     {
@@ -328,11 +276,6 @@ trait RegistrationFieldValidationRules
 
     /**
      * Reject keyboard-mashing labels.
-     *
-     * Applies the vowel and consonant checks only to labels of
-     * MIN_STRICT_LABEL_LENGTH characters or longer.
-     *
-     * Registered by RegistrationFieldRequest::withValidator().
      */
     protected function validateFieldLabelQuality(Validator $validator): void
     {
@@ -375,8 +318,46 @@ trait RegistrationFieldValidationRules
     }
 
     /**
-     * Custom messages for registration field rules whose Laravel
-     * defaults do not read well.
+     * Reject any form-builder save where both identity fields are
+     * toggled off.
+     *
+     * The registration form must collect at least one identity key
+     * (email or contact_number). The at-least-one rule is enforced at
+     * the request layer on public submissions
+     * (PublicRegistrationRequest::withValidator). This method is the
+     * upstream guard: an organizer cannot publish a form where both
+     * keys are optional, because no submission through such a form
+     * could be deduplicated.
+     *
+     * Both toggles off is the only failing shape. A missing map means
+     * "all required" (the column's NULL-default), which passes.
+     *
+     * See docs/participant-identity.md §7.
+     */
+    protected function validateCommonFieldRequirementsIdentity(Validator $validator): void
+    {
+        $validator->after(function (Validator $v): void {
+            $data = $v->getData();
+            $requirements = $data['common_field_requirements'] ?? null;
+
+            if (! is_array($requirements)) {
+                return;
+            }
+
+            $emailRequired = (bool) ($requirements['email'] ?? true);
+            $phoneRequired = (bool) ($requirements['contact_number'] ?? true);
+
+            if (! $emailRequired && ! $phoneRequired) {
+                $v->errors()->add(
+                    'common_field_requirements',
+                    'At least one of email or contact number must be required.',
+                );
+            }
+        });
+    }
+
+    /**
+     * Custom messages for registration field rules.
      *
      * @return array<string, string>
      */

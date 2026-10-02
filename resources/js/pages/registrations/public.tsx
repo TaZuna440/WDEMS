@@ -386,6 +386,8 @@ export default function PublicRegistration({
                         <p className="text-xs text-muted-foreground">Submitting…</p>
                     )}
 
+                    <InputError message={allErrors.identity} />
+
                     {/* Consent — required. Privacy Notice and Terms open
                         in modals below. HTML5 validation blocks submit
                         if unchecked. Not recorded server-side yet;

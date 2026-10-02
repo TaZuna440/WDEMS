@@ -10,12 +10,11 @@
  * on both server and client errors without any translation layer:
  *   - common fields use their own name: "email", "age", ...
  *   - custom fields use "responses.{field_id}"
+ *   - at-least-one identity rule uses "identity" (form-level)
  *
  * Required-ness of email, contact_number, and address comes from the
  * event's common_field_requirements map (passed as the third
- * argument). first_name, last_name, and age are always required and
- * do not consult the map. A missing key in the map defaults to
- * required — matches the server's NULL-means-required convention.
+ * argument). first_name, last_name, and age are always required.
  */
 
 export type ServerField = {
@@ -50,6 +49,35 @@ function isBlank(value: unknown): boolean {
     return false;
 }
 
+/**
+ * Client-side mirror of Participant::normalizeContactNumber().
+ *
+ * Accepts the four PH mobile formats (09-prefix, +63-prefix,
+ * 63-prefix, bare 9-prefix). Returns the canonical form or null.
+ *
+ * Used only by the at-least-one identity check. The server is the
+ * source of truth for the actual stored value.
+ */
+function normalizePhone(raw: string): string | null {
+    const digits = raw.replace(/\D+/g, '');
+
+    if (digits === '') return null;
+
+    if (digits.startsWith('63') && digits.length === 12) {
+        return '0' + digits.slice(2);
+    }
+
+    if (digits.startsWith('9') && digits.length === 10) {
+        return '0' + digits;
+    }
+
+    if (digits.startsWith('09') && digits.length === 11) {
+        return digits;
+    }
+
+    return null;
+}
+
 export function validateRegistrationForm(
     data: RegistrationFormData,
     fields: ServerField[],
@@ -62,7 +90,6 @@ export function validateRegistrationForm(
 
     // -------- Common fields --------
 
-    // first_name, last_name, age are always required.
     if (isBlank(data.first_name)) {
         errors.first_name = 'First name is required.';
     } else if (data.first_name.length > MAX_NAME) {
@@ -84,7 +111,6 @@ export function validateRegistrationForm(
         }
     }
 
-    // email — required-ness from the event.
     if (isBlank(data.email)) {
         if (isRequired('email')) {
             errors.email = 'Email is required.';
@@ -93,7 +119,6 @@ export function validateRegistrationForm(
         errors.email = 'Please enter a valid email address.';
     }
 
-    // contact_number — required-ness from the event.
     if (isBlank(data.contact_number)) {
         if (isRequired('contact_number')) {
             errors.contact_number = 'Contact number is required.';
@@ -102,13 +127,29 @@ export function validateRegistrationForm(
         errors.contact_number = `Contact number must not exceed ${MAX_CONTACT} characters.`;
     }
 
-    // address — required-ness from the event.
     if (isBlank(data.address)) {
         if (isRequired('address')) {
             errors.address = 'Address is required.';
         }
     } else if (data.address.length > MAX_ADDRESS) {
         errors.address = `Address must not exceed ${MAX_ADDRESS} characters.`;
+    }
+
+    // -------- At-least-one identity --------
+
+    // Email counts when non-blank. Phone counts when it normalizes to
+    // a PH mobile. The rule is form-level, not anchored to either
+    // field — the error key is `identity`.
+    //
+    // Under normal configuration at least one of email/contact_number
+    // is required, so this check is defense in depth against a legacy
+    // or manually-edited event where both are optional.
+    const emailBlank = isBlank(data.email);
+    const phoneBlank = isBlank(data.contact_number)
+        || normalizePhone(data.contact_number) === null;
+
+    if (emailBlank && phoneBlank) {
+        errors.identity = 'Please provide at least an email address or a contact number.';
     }
 
     // -------- Custom fields --------
@@ -155,8 +196,6 @@ export function validateRegistrationForm(
                     errors[key] = 'Please choose from the available options.';
                 }
                 break;
-
-            // text, textarea — no format check beyond required
         }
     }
 

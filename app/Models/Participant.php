@@ -118,10 +118,15 @@ class Participant extends Model
      * non-PH-mobile formats (landlines, international numbers), and
      * strings whose digit count does not match a pattern above.
      *
+     * Public so validation code (PublicRegistrationRequest) can call
+     * it to decide whether a submitted phone counts as an identity
+     * key. A submitted phone that normalizes to null is treated as
+     * "no phone" for the at-least-one rule.
+     *
      * Mirrored in docs/participant-identity.md §5. Any change here
      * must update that doc.
      */
-    private static function normalizeContactNumber(?string $raw): ?string
+    public static function normalizeContactNumber(?string $raw): ?string
     {
         if (! is_string($raw)) {
             return null;
