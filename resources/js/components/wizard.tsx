@@ -3,6 +3,7 @@ import {
     useCallback,
     useEffect,
     useMemo,
+    useRef,
     useState,
     type ReactNode,
 } from 'react';
@@ -80,6 +81,14 @@ export default function Wizard<T extends Record<string, unknown>>({
     const [stepErrors, setStepErrors] = useState<Record<string, string>>({});
     const [isReady, setIsReady] = useState(false);
 
+    // A ref mirror of `currentStep`. The error-jump effect reads this
+    // instead of `currentStep` so its dependency array can omit the
+    // step. Without this, the effect re-fires on every Next click,
+    // finds the same stale server error, and bounces the user back to
+    // the step that owns the error.
+    const currentStepRef = useRef(currentStep);
+    currentStepRef.current = currentStep;
+
     // Apply snapshot once on mount, then enable saving.
     // The guard prevents the initial save effect from clobbering the
     // stored draft with the parent form's empty defaults.
@@ -105,6 +114,11 @@ export default function Wizard<T extends Record<string, unknown>>({
     // Jump to the first step containing a server error.
     // Uses prefix matching so `partners.0.name` routes to the step
     // that owns the `partners` field.
+    //
+    // Fires only when `errors` (or `steps`) changes. Reading the
+    // current step through a ref means navigating between steps does
+    // not re-run this effect — that was the bug that made Next
+    // bounce back to a step with a stale error.
     useEffect(() => {
         if (!errors || Object.keys(errors).length === 0) return;
 
@@ -116,10 +130,10 @@ export default function Wizard<T extends Record<string, unknown>>({
             ),
         );
 
-        if (failingIndex !== -1 && failingIndex !== currentStep) {
+        if (failingIndex !== -1 && failingIndex !== currentStepRef.current) {
             setCurrentStep(failingIndex);
         }
-    }, [errors, steps, currentStep]);
+    }, [errors, steps]);
 
     const validateCurrentStep = useCallback((): boolean => {
         const step = steps[currentStep];

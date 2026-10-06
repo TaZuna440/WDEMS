@@ -51,15 +51,8 @@ const STEPS: WizardStepConfig[] = [
     {
         id: 'venue',
         label: 'Venue',
-        fields: [
-            'venue',
-            'venue_address',
-            'venue_map_url',
-        ],
-        requiredFields: [
-            'venue',
-            'venue_address',
-        ],
+        fields: ['venue', 'venue_address', 'venue_map_url'],
+        requiredFields: ['venue', 'venue_address'],
         validate: validateVenue,
     },
     {
@@ -82,7 +75,14 @@ const STEPS: WizardStepConfig[] = [
 ];
 
 export default function EventsCreate({ event_types }: Props) {
-    const { data, setData, post, processing, errors } = useForm({
+    const {
+        data,
+        setData: inertiaSetData,
+        post,
+        processing,
+        errors,
+        clearErrors,
+    } = useForm({
         // Step 1 — Details
         event_type: '',
         event_name: '',
@@ -115,6 +115,29 @@ export default function EventsCreate({ event_types }: Props) {
         leashed_pets_allowed: false,
         quiet_space_available: false,
     });
+
+    /**
+     * Wrap Inertia's setData so that editing a field also clears any
+     * stale server error for that field (or its subkeys, e.g.
+     * `partners.0.name`).
+     *
+     * useForm keeps the last server error bag until the next
+     * submission. Without this, a stale error like "you already have
+     * an active event with this name" persists after the user fixes
+     * the field — and the wizard's error-jump effect keeps bouncing
+     * them back to the step that owns that field.
+     */
+    const setData = (key: string, value: unknown) => {
+        (inertiaSetData as unknown as (key: string, value: unknown) => void)(key, value);
+
+        const matching = Object.keys(errors).filter(
+            (k) => k === key || k.startsWith(`${key}.`),
+        );
+
+        if (matching.length > 0) {
+            (clearErrors as unknown as (fields: string[]) => void)(matching);
+        }
+    };
 
     const submit = () => {
         post('/events');
