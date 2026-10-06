@@ -1250,3 +1250,96 @@ When a partner was invalid, the wizard correctly routed to the Extras step and t
 
 - **2026-09-25** — FIX-017 through FIX-021 recorded. Six commits landed this session: `533658e` (RSVP removal + duplicate rule + Sensory merge + humanNameQualityRules), `0d7328f` (partner errors inline + EventController rsvp cleanup), `84c33a0` (consolidation — 20 untracked files added), `c3e1590` (README drift + dev-workflow §9).
 - **2026-09-25** — Additional protocols P9 and P10 recorded in `docs/dev-workflow/README.md` §9. Both motivated by commit-message discipline failures during this session. P9 verification addendum appended after confirming all 14 commit-message claims against their diffs.
+
+---
+
+## FIX-022 — Wizard bounced on stale server errors and left the error visible
+
+**Severity:** Medium (blocked Next after a rejected submit; no data loss)
+**Date fixed:** 2026-10-06
+**Related:** commits `26658a0`, `1a5d5c0`;
+`docs/implementation-notes.md` §1 (client errors win over server errors)
+
+### What was broken
+
+Two symptoms from one user complaint: submit an event with a
+duplicate name, the server rejects, the error appears under the
+field. The user edits the field to fix it. Then:
+
+1. **Next does nothing.** The wizard stays on the same step. The
+   Next button appears broken.
+2. **The error text stays visible** under the field even after the
+   value has changed.
+
+Both had to be fixed for the flow to recover.
+
+### Root cause
+
+Two independent causes. Fixing one exposed the other.
+
+**Cause 1 — error-jump effect depended on `currentStep`.** In
+`wizard.tsx`, the effect that jumps to the step containing a server
+error listed `currentStep` in its dependency array. Every Next click
+called `setCurrentStep(1)`, the effect re-fired, found the same stale
+server error on step 0, and called `setCurrentStep(0)`. The user was
+bounced back.
+
+**Cause 2 — stale server errors were never cleared.** Inertia's
+`useForm().errors` persists until the next submission. Nothing in
+`create.tsx` or `edit.tsx` cleared the error when the user edited
+the offending field. So even after Cause 1 was fixed and the user
+could advance, the error text stayed visible.
+
+The first attempt at Cause 2 added a `setData` wrapper that filtered
+the error bag and called `clearErrors()`. It passed `matching` (a
+`string[]`) as a single argument. Inertia's signature is variadic:
+`<K extends FormDataKeys<TForm>>(...fields: K[]) => void`. So
+`fields.includes('event_name')` never matched — Inertia received
+`[['event_name']]`, an array containing an array. The error stayed.
+
+### What changed
+
+| File | Change |
+|---|---|
+| `resources/js/components/wizard.tsx` | Added `currentStepRef`. Error-jump effect reads through the ref and its deps drop `currentStep` to `[errors, steps]` |
+| `resources/js/pages/events/create.tsx` | Wrapped `setData` to clear any server error matching the edited field or its subkeys. Casts bridge Inertia's narrow types to the wizard's `(key: string, value: unknown)` prop signature |
+| `resources/js/pages/events/edit.tsx` | Same wrapper as `create.tsx` |
+
+Both page wrappers spread the array: `clearErrors(...matching)`.
+
+### Evidence
+
+- `grep -n "currentStepRef" wizard.tsx` — 3 hits (declaration,
+  assignment, usage)
+- `grep -n "}, \[errors, steps\]);" wizard.tsx` — 1 hit
+- `grep -n "as unknown as" create.tsx edit.tsx` — 2 hits per file
+- `npx tsc --noEmit` — silent
+- Test suite unchanged: Events **161 passed / 474 assertions**;
+  Auth **44 passed / 119 assertions**
+- Browser: fill in a duplicate event name → submit → error shows →
+  change the field → error clears as you type → click Next → advances
+  to Schedule → walk through → submit with the new name → succeeds
+
+### Note on the first attempt
+
+Commit `26658a0`'s message claimed the `setData` wrapper cleared stale
+server errors. It didn't. The bug was real and the wrapper was the
+right approach, but the array passed to `clearErrors` was not spread,
+so the clear silently no-op'd. The bounce symptom disappeared (Cause
+1 was fixed), which made it look like the wrapper worked — but the
+error text stayed under the field. Commit `1a5d5c0` spread the array
+and the visible symptom cleared.
+
+Recorded here rather than amended into `26658a0`'s message — P7,
+append-only, no force-push. Same shape as the `c3b4384` commit-message
+defect noted in `docs/implementation-notes.md` §7.
+
+---
+
+## Change log addendum
+
+- **2026-10-06** — FIX-022 recorded. Two commits: `26658a0` (wizard
+  error-jump decoupled from `currentStep`) and `1a5d5c0` (spread
+  field names to `clearErrors`). First commit's message described
+  intent before the second commit made it true; correction noted
+  inside the FIX-022 entry per P7.
