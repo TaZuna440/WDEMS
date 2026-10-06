@@ -6,6 +6,7 @@ use App\Enums\EventStatus;
 use App\Enums\EventType;
 use App\Models\Event;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -109,6 +110,68 @@ trait EventValidationRules
             'leashed_pets_allowed' => ['boolean'],
             'quiet_space_available' => ['boolean'],
         ];
+    }
+
+    /**
+     * Reject an event whose combined date and start time have already
+     * passed.
+     *
+     * The `after_or_equal:today` rule on event_date permits same-day
+     * events — a legitimate case for spontaneous community runs. But
+     * "today at 09:00" when it is already 14:00 is not a real event.
+     * This method catches the combined datetime.
+     *
+     * Runs only when the date and time are individually valid — if
+     * either already has an error, this method returns early so the
+     * user sees one specific message per problem, not two.
+     *
+     * Client-side mirror in
+     * resources/js/lib/event-validation.ts::validateSchedule. The
+     * client uses the browser's timezone; this check uses
+     * config('app.timezone'). Where the two differ, whichever rejects
+     * first wins.
+     *
+     * Registered by EventRequest::withValidator().
+     */
+    protected function validateEventStartIsInFuture(Validator $validator): void
+    {
+        $validator->after(function (Validator $v): void {
+            // If the date already failed its own rules (missing, invalid
+            // format, before today, or beyond the max), do not pile on.
+            if ($v->errors()->has('event_date')) {
+                return;
+            }
+
+            // If start_time already failed format rules, do not pile on.
+            if ($v->errors()->has('start_time')) {
+                return;
+            }
+
+            $data = $v->getData();
+            $date = $data['event_date'] ?? null;
+            $time = $data['start_time'] ?? null;
+
+            if (! is_string($date) || ! is_string($time)) {
+                return;
+            }
+
+            if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                return;
+            }
+
+            if (! preg_match('/^\d{2}:\d{2}$/', $time)) {
+                return;
+            }
+
+            $start = Date::parse("{$date} {$time}");
+
+            if ($start->isPast()) {
+                $v->errors()->add(
+                    'start_time',
+                    'Start time cannot be in the past.',
+                );
+            }
+        });
     }
 
     /**

@@ -80,6 +80,29 @@ function isoToLocalMidnight(iso: string): Date {
 }
 
 /**
+ * Combine a "YYYY-MM-DD" date and "HH:MM" time into a local Date.
+ *
+ * Used by the start-time-in-the-future check. Reads both parts as
+ * wall-clock in the browser's local timezone — which is what the user
+ * sees in the pickers. The server does the same check against its own
+ * timezone (config('app.timezone')). Where the two zones differ, both
+ * checks run and whichever rejects first wins.
+ */
+function combineDateTime(iso: string, hhmm: string): Date | null {
+    const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    const timeMatch = /^(\d{2}):(\d{2})$/.exec(hhmm);
+
+    if (!dateMatch || !timeMatch) {
+        return null;
+    }
+
+    const [, y, mo, d] = dateMatch.map(Number);
+    const [, h, mi] = timeMatch.map(Number);
+
+    return new Date(y, mo - 1, d, h, mi);
+}
+
+/**
  * Shared quality checks for every free-text "name" field.
  *
  * Catches keyboard mashing. Returns null when the value passes, or an
@@ -93,7 +116,10 @@ function isoToLocalMidnight(iso: string): Date {
  * @param label  human-readable field label used in error messages,
  *               e.g. "Event name" or "Partner name"
  */
-export function humanNameQualityError(value: string, label: string): string | null {
+export function humanNameQualityError(
+    value: string,
+    label: string,
+): string | null {
     if (!/^[A-Za-z0-9]/.test(value)) {
         return `${label} must start with a letter or number.`;
     }
@@ -154,6 +180,8 @@ export function validateSchedule(
     const distanceUnit = asString(data.distance_unit).trim();
     const courseUrl = asString(data.course_url).trim();
 
+    let startTimeValid = false;
+
     if (!eventDate) {
         errors.event_date = 'Event date is required.';
     } else if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
@@ -180,6 +208,23 @@ export function validateSchedule(
         errors.start_time = 'Start time is required.';
     } else if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime)) {
         errors.start_time = 'Start time must be a valid time.';
+    } else {
+        startTimeValid = true;
+    }
+
+    // Combined date + time must be in the future. Fires only when the
+    // date and time are individually well-formed — otherwise the user
+    // sees two errors for the same problem.
+    if (
+        startTimeValid &&
+        !errors.event_date &&
+        /^\d{4}-\d{2}-\d{2}$/.test(eventDate)
+    ) {
+        const combined = combineDateTime(eventDate, startTime);
+
+        if (combined !== null && combined.getTime() < Date.now()) {
+            errors.start_time = 'Start time cannot be in the past.';
+        }
     }
 
     if (endTime) {
@@ -351,7 +396,6 @@ export function validateExtras(
         const firstIndex = seen.get(key);
 
         if (firstIndex !== undefined) {
-            const display = asString(p.name).trim();
             errors[`partners.${index}.name`] =
                 `Duplicate of row ${firstIndex + 1} — same name and type.`;
             duplicateCount += 1;

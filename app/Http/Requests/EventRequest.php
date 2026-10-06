@@ -31,12 +31,15 @@ class EventRequest extends FormRequest
     /**
      * Register the cross-field checks that run after the standard rules.
      *
+     * - validateEventStartIsInFuture: combined date + time must be
+     *   in the future (today at a past time is rejected)
      * - validateEventDuration: minimum 1 hour when end_time is present
      * - validatePartnerDuplicates: same name+type appears twice
      * - validateEventNameUnique: same user, same name, still active
      */
     public function withValidator($validator): void
     {
+        $this->validateEventStartIsInFuture($validator);
         $this->validateEventDuration($validator);
         $this->validatePartnerDuplicates($validator);
         $this->validateEventNameUnique($validator);
