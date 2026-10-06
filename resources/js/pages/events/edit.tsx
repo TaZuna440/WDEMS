@@ -185,7 +185,7 @@ export default function EventsEdit({ event }: Props) {
         );
 
         if (matching.length > 0) {
-            (clearErrors as unknown as (fields: string[]) => void)(matching);
+            (clearErrors as unknown as (...fields: string[]) => void)(...matching);
         }
     };
 

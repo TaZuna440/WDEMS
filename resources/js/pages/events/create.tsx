@@ -135,7 +135,7 @@ export default function EventsCreate({ event_types }: Props) {
         );
 
         if (matching.length > 0) {
-            (clearErrors as unknown as (fields: string[]) => void)(matching);
+            (clearErrors as unknown as (...fields: string[]) => void)(...matching);
         }
     };
 
