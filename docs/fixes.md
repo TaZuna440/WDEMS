@@ -1405,3 +1405,94 @@ still pass — they are distinct fields.
 
     app/Concerns/RegistrationFieldValidationRules.php
     tests/Feature/Events/RegistrationFormTest.php
+
+---
+
+## FIX-023 — Form builder collision detection was exact-match only
+
+**Date:** 2026-10-08
+**Severity:** Medium
+**Status:** Fixed
+
+### Symptom
+
+Custom field labels like `"contact"`, `"phone"`, `"mobile"`, `"cp"`,
+`"adress"`, `"emial"`, `"birthdate"` produced visible duplicates of the
+six common participant fields on the published form. The prior rule
+only caught exact matches after normalization.
+
+### Root cause
+
+`validateFieldLabelCollisions()` compared the normalized label against
+a flat list of six exact strings. Synonyms and misspellings passed.
+
+### Fix
+
+Three-layer detection in `RegistrationFieldValidationRules`:
+
+1. Exact alias match against a synonym map
+2. Levenshtein distance against aliases (threshold 1 for labels ≤9
+   chars, 2 for longer)
+3. Substring matching intentionally not implemented — `"Emergency
+   contact"` and `"Parent email"` remain valid
+
+### Files
+
+    app/Concerns/RegistrationFieldValidationRules.php
+    tests/Feature/Events/RegistrationFormTest.php
+
+---
+
+## FIX-024 — Form builder server errors persisted after edit
+
+**Date:** 2026-10-08
+**Severity:** Low (UX)
+**Status:** Fixed
+
+### Symptom
+
+A server-side validation error under a field label stayed visible
+after the user edited the offending field. Same class as FIX-022
+(event wizard).
+
+### Root cause
+
+Nothing cleared `useForm().errors` on field edit.
+
+### Fix
+
+Added `clearServerErrors(prefix)` to `registration-form.tsx`. Wired
+to field edit, add, remove, reorder, and requirement toggle.
+
+### Files
+
+    resources/js/pages/events/registration-form.tsx
+
+---
+
+## FIX-025 — Short garbage labels bypassed quality rules
+
+**Date:** 2026-10-08
+**Severity:** Medium
+**Status:** Fixed
+
+### Symptom
+
+Labels like `"5"`, `"4565"`, `"sf"` passed validation because the
+quality check only ran at 5+ characters.
+
+### Fix
+
+- `min:1` → `min:2`
+- Added `regex:/[A-Za-z]/` to require at least one letter
+- Extended quality check to 2+ characters (vowel required)
+- Consonant required for 3+ characters
+- Exemption list: `km`, `kg`, `hr`, `ml`, `cm`, `id`, `no`, `ok`
+- Exempt labels skip **both** the quality rule and the collision rule
+  — the latter was needed because `cm` collides with the `cp` alias
+  of contactnumber under edit distance
+
+### Files
+
+    app/Concerns/RegistrationFieldValidationRules.php
+    tests/Feature/Events/RegistrationLabelQualityTest.php

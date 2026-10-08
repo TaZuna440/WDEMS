@@ -1184,3 +1184,43 @@ None.
 |---|---|
 | Fixed problems reference | `docs/fixes.md` (FIX-023) |
 | Registration spec | `docs/registration.md` |
+
+---
+
+## 2026-10-08 — Form builder label validation
+
+### Summary
+
+Three related enhancements to the registration form builder's custom
+field label rules:
+
+- FIX-023 — Synonym + misspelling collision detection
+- FIX-024 — Stale server errors clear on edit
+- FIX-025 — Short garbage label rejection with exemption list
+
+Server-side rules in `RegistrationFieldValidationRules`, plus a
+client-side error-clearing helper in `registration-form.tsx`. Two new
+test suites plus additions to the existing collision suite.
+
+### Documentation appended
+
+    docs/fixes.md     — FIX-023, FIX-024, FIX-025
+    docs/progress.md  — this entry
+
+### Code changes
+
+    app/Concerns/RegistrationFieldValidationRules.php
+    resources/js/pages/events/registration-form.tsx
+
+### Test changes
+
+    tests/Feature/Events/RegistrationFormTest.php             (appended)
+    tests/Feature/Events/RegistrationLabelQualityTest.php     (new)
+
+### Verification
+
+    php artisan test tests/Feature/Events/RegistrationFormTest.php
+    php artisan test tests/Feature/Events/RegistrationLabelQualityTest.php
+    php artisan test                                          (full suite)
+
+Full suite: 3 skipped, 370 passed (954 assertions).

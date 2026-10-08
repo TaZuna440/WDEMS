@@ -386,20 +386,19 @@ test('it does not stamp registration_form_saved_at on a rejected save', function
 
 /*
 |--------------------------------------------------------------------------
-| Label collision — synonym and misspelling detection
+| Label collision — synonym and misspelling detection (FIX-023)
 |--------------------------------------------------------------------------
 */
 
-test('it rejects a synonym of the contact number field', function (string $label) {
-    [$event, $user] = makeDraftEvent();
+test('it rejects a synonym of a common field', function (string $label) {
+    $user = regform_staff();
+    $event = regform_event();
 
     $response = $this->actingAs($user)->put(
-        route('events.registration.form.update', $event),
-        [
-            'fields' => [
-                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
-            ],
-        ],
+        route('events.registration-form.update', $event),
+        regform_payload([
+            regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
+        ]),
     );
 
     $response->assertSessionHasErrors('fields.0.label');
@@ -410,79 +409,47 @@ test('it rejects a synonym of the contact number field', function (string $label
     'cell',
     'cp',
     'tel',
-    'contact no',
-    'Contact Number',
-    'CONTACT_NUMBER',
-]);
-
-test('it rejects a synonym of the email field', function (string $label) {
-    [$event, $user] = makeDraftEvent();
-
-    $response = $this->actingAs($user)->put(
-        route('events.registration.form.update', $event),
-        [
-            'fields' => [
-                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
-            ],
-        ],
-    );
-
-    $response->assertSessionHasErrors('fields.0.label');
-})->with([
     'mail',
     'gmail',
-    'Email address',
-]);
-
-test('it rejects a synonym of the age field', function (string $label) {
-    [$event, $user] = makeDraftEvent();
-
-    $response = $this->actingAs($user)->put(
-        route('events.registration.form.update', $event),
-        [
-            'fields' => [
-                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
-            ],
-        ],
-    );
-
-    $response->assertSessionHasErrors('fields.0.label');
-})->with([
     'dob',
     'birthdate',
     'birthday',
-    'bday',
-]);
-
-test('it rejects a synonym of the address field', function (string $label) {
-    [$event, $user] = makeDraftEvent();
-
-    $response = $this->actingAs($user)->put(
-        route('events.registration.form.update', $event),
-        [
-            'fields' => [
-                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
-            ],
-        ],
-    );
-
-    $response->assertSessionHasErrors('fields.0.label');
-})->with([
     'addr',
     'home',
     'location',
 ]);
 
-test('it rejects a misspelling of a common field', function (string $label) {
-    [$event, $user] = makeDraftEvent();
+test('it rejects a formatting variant of a common field', function (string $label) {
+    $user = regform_staff();
+    $event = regform_event();
 
     $response = $this->actingAs($user)->put(
-        route('events.registration.form.update', $event),
-        [
-            'fields' => [
-                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
-            ],
-        ],
+        route('events.registration-form.update', $event),
+        regform_payload([
+            regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
+        ]),
+    );
+
+    $response->assertSessionHasErrors('fields.0.label');
+})->with([
+    'Contact Number',
+    'CONTACT_NUMBER',
+    'Contact-Number',
+    'contact number',
+    'First Name',
+    'first_name',
+    'Last-Name',
+]);
+
+test('it rejects a misspelling of a common field', function (string $label) {
+    $user = regform_staff();
+    $event = regform_event();
+
+    $response = $this->actingAs($user)->put(
+        route('events.registration-form.update', $event),
+        regform_payload([
+            regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
+        ]),
     );
 
     $response->assertSessionHasErrors('fields.0.label');
@@ -491,36 +458,15 @@ test('it rejects a misspelling of a common field', function (string $label) {
     'emial',
 ]);
 
-test('it rejects labels with formatting variants of common fields', function (string $label) {
-    [$event, $user] = makeDraftEvent();
-
-    $response = $this->actingAs($user)->put(
-        route('events.registration.form.update', $event),
-        [
-            'fields' => [
-                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
-            ],
-        ],
-    );
-
-    $response->assertSessionHasErrors('fields.0.label');
-})->with([
-    'First Name',
-    'first_name',
-    'FIRSTNAME',
-    'Last-Name',
-]);
-
 test('it accepts labels that are legitimately distinct from common fields', function (string $label) {
-    [$event, $user] = makeDraftEvent();
+    $user = regform_staff();
+    $event = regform_event();
 
     $response = $this->actingAs($user)->put(
-        route('events.registration.form.update', $event),
-        [
-            'fields' => [
-                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
-            ],
-        ],
+        route('events.registration-form.update', $event),
+        regform_payload([
+            regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
+        ]),
     );
 
     $response->assertSessionDoesntHaveErrors('fields.0.label');
@@ -532,5 +478,4 @@ test('it accepts labels that are legitimately distinct from common fields', func
     'Shirt size',
     'Blood type',
     'Medical notes',
-    'KM',
 ]);

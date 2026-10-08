@@ -54,16 +54,6 @@ const statusStyles: Record<string, string> = {
     cancelled: 'bg-destructive/15 text-destructive',
 };
 
-/**
- * The six structural participant fields. Every registration form
- * includes these automatically. They live in the participants table
- * and cannot be renamed or removed.
- *
- * `toggleable` marks the fields whose required/optional state the
- * organizer can set per event. Always-required fields (first_name,
- * last_name, age) cannot be toggled — a participant without a name
- * or an age is unusable for attendance tracking.
- */
 type CommonFieldSpec = {
     key: string;
     label: string;
@@ -125,7 +115,29 @@ export default function RegistrationForm({
 
     const canEdit = event.can_edit;
 
+    /**
+     * Clear any server-side errors whose key matches the given prefix.
+     * Used so a red error under a field disappears the moment the
+     * organizer starts editing that field — matching the pattern
+     * established for the event wizard in FIX-022.
+     */
+    const clearServerErrors = (prefix: string) => {
+        const matching = Object.keys(form.errors).filter(
+            (k) => k === prefix || k.startsWith(`${prefix}.`),
+        );
+
+        if (matching.length > 0) {
+            form.clearErrors(
+                ...(matching as (keyof typeof form.data)[]),
+            );
+        }
+    };
+
     const addField = () => {
+        // Adding a new row shifts every index, so old per-field
+        // errors are no longer meaningful. Clear them all.
+        clearServerErrors('fields');
+
         form.setData('fields', [
             ...form.data.fields,
             {
@@ -140,6 +152,10 @@ export default function RegistrationForm({
     };
 
     const updateField = (index: number, patch: Partial<FieldDraft>) => {
+        // Clear errors for this specific field only — the user is
+        // fixing it. Other rows' errors are still valid.
+        clearServerErrors(`fields.${index}`);
+
         form.setData(
             'fields',
             form.data.fields.map((field, i) =>
@@ -156,6 +172,9 @@ export default function RegistrationForm({
             description: `"${target?.label || 'Untitled field'}" will be removed from the form. Changes are not saved until you click Save.`,
             confirmLabel: 'Remove Field',
             onConfirm: () => {
+                // Removing shifts indices; per-field errors are stale.
+                clearServerErrors('fields');
+
                 form.setData(
                     'fields',
                     form.data.fields.filter((_, i) => i !== index),
@@ -165,10 +184,15 @@ export default function RegistrationForm({
     };
 
     const reorderFields = (next: FieldDraft[]) => {
+        // Reordering shifts indices; per-field errors are stale.
+        clearServerErrors('fields');
+
         form.setData('fields', next);
     };
 
     const toggleRequirement = (key: string, value: boolean) => {
+        clearServerErrors('common_field_requirements');
+
         form.setData('common_field_requirements', {
             ...form.data.common_field_requirements,
             [key]: value,
@@ -218,7 +242,6 @@ export default function RegistrationForm({
                     Back to Event
                 </Link>
 
-                {/* Header */}
                 <div>
                     <h1 className="text-2xl font-semibold text-foreground">
                         Create Registration Form
@@ -243,7 +266,6 @@ export default function RegistrationForm({
                     </p>
                 </div>
 
-                {/* Locked banner */}
                 {!canEdit && (
                     <div className="glass-panel flex items-start gap-3 rounded-xl p-4">
                         <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
@@ -255,7 +277,6 @@ export default function RegistrationForm({
                     </div>
                 )}
 
-                {/* Common fields */}
                 <section className="flex flex-col gap-3">
                     <div className="flex items-baseline justify-between">
                         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -332,7 +353,6 @@ export default function RegistrationForm({
                     />
                 </section>
 
-                {/* Custom fields */}
                 <section className="flex flex-col gap-3">
                     <div className="flex items-baseline justify-between">
                         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -411,7 +431,6 @@ export default function RegistrationForm({
                     <InputError message={allErrors.fields} />
                 </section>
 
-                {/* Save bar */}
                 {canEdit && (
                     <div className="glass-panel sticky bottom-4 flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-xs text-muted-foreground">
