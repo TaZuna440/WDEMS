@@ -1343,3 +1343,65 @@ defect noted in `docs/implementation-notes.md` §7.
   field names to `clearErrors`). First commit's message described
   intent before the second commit made it true; correction noted
   inside the FIX-022 entry per P7.
+
+---
+
+## FIX-023 — Form builder collision detection was exact-match only
+
+**Date:** 2026-10-08
+**Severity:** Medium (form quality — allowed duplicate fields)
+**Status:** Fixed
+
+### Symptom
+
+An organizer could add a custom field labeled `"contact"`, `"phone"`,
+`"mobile"`, `"cp"`, `"adress"`, `"emial"`, `"birthdate"` — any of
+which produces a visible duplicate of a common participant field on
+the public form. The existing collision rule only caught exact
+matches after normalization (`"Contact Number"` → `contactnumber`),
+so every short form, synonym, and misspelling slipped through.
+
+Concrete case reported by the user: field labeled `"contact"` was
+accepted by the builder, producing two contact fields on the
+published form.
+
+### Root cause
+
+`RegistrationFieldValidationRules::validateFieldLabelCollisions()`
+compared the normalized label against a flat list of six exact
+strings (`firstname`, `lastname`, `email`, `contactnumber`, `age`,
+`address`). Anything that was not character-for-character identical
+after normalization passed.
+
+### Fix applied
+
+Three-layer collision detection in the same validator:
+
+1. **Synonym map.** `commonFieldSynonyms()` maps each common field
+   to a list of known aliases. `phone`, `mobile`, `cell`, `cp`,
+   `tel`, `contact`, `contact no`, `dob`, `birthdate`, `addr`, and
+   similar are all recognized.
+
+2. **Edit distance.** `findCommonFieldCollision()` compares the
+   normalized label against every alias using Levenshtein distance.
+   Threshold is 1 for labels under 10 characters, 2 for longer ones.
+   Catches `adress` → `address` and `emial` → `email`.
+
+3. **Exact match preserved.** Existing behavior for
+   `"Contact Number"` and formatting variants is unchanged.
+
+No substring matching. `"Emergency contact"` and `"Parent email"`
+still pass — they are distinct fields.
+
+### Evidence
+
+- New data-driven tests in `RegistrationFormTest.php` covering
+  synonyms, misspellings, formatting variants, and negative cases
+- Manual browser check: entering `"contact"` in the builder now
+  surfaces the error after Save
+- Full test suite unchanged: 305 passed
+
+### Files touched
+
+    app/Concerns/RegistrationFieldValidationRules.php
+    tests/Feature/Events/RegistrationFormTest.php

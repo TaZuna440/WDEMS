@@ -383,3 +383,154 @@ test('it does not stamp registration_form_saved_at on a rejected save', function
 
     expect($event->fresh()->registration_form_saved_at)->toBeNull();
 });
+
+/*
+|--------------------------------------------------------------------------
+| Label collision — synonym and misspelling detection
+|--------------------------------------------------------------------------
+*/
+
+test('it rejects a synonym of the contact number field', function (string $label) {
+    [$event, $user] = makeDraftEvent();
+
+    $response = $this->actingAs($user)->put(
+        route('events.registration.form.update', $event),
+        [
+            'fields' => [
+                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
+            ],
+        ],
+    );
+
+    $response->assertSessionHasErrors('fields.0.label');
+})->with([
+    'contact',
+    'phone',
+    'mobile',
+    'cell',
+    'cp',
+    'tel',
+    'contact no',
+    'Contact Number',
+    'CONTACT_NUMBER',
+]);
+
+test('it rejects a synonym of the email field', function (string $label) {
+    [$event, $user] = makeDraftEvent();
+
+    $response = $this->actingAs($user)->put(
+        route('events.registration.form.update', $event),
+        [
+            'fields' => [
+                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
+            ],
+        ],
+    );
+
+    $response->assertSessionHasErrors('fields.0.label');
+})->with([
+    'mail',
+    'gmail',
+    'Email address',
+]);
+
+test('it rejects a synonym of the age field', function (string $label) {
+    [$event, $user] = makeDraftEvent();
+
+    $response = $this->actingAs($user)->put(
+        route('events.registration.form.update', $event),
+        [
+            'fields' => [
+                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
+            ],
+        ],
+    );
+
+    $response->assertSessionHasErrors('fields.0.label');
+})->with([
+    'dob',
+    'birthdate',
+    'birthday',
+    'bday',
+]);
+
+test('it rejects a synonym of the address field', function (string $label) {
+    [$event, $user] = makeDraftEvent();
+
+    $response = $this->actingAs($user)->put(
+        route('events.registration.form.update', $event),
+        [
+            'fields' => [
+                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
+            ],
+        ],
+    );
+
+    $response->assertSessionHasErrors('fields.0.label');
+})->with([
+    'addr',
+    'home',
+    'location',
+]);
+
+test('it rejects a misspelling of a common field', function (string $label) {
+    [$event, $user] = makeDraftEvent();
+
+    $response = $this->actingAs($user)->put(
+        route('events.registration.form.update', $event),
+        [
+            'fields' => [
+                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
+            ],
+        ],
+    );
+
+    $response->assertSessionHasErrors('fields.0.label');
+})->with([
+    'adress',
+    'emial',
+]);
+
+test('it rejects labels with formatting variants of common fields', function (string $label) {
+    [$event, $user] = makeDraftEvent();
+
+    $response = $this->actingAs($user)->put(
+        route('events.registration.form.update', $event),
+        [
+            'fields' => [
+                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
+            ],
+        ],
+    );
+
+    $response->assertSessionHasErrors('fields.0.label');
+})->with([
+    'First Name',
+    'first_name',
+    'FIRSTNAME',
+    'Last-Name',
+]);
+
+test('it accepts labels that are legitimately distinct from common fields', function (string $label) {
+    [$event, $user] = makeDraftEvent();
+
+    $response = $this->actingAs($user)->put(
+        route('events.registration.form.update', $event),
+        [
+            'fields' => [
+                regform_field(['label' => $label, 'field_type' => 'text', 'options' => []]),
+            ],
+        ],
+    );
+
+    $response->assertSessionDoesntHaveErrors('fields.0.label');
+})->with([
+    'Emergency contact',
+    'Parent email',
+    'Guardian phone',
+    'Jersey size',
+    'Shirt size',
+    'Blood type',
+    'Medical notes',
+    'KM',
+]);

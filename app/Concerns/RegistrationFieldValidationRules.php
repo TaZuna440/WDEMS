@@ -37,21 +37,115 @@ trait RegistrationFieldValidationRules
     public const MIN_STRICT_LABEL_LENGTH = 5;
 
     /**
-     * The six structural participant fields every registration form
-     * includes automatically.
+     * Synonym map for the six structural participant fields.
+     *
+     * Each entry maps a canonical key to a display label and a list
+     * of aliases. Aliases are pre-normalized (lowercase,
+     * alphanumeric-only) so they can be compared directly against
+     * the output of `normalizeLabelForCollision()`.
+     *
+     * Editing guidance:
+     *   - Add new aliases to the end of the list.
+     *   - Do not remove aliases — old drafts or imports may rely on
+     *     them.
+     *   - Keep the canonical key stable; the collision message uses
+     *     the `display` value, not the key.
+     *
+     * @return array<string, array{display: string, aliases: array<int, string>}>
+     */
+    protected function commonFieldSynonyms(): array
+    {
+        return [
+            'firstname' => [
+                'display' => 'First name',
+                'aliases' => [
+                    'firstname',
+                    'fname',
+                    'givenname',
+                    'forename',
+                    'first',
+                ],
+            ],
+            'lastname' => [
+                'display' => 'Last name',
+                'aliases' => [
+                    'lastname',
+                    'lname',
+                    'surname',
+                    'familyname',
+                    'last',
+                ],
+            ],
+            'email' => [
+                'display' => 'Email',
+                'aliases' => [
+                    'email',
+                    'emailaddress',
+                    'mail',
+                    'gmail',
+                    'emial',
+                ],
+            ],
+            'contactnumber' => [
+                'display' => 'Contact number',
+                'aliases' => [
+                    'contactnumber',
+                    'contact',
+                    'contactno',
+                    'contactnum',
+                    'phone',
+                    'phonenumber',
+                    'mobile',
+                    'mobilenumber',
+                    'cell',
+                    'cellphone',
+                    'cp',
+                    'tel',
+                    'telephone',
+                ],
+            ],
+            'age' => [
+                'display' => 'Age',
+                'aliases' => [
+                    'age',
+                    'dob',
+                    'birthdate',
+                    'birthday',
+                    'bday',
+                ],
+            ],
+            'address' => [
+                'display' => 'Address',
+                'aliases' => [
+                    'address',
+                    'addr',
+                    'adress',
+                    'home',
+                    'location',
+                    'street',
+                    'streetaddress',
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Flat list of every normalized alias across all synonym groups.
+     * Derived from `commonFieldSynonyms()` so the two never drift.
      *
      * @return array<int, string>
      */
     protected function commonFieldLabelsNormalized(): array
     {
-        return [
-            'firstname',
-            'lastname',
-            'email',
-            'contactnumber',
-            'age',
-            'address',
-        ];
+        $labels = [];
+
+        foreach ($this->commonFieldSynonyms() as $group) {
+            foreach ($group['aliases'] as $alias) {
+                $labels[] = $alias;
+            }
+        }
+
+        return $labels;
     }
 
     /**
@@ -85,6 +179,17 @@ trait RegistrationFieldValidationRules
 
     /**
      * Normalize a label for collision comparison.
+     *
+     * Applied steps, in order:
+     *   1. Trim whitespace.
+     *   2. NFKC normalization (if the intl extension is present) —
+     *      folds compatibility characters like fullwidth digits and
+     *      the feminine ordinal indicator into their canonical forms.
+     *   3. Lowercase (multibyte-aware).
+     *   4. Strip everything that is not a latin letter or digit.
+     *
+     * The output is guaranteed ASCII, which makes the subsequent
+     * `levenshtein()` calls byte-safe.
      */
     protected function normalizeLabelForCollision(string $label): string
     {
@@ -98,6 +203,79 @@ trait RegistrationFieldValidationRules
         }
 
         return (string) preg_replace('/[^a-z0-9]/', '', mb_strtolower($label));
+    }
+
+    /**
+     * Edit-distance threshold for a label of the given length.
+     *
+     * Shorter labels must be closer to a common field to be treated
+     * as a collision — there is less room for legitimate variation.
+     * Longer labels get a slightly wider band, since one or two
+     * character edits on a long word are almost always typos.
+     */
+    protected function editDistanceThreshold(int $length): int
+    {
+        return $length <= 9 ? 1 : 2;
+    }
+
+    /**
+     * Find the common field that a normalized label collides with,
+     * if any.
+     *
+     * Two passes:
+     *   1. Exact match against any alias. Fast and definitive.
+     *   2. Edit-distance match against any alias within the
+     *      length-appropriate threshold. Catches misspellings and
+     *      near-duplicates that exact matching misses.
+     *
+     * No substring matching. "Emergency contact" and "Parent email"
+     * pass — those are legitimately distinct fields. Only exact or
+     * near-exact matches are rejected.
+     *
+     * @return array{display: string, matched_alias: string, reason: string}|null
+     */
+    protected function findCommonFieldCollision(string $normalized): ?array
+    {
+        if ($normalized === '') {
+            return null;
+        }
+
+        $groups = $this->commonFieldSynonyms();
+
+        // Pass 1 — exact alias match.
+        foreach ($groups as $group) {
+            if (in_array($normalized, $group['aliases'], true)) {
+                return [
+                    'display' => $group['display'],
+                    'matched_alias' => $normalized,
+                    'reason' => 'exact',
+                ];
+            }
+        }
+
+        // Pass 2 — near-match by edit distance.
+        $length = strlen($normalized);
+        $threshold = $this->editDistanceThreshold($length);
+
+        foreach ($groups as $group) {
+            foreach ($group['aliases'] as $alias) {
+                // Quick skip: Levenshtein's minimum is the length
+                // difference, so a bigger gap cannot match.
+                if (abs(strlen($alias) - $length) > $threshold) {
+                    continue;
+                }
+
+                if (levenshtein($normalized, $alias) <= $threshold) {
+                    return [
+                        'display' => $group['display'],
+                        'matched_alias' => $alias,
+                        'reason' => 'misspelling',
+                    ];
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -234,6 +412,13 @@ trait RegistrationFieldValidationRules
 
     /**
      * Reject labels that collide with the six structural common fields.
+     *
+     * Detection is synonym-aware and misspelling-aware:
+     *   - "phone", "mobile", "cp", "contact" collide with Contact number
+     *   - "birthdate", "dob" collide with Age
+     *   - "adress", "emial" collide via edit distance
+     *   - "Emergency contact", "Parent email" pass — legitimately
+     *     distinct fields
      */
     protected function validateFieldLabelCollisions(Validator $validator): void
     {
@@ -244,8 +429,6 @@ trait RegistrationFieldValidationRules
             if (! is_array($fields)) {
                 return;
             }
-
-            $common = $this->commonFieldLabelsNormalized();
 
             foreach ($fields as $index => $field) {
                 if (! is_array($field)) {
@@ -264,10 +447,12 @@ trait RegistrationFieldValidationRules
                     continue;
                 }
 
-                if (in_array($normalized, $common, true)) {
+                $collision = $this->findCommonFieldCollision($normalized);
+
+                if ($collision !== null) {
                     $v->errors()->add(
                         "fields.{$index}.label",
-                        'This label matches a common field that is already on every form.',
+                        "This label duplicates the built-in field '{$collision['display']}'.",
                     );
                 }
             }

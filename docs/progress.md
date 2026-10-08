@@ -1121,3 +1121,66 @@ form builder UI).
 - **2026-10-02** — Phase 3 complete. Blocks 4–5, event-flow fixes,
   and common-field-requirements feature (Blocks A/B/C). Two new
   issues recorded. All four Phase 3 close docs appended.
+
+---
+
+## 2026-10-08 — Form builder collision detection enhancement
+
+### Summary
+
+Custom field labels in the registration form builder are now
+checked against a synonym map and an edit-distance threshold, in
+addition to the existing exact-match rule. This closes the gap that
+allowed `"contact"`, `"phone"`, `"adress"`, `"emial"`, and similar
+variants to duplicate the six common participant fields on the
+public form.
+
+Server-only. No frontend changes. One concern file touched, one
+test file extended.
+
+### Documentation appended
+
+| File | Change |
+|---|---|
+| `docs/fixes.md` | FIX-023 |
+| `docs/progress.md` | This entry |
+
+### Code changes
+
+| File | Change |
+|---|---|
+| `app/Concerns/RegistrationFieldValidationRules.php` | Added `commonFieldSynonyms()`, `editDistanceThreshold()`, `findCommonFieldCollision()`. Rewrote `validateFieldLabelCollisions()`. Rewrote `commonFieldLabelsNormalized()` as a derived helper |
+
+### Test changes
+
+| File | Change | Result |
+|---|---|---|
+| `tests/Feature/Events/RegistrationFormTest.php` | 7 new data-driven tests covering synonyms, misspellings, formatting variants, and negative cases | Pending verification |
+
+### Database changes
+
+None.
+
+### Environment changes
+
+None.
+
+### Bugs fixed
+
+| # | Bug | Fix | Evidence |
+|---|---|---|---|
+| FIX-023 | Collision detection was exact-match only; synonyms and misspellings passed | Three-layer detection (exact → synonym → edit distance) | New tests + browser |
+
+### Verification
+
+- `npm run types:check` silent
+- `php artisan test` — full suite unchanged
+- `php artisan test --filter="label"` — new tests pass
+- Browser: `"contact"` rejected after Save
+
+### Cross-reference
+
+| Subsystem | Primary doc |
+|---|---|
+| Fixed problems reference | `docs/fixes.md` (FIX-023) |
+| Registration spec | `docs/registration.md` |
