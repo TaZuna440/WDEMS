@@ -4,29 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
+use App\Enums\RegistrationStatus;
+use App\Http\Requests\WalkInRegistrationRequest;
 use App\Models\Event;
+use App\Models\Participant;
 use App\Models\Registration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AttendanceController extends Controller
 {
-    /**
-     * Directory of events eligible for attendance.
-     *
-     * An event is eligible when canRecordAttendanceToday() is true —
-     * status is registration_open, registration_closed, or ongoing,
-     * AND event_date <= today. Events are grouped for display:
-     * "today" (event_date === today) and "recent" (everything else
-     * in the eligible set, which is by definition in the past).
-     *
-     * Completed events are excluded. Attendance should have been
-     * recorded during ongoing; if it was missed, the event is not
-     * the right place to fix it. Same reasoning as the gate.
-     */
     public function index(): Response
     {
         $statuses = [
@@ -69,46 +60,90 @@ class AttendanceController extends Controller
         ]);
     }
 
-    /**
-     * Attendance page for a single event.
-     *
-     * Gate: canRecordAttendanceToday(). A future event returns 403
-     * with a message the organizer can understand — the event has
-     * not happened yet.
-     */
-    public function show(Event $event): Response
+    public function show(Request $request, Event $event): Response
     {
-        if (! $event->canRecordAttendanceToday()) {
-            abort(403, 'Attendance can only be recorded on the event day.');
+        if (! $event->canViewAttendance()) {
+            abort(403, 'Attendance is not available for this event.');
         }
 
-        $rows = $event->registrations()
-            ->with([
-                'participant:id,first_name,last_name,email,contact_number',
-                'attendance:id,registration_id,attendance_status,attendance_time,notes',
-            ])
-            ->get()
-            ->sortBy(fn (Registration $r) => strtolower(
-                ($r->participant?->last_name ?? '').' '.($r->participant?->first_name ?? '')
-            ))
-            ->values()
-            ->map(fn (Registration $r) => [
-                'id' => $r->id,
-                'source' => $r->source,
-                'registered_at' => $r->registered_at?->toIso8601String(),
-                'participant' => [
-                    'id' => $r->participant?->id,
-                    'full_name' => $r->participant?->fullName(),
-                    'email' => $r->participant?->email,
-                    'contact_number' => $r->participant?->contact_number,
-                ],
-                'attendance' => $r->attendance ? [
-                    'status' => $r->attendance->attendance_status->value,
-                    'status_label' => $r->attendance->attendance_status->label(),
-                    'time' => $r->attendance->attendance_time?->toIso8601String(),
-                    'notes' => $r->attendance->notes,
-                ] : null,
-            ]);
+        $search = trim((string) $request->input('q', ''));
+        $filter = (string) $request->input('filter', 'all');
+
+        $allowedFilters = ['all', 'unmarked', 'present', 'absent', 'late', 'excused'];
+        if (! in_array($filter, $allowedFilters, true)) {
+            $filter = 'all';
+        }
+
+        $baseQuery = function () use ($event, $search) {
+            $q = Registration::query()
+                ->where('registrations.event_id', $event->id)
+                ->join('participants', 'participants.id', '=', 'registrations.participant_id')
+                ->select('registrations.*');
+
+            if ($search !== '') {
+                $like = '%'.$search.'%';
+                $q->where(function ($sub) use ($like) {
+                    $sub->where('participants.first_name', 'like', $like)
+                        ->orWhere('participants.last_name', 'like', $like)
+                        ->orWhere('participants.email', 'like', $like)
+                        ->orWhere('participants.contact_number', 'like', $like);
+                });
+            }
+
+            return $q;
+        };
+
+        $counts = [
+            'all' => $baseQuery()->count(),
+            'unmarked' => $baseQuery()->whereDoesntHave('attendance')->count(),
+            'present' => $baseQuery()
+                ->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'present'))
+                ->count(),
+            'absent' => $baseQuery()
+                ->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'absent'))
+                ->count(),
+            'late' => $baseQuery()
+                ->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'late'))
+                ->count(),
+            'excused' => $baseQuery()
+                ->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'excused'))
+                ->count(),
+        ];
+
+        $query = $baseQuery()->with([
+            'participant:id,first_name,last_name,email,contact_number',
+            'attendance:id,registration_id,attendance_status,attendance_time,notes',
+        ]);
+
+        if ($filter === 'unmarked') {
+            $query->whereDoesntHave('attendance');
+        } elseif ($filter !== 'all') {
+            $query->whereHas('attendance', fn ($q) => $q->where('attendance_status', $filter));
+        }
+
+        $query->orderBy('participants.last_name')
+            ->orderBy('participants.first_name')
+            ->orderBy('registrations.id');
+
+        $paginator = $query->paginate(50)->withQueryString();
+
+        $rows = collect($paginator->items())->map(fn (Registration $r) => [
+            'id' => $r->id,
+            'source' => $r->source,
+            'registered_at' => $r->registered_at?->toIso8601String(),
+            'participant' => [
+                'id' => $r->participant?->id,
+                'full_name' => $r->participant?->fullName(),
+                'email' => $r->participant?->email,
+                'contact_number' => $r->participant?->contact_number,
+            ],
+            'attendance' => $r->attendance ? [
+                'status' => $r->attendance->attendance_status->value,
+                'status_label' => $r->attendance->attendance_status->label(),
+                'time' => $r->attendance->attendance_time?->toIso8601String(),
+                'notes' => $r->attendance->notes,
+            ] : null,
+        ]);
 
         return Inertia::render('events/attendance', [
             'event' => [
@@ -118,8 +153,25 @@ class AttendanceController extends Controller
                 'status_label' => $event->status->label(),
                 'event_date' => $event->event_date?->toDateString(),
                 'venue' => $event->venue,
+                'common_field_requirements' => [
+                    'email' => $event->isCommonFieldRequired('email'),
+                    'contact_number' => $event->isCommonFieldRequired('contact_number'),
+                    'address' => $event->isCommonFieldRequired('address'),
+                ],
             ],
             'rows' => $rows,
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+            'counts' => $counts,
+            'filters' => [
+                'q' => $search,
+                'filter' => $filter,
+            ],
+            'can_mark' => $event->canRecordAttendanceToday(),
             'attendance_statuses' => collect(AttendanceStatus::cases())
                 ->map(fn (AttendanceStatus $s) => [
                     'value' => $s->value,
@@ -129,13 +181,6 @@ class AttendanceController extends Controller
         ]);
     }
 
-    /**
-     * Mark or update a registration's attendance.
-     *
-     * Same gate as show() — a direct POST to a future event is
-     * rejected, not just the UI path. The registration-belongs-to-
-     * event check is a separate 404 for a malformed URL.
-     */
     public function mark(Request $request, Event $event, Registration $registration): RedirectResponse
     {
         if (! $event->canRecordAttendanceToday()) {
@@ -170,5 +215,49 @@ class AttendanceController extends Controller
         );
 
         return back();
+    }
+
+    public function walkIn(WalkInRegistrationRequest $request, Event $event): RedirectResponse
+    {
+        if (! $event->canRecordAttendanceToday()) {
+            abort(403, 'Walk-ins can only be registered on the event day.');
+        }
+
+        $validated = $request->validated();
+        $user = $request->user();
+
+        DB::transaction(function () use ($validated, $event, $user): void {
+            $participant = Participant::resolveFrom(
+                $validated['email'] ?? null,
+                $validated['contact_number'] ?? null,
+                [
+                    'first_name' => $validated['first_name'],
+                    'last_name' => $validated['last_name'],
+                    'age' => $validated['age'],
+                    'email' => $validated['email'] ?? null,
+                    'contact_number' => $validated['contact_number'] ?? null,
+                    'address' => $validated['address'] ?? null,
+                ],
+            );
+
+            $registration = Registration::create([
+                'event_id' => $event->id,
+                'participant_id' => $participant->id,
+                'registration_date' => now(),
+                'registration_status' => RegistrationStatus::Confirmed,
+                'source' => 'walk_in',
+                'registered_at' => now(),
+            ]);
+
+            if ($validated['mark_present'] ?? true) {
+                $registration->attendance()->create([
+                    'attendance_status' => AttendanceStatus::Present,
+                    'attendance_time' => now(),
+                    'recorded_by' => $user->id,
+                ]);
+            }
+        });
+
+        return redirect()->route('events.attendance', $event);
     }
 }

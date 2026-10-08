@@ -1224,3 +1224,49 @@ test suites plus additions to the existing collision suite.
     php artisan test                                          (full suite)
 
 Full suite: 3 skipped, 370 passed (954 assertions).
+
+---
+
+## 2026-10-08 - Phase 4 complete: attendance rebuild
+
+### Summary
+
+Full attendance page rewrite. Server-side search, six filter chips,
+pagination at 50 rows, walk-in registration dialog, primary
+Present button with a dropdown menu for the other three statuses,
+and read-only mode after event completion.
+
+The page is now usable at 200+ registrations. Prior version loaded
+every row.
+
+### Documentation appended
+
+    docs/fixes.md                        - FIX-026
+    docs/registration-development-plan.md - Phase 4 close
+    docs/progress.md                     - this entry
+
+### Code changes
+
+    app/Http/Controllers/AttendanceController.php   (show rewritten, walkIn added)
+    app/Http/Requests/WalkInRegistrationRequest.php (new)
+    app/Models/Event.php                            (canViewAttendance added)
+    routes/web.php                                  (walk-in route)
+    database/migrations/2026_10_08_062722_...       (search indexes)
+
+### Frontend changes
+
+    resources/js/pages/events/attendance.tsx        (full rewrite)
+    resources/js/components/attendance-filter-chips.tsx (new)
+    resources/js/components/pagination.tsx          (new)
+    resources/js/components/walk-in-dialog.tsx      (new)
+
+### Test changes
+
+    tests/Feature/Events/AttendanceTest.php         (new, 21 tests)
+
+### Verification
+
+    php artisan test tests/Feature/Events/AttendanceTest.php  21 passed / 150 assertions
+    php artisan test                                           391 passed / 1104 assertions
+    npm run types:check                                        silent
+    npm run build                                              succeeds

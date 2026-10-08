@@ -252,6 +252,41 @@ class Event extends Model
         return $this->event_date->lte(today());
     }
 
+    /**
+     * Can the attendance page be viewed for this event?
+     *
+     * Broader than canRecordAttendanceToday(). Adds Completed to the
+     * viewable set so the organizer can review attendance after the
+     * event. Marking is still gated by canRecordAttendanceToday() —
+     * this method only decides whether the page renders at all.
+     *
+     * Excluded: draft, configured, cancelled. Their attendance data
+     * is meaningless or does not exist.
+     *
+     * Date gate matches canRecordAttendanceToday(): a future event
+     * returns false. A completed event has a past event_date by
+     * definition, so the gate is trivially satisfied.
+     */
+    public function canViewAttendance(): bool
+    {
+        $viewableStatuses = [
+            EventStatus::RegistrationOpen,
+            EventStatus::RegistrationClosed,
+            EventStatus::Ongoing,
+            EventStatus::Completed,
+        ];
+
+        if (! in_array($this->status, $viewableStatuses, true)) {
+            return false;
+        }
+
+        if ($this->event_date === null) {
+            return false;
+        }
+
+        return $this->event_date->lte(today());
+    }
+
     public function isCommunityRun(): bool
     {
         return $this->event_type === EventType::CommunityRun;

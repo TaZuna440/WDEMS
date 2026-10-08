@@ -1740,3 +1740,155 @@ Two secondary observations, not worth their own issues:
   deviations from the plan recorded. Common-field-requirements
   feature recorded as an addendum to the original Phase 3 plan. Two
   new issues carried to known-issues.md.
+
+---
+
+## Phase 4 — Attendance rebuild (implementation plan)
+
+**Date:** 2026-10-08
+**Status:** Planned
+
+### Scope
+
+Rewrite the attendance page for events with hundreds of registrations.
+
+### Features
+
+1. **Server-side search** across `first_name`, `last_name`, `email`,
+   `contact_number` (OR-joined LIKE queries against participant
+   columns).
+2. **Filter chips** — six states: All, Unmarked, Present, Absent, Late,
+   Excused. Server-side via query string.
+3. **Pagination** — 50 rows per page, server-side.
+4. **Walk-in creation** — modal collects first name, last name, age,
+   plus whatever the event's `common_field_requirements` marks required.
+   Creates Participant + Registration + optional Attendance in a
+   transaction.
+5. **Mark-present toggle** — primary action is a single "Present"
+   button per row. `⋯` menu exposes Late, Absent, Excused.
+6. **Post-event read-only** — viewing allowed after event; marking
+   disabled. New prop `can_mark` distinguishes the two states.
+
+### Schema changes
+
+One migration adds indexes to `participants`:
+
+- `email` — search
+- `contact_number` — search
+- `first_name` — search
+- `last_name` — search
+
+Both `first_name` and `last_name` get individual indexes (option 1
+from C-5 of this document). Two-column LIKE with indexes is fast at
+this scale. A generated `full_name` column is deferred.
+
+### Backend files
+
+- `database/migrations/XXXX_add_attendance_search_indexes.php` (new)
+- `app/Http/Controllers/AttendanceController.php` (rewrite show, add walkIn)
+- `app/Http/Requests/WalkInRegistrationRequest.php` (new)
+- `app/Models/Event.php` (add `canViewAttendance()`)
+- `routes/web.php` (add walk-in route)
+
+### Frontend files
+
+- `resources/js/pages/events/attendance.tsx` (rewrite)
+- `resources/js/components/walk-in-dialog.tsx` (new)
+- `resources/js/components/attendance-filter-chips.tsx` (new)
+- `resources/js/components/pagination.tsx` (new if no existing one)
+
+### Tests
+
+- `tests/Feature/Events/AttendanceTest.php` (new) — search, filter,
+  pagination, walk-in, mark, post-event read-only
+
+### Route changes
+
+    GET    /events/{event}/attendance              (unchanged, now with query params)
+    POST   /events/{event}/attendance/walk-in      (new)
+    POST   /events/{event}/attendance/{reg}/mark   (unchanged)
+
+### Gate changes
+
+- `show()` gate changes from `canRecordAttendanceToday()` to the more
+  permissive `canViewAttendance()` — status in `[registration_open,
+  registration_closed, ongoing, completed]`. Draft / configured /
+  cancelled / future-dated events still return 403.
+- `mark()` gate stays on `canRecordAttendanceToday()`. Post-event
+  marking is disabled.
+- Frontend reads `can_mark` to disable the mark buttons.
+
+### Walk-in conflict handling
+
+If the walk-in's email/phone resolves to an existing participant who is
+already registered for this event, the controller returns a validation
+error: *"This person is already registered for this event. Search the
+list and mark their attendance instead."*
+
+### Verification
+
+    php artisan test tests/Feature/Events/AttendanceTest.php
+    php artisan test
+    npm run types:check
+    npm run build
+
+Browser: attendance page with 200+ registrations — paginate, search,
+filter, mark, add walk-in.
+
+
+---
+
+## Phase 4 complete - Attendance rebuild
+
+**Date:** 2026-10-08
+
+### Delivered
+
+- Server-side search across participant first name, last name, email,
+  contact number (LIKE with OR-joined conditions).
+- Six filter chips: All, Unmarked, Present, Absent, Late, Excused.
+  Counts reflect the current search.
+- Pagination at 50 rows per page, alphabetical by last name.
+- Walk-in dialog: name, age, and whatever the event's
+  `registration_common_field_requirements` marks required.
+  Participant + Registration + optional Attendance in one transaction.
+- Primary "Present" button per row, with a dropdown menu for Late,
+  Absent, and Excused.
+- Read-only view after event completion: `canViewAttendance()` allows
+  the completed status; marking is still gated by
+  `canRecordAttendanceToday()`.
+- Search indexes on `participants.first_name`, `.last_name`,
+  `.contact_number`.
+
+### Deviations from the original Phase 4 plan
+
+None. All planned features shipped.
+
+### Test coverage at close
+
+    tests/Feature/Events/AttendanceTest.php   21 passed / 150 assertions
+    Full suite                                 391 passed / 1104 assertions
+
+### Files added
+
+    app/Http/Requests/WalkInRegistrationRequest.php
+    database/migrations/2026_10_08_062722_add_attendance_search_indexes_to_participants_table.php
+    resources/js/components/attendance-filter-chips.tsx
+    resources/js/components/pagination.tsx
+    resources/js/components/walk-in-dialog.tsx
+    tests/Feature/Events/AttendanceTest.php
+
+### Files modified
+
+    app/Http/Controllers/AttendanceController.php
+    app/Models/Event.php
+    routes/web.php
+    resources/js/pages/events/attendance.tsx
+
+### Carried forward
+
+- The event show page does not link to attendance when the event is
+  Completed (its `can_record_attendance` prop is false). The page is
+  reachable by URL, but there is no in-app path. Small follow-up.
+- Walk-in does not collect custom field answers. Intentional scope
+  decision; the fast path is prioritized.

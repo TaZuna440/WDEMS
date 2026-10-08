@@ -1496,3 +1496,57 @@ quality check only ran at 5+ characters.
 
     app/Concerns/RegistrationFieldValidationRules.php
     tests/Feature/Events/RegistrationLabelQualityTest.php
+
+---
+
+## FIX-026 - Attendance page had no search, filter, or pagination
+
+**Date:** 2026-10-08
+**Severity:** Medium (scalability)
+**Status:** Fixed
+
+### Symptom
+
+The attendance page loaded every registration for an event at once,
+sorted alphabetically. It worked for 20-row events and became unusable
+at 200. No search, no filter chips, no pagination, no walk-in path.
+
+### Root cause
+
+`AttendanceController@show` loaded all registrations via
+`$event->registrations()->get()`. The frontend rendered every row. No
+UI affordance existed for narrowing the list. Organizers marked
+attendance by scrolling and reading.
+
+### Fix
+
+- Server-side search across first_name, last_name, email,
+  contact_number
+- Six server-side filter chips (All, Unmarked, Present, Absent, Late,
+  Excused) with counts reflecting the current search
+- Pagination at 50 rows per page
+- Walk-in dialog: creates Participant + Registration + optional
+  Attendance in a transaction
+- Primary "Present" button + `...` menu for Late/Absent/Excused
+- Read-only view after event completion
+- Indexes on `participants.first_name`, `.last_name`,
+  `.contact_number` (migration
+  `2026_10_08_062722_add_attendance_search_indexes`)
+
+### Files
+
+    app/Http/Controllers/AttendanceController.php
+    app/Http/Requests/WalkInRegistrationRequest.php
+    app/Models/Event.php
+    routes/web.php
+    database/migrations/2026_10_08_062722_add_attendance_search_indexes_to_participants_table.php
+    resources/js/pages/events/attendance.tsx
+    resources/js/components/attendance-filter-chips.tsx
+    resources/js/components/pagination.tsx
+    resources/js/components/walk-in-dialog.tsx
+    tests/Feature/Events/AttendanceTest.php
+
+### Verification
+
+    php artisan test tests/Feature/Events/AttendanceTest.php  (21 passed)
+    php artisan test                                           (391 passed)

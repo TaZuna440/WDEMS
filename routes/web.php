@@ -92,7 +92,15 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(functi
     Route::post('events/{event}/deletion/verify-otp', [EventDeletionController::class, 'verifyOtp'])
         ->middleware('throttle:event-deletion-otp-verify')->name('events.deletion.verify-otp');
 
+    // Attendance page + walk-in + mark.
+    //
+    // Route order matters here for clarity: `walk-in` is a literal
+    // segment in the position where `{registration}` would otherwise
+    // sit. The paths have different segment counts (`walk-in` is 4
+    // segments, `{registration}/mark` is 5), so they cannot collide.
+    // Listing walk-in first keeps the pattern obvious to a reader.
     Route::get('events/{event}/attendance', [AttendanceController::class, 'show'])->name('events.attendance');
+    Route::post('events/{event}/attendance/walk-in', [AttendanceController::class, 'walkIn'])->name('events.attendance.walk-in');
     Route::post('events/{event}/attendance/{registration}/mark', [AttendanceController::class, 'mark'])->name('events.attendance.mark');
 
     // Admin-only routes — same trusted-device pipeline, admin gate layered on top.
