@@ -102,6 +102,8 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(functi
     Route::get('events/{event}/attendance', [AttendanceController::class, 'show'])->name('events.attendance');
     Route::post('events/{event}/attendance/walk-in', [AttendanceController::class, 'walkIn'])->name('events.attendance.walk-in');
     Route::post('events/{event}/attendance/bulk-mark', [AttendanceController::class, 'bulkMark'])->name('events.attendance.bulk-mark');
+    Route::post('events/{event}/attendance/bulk-walk-in', [AttendanceController::class, 'bulkWalkIn'])
+        ->middleware('throttle:walk-in-batch')->name('events.attendance.bulk-walk-in');
     Route::post('events/{event}/attendance/{registration}/mark', [AttendanceController::class, 'mark'])->name('events.attendance.mark');
 
     // Admin-only routes — same trusted-device pipeline, admin gate layered on top.

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Concerns\ContactAndAddressQualityRules;
 use App\Concerns\HumanNameQualityRules;
+use App\Concerns\WalkInFieldValidationRules;
 use App\Models\Event;
 use App\Models\Participant;
 use Illuminate\Foundation\Http\FormRequest;
@@ -12,6 +13,7 @@ class WalkInRegistrationRequest extends FormRequest
 {
     use ContactAndAddressQualityRules;
     use HumanNameQualityRules;
+    use WalkInFieldValidationRules;
 
     /**
      * Staff are creating this on behalf of a participant. The route
@@ -79,11 +81,9 @@ class WalkInRegistrationRequest extends FormRequest
      *   4. Not already registered for this event.
      *
      * Passes 1 + 2 mirror PublicRegistrationRequest::withValidator()
-     * exactly. The methods isEmpty() and validateType() below are
-     * duplicated from that request. Phase C of
-     * docs/attendance-redesign.md will extract both into a shared
-     * concern once the bulk-walk-in surface also needs them. Phase A
-     * accepts the duplication.
+     * exactly. The isEmpty() and validateResponseType() helpers come
+     * from the WalkInFieldValidationRules trait — shared with the
+     * bulk walk-in request introduced in Phase C.
      */
     public function withValidator($validator): void
     {
@@ -118,9 +118,9 @@ class WalkInRegistrationRequest extends FormRequest
                     continue;
                 }
 
-                $this->validateType(
+                $this->validateResponseType(
                     $v,
-                    (int) $fieldId,
+                    "responses.{$fieldId}",
                     $field->field_type,
                     $value,
                     $field->options ?? [],
@@ -223,71 +223,6 @@ class WalkInRegistrationRequest extends FormRequest
         $isRequired = ! ($event instanceof Event) || $event->isCommonFieldRequired($field);
 
         return array_merge([$isRequired ? 'required' : 'nullable'], $formatRules);
-    }
-
-    /**
-     * Treat null, empty string, and empty array as absent. Same logic
-     * as PublicRegistrationRequest::isEmpty().
-     */
-    private function isEmpty(mixed $value): bool
-    {
-        return $value === null || $value === '' || $value === [];
-    }
-
-    /**
-     * Per-type format check for a custom field value. Mirrors
-     * PublicRegistrationRequest::validateType() exactly — same
-     * eight field types, same error messages.
-     *
-     * @param  array<int, string>  $options
-     */
-    private function validateType($validator, int $fieldId, string $type, mixed $value, array $options): void
-    {
-        $key = "responses.{$fieldId}";
-
-        switch ($type) {
-            case 'text':
-            case 'textarea':
-            case 'email':
-                if (! is_string($value)) {
-                    $validator->errors()->add($key, 'Must be a string.');
-                } elseif ($type === 'email' && ! filter_var($value, FILTER_VALIDATE_EMAIL)) {
-                    $validator->errors()->add($key, 'Must be a valid email address.');
-                }
-                break;
-
-            case 'date':
-                if (! is_string($value) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
-                    $validator->errors()->add($key, 'Must be a date in YYYY-MM-DD format.');
-                }
-                break;
-
-            case 'number':
-                if (! is_numeric($value)) {
-                    $validator->errors()->add($key, 'Must be a number.');
-                }
-                break;
-
-            case 'select':
-            case 'radio':
-                if (! is_string($value) || ! in_array($value, $options, true)) {
-                    $validator->errors()->add($key, 'Invalid choice.');
-                }
-                break;
-
-            case 'checkbox':
-                if (! is_array($value)) {
-                    $validator->errors()->add($key, 'Must be an array of choices.');
-                    break;
-                }
-                foreach ($value as $option) {
-                    if (! is_string($option) || ! in_array($option, $options, true)) {
-                        $validator->errors()->add($key, 'Invalid choice.');
-                        break;
-                    }
-                }
-                break;
-        }
     }
 
     /**

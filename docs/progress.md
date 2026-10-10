@@ -1420,3 +1420,65 @@ Two request shapes to the new endpoint:
 
 Full-suite baseline at Phase B start: 427 passed. After Phase B:
 439 passed (+12 net new tests).
+
+---
+
+## 2026-10-10 - Phase C complete: Add mode batch table
+
+### Summary
+
+Phase C of `docs/attendance-redesign.md` shipped. The attendance
+page gains a third mode, Batch, that opens a multi-row entry
+surface. Each row becomes a paper-sourced registration marked
+present.
+
+Server: `BulkWalkInRegistrationRequest`, `bulkWalkIn()` with per-row
+business checks and independent transactions, `walk-in-batch`
+rate limiter, `source = 'paper'`.
+
+Client: `attendance-bulk-validation.ts` and `bulk-walk-in-table.tsx`
+are new. `attendance.tsx` gains the third mode.
+
+Idempotency via client UUID cached for 60 seconds. Retries of an
+already-processed row are no-ops.
+
+### Deviations
+
+- Single test file, not two.
+- Rate limit key is `user_id|event_id`, matching the OTP limiter
+  pattern.
+- Identity error key is `rows.{i}.identity`, namespaced by row.
+
+### Not shipped
+
+- Paste-from-spreadsheet. Deferred to a follow-up.
+
+### Documentation appended
+
+    docs/attendance-redesign.md   - Phase C complete marker
+    docs/progress.md              - this entry
+
+### Code changes
+
+    app/Concerns/WalkInFieldValidationRules.php         (new)
+    app/Http/Requests/BulkWalkInRegistrationRequest.php (new)
+    app/Http/Requests/WalkInRegistrationRequest.php     (refactor to use concern)
+    app/Providers/AppServiceProvider.php                (rate limiter)
+    app/Http/Controllers/AttendanceController.php       (bulkWalkIn + helpers)
+    routes/web.php                                      (bulk-walk-in route)
+    resources/js/lib/attendance-bulk-validation.ts      (new)
+    resources/js/components/bulk-walk-in-table.tsx      (new)
+    resources/js/pages/events/attendance.tsx            (batch mode)
+
+### Test changes
+
+    tests/Feature/Events/AttendanceBulkWalkInTest.php    (new, 16 tests)
+
+### Verification
+
+    php artisan test tests/Feature/Events/AttendanceBulkWalkInTest.php  16 passed / 51 assertions
+    php artisan test                                                    455 passed / 1313 assertions
+    npx tsc --noEmit                                                    silent
+
+Full-suite baseline at Phase C start: 439 passed. After Phase C:
+455 passed (+16 net new tests).

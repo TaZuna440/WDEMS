@@ -663,3 +663,113 @@ on a completed event.
 - Section 7 — Phase B scope
 - FIX-026 — original attendance page this builds on
 - Phase A complete — the window + custom fields work this depends on
+
+---
+
+## Phase C complete (2026-10-10)
+
+**Status:** Shipped. One commit.
+
+### What shipped
+
+**Server side:**
+
+- New `App\Concerns\WalkInFieldValidationRules` trait. Extracted
+  `isEmpty()` and `validateResponseType()` from
+  `WalkInRegistrationRequest`. `validateResponseType()` takes the
+  error key as a parameter so single-row (`responses.{id}`) and bulk
+  (`rows.{i}.responses.{id}`) callers share one implementation.
+
+- New `App\Http\Requests\BulkWalkInRegistrationRequest`. Accepts
+  `rows: array` (min 1, max 100). Each row validated for common
+  fields, name quality, phone/address quality, and custom field
+  ownership + format. Error keys under `rows.{i}.*`.
+
+- New `walk-in-batch` rate limiter in `AppServiceProvider` —
+  10/min per user+event. Compound key matches the OTP limiter
+  pattern.
+
+- `AttendanceController::bulkWalkIn()` — new action. Iterates the
+  rows, runs business checks (identity presence, already-registered,
+  duplicate-within-batch) per row, persists each success in its own
+  transaction. Per-row failures reported as `rows.{i}.identity`
+  errors alongside the successful writes.
+
+- Two new private helpers: `persistBulkWalkInRow()` and
+  `bulkWalkInSummary()`.
+
+- `source = 'paper'` for every bulk-registered row — the operator is
+  transcribing physical forms, not registering a live walk-up.
+
+- Idempotency: `client_uuid` cached for 60 seconds after successful
+  persist. A resubmitted row with the same UUID is a no-op. Failed
+  rows do not cache, so they retry naturally.
+
+- New route: `POST events/{event}/attendance/bulk-walk-in`
+  (`events.attendance.bulk-walk-in`), throttled by `walk-in-batch`.
+
+**Client side:**
+
+- New `resources/js/lib/attendance-bulk-validation.ts`. Wraps
+  `validateRegistrationForm()` from the public form, namespaces
+  errors under `rows.{i}.*`. Exports `makeBulkWalkInRow()` for
+  generating fresh rows with a client UUID.
+
+- New `resources/js/components/bulk-walk-in-table.tsx`. Multi-row
+  entry surface. Each row renders the six common fields plus the
+  event's custom fields (all eight types). Per-row error feedback
+  via `InputError`. Left border marks rows with errors. Add/remove
+  controls.
+
+- `attendance.tsx` gains a third mode, `'batch'`. Batch mode hides
+  the list/filter/search and renders the table + Save button. On
+  success, rows reset to a single empty one. On server per-row
+  errors, rows stay so the operator can fix and retry.
+
+### Deviations from the plan
+
+**Single test file.** The plan listed two files
+(`AttendanceBulkWalkInTest.php` and
+`AttendanceBulkWalkInRateLimitTest.php`). Shipped as one file — the
+rate limit test needs the same helpers (event, staff, row, field)
+and splitting would have duplicated them.
+
+**Error key for identity.** The plan used the phrase
+`rows.{i}.identity` for the per-row business errors. Shipped exactly
+that — the same key the single walk-in dialog uses for the
+email-or-phone rule, namespaced by row.
+
+**Rate limit key.** The plan said "10/min/user." Shipped as
+`user_id|event_id` to match the compound OTP limiter pattern. One
+operator working two events simultaneously does not share a rate
+budget.
+
+### Not shipped
+
+**Paste-from-spreadsheet.** Deferred as planned. Users transcribe
+manually today. Phase D (or a follow-up inside C) can add paste
+support once the manual entry has been used on a real event day.
+
+### Tests
+
+    tests/Feature/Events/AttendanceBulkWalkInTest.php  (new, 16 tests)
+
+Covers: single row, multiple rows, source stamp, custom field
+responses per row, idempotency, per-row rejection with partial
+success (no identity, already registered, duplicate within batch),
+shape validation (empty, oversize, missing UUID, duplicate UUID,
+cross-event field), window gate, admin force-open, rate limit at
+the 11th request.
+
+### Verification
+
+    php artisan test tests/Feature/Events/AttendanceBulkWalkInTest.php  (16 passed)
+    php artisan test                                                   (455 passed)
+    npx tsc --noEmit                                                  (silent)
+
+### Cross-references
+
+- Section 8 — Phase C scope
+- Phase A complete — window + custom fields on the single dialog
+- Phase B complete — Confirm mode, which established the mode
+  toggle this phase extends

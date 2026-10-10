@@ -74,5 +74,17 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('public-registration-submit', function (Request $request) {
             return Limit::perMinute(5)->by($request->ip());
         });
+
+        // Bulk walk-in entry. Keyed by user|event so one operator
+        // working two events simultaneously does not share the
+        // budget. 10 requests per minute is generous for a single
+        // staff member transcribing a stack of paper forms (each
+        // request carries up to MAX_ROWS=100 rows) and tight enough
+        // to catch a runaway loop.
+        RateLimiter::for('walk-in-batch', function (Request $request) {
+            return Limit::perMinute(10)->by(
+                $request->user()?->id.'|'.$request->route('event')
+            );
+        });
     }
 }
