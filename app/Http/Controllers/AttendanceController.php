@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
 use App\Enums\RegistrationStatus;
+use App\Http\Requests\BulkMarkAttendanceRequest;
 use App\Http\Requests\WalkInRegistrationRequest;
 use App\Models\Event;
 use App\Models\Participant;
@@ -228,6 +229,139 @@ class AttendanceController extends Controller
         );
 
         return back();
+    }
+
+    /**
+     * Bulk mark as present.
+     *
+     * Two shapes accepted by the request (see BulkMarkAttendanceRequest):
+     *
+     *   - registration_ids: an explicit list. Every ID must belong to
+     *     this event; a single mismatch rejects the whole batch.
+     *   - mark_all_visible + filter + q: marks every registration
+     *     matching the current filter and search. Scope is the search
+     *     result, not the current page — pagination is a view concern,
+     *     not a marking concern.
+     *
+     * Idempotent. Writes go through the same attendance()->updateOrCreate()
+     * the single-row mark uses. Rerunning is a no-op for already-present
+     * rows.
+     *
+     * No rate limiter — this is a trusted-staff write operation, and the
+     * single-row mark endpoint has no limiter either. If abuse becomes a
+     * concern, add a throttle:attendance-bulk-mark middleware here.
+     */
+    public function bulkMark(BulkMarkAttendanceRequest $request, Event $event): RedirectResponse
+    {
+        $forceOpen = $request->user()?->isAdmin() === true
+            && $request->boolean('force_open');
+
+        if (! $forceOpen && ! $event->canRecordAttendanceNow()) {
+            abort(403, 'Attendance can only be recorded on the event day.');
+        }
+
+        $validated = $request->validated();
+        $user = $request->user();
+
+        $ids = $this->resolveBulkMarkIds($validated, $event);
+
+        $count = 0;
+
+        DB::transaction(function () use ($ids, $user, &$count): void {
+            $registrations = Registration::whereIn('id', $ids)->get();
+
+            foreach ($registrations as $registration) {
+                $registration->attendance()->updateOrCreate(
+                    ['registration_id' => $registration->id],
+                    [
+                        'attendance_status' => AttendanceStatus::Present,
+                        'attendance_time' => now(),
+                        'recorded_by' => $user->id,
+                    ],
+                );
+
+                $count++;
+            }
+        });
+
+        return back()->with(
+            'success',
+            $count === 1
+                ? 'Marked 1 participant as present.'
+                : "Marked {$count} participants as present.",
+        );
+    }
+
+    /**
+     * Resolve the two bulk-mark request shapes into a flat list of
+     * registration IDs scoped to the event.
+     *
+     * Explicit shape: verifies every submitted ID belongs to this
+     * event before returning. A single mismatch throws 422 rather
+     * than partially applying — same "all-or-nothing at the request
+     * level" principle as the duplicate check on the public form.
+     *
+     * WYSIWYG shape: rebuilds the search + filter clause the show()
+     * page uses. See buildFilteredRegistrationIds().
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<int, int>
+     */
+    private function resolveBulkMarkIds(array $validated, Event $event): array
+    {
+        $explicit = $validated['registration_ids'] ?? null;
+
+        if (is_array($explicit) && count($explicit) > 0) {
+            $ownedIds = Registration::where('event_id', $event->id)
+                ->whereIn('id', $explicit)
+                ->pluck('id')
+                ->all();
+
+            if (count($ownedIds) !== count($explicit)) {
+                abort(422, 'One or more registrations do not belong to this event.');
+            }
+
+            return $ownedIds;
+        }
+
+        $search = trim((string) ($validated['q'] ?? ''));
+        $filter = $validated['filter'] ?? 'all';
+
+        return $this->buildFilteredRegistrationIds($event, $search, $filter);
+    }
+
+    /**
+     * Return IDs of every registration matching the current filter
+     * and search — the same clause the show() page uses. Duplicated
+     * from show()'s $baseQuery closure for now; Phase C consolidates
+     * once the batch walk-in surface also needs the shape.
+     *
+     * @return array<int, int>
+     */
+    private function buildFilteredRegistrationIds(Event $event, string $search, string $filter): array
+    {
+        $q = Registration::query()
+            ->where('registrations.event_id', $event->id)
+            ->join('participants', 'participants.id', '=', 'registrations.participant_id')
+            ->select('registrations.id');
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $q->where(function ($sub) use ($like) {
+                $sub->where('participants.first_name', 'like', $like)
+                    ->orWhere('participants.last_name', 'like', $like)
+                    ->orWhere('participants.email', 'like', $like)
+                    ->orWhere('participants.contact_number', 'like', $like);
+            });
+        }
+
+        if ($filter === 'unmarked') {
+            $q->whereDoesntHave('attendance');
+        } elseif ($filter !== 'all' && in_array($filter, ['present', 'absent', 'late', 'excused'], true)) {
+            $q->whereHas('attendance', fn ($qq) => $qq->where('attendance_status', $filter));
+        }
+
+        return $q->pluck('registrations.id')->all();
     }
 
     public function walkIn(WalkInRegistrationRequest $request, Event $event): RedirectResponse

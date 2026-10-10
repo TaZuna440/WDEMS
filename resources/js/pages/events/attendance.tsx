@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
     Check,
+    CheckCircle2,
     Clock,
     Plus,
     Search,
@@ -14,9 +15,19 @@ import { useEffect, useState } from 'react';
 import AttendanceFilterChips, {
     type AttendanceFilter,
 } from '@/components/attendance-filter-chips';
+import BulkMarkToolbar from '@/components/bulk-mark-toolbar';
 import Pagination from '@/components/pagination';
 import WalkInDialog from '@/components/walk-in-dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -26,6 +37,8 @@ import {
 import { Input } from '@/components/ui/input';
 
 type AttendanceStatus = 'present' | 'late' | 'absent' | 'excused';
+
+type PageMode = 'mark' | 'confirm';
 
 type StatusOption = {
     value: AttendanceStatus;
@@ -105,6 +118,15 @@ const STATUS_STYLES: Record<AttendanceStatus, string> = {
     excused: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
 };
 
+const FILTER_LABELS: Record<AttendanceFilter, string> = {
+    all: 'all registrations',
+    unmarked: 'unmarked',
+    present: 'present',
+    absent: 'absent',
+    late: 'late',
+    excused: 'excused',
+};
+
 function sourceLabel(source: string): string {
     return source === 'walk_in'
         ? 'Walk-in'
@@ -127,6 +149,13 @@ export default function EventsAttendance({
     const [localSearch, setLocalSearch] = useState(filters.q);
     const [marking, setMarking] = useState<number | null>(null);
     const [walkInOpen, setWalkInOpen] = useState(false);
+    const [mode, setMode] = useState<PageMode>('mark');
+    const [selected, setSelected] = useState<Set<number>>(new Set());
+    const [confirm, setConfirm] = useState<{
+        shape: 'selected' | 'all';
+        count: number;
+    } | null>(null);
+    const [bulkWorking, setBulkWorking] = useState(false);
 
     const baseUrl = `/events/${event.id}/attendance`;
 
@@ -139,6 +168,13 @@ export default function EventsAttendance({
         ...(force_open ? { force_open: 1 } : {}),
         ...overrides,
     });
+
+    // Selection is scoped to the current view. When rows change —
+    // pagination, filter, search — the previous selection is no
+    // longer what the operator is looking at, so it clears.
+    useEffect(() => {
+        setSelected(new Set());
+    }, [rows]);
 
     // Debounced search. Fires a partial reload 300ms after the user
     // stops typing. Guards against firing when the URL already
@@ -183,9 +219,7 @@ export default function EventsAttendance({
     const toggleForceOpen = () => {
         router.get(
             baseUrl,
-            sharedQuery(
-                force_open ? {} : { force_open: 1 },
-            ),
+            sharedQuery(force_open ? {} : { force_open: 1 }),
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -195,14 +229,83 @@ export default function EventsAttendance({
         );
     };
 
+    const toggleRow = (id: number) => {
+        setSelected((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
+    const toggleAllOnPage = () => {
+        const allOnPage = rows.map((r) => r.id);
+        const allSelected = allOnPage.every((id) => selected.has(id));
+
+        setSelected((prev) => {
+            const next = new Set(prev);
+            if (allSelected) {
+                allOnPage.forEach((id) => next.delete(id));
+            } else {
+                allOnPage.forEach((id) => next.add(id));
+            }
+            return next;
+        });
+    };
+
+    const requestMarkSelected = () => {
+        if (selected.size === 0) return;
+        setConfirm({ shape: 'selected', count: selected.size });
+    };
+
+    const requestMarkAllVisible = () => {
+        const count = counts[filters.filter] ?? 0;
+        if (count === 0) return;
+        setConfirm({ shape: 'all', count });
+    };
+
+    const runBulkMark = () => {
+        if (confirm === null) return;
+        setBulkWorking(true);
+
+        const payload: Record<string, string | number | boolean | number[]> = {
+            force_open: force_open ? 1 : 0,
+        };
+
+        if (confirm.shape === 'selected') {
+            payload.registration_ids = Array.from(selected);
+        } else {
+            payload.mark_all_visible = true;
+            payload.filter = filters.filter;
+            payload.q = localSearch;
+        }
+
+        router.post(`${baseUrl}/bulk-mark`, payload, {
+            preserveScroll: true,
+            preserveState: true,
+            only: ['rows', 'counts'],
+            onSuccess: () => {
+                setSelected(new Set());
+                setConfirm(null);
+            },
+            onFinish: () => setBulkWorking(false),
+        });
+    };
+
     const otherStatuses = attendance_statuses.filter(
         (s) => s.value !== 'present',
     );
 
-    // Show the force toggle only when it might be useful: an admin
-    // whose window is currently closed, or an admin who already
-    // forced it open and needs the way back.
     const showForceToggle = is_admin && (!can_mark || force_open);
+    const isConfirmMode = mode === 'confirm';
+
+    const allOnPageSelected =
+        rows.length > 0 && rows.every((r) => selected.has(r.id));
+    const someOnPageSelected =
+        ! allOnPageSelected && rows.some((r) => selected.has(r.id));
 
     return (
         <>
@@ -281,6 +384,44 @@ export default function EventsAttendance({
                     </div>
                 )}
 
+                {/* Mode toggle — Mark is the default and preserves the
+                    original per-row behavior. Confirm adds a checkbox
+                    column and a bulk toolbar for paper-sheet
+                    reconciliation. */}
+                {can_mark && (
+                    <div className="flex items-center gap-2">
+                        <div className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
+                            <button
+                                type="button"
+                                onClick={() => setMode('mark')}
+                                className={
+                                    mode === 'mark'
+                                        ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
+                                        : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
+                                }
+                            >
+                                Mark
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setMode('confirm')}
+                                className={
+                                    mode === 'confirm'
+                                        ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
+                                        : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
+                                }
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                            {isConfirmMode
+                                ? 'Select rows and mark as present in bulk.'
+                                : 'Mark participants one at a time.'}
+                        </span>
+                    </div>
+                )}
+
                 <div className="glass-panel flex flex-col gap-4 rounded-xl p-6">
                     {/* Toolbar */}
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -296,7 +437,7 @@ export default function EventsAttendance({
                             />
                         </div>
 
-                        {can_mark && (
+                        {can_mark && ! isConfirmMode && (
                             <Button
                                 type="button"
                                 onClick={() => setWalkInOpen(true)}
@@ -316,6 +457,18 @@ export default function EventsAttendance({
                         search={localSearch}
                     />
 
+                    {/* Confirm-mode bulk toolbar */}
+                    {can_mark && isConfirmMode && (
+                        <BulkMarkToolbar
+                            selectedCount={selected.size}
+                            filterCount={counts[filters.filter] ?? 0}
+                            filterLabel={FILTER_LABELS[filters.filter]}
+                            disabled={bulkWorking}
+                            onMarkSelected={requestMarkSelected}
+                            onMarkAllVisible={requestMarkAllVisible}
+                        />
+                    )}
+
                     {/* Table or empty states */}
                     {rows.length === 0 ? (
                         <EmptyState
@@ -327,6 +480,23 @@ export default function EventsAttendance({
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-white/5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                        {isConfirmMode && (
+                                            <th className="w-10 pb-3 pr-3">
+                                                <Checkbox
+                                                    checked={
+                                                        allOnPageSelected
+                                                            ? true
+                                                            : someOnPageSelected
+                                                              ? 'indeterminate'
+                                                              : false
+                                                    }
+                                                    onCheckedChange={
+                                                        toggleAllOnPage
+                                                    }
+                                                    aria-label="Select all on this page"
+                                                />
+                                            </th>
+                                        )}
                                         <th className="pb-3 pr-4">
                                             Participant
                                         </th>
@@ -345,12 +515,29 @@ export default function EventsAttendance({
                                             'present';
                                         const isMarking =
                                             marking === row.id;
+                                        const isSelected =
+                                            selected.has(row.id);
 
                                         return (
                                             <tr
                                                 key={row.id}
                                                 className="border-b border-white/5 last:border-b-0"
                                             >
+                                                {isConfirmMode && (
+                                                    <td className="py-3 pr-3">
+                                                        <Checkbox
+                                                            checked={
+                                                                isSelected
+                                                            }
+                                                            onCheckedChange={() =>
+                                                                toggleRow(
+                                                                    row.id,
+                                                                )
+                                                            }
+                                                            aria-label={`Select ${row.participant.full_name ?? 'participant'}`}
+                                                        />
+                                                    </td>
+                                                )}
                                                 <td className="py-3 pr-4">
                                                     <div className="font-medium text-foreground">
                                                         {row.participant
@@ -493,6 +680,54 @@ export default function EventsAttendance({
                 fields={event.registration_fields}
                 forceOpen={force_open}
             />
+
+            {/* Bulk mark confirmation */}
+            <Dialog
+                open={confirm !== null}
+                onOpenChange={(open) => {
+                    if (! open) setConfirm(null);
+                }}
+            >
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-lime-brand" />
+                            Confirm bulk mark
+                        </DialogTitle>
+                        <DialogDescription>
+                            {confirm?.shape === 'selected'
+                                ? `Mark ${confirm.count} selected ${confirm.count === 1 ? 'participant' : 'participants'} as present?`
+                                : `Mark all ${confirm?.count ?? 0} registrations matching the current filter as present?`}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <p className="text-xs text-muted-foreground">
+                        Already-present rows are unaffected. This action is
+                        idempotent — rerunning has no additional effect.
+                    </p>
+
+                    <DialogFooter className="gap-2 pt-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setConfirm(null)}
+                            disabled={bulkWorking}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={runBulkMark}
+                            disabled={bulkWorking}
+                            className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
+                        >
+                            {bulkWorking
+                                ? 'Marking…'
+                                : `Mark ${confirm?.count ?? 0} as present`}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

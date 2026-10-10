@@ -1376,3 +1376,47 @@ section for the deferral rationale.
 
 Full-suite baseline at Phase A start: 399 passed. After Phase A:
 418 passed (+19 net new tests across the two commits).
+
+---
+
+## 2026-10-10 - Phase B complete: Confirm mode with bulk mark
+
+### Summary
+
+Phase B of `docs/attendance-redesign.md` shipped. The attendance
+page gains a Mark / Confirm mode toggle. Confirm mode adds a
+checkbox column and a bulk-mark toolbar for paper-sheet
+reconciliation.
+
+Two request shapes to the new endpoint:
+- Explicit list of registration IDs — all-or-nothing, cross-event
+  IDs reject the whole batch.
+- Mark-all-visible with the current filter + search — server
+  interprets the scope as the whole filter result, not the current
+  page (D10 interpretation recorded in the plan doc).
+
+### Documentation appended
+
+    docs/attendance-redesign.md   - Phase B complete marker
+    docs/progress.md              - this entry
+
+### Code changes
+
+    app/Http/Requests/BulkMarkAttendanceRequest.php    (new)
+    app/Http/Controllers/AttendanceController.php      (bulkMark + helpers)
+    routes/web.php                                     (bulk-mark route)
+    resources/js/components/bulk-mark-toolbar.tsx      (new)
+    resources/js/pages/events/attendance.tsx           (mode toggle + checkbox column)
+
+### Test changes
+
+    tests/Feature/Events/AttendanceBulkMarkTest.php    (new, 12 tests)
+
+### Verification
+
+    php artisan test tests/Feature/Events/AttendanceBulkMarkTest.php  12 passed / 35 assertions
+    php artisan test                                                  439 passed / 1262 assertions
+    npx tsc --noEmit                                                  silent
+
+Full-suite baseline at Phase B start: 427 passed. After Phase B:
+439 passed (+12 net new tests).
