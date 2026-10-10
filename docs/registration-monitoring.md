@@ -353,3 +353,161 @@ Filters remain visible — the organizer can switch back to All.
 - **2026-10-02** — File created. Two-page monitoring, card layout,
   polling strategy, five actions, read-only after close, empty
   states, out-of-scope list.
+
+---
+
+## Status addendum (2026-10-10)
+
+The `**Status:**` line at the top of this document reads:
+
+    **Status:** Planned. No code exists yet.
+
+That was accurate on 2026-10-02. It is no longer accurate. Per the
+append-only rule (P7), the earlier text stands as a historical
+record. This addendum corrects the current state.
+
+### What actually shipped
+
+Most of the spec is implemented. The claim in §3 that Open
+Registration "currently redirects back to the event show page" is
+wrong — it already redirects to the monitor. The claim in §3 that a
+Monitor link "is added" on the queue is wrong — it is already there.
+
+**Routes (§3).**
+
+- `GET /registrations/monitor` — `registration-monitor.index`
+- `GET /registrations/monitor/{event}` — `registration-monitor.show`
+
+Both under `auth`, `verified.or.admin`, `device.trusted`.
+
+- `EventController::openRegistration()` already redirects to
+  `registration-monitor.show`.
+- `registrations/index.tsx` already renders a Monitor link on
+  open-event rows.
+
+**Landing page (§4).** Shipped in
+`resources/js/pages/registrations/monitor/index.tsx`. Cards with
+event name, status pill, date, venue, total count, rolling 60-minute
+rate, relative timestamp, and a link to the per-event page. Sorted
+by most recent submission. Empty state.
+
+**Per-event page (§5).** Shipped in
+`resources/js/pages/registrations/monitor/show.tsx`. Top row header,
+second-row stats strip (total, +last hour, +last 15 min), manual
+Refresh button, "Updated N seconds ago" ticker, Copy public link
+button.
+
+**Filter chips (§6).** All / New / Returning shipped. Flagged is
+NOT shipped — it needs the `flagged_at` column, deferred to Phase 8.
+Chips are client-side only, no URL param.
+
+**Cards (§7).** Name, contact method, absolute + relative
+submission time, NEW/RETURNING badge, "registered for N previous
+events" line on returning. Same-phone warning NOT shipped. Custom
+field summaries NOT shipped.
+
+**Rate indicators (§8).** 60-minute and 15-minute rolling windows,
+both computed server-side.
+
+**Polling (§9).** `usePolling` hook polls every 10 seconds via
+`router.reload({ only })`. Pauses on hidden tab. Fires immediate
+refresh on tab focus. Serializes in-flight requests. Manual refresh
+button. Payload is limited to last 100 registrations.
+
+**After close (§11).** Per-event page reachable when status is
+`registration_open` OR `registration_closed`. `is_open` flag drives
+the pill and the disabled state of the polling.
+
+**Empty states (§12).** All three shipped: landing no-events,
+per-event no-submissions, per-event filter-yields-nothing.
+
+### What is genuinely still missing
+
+**Same-phone warning (§7).** Not implemented. A submission whose
+participant's normalized phone matches another participant already
+registered for the same event does not currently show a warning.
+
+**Custom field summaries on cards (§7).** Not implemented. The
+card does not show the participant's custom field answers.
+
+**Flagged filter (§6) and actions menu (§10).** Blocked on the
+`flagged_at` and `notes` columns, which do not exist. Phase 8 of
+the identity plan adds the schema and the actions.
+
+**Delete registration (§10, last row).** Phase 9 of the identity
+plan. Not shipped.
+
+### Corrected spec claims
+
+- §2 says "no code exists yet" — wrong, most of it exists.
+- §3 says Open Registration still redirects to event show — wrong,
+  it redirects to the monitor.
+- §3 says the Monitor link is a future addition — wrong, it is
+  already on the queue page.
+
+### Cross-references
+
+- `docs/participant-identity-and-monitoring-plan.md` — Phases 7
+  and 8
+- `docs/attendance-redesign.md` — the attendance surface the monitor
+  feeds into
+- `docs/progress.md` — the 2026-10-10 phase entries
+
+---
+
+## Same-phone warning shipped (2026-10-10)
+
+The Status addendum above says same-phone warning was not shipped.
+That was accurate when written. It has since shipped, with redefined
+semantics.
+
+### The semantic change
+
+The spec §7 says the warning fires when a participant's **normalized
+phone** matches another participant already registered for the same
+event. That case cannot occur. The identity model enforces a UNIQUE
+constraint on `participants.contact_number_normalized`, so two
+participants cannot share a normalized PH mobile — the schema
+blocks it at write time.
+
+The reachable shared-phone case is a RAW `contact_number` string
+that does not normalize — typically a landline ("02-8123-4567")
+shared by family members. Landlines return null from the normalizer,
+so the UNIQUE constraint permits them to coexist, and two family
+members filling the form at the same registration desk will produce
+two rows with the same raw string.
+
+### What shipped
+
+`RegistrationMonitorController::show()` now computes
+`has_shared_phone` per registration. Detection groups every
+participant in the feed by their raw `contact_number` string. Any
+group with more than one member flags those participants.
+
+The card renders a small amber warning triangle beside the badge when
+the flag is true. Native `title` attribute for the tooltip. The
+submission is not blocked — the warning is informational, matching
+the spec's intent.
+
+### Detector scope
+
+- Only fires on raw-string matches within a single event's feed.
+- Does not fire for participants whose `contact_number` is null or
+  empty.
+- Does not fire across events — two participants on different events
+  sharing a phone are not flagged here.
+
+### Verification
+
+    tests/Feature/Events/RegistrationMonitorExtrasTest.php  (7 tests)
+
+The landline test constructs two participants with
+`contact_number = "02-8123-4567"` and asserts both get the flag.
+Two negative tests confirm different raw phones and null phones do
+not flag.
+
+### Cross-references
+
+- `docs/fixes.md` — no separate entry; this is a Phase 7 gap close,
+  not a bug fix
+- Commit: the same-phone warning commit

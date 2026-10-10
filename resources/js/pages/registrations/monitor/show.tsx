@@ -1,5 +1,13 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Check, Link2, RefreshCw, UserPlus, UserRound } from 'lucide-react';
+import {
+    AlertTriangle,
+    ArrowLeft,
+    Check,
+    Link2,
+    RefreshCw,
+    UserPlus,
+    UserRound,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { usePolling } from '@/hooks/use-polling';
@@ -30,6 +38,11 @@ type Participant = {
     contact_number: string | null;
 };
 
+type CustomField = {
+    label: string | null;
+    value: string | string[];
+};
+
 type RegistrationRow = {
     id: number;
     participant: Participant;
@@ -38,6 +51,8 @@ type RegistrationRow = {
     created_at_human: string | null;
     is_returning: boolean;
     other_events_count: number;
+    has_shared_phone: boolean;
+    custom_fields: CustomField[];
 };
 
 type Props = {
@@ -167,6 +182,20 @@ function Chip({
     );
 }
 
+/**
+ * Render one custom field answer as a single-line string.
+ *
+ * Strings pass through. Arrays (checkbox responses) are joined with
+ * ", ". Empty arrays render as an em-dash so the answer is never
+ * blank.
+ */
+function renderFieldValue(value: string | string[]): string {
+    if (Array.isArray(value)) {
+        return value.length === 0 ? '—' : value.join(', ');
+    }
+    return value === '' ? '—' : value;
+}
+
 function RegistrationCard({ row }: { row: RegistrationRow }) {
     const name = row.participant.full_name ?? '—';
     const contact = row.participant.email ?? row.participant.contact_number ?? '—';
@@ -184,16 +213,26 @@ function RegistrationCard({ row }: { row: RegistrationRow }) {
                     </span>
                 </div>
 
-                <span
-                    className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                        row.is_returning
-                            ? 'bg-accent/20 text-accent'
-                            : 'bg-white/5 text-muted-foreground'
-                    }`}
-                >
-                    <BadgeIcon className="h-3 w-3" />
-                    {row.is_returning ? 'RETURNING' : 'NEW'}
-                </span>
+                <div className="flex shrink-0 items-center gap-1.5">
+                    {row.has_shared_phone && (
+                        <span
+                            title="This phone number matches another registration."
+                            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/15"
+                        >
+                            <AlertTriangle className="h-3 w-3 text-amber-400" />
+                        </span>
+                    )}
+                    <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                            row.is_returning
+                                ? 'bg-accent/20 text-accent'
+                                : 'bg-white/5 text-muted-foreground'
+                        }`}
+                    >
+                        <BadgeIcon className="h-3 w-3" />
+                        {row.is_returning ? 'RETURNING' : 'NEW'}
+                    </span>
+                </div>
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -209,6 +248,20 @@ function RegistrationCard({ row }: { row: RegistrationRow }) {
                 <p className="mt-2 text-xs text-muted-foreground">
                     Registered for {row.other_events_count}{' '}
                     {row.other_events_count === 1 ? 'previous event' : 'previous events'}
+                </p>
+            )}
+
+            {row.custom_fields.length > 0 && (
+                <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                    {row.custom_fields.map((field, i) => (
+                        <span key={`${field.label}-${i}`}>
+                            {i > 0 && ' · '}
+                            <span className="text-foreground/80">
+                                {field.label}:
+                            </span>{' '}
+                            {renderFieldValue(field.value)}
+                        </span>
+                    ))}
                 </p>
             )}
         </div>

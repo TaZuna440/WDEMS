@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Enums\EventStatus;
 use App\Models\Event;
+use App\Models\Participant;
 use App\Models\Registration;
+use App\Models\RegistrationFieldResponse;
 use Carbon\CarbonImmutable;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -86,6 +88,24 @@ class RegistrationMonitorController extends Controller
      * after close (§11 of the monitoring spec). Draft, ongoing,
      * completed, and cancelled return 404 — the monitor is not the
      * right surface for those.
+     *
+     * Adds two per-registration signals the spec calls for:
+     *
+     *   - `has_shared_phone` — true when this participant's RAW
+     *     contact_number string matches another participant
+     *     registered for the same event. The identity model enforces
+     *     a UNIQUE constraint on contact_number_normalized, so two
+     *     participants cannot share a normalized mobile — the
+     *     detector is therefore scoped to raw strings that do not
+     *     normalize (typically landlines shared by family members).
+     *     Surfaced as a warning icon on the card; the submission is
+     *     not blocked. Computed in bulk (one query for the whole
+     *     feed), not per row.
+     *
+     *   - `custom_fields` — array of { label, value } for the
+     *     participant's custom field answers on this registration.
+     *     Ordered by the field's display_order. Array values
+     *     (checkbox) decoded from JSON, strings passed through.
      */
     public function show(Event $event): Response
     {
@@ -135,9 +155,81 @@ class RegistrationMonitorController extends Controller
             ->limit(100)
             ->get();
 
-        $mapped = $registrations->map(function (Registration $r) {
+        // -------- Same-phone detection --------
+        //
+        // Group every participant in the feed by their RAW
+        // contact_number string. Any group with more than one member
+        // means those participants typed the same phone number into
+        // the form.
+        //
+        // Note on scope: the identity model enforces a UNIQUE
+        // constraint on contact_number_normalized, so two participants
+        // cannot share a normalized PH mobile. The reachable shared
+        // case is a raw string that does not normalize — typically a
+        // landline ("02-8123-4567") that returns null from the
+        // normalizer and therefore falls through the UNIQUE check.
+        // This detector catches that case.
+        $participantIds = $registrations->pluck('participant_id')->all();
+
+        $sharedPhoneIds = [];
+
+        if ($participantIds !== []) {
+            $phoneGroups = Participant::query()
+                ->whereIn('id', $participantIds)
+                ->whereNotNull('contact_number')
+                ->where('contact_number', '!=', '')
+                ->select('id', 'contact_number')
+                ->get()
+                ->groupBy('contact_number');
+
+            foreach ($phoneGroups as $group) {
+                if ($group->count() > 1) {
+                    foreach ($group as $p) {
+                        $sharedPhoneIds[(int) $p->id] = true;
+                    }
+                }
+            }
+        }
+
+        // -------- Custom field responses --------
+        //
+        // One query for the whole feed. Grouped by registration_id so
+        // the mapper can attach the right rows without N+1.
+        $responsesByRegistration = RegistrationFieldResponse::query()
+            ->whereIn('registration_id', $registrations->pluck('id'))
+            ->with('registrationField:id,label,display_order')
+            ->get()
+            ->groupBy('registration_id');
+
+        $mapped = $registrations->map(function (Registration $r) use ($sharedPhoneIds, $responsesByRegistration) {
             $participant = $r->participant;
             $otherCount = (int) ($participant?->other_events_count ?? 0);
+
+            $fieldResponses = $responsesByRegistration
+                ->get($r->id, collect())
+                ->sortBy(fn ($resp) => $resp->registrationField?->display_order ?? 0)
+                ->map(function (RegistrationFieldResponse $resp) {
+                    $raw = $resp->value;
+
+                    // Checkbox responses are JSON-encoded arrays.
+                    // Decode those so the frontend receives a real
+                    // array. Everything else passes through as a
+                    // string.
+                    if (is_string($raw) && str_starts_with($raw, '[')) {
+                        $decoded = json_decode($raw, true);
+                        if (is_array($decoded)) {
+                            $raw = $decoded;
+                        }
+                    }
+
+                    return [
+                        'label' => $resp->registrationField?->label,
+                        'value' => $raw,
+                    ];
+                })
+                ->filter(fn (array $f) => $f['label'] !== null)
+                ->values()
+                ->all();
 
             return [
                 'id' => $r->id,
@@ -152,6 +244,8 @@ class RegistrationMonitorController extends Controller
                 'created_at_human' => $r->created_at?->diffForHumans(),
                 'is_returning' => $otherCount > 0,
                 'other_events_count' => $otherCount,
+                'has_shared_phone' => $participant !== null && isset($sharedPhoneIds[(int) $participant->id]),
+                'custom_fields' => $fieldResponses,
             ];
         });
 
