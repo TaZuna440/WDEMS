@@ -570,3 +570,96 @@ Covers:
 
 - Section 3 — the window change and the force-open design
 - Section 6 — Phase A scope, where the toggle was first deferred
+
+---
+
+## Phase B complete (2026-10-10)
+
+**Status:** Shipped. One commit (`b736370`).
+
+### What shipped
+
+**Server side:**
+
+- New `App\Http\Requests\BulkMarkAttendanceRequest`. Two accepted
+  shapes, mutually exclusive:
+  - `registration_ids: int[]` — explicit list, all-or-nothing
+    (any ID belonging to another event rejects the whole batch
+    with 422).
+  - `mark_all_visible: true` + `filter` + `q` — marks every
+    registration matching the current filter and search. Scope is
+    the search result, not the current page (D10).
+
+- `AttendanceController::bulkMark()` — new action. Idempotent via
+  `updateOrCreate`. Same status / time / recorded_by shape as the
+  single-row `mark()`.
+
+- Two new private helpers on the controller:
+  - `resolveBulkMarkIds()` — normalizes the two request shapes into
+    a flat list of event-scoped registration IDs.
+  - `buildFilteredRegistrationIds()` — rebuilds the search + filter
+    clause the `show()` page uses. Duplicated from the `$baseQuery`
+    closure for now; Phase C will consolidate once the batch
+    walk-in surface also needs it.
+
+- New route: `POST events/{event}/attendance/bulk-mark`
+  (`events.attendance.bulk-mark`).
+
+- No rate limiter. Same reasoning as single-row mark — trusted
+  staff, and the single-row endpoint has none either.
+
+**Client side:**
+
+- New `resources/js/components/bulk-mark-toolbar.tsx`. Displays
+  selection count, matching count, and the two action buttons
+  ("Mark selected", "Mark all visible").
+
+- `resources/js/pages/events/attendance.tsx` extended with a mode
+  toggle (Mark / Confirm), a checkbox column visible only in
+  Confirm mode, page-level selection state, and a confirmation
+  dialog before the write.
+
+- Selection is cleared on every `rows` change (pagination, filter,
+  search). Local state, not URL-persisted.
+
+- The toolbar's "Mark all visible" button reads
+  `counts[filter]` — the same counter the filter chips show — as
+  its scope preview. What the chip says is what gets marked.
+
+### Not shipped
+
+- Add mode (batch walk-in table) — that is Phase C.
+- Rate limiter on the bulk endpoint — deliberately deferred. See
+  the docblock on `bulkMark()`.
+
+### Deviations from the plan
+
+**D10 interpretation.** The plan said "Mark all visible" respects
+the current filter and search. This shipped with the server
+interpreting the scope as "everything matching the filter+search,"
+not "the 50 rows currently on this page." Rationale: the
+paper-sheet reconciliation workflow needs the whole filter scope,
+and pagination is a view concern, not a marking concern.
+
+### Tests
+
+    tests/Feature/Events/AttendanceBulkMarkTest.php  (new, 12 tests)
+
+Covers: explicit list (single, multiple, idempotent rerun),
+cross-event rejection with 422, empty list rejection, mark-all-
+visible scoped to filter and search, cross-event isolation for
+the mark-all shape, both-shapes-at-once rejection, neither-shape
+rejection, forbidden when window closed, admin force-open bypass
+on a completed event.
+
+### Verification
+
+    php artisan test tests/Feature/Events/AttendanceBulkMarkTest.php  (12 passed)
+    php artisan test                                                   (439 passed)
+    npx tsc --noEmit                                                  (silent)
+
+### Cross-references
+
+- Section 7 — Phase B scope
+- FIX-026 — original attendance page this builds on
+- Phase A complete — the window + custom fields work this depends on
