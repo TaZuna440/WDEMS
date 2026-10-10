@@ -1,14 +1,29 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     AlertTriangle,
     ArrowLeft,
     Check,
+    Download,
+    Flag,
     Link2,
+    MoreHorizontal,
+    Pencil,
     RefreshCw,
+    StickyNote,
     UserPlus,
     UserRound,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import EditParticipantDialog from '@/components/edit-participant-dialog';
+import NoteDialog from '@/components/note-dialog';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { usePolling } from '@/hooks/use-polling';
 
@@ -23,6 +38,7 @@ type EventData = {
     registration_start: string | null;
     registration_end: string | null;
     is_open: boolean;
+    custom_field_labels: string[];
 };
 
 type Stats = {
@@ -34,8 +50,11 @@ type Stats = {
 type Participant = {
     id: number | null;
     full_name: string | null;
+    first_name: string | null;
+    last_name: string | null;
     email: string | null;
     contact_number: string | null;
+    address: string | null;
 };
 
 type CustomField = {
@@ -53,6 +72,9 @@ type RegistrationRow = {
     other_events_count: number;
     has_shared_phone: boolean;
     custom_fields: CustomField[];
+    is_flagged: boolean;
+    flagged_at: string | null;
+    notes: string | null;
 };
 
 type Props = {
@@ -64,7 +86,7 @@ type Props = {
 const POLL_KEYS = ['stats', 'registrations'] as const;
 const POLL_INTERVAL_MS = 10_000;
 
-type Filter = 'all' | 'new' | 'returning';
+type Filter = 'all' | 'new' | 'returning' | 'flagged';
 
 function secondsSince(date: Date, now: Date): number {
     return Math.max(0, Math.floor((now.getTime() - date.getTime()) / 1000));
@@ -80,14 +102,6 @@ function relativeSeconds(seconds: number): string {
     return `${minutes} minutes ago`;
 }
 
-/**
- * Copy the public registration URL to the clipboard.
- *
- * The URL is built client-side from window.location.origin so no
- * server round trip is needed. The button is only rendered when the
- * event is open and has a slug, so the origin is always available
- * when the component mounts.
- */
 function PublicLinkButton({ slug }: { slug: string }) {
     const [copied, copy] = useClipboard();
     const url = `${window.location.origin}/r/${slug}`;
@@ -158,12 +172,16 @@ function Chip({
     onClick,
     label,
     count,
+    show,
 }: {
     active: boolean;
     onClick: () => void;
     label: string;
     count: number;
+    show: boolean;
 }) {
+    if (! show) return null;
+
     return (
         <button
             type="button"
@@ -182,13 +200,6 @@ function Chip({
     );
 }
 
-/**
- * Render one custom field answer as a single-line string.
- *
- * Strings pass through. Arrays (checkbox responses) are joined with
- * ", ". Empty arrays render as an em-dash so the answer is never
- * blank.
- */
 function renderFieldValue(value: string | string[]): string {
     if (Array.isArray(value)) {
         return value.length === 0 ? '—' : value.join(', ');
@@ -196,13 +207,31 @@ function renderFieldValue(value: string | string[]): string {
     return value === '' ? '—' : value;
 }
 
-function RegistrationCard({ row }: { row: RegistrationRow }) {
+function RegistrationCard({
+    row,
+    onEdit,
+    onFlag,
+    onNote,
+    canEdit,
+}: {
+    row: RegistrationRow;
+    onEdit: (row: RegistrationRow) => void;
+    onFlag: (row: RegistrationRow) => void;
+    onNote: (row: RegistrationRow) => void;
+    canEdit: boolean;
+}) {
     const name = row.participant.full_name ?? '—';
     const contact = row.participant.email ?? row.participant.contact_number ?? '—';
     const BadgeIcon = row.is_returning ? UserRound : UserPlus;
 
     return (
-        <div className="glass-panel rounded-xl p-4">
+        <div
+            className={`glass-panel rounded-xl p-4 ${
+                row.is_flagged
+                    ? 'border-l-2 border-l-amber-500/60'
+                    : ''
+            }`}
+        >
             <div className="flex items-start justify-between gap-3">
                 <div className="flex flex-col gap-0.5">
                     <span className="text-sm font-semibold text-foreground">
@@ -214,6 +243,14 @@ function RegistrationCard({ row }: { row: RegistrationRow }) {
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1.5">
+                    {row.notes !== null && row.notes !== '' && (
+                        <span
+                            title="Has a note"
+                            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/5"
+                        >
+                            <StickyNote className="h-3 w-3 text-muted-foreground" />
+                        </span>
+                    )}
                     {row.has_shared_phone && (
                         <span
                             title="This phone number matches another registration."
@@ -232,6 +269,55 @@ function RegistrationCard({ row }: { row: RegistrationRow }) {
                         <BadgeIcon className="h-3 w-3" />
                         {row.is_returning ? 'RETURNING' : 'NEW'}
                     </span>
+
+                    {canEdit && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0 text-muted-foreground"
+                                >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                    onSelect={() => onEdit(row)}
+                                >
+                                    <Pencil className="mr-2 h-3.5 w-3.5" />
+                                    Edit participant
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => onNote(row)}
+                                >
+                                    <StickyNote className="mr-2 h-3.5 w-3.5" />
+                                    {row.notes === null || row.notes === ''
+                                        ? 'Add note'
+                                        : 'Edit note'}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => onFlag(row)}
+                                >
+                                    <Flag className="mr-2 h-3.5 w-3.5" />
+                                    {row.is_flagged
+                                        ? 'Clear flag'
+                                        : 'Flag for review'}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <a
+                                        href={`/registrations/monitor/${row.id}/export`}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <Download className="mr-2 h-3.5 w-3.5" />
+                                        Export CSV
+                                    </a>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
                 </div>
             </div>
 
@@ -264,6 +350,12 @@ function RegistrationCard({ row }: { row: RegistrationRow }) {
                     ))}
                 </p>
             )}
+
+            {row.notes !== null && row.notes !== '' && (
+                <p className="mt-2 line-clamp-2 rounded-md border border-white/5 bg-white/[0.02] px-2 py-1 text-xs italic text-muted-foreground">
+                    {row.notes}
+                </p>
+            )}
         </div>
     );
 }
@@ -285,15 +377,23 @@ function EmptyFeed() {
 }
 
 function FilteredEmpty({ filter }: { filter: Filter }) {
+    const messages: Record<Filter, string | null> = {
+        all: null,
+        new: 'Every submission so far is from a returning participant.',
+        returning: 'Every submission so far is from a first-timer.',
+        flagged: 'No registrations are flagged.',
+    };
+
     return (
         <div className="rounded-xl border border-dashed border-white/10 p-8 text-center">
             <p className="text-sm text-muted-foreground">
                 No submissions match this filter.
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-                {filter === 'new' && 'Every submission so far is from a returning participant.'}
-                {filter === 'returning' && 'Every submission so far is from a first-timer.'}
-            </p>
+            {messages[filter] !== null && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                    {messages[filter]}
+                </p>
+            )}
         </div>
     );
 }
@@ -302,13 +402,18 @@ export default function MonitorShow({ event, stats, registrations }: Props) {
     const [filter, setFilter] = useState<Filter>('all');
     const [now, setNow] = useState(() => new Date());
 
+    // Dialog state. Only one dialog can be open at a time. Each
+    // holds the row currently being acted on so the dialog re-seeds
+    // when the operator switches rows.
+    const [editRow, setEditRow] = useState<RegistrationRow | null>(null);
+    const [noteRow, setNoteRow] = useState<RegistrationRow | null>(null);
+
     const { lastRefreshed, isRefreshing, refresh } = usePolling({
         interval: POLL_INTERVAL_MS,
         only: [...POLL_KEYS],
         enabled: event.is_open,
     });
 
-    // Tick "last updated" every second.
     useEffect(() => {
         const id = setInterval(() => setNow(new Date()), 1000);
         return () => clearInterval(id);
@@ -316,24 +421,41 @@ export default function MonitorShow({ event, stats, registrations }: Props) {
 
     const counts = useMemo(() => {
         let returning = 0;
+        let flagged = 0;
         for (const row of registrations) {
             if (row.is_returning) returning += 1;
+            if (row.is_flagged) flagged += 1;
         }
 
         return {
             all: registrations.length,
             returning,
             new: registrations.length - returning,
+            flagged,
         };
     }, [registrations]);
 
     const filtered = useMemo(() => {
         if (filter === 'all') return registrations;
         if (filter === 'returning') return registrations.filter((r) => r.is_returning);
+        if (filter === 'flagged') return registrations.filter((r) => r.is_flagged);
         return registrations.filter((r) => !r.is_returning);
     }, [registrations, filter]);
 
     const secondsAgo = secondsSince(lastRefreshed, now);
+    const canEdit = true;
+
+    const flagRow = (row: RegistrationRow) => {
+        router.post(
+            `/registrations/${row.id}/flag`,
+            { flagged: ! row.is_flagged },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['registrations'],
+            },
+        );
+    };
 
     return (
         <>
@@ -390,6 +512,13 @@ export default function MonitorShow({ event, stats, registrations }: Props) {
                             />
                             Refresh
                         </button>
+                        <a
+                            href={`/registrations/monitor/${event.id}/export`}
+                            className="inline-flex items-center gap-1.5 rounded-md border border-white/10 px-2 py-1 text-xs transition-colors hover:border-white/20 hover:text-foreground"
+                        >
+                            <Download className="h-3 w-3" />
+                            Export CSV
+                        </a>
                     </div>
                 </div>
 
@@ -401,18 +530,28 @@ export default function MonitorShow({ event, stats, registrations }: Props) {
                             onClick={() => setFilter('all')}
                             label="All"
                             count={counts.all}
+                            show
                         />
                         <Chip
                             active={filter === 'new'}
                             onClick={() => setFilter('new')}
                             label="New"
                             count={counts.new}
+                            show
                         />
                         <Chip
                             active={filter === 'returning'}
                             onClick={() => setFilter('returning')}
                             label="Returning"
                             count={counts.returning}
+                            show
+                        />
+                        <Chip
+                            active={filter === 'flagged'}
+                            onClick={() => setFilter('flagged')}
+                            label="Flagged"
+                            count={counts.flagged}
+                            show={counts.flagged > 0}
                         />
                     </div>
                 )}
@@ -425,11 +564,41 @@ export default function MonitorShow({ event, stats, registrations }: Props) {
                 ) : (
                     <div className="flex flex-col gap-2">
                         {filtered.map((row) => (
-                            <RegistrationCard key={row.id} row={row} />
+                            <RegistrationCard
+                                key={row.id}
+                                row={row}
+                                onEdit={setEditRow}
+                                onFlag={flagRow}
+                                onNote={setNoteRow}
+                                canEdit={canEdit}
+                            />
                         ))}
                     </div>
                 )}
             </div>
+
+            {editRow !== null && (
+                <EditParticipantDialog
+                    open={editRow !== null}
+                    onOpenChange={(open) => {
+                        if (! open) setEditRow(null);
+                    }}
+                    registrationId={editRow.id}
+                    participant={editRow.participant}
+                />
+            )}
+
+            {noteRow !== null && (
+                <NoteDialog
+                    open={noteRow !== null}
+                    onOpenChange={(open) => {
+                        if (! open) setNoteRow(null);
+                    }}
+                    registrationId={noteRow.id}
+                    participantName={noteRow.participant.full_name ?? 'this participant'}
+                    initialNote={noteRow.notes}
+                />
+            )}
         </>
     );
 }

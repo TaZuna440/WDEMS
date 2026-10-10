@@ -65,6 +65,17 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(functi
     Route::get('registrations/monitor/{event}', [RegistrationMonitorController::class, 'show'])
         ->name('registration-monitor.show');
 
+    // Monitor actions - Phase 8. Scoped to a single registration.
+    // The event status gate is enforced in the controller.
+    Route::get('registrations/monitor/{event}/export', [RegistrationMonitorController::class, 'exportCsv'])
+        ->name('registration-monitor.export');
+    Route::put('registrations/{registration}/participant', [RegistrationMonitorController::class, 'editParticipant'])
+        ->name('registration-monitor.edit-participant');
+    Route::post('registrations/{registration}/flag', [RegistrationMonitorController::class, 'toggleFlag'])
+        ->name('registration-monitor.toggle-flag');
+    Route::post('registrations/{registration}/note', [RegistrationMonitorController::class, 'saveNote'])
+        ->name('registration-monitor.save-note');
+
     // Attendance directory — lists events eligible for attendance
     // recording. Gate: event_date <= today (see AttendanceController).
     Route::get('attendance', [AttendanceController::class, 'index'])

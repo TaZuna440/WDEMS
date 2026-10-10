@@ -874,3 +874,93 @@ phase.
   is a no-op), D-3 (stale `google_form_response_id` claim), D-4
   (mid-phase contact_number nullability flip). File-read list
   narrowed from twenty to five for the identity-side work.
+
+---
+
+## Phase 8 complete (2026-10-10)
+
+The status block in this doc lists Phase 8 as not yet started. It
+has shipped.
+
+### What shipped
+
+| Deliverable | Status |
+|---|---|
+| Migration: `flagged_at`, `notes` | ✅ |
+| Edit participant endpoint | ✅ |
+| Flag toggle endpoint | ✅ |
+| Note save endpoint | ✅ |
+| CSV export endpoint | ✅ |
+| Actions menu on monitor cards | ✅ |
+| Flagged filter chip | ✅ |
+
+### What did not ship
+
+**Delete registration with OTP.** Deferred to Phase 9. The spec for
+Phase 8 named it as part of the actions menu, but the delete flow
+needs the OTP subsystem that Phase 9 builds. The three endpoints
+that shipped here — edit, flag, note — cover the monitor's daily
+needs. Delete lands when Phase 9 lands.
+
+### Files
+
+    database/migrations/2026_10_10_140000_add_flagged_at_and_notes_to_registrations_table.php
+    app/Http/Requests/EditParticipantRequest.php
+    app/Http/Requests/FlagRegistrationRequest.php
+    app/Http/Requests/SaveRegistrationNoteRequest.php
+    app/Http/Controllers/RegistrationMonitorController.php
+    resources/js/components/edit-participant-dialog.tsx
+    resources/js/components/note-dialog.tsx
+    resources/js/pages/registrations/monitor/show.tsx
+    tests/Feature/Events/RegistrationMonitorActionsTest.php
+
+### Cross-references
+
+- `docs/registration-monitoring.md` — the spec, with a "Phase 8
+  shipped" addendum
+- `docs/progress.md` — dated entry for this session
+
+---
+
+## Phase 8 complete (2026-10-10)
+
+The status block in this doc lists Phase 8 as not yet started. It
+has shipped.
+
+### What shipped
+
+| Deliverable | Status |
+|---|---|
+| Migration: `flagged_at`, `notes` | ✅ |
+| Edit participant endpoint | ✅ |
+| Flag toggle endpoint | ✅ |
+| Note save endpoint | ✅ |
+| CSV export endpoint | ✅ |
+| Actions menu on monitor cards | ✅ |
+| Flagged filter chip | ✅ |
+
+### What did not ship
+
+**Delete registration with OTP.** Deferred to Phase 9. The spec for
+Phase 8 named it as part of the actions menu, but the delete flow
+needs the OTP subsystem that Phase 9 builds. The three endpoints
+that shipped here — edit, flag, note — cover the monitor's daily
+needs. Delete lands when Phase 9 lands.
+
+### Files
+
+    database/migrations/2026_10_10_140000_add_flagged_at_and_notes_to_registrations_table.php
+    app/Http/Requests/EditParticipantRequest.php
+    app/Http/Requests/FlagRegistrationRequest.php
+    app/Http/Requests/SaveRegistrationNoteRequest.php
+    app/Http/Controllers/RegistrationMonitorController.php
+    resources/js/components/edit-participant-dialog.tsx
+    resources/js/components/note-dialog.tsx
+    resources/js/pages/registrations/monitor/show.tsx
+    tests/Feature/Events/RegistrationMonitorActionsTest.php
+
+### Cross-references
+
+- `docs/registration-monitoring.md` — the spec, with a "Phase 8
+  shipped" addendum
+- `docs/progress.md` — dated entry for this session

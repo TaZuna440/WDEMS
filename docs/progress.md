@@ -1482,3 +1482,49 @@ already-processed row are no-ops.
 
 Full-suite baseline at Phase C start: 439 passed. After Phase C:
 455 passed (+16 net new tests).
+
+---
+
+## 2026-10-10 - Phase 8 complete: monitor actions
+
+### Summary
+
+Phase 8 of `docs/participant-identity-and-monitoring-plan.md`
+shipped. The monitor's actions menu is live.
+
+Four endpoints, one migration, three new components. The Flagged
+filter chip is now functional. The CSV export delivers the
+post-event reporting that community run organizers need.
+
+Delete registration is deferred to Phase 9 (OTP flow).
+
+### Documentation appended
+
+    docs/registration-monitoring.md   - Phase 8 shipped marker
+    docs/progress.md                  - this entry
+
+### Code changes
+
+    database/migrations/2026_10_10_140000_add_flagged_at_and_notes_to_registrations_table.php   (new)
+    app/Models/Registration.php                                (fillable + casts + isFlagged)
+    app/Http/Requests/EditParticipantRequest.php               (new)
+    app/Http/Requests/FlagRegistrationRequest.php              (new)
+    app/Http/Requests/SaveRegistrationNoteRequest.php          (new)
+    app/Http/Controllers/RegistrationMonitorController.php     (4 actions + gate helper)
+    routes/web.php                                             (4 new routes)
+    resources/js/components/edit-participant-dialog.tsx        (new)
+    resources/js/components/note-dialog.tsx                    (new)
+    resources/js/pages/registrations/monitor/show.tsx          (actions menu + flagged filter)
+
+### Test changes
+
+    tests/Feature/Events/RegistrationMonitorActionsTest.php    (new, 14 tests)
+
+### Verification
+
+    php artisan test tests/Feature/Events/RegistrationMonitorActionsTest.php  14 passed / 32 assertions
+    php artisan test                                                          476 passed / 1425 assertions
+    npx tsc --noEmit                                                          silent
+
+Full-suite baseline at Phase 8 start: 462 passed. After Phase 8:
+476 passed (+14 net new tests).

@@ -511,3 +511,82 @@ not flag.
 - `docs/fixes.md` — no separate entry; this is a Phase 7 gap close,
   not a bug fix
 - Commit: the same-phone warning commit
+
+---
+
+## Phase 8 shipped (2026-10-10)
+
+The status addendum above recorded Phase 8 (flag column, notes
+column, actions menu) as not shipped. It has shipped.
+
+### What shipped
+
+**Schema.**
+
+- `registrations.flagged_at` — timestamp, nullable.
+- `registrations.notes` — text, nullable.
+- Both added via migration
+  `2026_10_10_140000_add_flagged_at_and_notes_to_registrations_table.php`.
+
+**Endpoints.**
+
+- `PUT /registrations/{registration}/participant` — updates name,
+  email, phone, address. Age is not editable. Email and phone
+  uniqueness enforced; the request allows keeping the current value.
+- `POST /registrations/{registration}/flag` — accepts an explicit
+  `flagged` boolean. Not a blind toggle — see the request class
+  docblock for the reasoning.
+- `POST /registrations/{registration}/note` — note text, capped at
+  2000 chars. Whitespace-only input clears the column to null.
+- `GET /registrations/monitor/{event}/export` — CSV download. Six
+  common participant fields, source, status, registered_at, then
+  one column per custom field in display_order. UTF-8 BOM for Excel.
+
+All three action endpoints gate on `Event::status` being
+`registration_open` or `registration_closed`. Draft, ongoing,
+completed, and cancelled return 403.
+
+**Client.**
+
+- `edit-participant-dialog.tsx` — modal for the participant fields.
+- `note-dialog.tsx` — textarea with a 2000-char live counter.
+- `monitor/show.tsx` — ⋯ actions menu on each card, wired to all
+  four actions. Flag toggle is idempotent. CSV is a direct link
+  (browser download, not an Inertia round trip).
+- The Flagged filter chip is now functional. It is hidden when the
+  count is zero.
+- Flagged cards render with an amber left border. Cards with a note
+  show a small note icon. The note text renders under the card
+  content, line-clamped at two lines.
+
+### Spec §10 — delete action not shipped here
+
+The spec §10 table lists delete registration as part of the actions
+menu. That row is deferred to Phase 9 — the delete endpoint needs
+the OTP flow, which is a separate subsystem. The three endpoints
+that shipped here do not include delete.
+
+### Detector scope note
+
+`has_shared_phone` remains scoped to raw-string matches, per the
+earlier correction on this file. The Phase 8 work does not change
+that. See the "Same-phone warning shipped" section above.
+
+### Verification
+
+    tests/Feature/Events/RegistrationMonitorActionsTest.php  (14 tests)
+    php artisan test                                          (476 passed)
+    npx tsc --noEmit                                          (silent)
+
+The tests cover: edit participant updates and rejections (email
+collision, phone collision, keeping current email), flag set and
+clear and the completed-event gate, note save and clear and length
+cap, CSV headers, per-field custom columns, and checkbox array
+joining.
+
+### Cross-references
+
+- Section 6 — the Flagged filter chip, now functional
+- Section 10 — the actions menu, minus delete
+- `docs/participant-identity-and-monitoring-plan.md` — Phase 8
+- Phase 9 of the same plan — the delete endpoint

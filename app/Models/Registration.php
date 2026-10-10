@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'registration_status',
     'source',
     'registered_at',
+    'flagged_at',
+    'notes',
 ])]
 class Registration extends Model
 {
@@ -24,6 +26,7 @@ class Registration extends Model
         return [
             'registration_date' => 'datetime',
             'registered_at' => 'datetime',
+            'flagged_at' => 'datetime',
             'registration_status' => RegistrationStatus::class,
         ];
     }
@@ -57,5 +60,15 @@ class Registration extends Model
     public function fieldResponses(): HasMany
     {
         return $this->hasMany(RegistrationFieldResponse::class);
+    }
+
+    /**
+     * True when the organizer has flagged this registration for
+     * review. Reads the `flagged_at` timestamp. Set and cleared by
+     * the monitor's flag action.
+     */
+    public function isFlagged(): bool
+    {
+        return $this->flagged_at !== null;
     }
 }
