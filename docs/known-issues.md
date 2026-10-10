@@ -943,3 +943,48 @@ None. Both edits are mechanical.
   added under "Later additions". ISSUE-009 is an interim bug
   awaiting Phase 5. ISSUE-010 is a compliance gap awaiting Phase
   3.5 and legal content. ISSUE-011 is cosmetic.
+
+---
+
+### ISSUE-012 - Garbage contact_number and address accepted by public registration
+
+**Severity:** Medium (data quality, public unauthenticated form)
+**Status:** Fixed - 2026-10-10 - see FIX-027
+**Found in:** `app/Http/Requests/PublicRegistrationRequest.php`,
+`app/Http/Requests/WalkInRegistrationRequest.php`,
+`resources/js/lib/public-registration-validation.ts`
+**Related:** `docs/fixes.md` FIX-027,
+`docs/participant-identity.md` §7 (the at-least-one rule is a
+presence rule, not a validity rule)
+
+### Symptoms
+
+The public registration form at `/r/{slug}` accepted
+`contact_number = "fgfdgfdgdfg"` and
+`address = "dfdfdsfdsfdsfd"` on a submission with a valid email.
+The values were stored raw. The same gap existed in the walk-in
+dialog.
+
+### Root cause
+
+- `contact_number` rule was `['string', 'max:50']` — no format check.
+- `address` rule was `['string', 'max:500']` — no quality check.
+- The at-least-one identity rule (participant-identity.md §7) only
+  fires when both email and phone are absent. A garbage phone with
+  a valid email present never triggers it.
+- The client-side validation mirrored the same length-only checks.
+
+### Fix outline
+
+New `App\Concerns\ContactAndAddressQualityRules` trait, mirrored in
+`public-registration-validation.ts`. Applied to both public and
+walk-in requests. See FIX-027 for the full shape.
+
+### Verification when fixed
+
+    php artisan test tests/Feature/ContactAddressQualityTest.php
+
+Expected: 8 passed. The test file exercises both the public form
+and the walk-in dialog against letters-in-phone, too-few-digits,
+no-vowel address, no-letter address, and the landline-accepted
+case.

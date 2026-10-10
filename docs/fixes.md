@@ -1550,3 +1550,104 @@ attendance by scrolling and reading.
 
     php artisan test tests/Feature/Events/AttendanceTest.php  (21 passed)
     php artisan test                                           (391 passed)
+
+---
+
+## FIX-027 - Public registration accepted garbage phone and address
+
+**Date:** 2026-10-10
+**Severity:** Medium (data quality on a public, unauthenticated form)
+**Status:** Fixed
+
+### Symptom
+
+The public registration form at `/r/{slug}` accepted keyboard
+mashing in the `contact_number` and `address` fields. A submission
+with `contact_number = "fgfdgfdgdfg"` and
+`address = "dfdfdsfdsfdsfd"` succeeded and created a Participant +
+Registration with both garbage values stored raw.
+
+The email field carried a real address, so the at-least-one
+identity rule was satisfied. The garbage phone was stored with
+`contact_number_normalized = NULL` (it never normalized), and the
+garbage address was stored as-is.
+
+The same gap existed in the walk-in dialog.
+
+### Root cause
+
+Two fields had no quality rules:
+
+- `contact_number` — `['string', 'max:50']` only. Any string under
+  50 characters passed.
+- `address` — `['string', 'max:500']` only. Any string under 500
+  characters passed.
+
+The at-least-one identity rule (`withValidator` Pass 3) is a
+presence rule, not a validity rule. It only fires when *both*
+email and phone are blank. A garbage phone with a valid email
+present slipped past it entirely.
+
+The client-side mirror (`public-registration-validation.ts`)
+duplicated the gap: length-only checks for both fields.
+
+### Fix
+
+New trait `App\Concerns\ContactAndAddressQualityRules`, sibling to
+the existing `HumanNameQualityRules`. Two methods:
+
+- `contactNumberQualityRules()` — allowed characters (digits,
+  spaces, + - ( ) .) plus digit-count 7-15. Catches "fgfdgfdgdfg"
+  (0 digits) and "123" (3 digits). Admits PH mobiles in four
+  formats, PH landlines, and international numbers.
+- `addressQualityRules()` — min 5 chars, has a letter, has a vowel
+  or digit, has a consonant or digit, no 3+ identical letters in a
+  row. Catches "dfdfdsfdsfdsfd" and "88888888". Admits "123 Main
+  St", "Unit 5 Tower A", "5th Avenue", "8888 Sesame".
+
+Applied to both `PublicRegistrationRequest::rules()` and
+`WalkInRegistrationRequest::rules()` via `...$this->contactNumberQualityRules()`
+and `...$this->addressQualityRules()` spread into the per-event
+rule arrays. Message overrides added for the three new message
+keys (`contact_number.regex`, `address.regex`, `address.not_regex`).
+
+Client mirror added to `public-registration-validation.ts` as
+`validateContactNumber()` and `validateAddress()`. Wired into the
+two length-only branches.
+
+**Landline decision.** Landlines are accepted by the format check
+(digit count 7-15) but still normalize to `null` for identity — a
+landline-only submission needs an email to satisfy the at-least-one
+rule. This matches `docs/participant-identity.md` §9, which already
+documents that only the four PH-mobile formats normalize.
+
+### SQL injection audit
+
+Included in the same pass. Grep across `app/` for
+`DB::raw|whereRaw|orderByRaw|selectRaw|havingRaw|DB::statement|
+DB::select|DB::unprepared` returned two hits:
+
+- `RegistrationMonitorController.php:33` —
+  `->selectRaw('event_id, MAX(created_at) as most_recent, COUNT(*) as total')`
+  — no user input in the query.
+- `EventValidationRules.php:336` —
+  `->whereRaw('LOWER(TRIM(event_name)) = ?', [$normalized])`
+  — binds `$normalized` as a parameter.
+
+Neither takes user input unbound. No injection surface in the
+registration code path. Recorded here so the audit does not need
+to be repeated.
+
+### Files
+
+    app/Concerns/ContactAndAddressQualityRules.php                (new)
+    app/Http/Requests/PublicRegistrationRequest.php               (modified)
+    app/Http/Requests/WalkInRegistrationRequest.php               (modified)
+    resources/js/lib/public-registration-validation.ts            (modified)
+    tests/Feature/ContactAddressQualityTest.php                   (new)
+
+### Verification
+
+    php artisan test tests/Feature/ContactAddressQualityTest.php  (8 passed)
+    php artisan test                                              (399 passed)
+    npx tsc --noEmit                                              (silent)

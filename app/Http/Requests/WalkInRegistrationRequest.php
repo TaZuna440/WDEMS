@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Concerns\ContactAndAddressQualityRules;
 use App\Concerns\HumanNameQualityRules;
 use App\Models\Event;
 use App\Models\Participant;
@@ -9,6 +10,7 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class WalkInRegistrationRequest extends FormRequest
 {
+    use ContactAndAddressQualityRules;
     use HumanNameQualityRules;
 
     /**
@@ -28,6 +30,13 @@ class WalkInRegistrationRequest extends FormRequest
      * address) is per-event, read via Event::isCommonFieldRequired().
      * First name, last name, and age are always required.
      *
+     * Contact number and address go through
+     * ContactAndAddressQualityRules — same trait the public form uses.
+     * A walk-in is still a real submission and must not accept
+     * keyboard mashing ("fgfdgfdgdfg", "dfdfdsfdsfdsfd"). The quality
+     * rules only apply when the field is present; the per-event
+     * nullable/required prefix handles the empty case.
+     *
      * No custom fields. Per Phase 4 scope, walk-in is a fast path —
      * name, age, and any identity fields the event requires.
      *
@@ -40,8 +49,16 @@ class WalkInRegistrationRequest extends FormRequest
             'last_name' => $this->personNameRules(),
             'age' => ['required', 'integer', 'min:1', 'max:120'],
             'email' => $this->commonFieldRules('email', ['string', 'email:rfc', 'max:255']),
-            'contact_number' => $this->commonFieldRules('contact_number', ['string', 'max:50']),
-            'address' => $this->commonFieldRules('address', ['string', 'max:500']),
+            'contact_number' => $this->commonFieldRules('contact_number', [
+                'string',
+                'max:50',
+                ...$this->contactNumberQualityRules(),
+            ]),
+            'address' => $this->commonFieldRules('address', [
+                'string',
+                'max:500',
+                ...$this->addressQualityRules(),
+            ]),
             'mark_present' => ['boolean'],
         ];
     }
@@ -152,9 +169,11 @@ class WalkInRegistrationRequest extends FormRequest
     }
 
     /**
-     * Custom messages for the name quality regexes and the identity
-     * errors. Mirrors the public request for name fields; adds two
-     * walk-in-specific messages.
+     * Custom messages for the name quality regexes, the new
+     * contact/address quality regexes, and the identity errors.
+     * Mirrors the public request for name fields and the new
+     * contact/address messages; keeps the walk-in-specific identity
+     * message.
      *
      * @return array<string, string>
      */
@@ -165,6 +184,9 @@ class WalkInRegistrationRequest extends FormRequest
             'first_name.not_regex' => 'Please enter a valid first name.',
             'last_name.regex' => 'Please enter a valid last name.',
             'last_name.not_regex' => 'Please enter a valid last name.',
+            'contact_number.regex' => 'Please enter a valid phone number.',
+            'address.regex' => 'Please enter a valid address.',
+            'address.not_regex' => 'Please enter a valid address.',
             'identity.required' => 'Please provide at least an email address or a contact number.',
         ];
     }

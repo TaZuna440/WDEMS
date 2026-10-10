@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Concerns\ContactAndAddressQualityRules;
 use App\Concerns\HumanNameQualityRules;
 use App\Models\Event;
 use App\Models\Participant;
@@ -9,6 +10,7 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class PublicRegistrationRequest extends FormRequest
 {
+    use ContactAndAddressQualityRules;
     use HumanNameQualityRules;
 
     /**
@@ -35,6 +37,14 @@ class PublicRegistrationRequest extends FormRequest
      * by event_name, partners.*.name, and the form builder's label
      * field — reused here rather than duplicated.
      *
+     * Contact number and address go through
+     * ContactAndAddressQualityRules, a sibling trait that catches
+     * keyboard mashing ("fgfdgfdgdfg", "dfdfdsfdsfdsfd") while
+     * admitting real phone numbers and addresses. The quality rules
+     * only apply when the field is present — the per-event
+     * nullable/required prefix handles the empty case, and Laravel
+     * skips subsequent rules when the value is null.
+     *
      * The at-least-one identity rule (email OR contact_number) lives
      * in withValidator() — it depends on the normalized form of the
      * phone, which is not known during the standard rules pass.
@@ -47,9 +57,17 @@ class PublicRegistrationRequest extends FormRequest
             'first_name' => $this->personNameRules(),
             'last_name' => $this->personNameRules(),
             'email' => $this->commonFieldRules('email', ['string', 'email:rfc', 'max:255']),
-            'contact_number' => $this->commonFieldRules('contact_number', ['string', 'max:50']),
+            'contact_number' => $this->commonFieldRules('contact_number', [
+                'string',
+                'max:50',
+                ...$this->contactNumberQualityRules(),
+            ]),
             'age' => ['required', 'integer', 'min:1', 'max:120'],
-            'address' => $this->commonFieldRules('address', ['string', 'max:500']),
+            'address' => $this->commonFieldRules('address', [
+                'string',
+                'max:500',
+                ...$this->addressQualityRules(),
+            ]),
             'responses' => ['nullable', 'array'],
             'responses.*' => ['nullable'],
         ];
@@ -189,9 +207,10 @@ class PublicRegistrationRequest extends FormRequest
     }
 
     /**
-     * Custom messages for the four name-quality regex rules.
+     * Custom messages for the name-quality regex rules and the new
+     * contact/address quality regexes.
      *
-     * The rules themselves live in HumanNameQualityRules. Laravel
+     * The name rules themselves live in HumanNameQualityRules. Laravel
      * reports any of the three `regex:` failures under the key
      * `{field}.regex` and the not_regex failure under
      * `{field}.not_regex`, so two overrides per field cover all four.
@@ -210,6 +229,9 @@ class PublicRegistrationRequest extends FormRequest
             'first_name.not_regex' => 'Please enter a valid first name.',
             'last_name.regex' => 'Please enter a valid last name.',
             'last_name.not_regex' => 'Please enter a valid last name.',
+            'contact_number.regex' => 'Please enter a valid phone number.',
+            'address.regex' => 'Please enter a valid address.',
+            'address.not_regex' => 'Please enter a valid address.',
         ];
     }
 

@@ -21,6 +21,13 @@
  * server's HumanNameQualityRules trait — one source of truth for what
  * counts as keyboard mashing, shared across the wizard, the form
  * builder, and this file.
+ *
+ * Contact-number and address quality checks are new: they mirror the
+ * ContactAndAddressQualityRules trait on the server and catch
+ * keyboard mashing ("fgfdgfdgdfg", "dfdfdsfdsfdsfd") while admitting
+ * real phone numbers and addresses. The rules are intentionally kept
+ * identical to the PHP versions — if you change one side, change the
+ * other in the same commit.
  */
 
 import { humanNameQualityError } from '@/lib/event-validation';
@@ -49,6 +56,27 @@ const MAX_ADDRESS = 500;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Client mirror of ContactAndAddressQualityRules::contactNumberQualityRules().
+ *
+ * Allowed characters: digits, spaces, +, -, (, ), .
+ * Digit count: 7 to 15 (enough for any national or international
+ * number, too few for keyboard mashing).
+ */
+const CONTACT_ALLOWED_CHARS = /^[\d\s+\-().]+$/;
+const CONTACT_DIGIT_COUNT = /^(?=(?:\D*\d){7,15}\D*$)/;
+
+/**
+ * Client mirror of ContactAndAddressQualityRules::addressQualityRules().
+ *
+ * Five checks: length >= 5, has a letter, has a vowel-or-digit, has
+ * a consonant-or-digit, no 3+ identical letters in a row.
+ */
+const ADDRESS_HAS_LETTER = /[A-Za-z]/;
+const ADDRESS_HAS_VOWEL_OR_DIGIT = /[aeiouyAEIOUY0-9]/;
+const ADDRESS_HAS_CONSONANT_OR_DIGIT = /[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ0-9]/;
+const ADDRESS_REPEATED_LETTERS = /([A-Za-z])\1\1/;
 
 function isBlank(value: unknown): boolean {
     if (value === null || value === undefined) return true;
@@ -106,6 +134,57 @@ function validateNameValue(
     return humanNameQualityError(value, label);
 }
 
+/**
+ * Contact-number validation: length, allowed characters, digit count.
+ *
+ * Mirrors ContactAndAddressQualityRules::contactNumberQualityRules()
+ * and the message overrides on PublicRegistrationRequest. Returns the
+ * error message or null. Does not enforce identity — a value that
+ * fails here can still be blank-safe if email is present.
+ */
+function validateContactNumber(value: string): string | null {
+    if (value.length > MAX_CONTACT) {
+        return `Contact number must not exceed ${MAX_CONTACT} characters.`;
+    }
+    if (!CONTACT_ALLOWED_CHARS.test(value)) {
+        return 'Please enter a valid phone number.';
+    }
+    if (!CONTACT_DIGIT_COUNT.test(value)) {
+        return 'Please enter a valid phone number.';
+    }
+    return null;
+}
+
+/**
+ * Address validation: length, letters, vowels/digits, consonants/
+ * digits, no repeated letters.
+ *
+ * Mirrors ContactAndAddressQualityRules::addressQualityRules() and
+ * the message overrides on PublicRegistrationRequest. Returns the
+ * error message or null.
+ */
+function validateAddress(value: string): string | null {
+    if (value.length > MAX_ADDRESS) {
+        return `Address must not exceed ${MAX_ADDRESS} characters.`;
+    }
+    if (value.length < 5) {
+        return 'Please enter a valid address.';
+    }
+    if (!ADDRESS_HAS_LETTER.test(value)) {
+        return 'Please enter a valid address.';
+    }
+    if (!ADDRESS_HAS_VOWEL_OR_DIGIT.test(value)) {
+        return 'Please enter a valid address.';
+    }
+    if (!ADDRESS_HAS_CONSONANT_OR_DIGIT.test(value)) {
+        return 'Please enter a valid address.';
+    }
+    if (ADDRESS_REPEATED_LETTERS.test(value)) {
+        return 'Please enter a valid address.';
+    }
+    return null;
+}
+
 export function validateRegistrationForm(
     data: RegistrationFormData,
     fields: ServerField[],
@@ -149,16 +228,22 @@ export function validateRegistrationForm(
         if (isRequired('contact_number')) {
             errors.contact_number = 'Contact number is required.';
         }
-    } else if (data.contact_number.length > MAX_CONTACT) {
-        errors.contact_number = `Contact number must not exceed ${MAX_CONTACT} characters.`;
+    } else {
+        const contactError = validateContactNumber(data.contact_number);
+        if (contactError) {
+            errors.contact_number = contactError;
+        }
     }
 
     if (isBlank(data.address)) {
         if (isRequired('address')) {
             errors.address = 'Address is required.';
         }
-    } else if (data.address.length > MAX_ADDRESS) {
-        errors.address = `Address must not exceed ${MAX_ADDRESS} characters.`;
+    } else {
+        const addressError = validateAddress(data.address);
+        if (addressError) {
+            errors.address = addressError;
+        }
     }
 
     // -------- At-least-one identity --------

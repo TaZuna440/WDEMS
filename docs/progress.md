@@ -1270,3 +1270,51 @@ every row.
     php artisan test                                           391 passed / 1104 assertions
     npm run types:check                                        silent
     npm run build                                              succeeds
+
+---
+
+## 2026-10-10 - FIX-027: contact_number and address quality rules
+
+### Summary
+
+The public registration form and the walk-in dialog accepted
+keyboard mashing in `contact_number` and `address`. A garbage
+phone ("fgfdgfdgdfg") passed because the email satisfied the
+at-least-one identity rule; a garbage address
+("dfdfdsfdsfdsfd") passed because there was no quality rule at
+all.
+
+New `App\Concerns\ContactAndAddressQualityRules` trait closes the
+gap on the server. Mirrored in
+`resources/js/lib/public-registration-validation.ts` for
+client-side parity. Applied to both
+`PublicRegistrationRequest` and `WalkInRegistrationRequest` —
+the two entry points that share the common-field rule set.
+
+The same pass audited the codebase for raw SQL. Two hits, both
+parameterized. Recorded in FIX-027 so the audit does not need to
+be repeated.
+
+### Documentation appended
+
+    docs/fixes.md            - FIX-027
+    docs/known-issues.md     - ISSUE-012 (fixed)
+    docs/progress.md         - this entry
+    docs/participant-identity.md - status addendum (Phase 4/5 drift)
+
+### Code changes
+
+    app/Concerns/ContactAndAddressQualityRules.php     (new)
+    app/Http/Requests/PublicRegistrationRequest.php    (modified)
+    app/Http/Requests/WalkInRegistrationRequest.php    (modified)
+    resources/js/lib/public-registration-validation.ts (modified)
+
+### Test changes
+
+    tests/Feature/ContactAddressQualityTest.php        (new, 8 tests)
+
+### Verification
+
+    php artisan test tests/Feature/ContactAddressQualityTest.php  8 passed / 23 assertions
+    php artisan test                                              399 passed / 1127 assertions
+    npx tsc --noEmit                                              silent

@@ -400,3 +400,54 @@ naming here so they are not lost:
   yet started. Known gap ISSUE-009 (duplicate-phone 500) named.
   Two hidden behaviors of the shipped code documented for the
   first time.
+
+---
+
+## Status addendum (2026-10-10)
+
+The status block above (added 2026-10-02) records Phase 4 and
+Phase 5 as not yet started. Both have since shipped. Per the
+append-only rule (P7), the earlier block stands as a historical
+record. This addendum corrects the current state.
+
+### Phase 4 - at-least-one rule (shipped)
+
+The at-least-one rule exists in two places:
+
+- `PublicRegistrationRequest::withValidator()` Pass 3 adds the
+  `identity` error when both email and phone are blank.
+- `RegistrationFieldValidationRules::validateCommonFieldRequirementsIdentity()`
+  rejects form-builder saves where both `email` and
+  `contact_number` toggles are off.
+
+Test coverage:
+
+- `tests/Feature/Public/PublicRegistrationIdentityRuleTest.php`
+- `tests/Feature/Events/RegistrationFormIdentityRuleTest.php`
+- `tests/Feature/Events/EventCommonFieldRequirementsTest.php`
+
+### Phase 5 - controller rewrite (shipped)
+
+`PublicRegistrationController::store()` now calls
+`Participant::resolveFrom($email, $phone, $attributes)` instead
+of the pre-identity `firstOrCreate`. The D5 duplicate check
+runs against the resolved participant, uniform across email and
+phone identities.
+
+ISSUE-009 (duplicate-phone 500) is closed by this change.
+
+### What Phase 4 did not cover
+
+The at-least-one rule is a **presence** rule: is there an email
+or a phone? It is not a **quality** rule: does the phone look
+like a phone?
+
+FIX-027 (2026-10-10) adds the missing quality layer via
+`ContactAndAddressQualityRules`. A garbage phone with a valid
+email present is now rejected on both the public form and the
+walk-in dialog. See `docs/fixes.md` FIX-027.
+
+### Cross-references
+
+- FIX-027 - contact_number and address quality rules
+- ISSUE-012 - the gap FIX-027 closes (fixed)
