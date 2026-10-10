@@ -6,11 +6,19 @@ use App\Models\Registration;
 use App\Models\User;
 
 /**
- * Covers Phase 6 of the participant-identity-and-monitoring plan:
- * the attendance date gate and the /attendance directory page.
+ * Covers Phase 6 of the participant-identity-and-monitoring plan
+ * (attendance date gate) and the FIX-027 follow-up window change
+ * documented in docs/attendance-redesign.md section 3.
  *
- * canRecordAttendanceToday() composes canRecordAttendance() with
- * event_date <= today. Both show() and mark() are gated.
+ * canRecordAttendanceNow() composes canRecordAttendance() with a
+ * time-based window: opens ATTENDANCE_WINDOW_MINUTES_BEFORE before
+ * the event's start_time, closes when the status leaves the allowed
+ * set. If start_time is null, the window opens at midnight of
+ * event_date — the same behavior as the day-granular gate this
+ * replaces.
+ *
+ * Both show() and mark() are gated on canRecordAttendanceNow(). The
+ * view gate (canViewAttendance()) is broader — it admits Completed.
  *
  * Helpers prefixed attgate_ to avoid Pest collisions.
  */
@@ -58,37 +66,91 @@ function attgate_registration(Event $event): Registration
 }
 
 // ---------------------------------------------------------------------------
-// Model gate — canRecordAttendanceToday()
+// Model gate — canRecordAttendanceNow()
 // ---------------------------------------------------------------------------
 
-test('a today event in registration_closed can record attendance today', function () {
-    expect(attgate_event()->canRecordAttendanceToday())->toBeTrue();
+test('a today event in registration_closed can record attendance now', function () {
+    expect(attgate_event()->canRecordAttendanceNow())->toBeTrue();
 });
 
-test('a today event in registration_open can record attendance today', function () {
+test('a today event in registration_open can record attendance now', function () {
     expect(
-        attgate_event(['status' => 'registration_open'])->canRecordAttendanceToday()
+        attgate_event(['status' => 'registration_open'])->canRecordAttendanceNow()
     )->toBeTrue();
 });
 
-test('a past event can record attendance today', function () {
+test('a past event can record attendance now', function () {
     expect(
         attgate_event(['event_date' => today()->subDays(3)->toDateString()])
-            ->canRecordAttendanceToday()
+            ->canRecordAttendanceNow()
     )->toBeTrue();
 });
 
-test('a future event cannot record attendance today', function () {
+test('a future event cannot record attendance now', function () {
     expect(
         attgate_event(['event_date' => today()->addDay()->toDateString()])
-            ->canRecordAttendanceToday()
+            ->canRecordAttendanceNow()
     )->toBeFalse();
 });
 
-test('a draft event cannot record attendance today', function () {
+test('a draft event cannot record attendance now', function () {
     expect(
-        attgate_event(['status' => 'draft'])->canRecordAttendanceToday()
+        attgate_event(['status' => 'draft'])->canRecordAttendanceNow()
     )->toBeFalse();
+});
+
+// ---------------------------------------------------------------------------
+// Time window — opens ATTENDANCE_WINDOW_MINUTES_BEFORE before start_time
+// ---------------------------------------------------------------------------
+
+test('the window is open exactly one hour before start_time', function () {
+    $this->travelTo(today()->setTime(5, 0));
+    $event = attgate_event(['start_time' => '06:00']);
+
+    expect($event->canRecordAttendanceNow())->toBeTrue();
+});
+
+test('the window is closed one minute before the buffer opens', function () {
+    $this->travelTo(today()->setTime(4, 59));
+    $event = attgate_event(['start_time' => '06:00']);
+
+    expect($event->canRecordAttendanceNow())->toBeFalse();
+});
+
+test('the window stays open after start_time', function () {
+    $this->travelTo(today()->setTime(7, 0));
+    $event = attgate_event(['start_time' => '06:00']);
+
+    expect($event->canRecordAttendanceNow())->toBeTrue();
+});
+
+test('an event with no start_time opens at midnight of event_date', function () {
+    $this->travelTo(today()->setTime(0, 1));
+    $event = attgate_event();
+
+    expect($event->canRecordAttendanceNow())->toBeTrue();
+});
+
+test('an event starting just after midnight opens the previous evening', function () {
+    // Event on day+1 at 00:30. Window opens day 23:30 (start_time
+    // minus the 60-minute buffer). "Now" is day 23:45 — the window
+    // is open even though event_date is tomorrow.
+    $this->travelTo(today()->setTime(23, 45));
+    $event = attgate_event([
+        'event_date' => today()->addDay()->toDateString(),
+        'start_time' => '00:30',
+    ]);
+
+    expect($event->canRecordAttendanceNow())->toBeTrue();
+});
+
+test('a future event with no start_time is still closed', function () {
+    $this->travelTo(today()->setTime(12, 0));
+    $event = attgate_event([
+        'event_date' => today()->addDay()->toDateString(),
+    ]);
+
+    expect($event->canRecordAttendanceNow())->toBeFalse();
 });
 
 // ---------------------------------------------------------------------------
@@ -120,6 +182,19 @@ test('the attendance page is forbidden for a future event', function () {
 test('marking attendance is forbidden for a future event', function () {
     $staff = attgate_staff();
     $event = attgate_event(['event_date' => today()->addDay()->toDateString()]);
+    $registration = attgate_registration($event);
+
+    $this->actingAs($staff)
+        ->post("/events/{$event->id}/attendance/{$registration->id}/mark", [
+            'status' => 'present',
+        ])
+        ->assertForbidden();
+});
+
+test('marking attendance is forbidden before the window opens', function () {
+    $this->travelTo(today()->setTime(4, 0));
+    $staff = attgate_staff();
+    $event = attgate_event(['start_time' => '06:00']);
     $registration = attgate_registration($event);
 
     $this->actingAs($staff)

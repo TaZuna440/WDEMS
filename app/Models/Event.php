@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\EventStatus;
 use App\Enums\EventType;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -69,6 +70,15 @@ class Event extends Model
         'contact_number',
         'address',
     ];
+
+    /**
+     * How many minutes before the event's start_time the attendance
+     * window opens. See docs/attendance-redesign.md section 3.
+     *
+     * 60 = one hour early. Adjusting this constant is the single knob
+     * for the whole window policy.
+     */
+    public const ATTENDANCE_WINDOW_MINUTES_BEFORE = 60;
 
     protected function casts(): array
     {
@@ -228,18 +238,21 @@ class Event extends Model
     /**
      * Can attendance be recorded for this event right now?
      *
-     * Composes the existing canRecordAttendance() (status is
-     * registration_open, registration_closed, or ongoing) with a
-     * date gate: the event day must have arrived.
+     * Composes the status gate (canRecordAttendance()) with a
+     * time-based window that opens one hour before the event's
+     * start_time.
      *
-     * The gate exists so an organizer cannot pre-mark attendance for
-     * a race that has not happened yet. A same-day registration_open
-     * event passes — the race is underway. A future event does not.
+     * Replaces the day-granular canRecordAttendanceToday(), which
+     * allowed marking from midnight of event day — six hours early
+     * for an event starting at 06:00. See
+     * docs/attendance-redesign.md section 3.
      *
-     * Distinct from canRecordAttendance() which answers the status
-     * question alone.
+     * The window closes when the status leaves the allowed set.
+     * Completed events stay viewable (canViewAttendance) but not
+     * markable. An admin force-open toggle is handled at the
+     * controller layer; this method returns the strict truth.
      */
-    public function canRecordAttendanceToday(): bool
+    public function canRecordAttendanceNow(): bool
     {
         if (! $this->canRecordAttendance()) {
             return false;
@@ -249,23 +262,57 @@ class Event extends Model
             return false;
         }
 
-        return $this->event_date->lte(today());
+        return now()->greaterThanOrEqualTo($this->attendanceWindowOpensAt());
+    }
+
+    /**
+     * The moment marking opens: start_time minus
+     * ATTENDANCE_WINDOW_MINUTES_BEFORE.
+     *
+     * If start_time is null, falls back to midnight of event_date —
+     * the same effective behavior as the day-granular gate this
+     * replaces. An event without a start_time is almost certainly an
+     * oversight; the fallback is defensive, not ideal.
+     *
+     * If start_time is earlier than the window buffer (e.g. 00:30
+     * minus 1 hour), the returned moment falls on the previous day.
+     * That is correct — a race starting at 00:30 should be markable
+     * from 23:30 the evening before.
+     *
+     * Return type is CarbonInterface because Laravel's date cast
+     * (and the app's global date preference) can produce either
+     * Carbon or CarbonImmutable. Both implement CarbonInterface.
+     */
+    protected function attendanceWindowOpensAt(): CarbonInterface
+    {
+        $opensAt = $this->event_date->copy()->startOfDay();
+
+        if ($this->start_time !== null) {
+            $opensAt = $opensAt
+                ->setTime(
+                    (int) $this->start_time->format('H'),
+                    (int) $this->start_time->format('i'),
+                )
+                ->subMinutes(self::ATTENDANCE_WINDOW_MINUTES_BEFORE);
+        }
+
+        return $opensAt;
     }
 
     /**
      * Can the attendance page be viewed for this event?
      *
-     * Broader than canRecordAttendanceToday(). Adds Completed to the
+     * Broader than canRecordAttendanceNow(). Adds Completed to the
      * viewable set so the organizer can review attendance after the
-     * event. Marking is still gated by canRecordAttendanceToday() —
+     * event. Marking is still gated by canRecordAttendanceNow() —
      * this method only decides whether the page renders at all.
      *
      * Excluded: draft, configured, cancelled. Their attendance data
      * is meaningless or does not exist.
      *
-     * Date gate matches canRecordAttendanceToday(): a future event
-     * returns false. A completed event has a past event_date by
-     * definition, so the gate is trivially satisfied.
+     * Date gate: a future event returns false. A completed event has
+     * a past event_date by definition, so the gate is trivially
+     * satisfied.
      */
     public function canViewAttendance(): bool
     {

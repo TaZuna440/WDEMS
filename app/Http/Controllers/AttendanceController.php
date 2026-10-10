@@ -171,7 +171,7 @@ class AttendanceController extends Controller
                 'q' => $search,
                 'filter' => $filter,
             ],
-            'can_mark' => $event->canRecordAttendanceToday(),
+            'can_mark' => $event->canRecordAttendanceNow(),
             'attendance_statuses' => collect(AttendanceStatus::cases())
                 ->map(fn (AttendanceStatus $s) => [
                     'value' => $s->value,
@@ -183,7 +183,7 @@ class AttendanceController extends Controller
 
     public function mark(Request $request, Event $event, Registration $registration): RedirectResponse
     {
-        if (! $event->canRecordAttendanceToday()) {
+        if (! $event->canRecordAttendanceNow()) {
             abort(403, 'Attendance can only be recorded on the event day.');
         }
 
@@ -219,7 +219,7 @@ class AttendanceController extends Controller
 
     public function walkIn(WalkInRegistrationRequest $request, Event $event): RedirectResponse
     {
-        if (! $event->canRecordAttendanceToday()) {
+        if (! $event->canRecordAttendanceNow()) {
             abort(403, 'Walk-ins can only be registered on the event day.');
         }
 
