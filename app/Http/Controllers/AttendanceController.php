@@ -67,6 +67,12 @@ class AttendanceController extends Controller
             abort(403, 'Attendance is not available for this event.');
         }
 
+        // Admin bypass. Only an authenticated admin can force the
+        // marking window open via the query string. Not persisted, not
+        // sessioned — re-evaluated on every request.
+        $isAdmin = $request->user()?->isAdmin() === true;
+        $forceOpen = $isAdmin && $request->boolean('force_open');
+
         $search = trim((string) $request->input('q', ''));
         $filter = (string) $request->input('filter', 'all');
 
@@ -173,7 +179,9 @@ class AttendanceController extends Controller
                 'q' => $search,
                 'filter' => $filter,
             ],
-            'can_mark' => $event->canRecordAttendanceNow(),
+            'can_mark' => $forceOpen || $event->canRecordAttendanceNow(),
+            'is_admin' => $isAdmin,
+            'force_open' => $forceOpen,
             'attendance_statuses' => collect(AttendanceStatus::cases())
                 ->map(fn (AttendanceStatus $s) => [
                     'value' => $s->value,
@@ -185,7 +193,10 @@ class AttendanceController extends Controller
 
     public function mark(Request $request, Event $event, Registration $registration): RedirectResponse
     {
-        if (! $event->canRecordAttendanceNow()) {
+        $forceOpen = $request->user()?->isAdmin() === true
+            && $request->boolean('force_open');
+
+        if (! $forceOpen && ! $event->canRecordAttendanceNow()) {
             abort(403, 'Attendance can only be recorded on the event day.');
         }
 
@@ -221,7 +232,10 @@ class AttendanceController extends Controller
 
     public function walkIn(WalkInRegistrationRequest $request, Event $event): RedirectResponse
     {
-        if (! $event->canRecordAttendanceNow()) {
+        $forceOpen = $request->user()?->isAdmin() === true
+            && $request->boolean('force_open');
+
+        if (! $forceOpen && ! $event->canRecordAttendanceNow()) {
             abort(403, 'Walk-ins can only be registered on the event day.');
         }
 

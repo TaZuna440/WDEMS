@@ -5,9 +5,9 @@ import {
     Clock,
     Plus,
     Search,
+    Unlock,
+    Lock,
     UserCheck,
-    UserX,
-    X,
     MoreHorizontal,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -93,6 +93,8 @@ type Props = {
         filter: AttendanceFilter;
     };
     can_mark: boolean;
+    is_admin: boolean;
+    force_open: boolean;
     attendance_statuses: StatusOption[];
 };
 
@@ -118,6 +120,8 @@ export default function EventsAttendance({
     counts,
     filters,
     can_mark,
+    is_admin,
+    force_open,
     attendance_statuses,
 }: Props) {
     const [localSearch, setLocalSearch] = useState(filters.q);
@@ -125,6 +129,16 @@ export default function EventsAttendance({
     const [walkInOpen, setWalkInOpen] = useState(false);
 
     const baseUrl = `/events/${event.id}/attendance`;
+
+    // Query params shared by every reload — search, pagination,
+    // filter chips, force-open toggle. Rebuilt each time so the
+    // bypass state is always carried through partial reloads.
+    const sharedQuery = (overrides: Record<string, string | number> = {}) => ({
+        ...(localSearch !== '' ? { q: localSearch } : {}),
+        ...(filters.filter !== 'all' ? { filter: filters.filter } : {}),
+        ...(force_open ? { force_open: 1 } : {}),
+        ...overrides,
+    });
 
     // Debounced search. Fires a partial reload 300ms after the user
     // stops typing. Guards against firing when the URL already
@@ -135,21 +149,12 @@ export default function EventsAttendance({
                 return;
             }
 
-            router.get(
-                baseUrl,
-                {
-                    ...(localSearch !== '' ? { q: localSearch } : {}),
-                    ...(filters.filter !== 'all'
-                        ? { filter: filters.filter }
-                        : {}),
-                },
-                {
-                    preserveScroll: true,
-                    preserveState: true,
-                    replace: true,
-                    only: ['rows', 'pagination', 'counts', 'filters'],
-                },
-            );
+            router.get(baseUrl, sharedQuery(), {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+                only: ['rows', 'pagination', 'counts', 'filters'],
+            });
         }, 300);
 
         return () => clearTimeout(timer);
@@ -160,7 +165,10 @@ export default function EventsAttendance({
         setMarking(registrationId);
         router.post(
             `${baseUrl}/${registrationId}/mark`,
-            { status },
+            {
+                status,
+                force_open: force_open ? 1 : 0,
+            },
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -170,9 +178,31 @@ export default function EventsAttendance({
         );
     };
 
+    // Toggle the admin force-open bypass. Setting force_open=1 keeps
+    // the param on the URL; clearing it drops the param entirely.
+    const toggleForceOpen = () => {
+        router.get(
+            baseUrl,
+            sharedQuery(
+                force_open ? {} : { force_open: 1 },
+            ),
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+                only: ['can_mark', 'force_open'],
+            },
+        );
+    };
+
     const otherStatuses = attendance_statuses.filter(
         (s) => s.value !== 'present',
     );
+
+    // Show the force toggle only when it might be useful: an admin
+    // whose window is currently closed, or an admin who already
+    // forced it open and needs the way back.
+    const showForceToggle = is_admin && (!can_mark || force_open);
 
     return (
         <>
@@ -198,10 +228,47 @@ export default function EventsAttendance({
                             {event.venue && ` · ${event.venue}`}
                         </p>
                     </div>
-                    <span className="inline-flex w-fit rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-foreground">
-                        {event.status_label}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {showForceToggle && (
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant={force_open ? 'default' : 'outline'}
+                                onClick={toggleForceOpen}
+                                className={
+                                    force_open
+                                        ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
+                                        : ''
+                                }
+                            >
+                                {force_open ? (
+                                    <>
+                                        <Lock className="mr-2 h-3.5 w-3.5" />
+                                        Force close
+                                    </>
+                                ) : (
+                                    <>
+                                        <Unlock className="mr-2 h-3.5 w-3.5" />
+                                        Force open
+                                    </>
+                                )}
+                            </Button>
+                        )}
+                        <span className="inline-flex w-fit rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-foreground">
+                            {event.status_label}
+                        </span>
+                    </div>
                 </div>
+
+                {force_open && (
+                    <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+                        <Unlock className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                        <p className="text-sm text-amber-200">
+                            Admin override active. Marking is enabled
+                            outside the normal attendance window.
+                        </p>
+                    </div>
+                )}
 
                 {!can_mark && (
                     <div className="glass-panel flex items-start gap-3 rounded-xl p-4">
@@ -413,14 +480,7 @@ export default function EventsAttendance({
                         perPage={pagination.per_page}
                         total={pagination.total}
                         baseUrl={baseUrl}
-                        query={{
-                            ...(localSearch !== ''
-                                ? { q: localSearch }
-                                : {}),
-                            ...(filters.filter !== 'all'
-                                ? { filter: filters.filter }
-                                : {}),
-                        }}
+                        query={sharedQuery()}
                     />
                 </div>
             </div>
@@ -431,6 +491,7 @@ export default function EventsAttendance({
                 onOpenChange={setWalkInOpen}
                 requirements={event.common_field_requirements}
                 fields={event.registration_fields}
+                forceOpen={force_open}
             />
         </>
     );

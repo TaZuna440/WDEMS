@@ -491,3 +491,82 @@ A follow-up commit will add:
 - Commits: `3f8cafa` (window), this commit (custom fields).
 - FIX-027 — adjacent quality rules that already landed.
 - `docs/progress.md` — dated progress entry for this session.
+
+---
+
+## Admin force-open toggle (2026-10-10)
+
+Closes the one item Phase A deferred. See the "Phase A complete"
+section above for context.
+
+### What shipped
+
+**Server side:**
+
+- `AttendanceController::show()` computes `$forceOpen` from the
+  query string and the authenticated user's role. `is_admin` and
+  `force_open` are both passed to the page as props.
+- `AttendanceController::mark()` and `AttendanceController::walkIn()`
+  read `force_open` from the query string and skip the window gate
+  when both conditions hold: user is admin, and the parameter is
+  present.
+- `Event::canRecordAttendanceNow()` is **not modified**. The model
+  method remains the strict truth. The bypass is a controller-layer
+  concern, not a model-layer one.
+
+**Client side:**
+
+- `attendance.tsx` renders a "Force open" / "Force close" toggle in
+  the header, visible only when `is_admin && (!can_mark || force_open)`.
+  The `!can_mark` half hides the toggle when the window is naturally
+  open. The `force_open` half keeps the button visible once the
+  admin has activated it, so they have a way back to the normal
+  state.
+- An amber banner appears at the top of the page when `force_open`
+  is true, informing the admin that the override is active.
+- `sharedQuery()` rebuilds the query string on every partial reload
+  — search, pagination, filter chips — so the bypass survives
+  navigation within the page.
+- `mark()` and the walk-in POST both carry `force_open=1` when the
+  toggle is active.
+- `walk-in-dialog.tsx` accepts an optional `forceOpen` prop and
+  appends `?force_open=1` to the POST URL when true.
+
+### Not persisted
+
+The bypass lives entirely in the query string. Reload the page
+without the parameter and the toggle is off. No session state, no
+cache entry, no database row. This is deliberate — the bypass is
+an escape hatch, not a mode.
+
+### Not audited
+
+Bypassing the window is not logged. Recorded as an open item in
+section 11. A future session can add audit logging if the
+compliance need arises.
+
+### Tests
+
+    tests/Feature/Events/AttendanceForceOpenTest.php  (new, 9 tests)
+
+Covers:
+- admin without param — can_mark false, is_admin true, force_open false
+- admin with param — can_mark true, force_open true
+- admin with param — mark succeeds on a completed event
+- admin with param — walk-in succeeds on a completed event
+- staff with param — can_mark still false (bypass does not apply)
+- staff with param — mark forbidden on a completed event
+- staff with param — walk-in forbidden on a completed event
+- is_admin prop is true for admin
+- is_admin prop is false for staff
+
+### Verification
+
+    php artisan test tests/Feature/Events/AttendanceForceOpenTest.php  (9 passed)
+    php artisan test                                                   (427 passed)
+    npx tsc --noEmit                                                  (silent)
+
+### Cross-references
+
+- Section 3 — the window change and the force-open design
+- Section 6 — Phase A scope, where the toggle was first deferred

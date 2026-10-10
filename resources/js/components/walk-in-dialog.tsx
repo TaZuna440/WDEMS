@@ -35,6 +35,11 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     requirements: CommonFieldRequirements;
     fields: ServerField[];
+    // Admin force-open bypass. When true, the POST carries
+    // force_open=1 so the controller's gate check is skipped.
+    // Only ever set to true for admins — the attendance page
+    // computes the value from the user's role.
+    forceOpen?: boolean;
 };
 
 export default function WalkInDialog({
@@ -43,6 +48,7 @@ export default function WalkInDialog({
     onOpenChange,
     requirements,
     fields,
+    forceOpen = false,
 }: Props) {
     const form = useForm<{
         first_name: string;
@@ -81,13 +87,18 @@ export default function WalkInDialog({
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        form.post(`/events/${eventId}/attendance/walk-in`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                form.reset();
-                onOpenChange(false);
+        form.post(
+            `/events/${eventId}/attendance/walk-in${
+                forceOpen ? '?force_open=1' : ''
+            }`,
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    form.reset();
+                    onOpenChange(false);
+                },
             },
-        });
+        );
     };
 
     const setResponse = (fieldId: number, value: string | string[]) => {
