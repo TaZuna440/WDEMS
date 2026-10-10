@@ -413,3 +413,81 @@ should remain 3 (SecurityTest 2FA feature).
 - **2026-10-10** — File created. Three-phase plan. Window change,
   three-mode workspace, D1-D10 and E1-E4 and F1-F4 and G1-G5 locked.
   Phase A ships first.
+
+---
+
+## Phase A complete (2026-10-10)
+
+**Status:** Shipped. Two commits, not one.
+
+### Deviation from the plan
+
+Section 6 of this doc described Phase A as a single commit. It
+shipped as two:
+
+- `3f8cafa` — time-based window. Added
+  `Event::canRecordAttendanceNow()`, removed
+  `Event::canRecordAttendanceToday()`, swapped three call sites in
+  `AttendanceController`, extended `AttendanceDateGateTest` with
+  seven new time-window tests.
+- This commit — custom fields on walk-in.
+
+Reason for the split: the window change and the custom field change
+are independent. Two commits mean either half can be reverted
+independently if it misbehaves in production. The plan's "one
+commit" was a convenience assumption, not a correctness requirement.
+
+### What shipped
+
+**Window change:**
+
+- `Event::canRecordAttendanceNow()` — time-based gate, opens one
+  hour before `start_time`.
+- `Event::attendanceWindowOpensAt()` — helper. Falls back to
+  midnight when `start_time` is null.
+- `Event::ATTENDANCE_WINDOW_MINUTES_BEFORE = 60` — the single knob
+  for the whole policy.
+- `Event::canRecordAttendanceToday()` removed entirely.
+
+**Custom fields on walk-in:**
+
+- `WalkInRegistrationRequest` extended with `responses` rules and
+  a two-pass `withValidator` (custom field ownership + required
+  check), mirroring `PublicRegistrationRequest`.
+- `AttendanceController::walkIn` writes `RegistrationFieldResponse`
+  rows inside the existing transaction.
+- `AttendanceController::show` adds a `registration_fields` prop to
+  the `event` payload.
+- `walk-in-dialog.tsx` renders all eight field types.
+- `attendance.tsx` passes the fields through.
+
+### What did NOT ship
+
+**Admin force-open toggle.** Section 3 of this doc described a
+"Force open" query-string parameter that bypasses the window for
+admins. Not built in Phase A. Deferred to a small follow-up commit
+because:
+
+1. It needs a controller-layer change plus a UI affordance.
+2. The window change works correctly without it.
+3. The bypass is an escape hatch, not a blocker.
+
+A follow-up commit will add:
+- Admin-only `?force_open=1` handling in `AttendanceController::show`
+  and `AttendanceController::mark`.
+- A small toggle button in the attendance page header, visible only
+  when the user is an admin.
+- Tests for the bypass path.
+
+### Verification
+
+    php artisan test tests/Feature/Events/AttendanceDateGateTest.php  (20 passed)
+    php artisan test tests/Feature/Events/WalkInCustomFieldsTest.php  (12 passed)
+    php artisan test                                                   (418 passed)
+    npx tsc --noEmit                                                  (silent)
+
+### Cross-references
+
+- Commits: `3f8cafa` (window), this commit (custom fields).
+- FIX-027 — adjacent quality rules that already landed.
+- `docs/progress.md` — dated progress entry for this session.

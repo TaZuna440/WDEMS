@@ -1318,3 +1318,61 @@ be repeated.
     php artisan test tests/Feature/ContactAddressQualityTest.php  8 passed / 23 assertions
     php artisan test                                              399 passed / 1127 assertions
     npx tsc --noEmit                                              silent
+
+---
+
+## 2026-10-10 - Phase A complete: attendance window + custom fields on walk-in
+
+### Summary
+
+Phase A of `docs/attendance-redesign.md` shipped as two commits.
+
+**Part 1 (`3f8cafa`) — time-based window.** The day-granular gate
+`Event::canRecordAttendanceToday()` allowed marking from midnight of
+event day. Replaced with `Event::canRecordAttendanceNow()`, which
+opens `ATTENDANCE_WINDOW_MINUTES_BEFORE` (60) before the event's
+`start_time`. Falls back to midnight if `start_time` is null. Old
+method removed.
+
+**Part 2 (this commit) — custom fields on walk-in.** The walk-in
+dialog now renders the event's custom fields (all eight types). The
+walk-in request validates them the same way the public form does,
+and the controller writes `RegistrationFieldResponse` rows.
+
+### Deviation
+
+Plan said one commit for Phase A. Shipped as two — the window change
+and the custom field work are independent and revert independently.
+
+### Not shipped
+
+Admin force-open toggle (Section 3 of the plan). Deferred to a
+small follow-up commit. See the plan doc's "Phase A complete"
+section for the deferral rationale.
+
+### Documentation appended
+
+    docs/attendance-redesign.md   - Phase A complete marker
+    docs/progress.md              - this entry
+
+### Code changes
+
+    app/Models/Event.php                               (window change)
+    app/Http/Controllers/AttendanceController.php      (gate, responses write, fields prop)
+    app/Http/Requests/WalkInRegistrationRequest.php    (responses validation)
+    resources/js/components/walk-in-dialog.tsx         (8 field types rendered)
+    resources/js/pages/events/attendance.tsx           (fields prop)
+
+### Test changes
+
+    tests/Feature/Events/AttendanceDateGateTest.php    (extended, 20 total)
+    tests/Feature/Events/WalkInCustomFieldsTest.php    (new, 12 tests)
+
+### Verification
+
+    php artisan test                                           418 passed / 1162 assertions
+    npx tsc --noEmit                                           silent
+    npm run build                                              succeeds
+
+Full-suite baseline at Phase A start: 399 passed. After Phase A:
+418 passed (+19 net new tests across the two commits).

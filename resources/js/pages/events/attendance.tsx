@@ -50,6 +50,19 @@ type AttendanceRow = {
     } | null;
 };
 
+// Local shape matching the ServerField type in walk-in-dialog.tsx.
+// Structural typing lets the shapes match by name, not by import —
+// keeping this file a single-file change. A future refactor can
+// extract to a shared types module once the bulk walk-in surface
+// (Phase C) needs it too.
+type ServerField = {
+    id: number;
+    label: string;
+    field_type: string;
+    options: string[];
+    is_required: boolean;
+};
+
 type EventData = {
     id: number;
     event_name: string;
@@ -62,6 +75,7 @@ type EventData = {
         contact_number: boolean;
         address: boolean;
     };
+    registration_fields: ServerField[];
 };
 
 type Props = {
@@ -416,6 +430,7 @@ export default function EventsAttendance({
                 open={walkInOpen}
                 onOpenChange={setWalkInOpen}
                 requirements={event.common_field_requirements}
+                fields={event.registration_fields}
             />
         </>
     );

@@ -21,11 +21,20 @@ type CommonFieldRequirements = {
     address: boolean;
 };
 
+type ServerField = {
+    id: number;
+    label: string;
+    field_type: string;
+    options: string[];
+    is_required: boolean;
+};
+
 type Props = {
     eventId: number;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     requirements: CommonFieldRequirements;
+    fields: ServerField[];
 };
 
 export default function WalkInDialog({
@@ -33,8 +42,19 @@ export default function WalkInDialog({
     open,
     onOpenChange,
     requirements,
+    fields,
 }: Props) {
-    const form = useForm({
+    const form = useForm<{
+        first_name: string;
+        last_name: string;
+        age: string | number;
+        email: string;
+        contact_number: string;
+        address: string;
+        mark_present: boolean;
+        identity: string;
+        responses: Record<number, string | string[]>;
+    }>({
         first_name: '',
         last_name: '',
         age: '' as string | number,
@@ -47,6 +67,7 @@ export default function WalkInDialog({
         // the failure under this key. No validation rule reads it —
         // the server ignores the value.
         identity: '',
+        responses: {},
     });
 
     useEffect(() => {
@@ -69,13 +90,29 @@ export default function WalkInDialog({
         });
     };
 
+    const setResponse = (fieldId: number, value: string | string[]) => {
+        form.setData('responses', {
+            ...form.data.responses,
+            [fieldId]: value,
+        });
+    };
+
+    const toggleCheckboxOption = (fieldId: number, option: string) => {
+        const current = form.data.responses[fieldId];
+        const list = Array.isArray(current) ? current : [];
+        const next = list.includes(option)
+            ? list.filter((v) => v !== option)
+            : [...list, option];
+        setResponse(fieldId, next);
+    };
+
     const requiredMark = (
         <span className="text-destructive"> *</span>
     );
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <UserPlus className="h-4 w-4" />
@@ -190,6 +227,196 @@ export default function WalkInDialog({
                         />
                         <InputError message={form.errors.address} />
                     </div>
+
+                    {fields.length > 0 && (
+                        <div className="flex flex-col gap-4 border-t border-white/5 pt-4">
+                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                Additional Information
+                            </p>
+
+                            {fields.map((field) => {
+                                const key = `responses.${field.id}`;
+                                const error = (
+                                    form.errors as Record<string, string>
+                                )[key];
+                                const value =
+                                    form.data.responses[field.id];
+
+                                return (
+                                    <div
+                                        key={field.id}
+                                        className="grid gap-2"
+                                    >
+                                        <Label
+                                            htmlFor={`walk-in-field-${field.id}`}
+                                        >
+                                            {field.label}
+                                            {field.is_required &&
+                                                requiredMark}
+                                        </Label>
+
+                                        {field.field_type === 'textarea' && (
+                                            <textarea
+                                                id={`walk-in-field-${field.id}`}
+                                                value={
+                                                    typeof value === 'string'
+                                                        ? value
+                                                        : ''
+                                                }
+                                                onChange={(e) =>
+                                                    setResponse(
+                                                        field.id,
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                rows={4}
+                                                aria-invalid={!!error}
+                                                className="flex min-h-[80px] w-full rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-foreground focus:border-lime-brand/50 focus:outline-none focus:ring-1 focus:ring-lime-brand/50"
+                                            />
+                                        )}
+
+                                        {field.field_type === 'select' && (
+                                            <select
+                                                id={`walk-in-field-${field.id}`}
+                                                value={
+                                                    typeof value === 'string'
+                                                        ? value
+                                                        : ''
+                                                }
+                                                onChange={(e) =>
+                                                    setResponse(
+                                                        field.id,
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                aria-invalid={!!error}
+                                                className="h-9 w-full rounded-md border border-white/10 bg-white/[0.02] px-3 text-sm text-foreground focus:border-lime-brand/50 focus:outline-none"
+                                            >
+                                                <option value="">
+                                                    Choose…
+                                                </option>
+                                                {field.options.map(
+                                                    (option) => (
+                                                        <option
+                                                            key={option}
+                                                            value={option}
+                                                        >
+                                                            {option}
+                                                        </option>
+                                                    ),
+                                                )}
+                                            </select>
+                                        )}
+
+                                        {field.field_type === 'radio' && (
+                                            <div className="flex flex-col gap-2 pt-1">
+                                                {field.options.map(
+                                                    (option) => (
+                                                        <label
+                                                            key={option}
+                                                            className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+                                                        >
+                                                            <input
+                                                                type="radio"
+                                                                name={`walk-in-field-${field.id}`}
+                                                                value={option}
+                                                                checked={
+                                                                    value ===
+                                                                    option
+                                                                }
+                                                                onChange={() =>
+                                                                    setResponse(
+                                                                        field.id,
+                                                                        option,
+                                                                    )
+                                                                }
+                                                                className="h-4 w-4"
+                                                            />
+                                                            {option}
+                                                        </label>
+                                                    ),
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {field.field_type === 'checkbox' && (
+                                            <div className="flex flex-col gap-2 pt-1">
+                                                {field.options.map(
+                                                    (option) => {
+                                                        const list =
+                                                            Array.isArray(
+                                                                value,
+                                                            )
+                                                                ? value
+                                                                : [];
+                                                        return (
+                                                            <label
+                                                                key={option}
+                                                                className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    value={
+                                                                        option
+                                                                    }
+                                                                    checked={list.includes(
+                                                                        option,
+                                                                    )}
+                                                                    onChange={() =>
+                                                                        toggleCheckboxOption(
+                                                                            field.id,
+                                                                            option,
+                                                                        )
+                                                                    }
+                                                                    className="h-4 w-4"
+                                                                />
+                                                                {option}
+                                                            </label>
+                                                        );
+                                                    },
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {(field.field_type === 'text' ||
+                                            field.field_type === 'number' ||
+                                            field.field_type === 'email' ||
+                                            field.field_type === 'date') && (
+                                            <Input
+                                                id={`walk-in-field-${field.id}`}
+                                                type={
+                                                    field.field_type === 'date'
+                                                        ? 'date'
+                                                        : field.field_type ===
+                                                            'email'
+                                                          ? 'email'
+                                                          : field.field_type ===
+                                                              'number'
+                                                            ? 'number'
+                                                            : 'text'
+                                                }
+                                                value={
+                                                    typeof value === 'string'
+                                                        ? value
+                                                        : ''
+                                                }
+                                                onChange={(e) =>
+                                                    setResponse(
+                                                        field.id,
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                autoComplete="off"
+                                                aria-invalid={!!error}
+                                            />
+                                        )}
+
+                                        <InputError message={error} />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     {form.errors.identity && (
                         <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3">

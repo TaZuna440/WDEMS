@@ -9,6 +9,7 @@ use App\Http\Requests\WalkInRegistrationRequest;
 use App\Models\Event;
 use App\Models\Participant;
 use App\Models\Registration;
+use App\Models\RegistrationFieldResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -158,6 +159,7 @@ class AttendanceController extends Controller
                     'contact_number' => $event->isCommonFieldRequired('contact_number'),
                     'address' => $event->isCommonFieldRequired('address'),
                 ],
+                'registration_fields' => $this->registrationFieldsPayload($event),
             ],
             'rows' => $rows,
             'pagination' => [
@@ -249,6 +251,14 @@ class AttendanceController extends Controller
                 'registered_at' => now(),
             ]);
 
+            foreach ($validated['responses'] ?? [] as $fieldId => $value) {
+                RegistrationFieldResponse::create([
+                    'registration_id' => $registration->id,
+                    'registration_field_id' => (int) $fieldId,
+                    'value' => is_array($value) ? json_encode($value) : (string) $value,
+                ]);
+            }
+
             if ($validated['mark_present'] ?? true) {
                 $registration->attendance()->create([
                     'attendance_status' => AttendanceStatus::Present,
@@ -259,5 +269,29 @@ class AttendanceController extends Controller
         });
 
         return redirect()->route('events.attendance', $event);
+    }
+
+    /**
+     * Custom field definitions for the event, in display order. Same
+     * shape as PublicRegistrationController::fieldsPayload() so the
+     * walk-in dialog and the public form can share the field-type
+     * rendering logic.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function registrationFieldsPayload(Event $event): array
+    {
+        return $event->registrationFields()
+            ->orderBy('display_order')
+            ->get()
+            ->map(fn ($field) => [
+                'id' => $field->id,
+                'label' => $field->label,
+                'field_type' => $field->field_type,
+                'options' => $field->options ?? [],
+                'is_required' => $field->is_required,
+            ])
+            ->values()
+            ->all();
     }
 }
