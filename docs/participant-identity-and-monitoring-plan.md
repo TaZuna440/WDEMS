@@ -964,3 +964,99 @@ needs. Delete lands when Phase 9 lands.
 - `docs/registration-monitoring.md` — the spec, with a "Phase 8
   shipped" addendum
 - `docs/progress.md` — dated entry for this session
+
+---
+
+## Phase 9 complete (2026-10-12)
+
+Registration deletion with OTP has shipped. All ten phases of this
+plan are now closed except Phase 10 (docs close), which is partial.
+
+### What shipped
+
+| Deliverable | Status |
+|---|---|
+| `RegistrationDeletionController` | ✅ |
+| `RegistrationDeletionOtpService` | ✅ |
+| `RegistrationDeletionService` | ✅ |
+| `RegistrationDeletionOtpMail` + blade template | ✅ |
+| Two rate limiters | ✅ |
+| Three routes | ✅ |
+| `RegistrationDeletionOtpDialog.tsx` | ✅ |
+| Delete action in monitor ⋯ menu | ✅ |
+| `is_admin` prop on the monitor | ✅ |
+| `RegistrationDeletionTest.php` (14 tests) | ✅ |
+
+### Deviations from the plan
+
+1. **No new `bootstrap/app.php` alias.** The plan described an
+   alias but the actual implementation uses middleware class
+   FQCNs directly, following the existing pattern.
+
+2. **The OTP service uses `OtpCode` rather than duplicating the
+   HMAC logic.** `EventDeletionOtpService` has the older inline
+   hash helper; the registration fork uses the shared helper.
+   No churn to the event version — that is a future refactor.
+
+3. **`RegistrationDeletionService` lives in the
+   `App\Services\EventDeletion` namespace.** Historical — the
+   directory predates the registration feature. Documented in
+   the class docblock. A future refactor to a general
+   `App\Services\Deletion` namespace is possible but out of
+   scope.
+
+### Files
+
+    app/Http/Controllers/RegistrationDeletionController.php
+    app/Mail/RegistrationDeletionOtpMail.php
+    app/Services/EventDeletion/RegistrationDeletionOtpService.php
+    app/Services/EventDeletion/RegistrationDeletionService.php
+    resources/views/emails/registration-deletion-otp.blade.php
+    resources/js/components/registration-deletion-otp-dialog.tsx
+    tests/Feature/Events/RegistrationDeletionTest.php
+
+### Modified
+
+    app/Providers/AppServiceProvider.php       (2 rate limiters)
+    routes/web.php                              (3 routes)
+    app/Http/Controllers/RegistrationMonitorController.php
+                                                (is_admin prop)
+    resources/js/pages/registrations/monitor/show.tsx
+                                                (delete action)
+
+### Verification
+
+    php artisan test tests/Feature/Events/RegistrationDeletionTest.php
+    14 passed (47 assertions)
+
+    php artisan test
+    490 passed, 3 skipped (1472 assertions)
+
+    npx tsc --noEmit
+    silent
+
+### Adjacent work in the same session
+
+Two changes landed alongside Phase 9 but are not part of it:
+
+1. **Timezone flip to Asia/Manila.** `config/app.php` now reads
+   `env('APP_TIMEZONE', 'Asia/Manila')`. Root cause: the
+   start-time validation rule parsed naive datetimes as UTC while
+   the browser parsed them as Manila time, producing a silent
+   false-accept for today-events whose local time had passed.
+
+2. **A test-clock pin in `EventDateRulesTest`.** That test used a
+   fixed 18:00 start_time and failed whenever the suite ran after
+   18:00. `travelTo()` freezes the clock to 09:00 for that one
+   test. No behavior change.
+
+Both are documented in their own commits.
+
+### Cross-references
+
+- `docs/registration-monitoring.md` — the monitoring spec, with
+  a Phase 8 shipped addendum
+- `docs/registration-development-plan.md` Phase 5 — the same
+  feature listed from the registration plan's side
+- `docs/event-deletion.md` — the pattern this mirrors
+- `docs/progress.md` — dated entry for this session
