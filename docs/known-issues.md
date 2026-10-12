@@ -988,3 +988,94 @@ Expected: 8 passed. The test file exercises both the public form
 and the walk-in dialog against letters-in-phone, too-few-digits,
 no-vowel address, no-letter address, and the landline-accepted
 case.
+
+---
+
+### ISSUE-013 — Event start-time rule parsed naive datetimes as UTC
+
+**Severity:** Medium (silent data quality issue)
+**Status:** Fixed — 2026-10-12 — commit 9bfe7d4
+**Found in:** `app/Concerns/EventValidationRules.php`,
+`config/app.php`
+**Related:** `docs/attendance-encoding-and-reporting.md` (time-based
+gates), `docs/progress.md` 2026-10-12 entry
+
+### Symptoms
+
+A user in Manila (UTC+8) opened the event creation wizard and entered
+a today-event whose local start time had already passed. The
+wizard accepted it. The event was created and stored with a
+start time in the past.
+
+The window for the bug was roughly eight hours per day — every
+today-event entered between midnight and 08:00 Manila time whose
+`start_time` was between midnight and 08:00 local was accepted
+regardless of whether that time had already passed.
+
+No error message. No log entry. Silent.
+
+### Root cause
+
+`validateEventStartIsInFuture()` parsed the date and time with:
+
+    $start = Date::parse("{$date} {$time}");
+
+`Date::parse` interprets a naive datetime string in
+`config('app.timezone')`. That config was hardcoded to `'UTC'` in
+`config/app.php`, with no `APP_TIMEZONE` in `.env`, `.env.example`,
+or `phpunit.xml`.
+
+The client-side mirror
+(`resources/js/lib/event-validation.ts::validateSchedule`) ran in
+the browser and used the browser's timezone — Manila for this
+user. The two checks disagreed by 8 hours in the "server thinks
+the time is earlier than the client does" direction.
+
+Concretely: at 10:00 Manila (= 02:00 UTC), a user entered a
+today-event with `start_time = "08:00"`. The server parsed
+"2026-10-12 08:00" as 08:00 UTC. `now()` was 02:00 UTC.
+`08:00 > 02:00` — the check passed. But 08:00 Manila had already
+happened two hours earlier.
+
+The rule never false-rejected for UTC+8 (the server's wall clock
+was always at or earlier in string terms), but it silently let
+backdated events through.
+
+### Fix applied
+
+`config/app.php` now reads `env('APP_TIMEZONE', 'Asia/Manila')`.
+Default changed from `'UTC'` to `'Asia/Manila'`.
+
+`.env.example` gains `APP_TIMEZONE=Asia/Manila` so a fresh clone
+copies the correct value.
+
+The rule itself was not modified. The fix is at the config layer —
+every `now()`, `Date::parse`, and `today()` call across the
+application now measures in Manila time consistently with the
+user's wall clock.
+
+### Scope of the config change
+
+- All datetime parsing across the app now uses `Asia/Manila`
+- Existing local MySQL rows were written under UTC. They read 8
+  hours ahead relative to their actual creation instant until
+  regenerated. Dev-only. Tests use SQLite `:memory:` and start
+  clean each run. Fix: `php artisan migrate:fresh --seed`
+- The browser-client mirror remains timezone-agnostic. For a
+  Manila user this is now consistent. For a user elsewhere, the
+  server is authoritative and the client gives fast feedback —
+  whichever rejects first wins. Pre-existing tradeoff, unchanged
+
+### Verification when fixed
+
+    php artisan tinker --execute="
+    echo config('app.timezone') . PHP_EOL;
+    echo now()->timezoneName . PHP_EOL;
+    echo date_default_timezone_get() . PHP_EOL;
+    "
+
+Expected: `Asia/Manila` on all three lines.
+
+    php artisan test
+
+Expected: 3 skipped, 490 passed. No regressions.

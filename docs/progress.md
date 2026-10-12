@@ -1528,3 +1528,145 @@ Delete registration is deferred to Phase 9 (OTP flow).
 
 Full-suite baseline at Phase 8 start: 462 passed. After Phase 8:
 476 passed (+14 net new tests).
+
+---
+
+## 2026-10-12 — Phase 9 complete, timezone fix, attendance spec
+
+### Summary
+
+Third work block since Phase 8. Five commits landed on `main` and
+pushed to `origin/main`.
+
+1. **Phase 9 of the identity plan shipped** — registration deletion
+   with OTP. Staff delete a single registration from the monitor's
+   actions menu, gated by an email OTP. Admins delete directly.
+2. **Timezone flipped from UTC to Asia/Manila.** The application
+   timezone was hardcoded to `UTC` in `config/app.php`. The
+   start-time validation rule parsed naive datetime strings in UTC
+   while the browser parsed them in Manila time, producing a silent
+   false-accept for today-events whose local start had passed.
+3. **`EventDateRulesTest` made deterministic.** The "today's date is
+   accepted" case used a fixed 18:00 start time and failed whenever
+   the suite ran after 18:00. Two earlier fix attempts each traded
+   one time-dependent failure for another; `travelTo(09:00)` is the
+   third and correct approach.
+4. **`docs/attendance-encoding-and-reporting.md` written.** An
+   ～835-line spec for three interlocking features — encoding
+   workspace, finalize event, end-of-event report. No code.
+
+**Full suite at end of session:** 490 passed, 3 skipped, 1472
+assertions. Up from 476 at Phase 8 close (+14 net new tests).
+
+### Documentation created
+
+| File | Lines | Purpose |
+|---|---|---|
+| `docs/attendance-encoding-and-reporting.md` | 835 | Spec for encoding workspace, finalize event, and end-of-event report |
+
+### Documentation appended
+
+| File | Change |
+|---|---|
+| `docs/participant-identity-and-monitoring-plan.md` | `## Phase 9 complete (2026-10-12)` block — deliverables, three deviations, file inventory, verification |
+| `docs/progress.md` | This entry |
+
+### Code changes
+
+| File | Change | Rationale |
+|---|---|---|
+| `app/Http/Controllers/RegistrationDeletionController.php` | **New** — three actions: `destroy` (admin only), `requestOtp`, `verifyOtp` (staff only). Event status gate on `registration_open` / `registration_closed` | Phase 9 |
+| `app/Services/EventDeletion/RegistrationDeletionOtpService.php` | **New** — fork of `EventDeletionOtpService`, keyed on `registration_id`. Uses the shared `OtpCode` helper instead of duplicating the HMAC logic | Phase 9 |
+| `app/Services/EventDeletion/RegistrationDeletionService.php` | **New** — single DELETE. Relies on schema CASCADE from `registration_field_responses` and `attendances`. Participant preserved | Phase 9 |
+| `app/Mail/RegistrationDeletionOtpMail.php` | **New** — adds `participantName` alongside `eventName`. Synchronous, no `ShouldQueue` | Phase 9 |
+| `resources/views/emails/registration-deletion-otp.blade.php` | **New** — email body. Names the participant | Phase 9 |
+| `app/Providers/AppServiceProvider.php` | Two new rate limiters: `registration-deletion-otp-request` (3/min), `registration-deletion-otp-verify` (10/min). Keyed on `user|registration` | Phase 9 |
+| `routes/web.php` | Three new routes: `DELETE /registrations/{registration}`, `POST /registrations/{registration}/deletion/request-otp`, `POST /registrations/{registration}/deletion/verify-otp` | Phase 9 |
+| `app/Http/Controllers/RegistrationMonitorController.php` | `show()` passes `is_admin` for frontend delete routing | Phase 9 |
+| `resources/js/components/registration-deletion-otp-dialog.tsx` | **New** — fork of `event-deletion-otp-dialog.tsx`, keyed on `registrationId` | Phase 9 |
+| `resources/js/pages/registrations/monitor/show.tsx` | Delete action added to the card's ⋯ menu. Admin → `router.delete`. Staff → OTP dialog. Effect auto-closes the dialog when the row disappears from the feed | Phase 9 |
+| `config/app.php` | `timezone` now reads `env('APP_TIMEZONE', 'Asia/Manila')`. Default changed from `'UTC'` | Timezone fix |
+
+### Test changes
+
+| File | Change | Result |
+|---|---|---|
+| `tests/Feature/Events/RegistrationDeletionTest.php` | **New** — 14 tests covering staff OTP path, admin direct path, cascade preservation, status gate, guest blocking | 14 passed / 47 assertions |
+| `tests/Feature/Events/EventDateRulesTest.php` | The "today" test now pins the clock with `travelTo(09:00)` | 8 passed / 19 assertions |
+
+### Database changes
+
+None. Registration deletion relies on the existing CASCADE
+constraints from `registration_field_responses` and `attendances`.
+No new migrations.
+
+### Environment changes
+
+| Change | Reason |
+|---|---|
+| `.env` line appended — `APP_TIMEZONE=Asia/Manila` | Local instance picks up the new default without a config:clear |
+| `.env.example` line appended — `APP_TIMEZONE=Asia/Manila` | Fresh clones get the correct value on copy |
+
+### Bugs fixed
+
+| Bug | Severity | Fix | Evidence |
+|---|---|---|---|
+| Start-time validation used UTC while the browser used Manila time. A Manila user entering a today-event whose local start had already passed was silently accepted | Medium | `APP_TIMEZONE` default → `Asia/Manila` | 490 passed; `php artisan tinker` confirms `Asia/Manila` for `config('app.timezone')`, `now()->timezoneName`, and `date_default_timezone_get()` |
+| `EventDateRulesTest` "today's date" case failed after 18:00 local | Low | `travelTo(09:00)` pins the clock for that one test | 8 passed deterministically |
+
+### Bugs found but not fixed
+
+None new. The full open list is documented in `docs/known-issues.md`
+and (pending) `docs/issues-inventory.md`.
+
+### Failures during the session
+
+**Three.**
+
+1. **`git commit <<'MSG'` silently did nothing.** No `-m` or `-F`
+   flag → git opened an editor and ignored stdin. Zero commits
+   landed on the first attempt. Recovered via `git reset` +
+   `git commit -F - <<'MSG'`. The correct pattern is `-F -`.
+
+2. **Two wrong fixes for `EventDateRulesTest`.** First
+   `now()->addHours(2)` — crosses midnight UTC when run late,
+   producing a start_time earlier than now. Second
+   `now()->endOfDay()` — gives `"23:59"`, which is before the
+   fixture's `end_time` of `"20:00"` and trips the duration rule
+   instead. Third attempt (`travelTo`) landed.
+
+3. **`docs/issues-inventory.md` truncated mid-write.** A single
+   ~1000-line heredoc paste lost content. File landed at 84 lines
+   and was deleted. Rewrite is planned in three ~350-line chunks.
+   Not yet executed.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `php artisan test tests/Feature/Events/RegistrationDeletionTest.php` | 14 passed / 47 assertions |
+| `php artisan test` (full suite) | 3 skipped, 490 passed / 1472 assertions |
+| `php artisan route:list --name=registrations.destroy` | 1 route registered |
+| `php artisan route:list --name=registrations.deletion` | 2 routes registered |
+| `npx tsc --noEmit` | silent |
+| `php artisan tinker` — `config('app.timezone')` | `Asia/Manila` |
+| `php artisan tinker` — `now()->timezoneName` | `Asia/Manila` |
+| `php artisan tinker` — `date_default_timezone_get()` | `Asia/Manila` |
+| `git push origin main` | `7a2fa9e..703ced0 main -> main` |
+
+### Commits
+
+    703ced0  docs: specify attendance encoding, finalize, and report
+    7a2fa9e  docs: mark Phase 9 complete
+    9bfe7d4  fix(config): use Asia/Manila as the default timezone
+    8289696  fix(tests): pin clock in the today-event date test
+    548a6ca  feat(registration): delete with OTP
+
+### Cross-reference
+
+| Subsystem | Primary doc |
+|---|---|
+| Identity + monitoring plan, Phase 9 | `docs/participant-identity-and-monitoring-plan.md` |
+| Attendance encoding + finalize + report spec | `docs/attendance-encoding-and-reporting.md` |
+| Event deletion pattern (mirrored) | `docs/event-deletion.md` |
+| Backlog | `docs/known-issues.md` |
