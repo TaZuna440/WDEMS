@@ -42,6 +42,16 @@ function date_staff(): User
 test('an event with today\'s date is accepted', function () {
     $user = date_staff();
 
+    // Pin the clock to 09:00 UTC. The today-event rule requires
+    // start_time to be in the future (EventStartTimeValidation),
+    // which makes this test inherently time-dependent: a fixed
+    // start_time like 18:00 is past when the suite runs after 18:00
+    // UTC. travelTo() freezes the clock so "today at 18:00" is
+    // always future regardless of when the test actually runs.
+    // The other tests in this file use future event_dates and are
+    // unaffected by the wall clock.
+    $this->travelTo(now()->setTime(9, 0, 0));
+
     $response = $this->actingAs($user)->post(route('events.store'), date_payload([
         'event_date' => now()->toDateString(),
     ]));
