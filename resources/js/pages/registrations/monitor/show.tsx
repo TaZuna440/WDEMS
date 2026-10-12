@@ -10,12 +10,14 @@ import {
     Pencil,
     RefreshCw,
     StickyNote,
+    Trash2,
     UserPlus,
     UserRound,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import EditParticipantDialog from '@/components/edit-participant-dialog';
 import NoteDialog from '@/components/note-dialog';
+import RegistrationDeletionOtpDialog from '@/components/registration-deletion-otp-dialog';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -81,6 +83,7 @@ type Props = {
     event: EventData;
     stats: Stats;
     registrations: RegistrationRow[];
+    is_admin: boolean;
 };
 
 const POLL_KEYS = ['stats', 'registrations'] as const;
@@ -212,12 +215,14 @@ function RegistrationCard({
     onEdit,
     onFlag,
     onNote,
+    onDelete,
     canEdit,
 }: {
     row: RegistrationRow;
     onEdit: (row: RegistrationRow) => void;
     onFlag: (row: RegistrationRow) => void;
     onNote: (row: RegistrationRow) => void;
+    onDelete: (row: RegistrationRow) => void;
     canEdit: boolean;
 }) {
     const name = row.participant.full_name ?? '—';
@@ -315,6 +320,13 @@ function RegistrationCard({
                                         Export CSV
                                     </a>
                                 </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => onDelete(row)}
+                                    className="text-destructive focus:text-destructive"
+                                >
+                                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                    Delete registration
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )}
@@ -398,7 +410,7 @@ function FilteredEmpty({ filter }: { filter: Filter }) {
     );
 }
 
-export default function MonitorShow({ event, stats, registrations }: Props) {
+export default function MonitorShow({ event, stats, registrations, is_admin }: Props) {
     const [filter, setFilter] = useState<Filter>('all');
     const [now, setNow] = useState(() => new Date());
 
@@ -407,6 +419,7 @@ export default function MonitorShow({ event, stats, registrations }: Props) {
     // when the operator switches rows.
     const [editRow, setEditRow] = useState<RegistrationRow | null>(null);
     const [noteRow, setNoteRow] = useState<RegistrationRow | null>(null);
+    const [deleteRow, setDeleteRow] = useState<RegistrationRow | null>(null);
 
     const { lastRefreshed, isRefreshing, refresh } = usePolling({
         interval: POLL_INTERVAL_MS,
@@ -418,6 +431,19 @@ export default function MonitorShow({ event, stats, registrations }: Props) {
         const id = setInterval(() => setNow(new Date()), 1000);
         return () => clearInterval(id);
     }, []);
+
+    // Auto-close the delete dialog when the row disappears from the
+    // feed. This handles the post-delete redirect: the server sends
+    // us back to this page with fresh props, the row is gone, and
+    // the dialog would otherwise stay open against a deleted
+    // registration.
+    useEffect(() => {
+        if (deleteRow === null) return;
+        const stillExists = registrations.some((r) => r.id === deleteRow.id);
+        if (! stillExists) {
+            setDeleteRow(null);
+        }
+    }, [registrations, deleteRow]);
 
     const counts = useMemo(() => {
         let returning = 0;
@@ -455,6 +481,24 @@ export default function MonitorShow({ event, stats, registrations }: Props) {
                 only: ['registrations'],
             },
         );
+    };
+
+    const handleDelete = (row: RegistrationRow) => {
+        if (is_admin) {
+            const name = row.participant.full_name ?? 'this participant';
+            const ok = window.confirm(
+                `Permanently delete ${name}'s registration? This cannot be undone.`,
+            );
+            if (! ok) return;
+
+            router.delete(`/registrations/${row.id}`, {
+                preserveScroll: true,
+            });
+
+            return;
+        }
+
+        setDeleteRow(row);
     };
 
     return (
@@ -570,6 +614,7 @@ export default function MonitorShow({ event, stats, registrations }: Props) {
                                 onEdit={setEditRow}
                                 onFlag={flagRow}
                                 onNote={setNoteRow}
+                                onDelete={handleDelete}
                                 canEdit={canEdit}
                             />
                         ))}
@@ -597,6 +642,17 @@ export default function MonitorShow({ event, stats, registrations }: Props) {
                     registrationId={noteRow.id}
                     participantName={noteRow.participant.full_name ?? 'this participant'}
                     initialNote={noteRow.notes}
+                />
+            )}
+
+            {deleteRow !== null && (
+                <RegistrationDeletionOtpDialog
+                    registrationId={deleteRow.id}
+                    participantName={deleteRow.participant.full_name ?? 'this participant'}
+                    open={deleteRow !== null}
+                    onOpenChange={(open) => {
+                        if (! open) setDeleteRow(null);
+                    }}
                 />
             )}
         </>

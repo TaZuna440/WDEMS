@@ -7,6 +7,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventDeletionController;
 use App\Http\Controllers\PublicRegistrationController;
 use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\RegistrationDeletionController;
 use App\Http\Controllers\RegistrationFormController;
 use App\Http\Controllers\RegistrationMonitorController;
 use App\Http\Middleware\EnsureRegistrationIsOpen;
@@ -75,6 +76,19 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(functi
         ->name('registration-monitor.toggle-flag');
     Route::post('registrations/{registration}/note', [RegistrationMonitorController::class, 'saveNote'])
         ->name('registration-monitor.save-note');
+
+    // Registration deletion — Phase 9. Same admin/staff split as
+    // event deletion: admin hits DELETE, staff walk through
+    // request-otp → verify-otp. The status gate (open or closed)
+    // lives inside RegistrationDeletionController::ensureManageable().
+    Route::delete('registrations/{registration}', [RegistrationDeletionController::class, 'destroy'])
+        ->name('registrations.destroy');
+    Route::post('registrations/{registration}/deletion/request-otp', [RegistrationDeletionController::class, 'requestOtp'])
+        ->middleware('throttle:registration-deletion-otp-request')
+        ->name('registrations.deletion.request-otp');
+    Route::post('registrations/{registration}/deletion/verify-otp', [RegistrationDeletionController::class, 'verifyOtp'])
+        ->middleware('throttle:registration-deletion-otp-verify')
+        ->name('registrations.deletion.verify-otp');
 
     // Attendance directory — lists events eligible for attendance
     // recording. Gate: event_date <= today (see AttendanceController).

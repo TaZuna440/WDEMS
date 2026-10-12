@@ -86,5 +86,25 @@ class AppServiceProvider extends ServiceProvider
                 $request->user()?->id.'|'.$request->route('event')
             );
         });
+
+        // Staff registration deletion — OTP request. Keyed by
+        // user|registration so one operator working multiple
+        // registrations does not share the budget. Mirrors the
+        // event-deletion-otp-request pattern.
+        RateLimiter::for('registration-deletion-otp-request', function (Request $request) {
+            return Limit::perMinute(3)->by(
+                $request->user()?->id.'|'.$request->route('registration')
+            );
+        });
+
+        // Staff registration deletion — OTP verify. Higher bound
+        // than the request limiter so a fat-fingered typo does not
+        // lock the operator out before the service's own 5-attempt
+        // counter takes over.
+        RateLimiter::for('registration-deletion-otp-verify', function (Request $request) {
+            return Limit::perMinute(10)->by(
+                $request->user()?->id.'|'.$request->route('registration')
+            );
+        });
     }
 }

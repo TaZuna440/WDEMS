@@ -254,6 +254,7 @@ class RegistrationMonitorController extends Controller
                 'last_15min' => $last15Min,
             ],
             'registrations' => $mapped,
+            'is_admin' => (bool) request()->user()?->isAdmin(),
         ]);
     }
 
