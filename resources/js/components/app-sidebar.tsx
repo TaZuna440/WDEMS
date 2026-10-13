@@ -1,5 +1,11 @@
 import { Link } from '@inertiajs/react';
-import { CalendarDays, ClipboardCheck, ClipboardList, LayoutGrid } from 'lucide-react';
+import {
+    CalendarDays,
+    ClipboardCheck,
+    ClipboardList,
+    LayoutGrid,
+    Phone,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -16,26 +22,15 @@ import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
+    { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
+    { title: 'Registration', href: '/registrations', icon: ClipboardList },
     {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
+        title: 'Phone verification',
+        href: '/registrations/verification',
+        icon: Phone,
     },
-    {
-        title: 'Registration',
-        href: '/registrations',
-        icon: ClipboardList,
-    },
-    {
-        title: 'Attendance',
-        href: '/attendance',
-        icon: ClipboardCheck,
-    },
-    {
-        title: 'Events',
-        href: '/events',
-        icon: CalendarDays,
-    },
+    { title: 'Attendance', href: '/attendance', icon: ClipboardCheck },
+    { title: 'Events', href: '/events', icon: CalendarDays },
 ];
 
 export function AppSidebar() {
@@ -52,11 +47,9 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
-
             <SidebarContent>
                 <NavMain items={mainNavItems} />
             </SidebarContent>
-
             <SidebarFooter>
                 <NavUser />
             </SidebarFooter>

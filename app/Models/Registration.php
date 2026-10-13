@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'registered_at',
     'flagged_at',
     'notes',
+    'submitted_email',
+    'submitted_contact_number',
 ])]
 class Registration extends Model
 {
@@ -49,10 +51,9 @@ class Registration extends Model
     /**
      * Custom field answers submitted with this registration.
      *
-     * One row per custom field the participant filled in. The six
-     * common participant fields (first_name, last_name, email,
-     * contact_number, age, address) live on the participants table —
-     * they are not stored here.
+     * Submitted contacts are registration snapshots; optional contacts never
+     * become global Participant identity keys through public registration.
+     * Other common participant fields live on the participants table.
      *
      * Cascade deletes at the schema level via the FK on
      * registration_id — deleting a registration removes its responses.

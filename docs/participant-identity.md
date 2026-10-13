@@ -451,3 +451,18 @@ walk-in dialog. See `docs/fixes.md` FIX-027.
 
 - FIX-027 - contact_number and address quality rules
 - ISSUE-012 - the gap FIX-027 closes (fixed)
+
+## Corrections — public contact verification (2026-10-13)
+
+The descriptions above of immediate public `Participant::resolveFrom()` calls
+and deferred contact verification are historical. Public registration now creates
+an encrypted pending challenge and verifies every required email/phone channel
+before creating participant, registration, or answer records. Optional contacts
+are registration snapshots only. Verified identifiers belonging to different
+participants cause a safe conflict instead of choosing email or merging records.
+
+`Participant::resolveFrom()` remains unchanged for attendance walk-in and bulk
+paper intake. Public finalization uses a separate transactional verification
+service and preserves first-write-wins and all existing uniqueness constraints.
+See [Participant contact verification](registration-contact-verification.md)
+for the complete flow, staff authorization, limits, migrations, and operations.

@@ -138,3 +138,5 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(functi
 });
 
 require __DIR__.'/settings.php';
+
+require __DIR__.'/registration-verification.php';

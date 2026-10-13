@@ -5,153 +5,46 @@ use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\User;
 
-/**
- * Covers the at-least-one identity rule on the public submission
- * route. A submission must provide an email or a phone that
- * normalizes to a PH mobile. A phone that fails to normalize counts
- * as no phone.
- *
- * The rule is form-level: the error key is `identity`, not `email`
- * or `contact_number`.
- *
- * Helpers prefixed identity_ to match the pattern in
- * ParticipantIdentityConstraintsTest.php — but namespaced per
- * file via the `_pub` suffix to avoid Pest collision.
- */
+require_once __DIR__.'/../../Support/PublicVerification.php';
 
-function identity_pub_staff(): User
+function identity_pub_event(array $requirements): Event
 {
-    return User::factory()->create([
-        'role' => 'staff',
-        'email_verified_at' => now(),
-        'email_two_factor_enabled' => false,
+    return Event::create([
+        'created_by' => User::factory()->create(['role' => 'staff', 'email_two_factor_enabled' => false])->id,
+        'event_type' => 'community_run', 'event_name' => 'Identity Rule Test Run',
+        'event_date' => now()->addWeek(), 'status' => 'registration_open',
+        'registration_slug' => 'identity', 'registration_start' => now(),
+        'registration_form_saved_at' => now(), 'registration_common_field_requirements' => $requirements,
     ]);
 }
 
-/**
- * @param array<string, mixed> $overrides
- */
-function identity_pub_event(array $overrides = []): Event
-{
-    return Event::create(array_merge([
-        'created_by' => identity_pub_staff()->id,
-        'event_type' => 'community_run',
-        'event_name' => 'Identity Rule Test Run',
-        'event_date' => now()->addWeek()->toDateString(),
-        'status' => 'registration_open',
-        'registration_slug' => 'identity',
-        'registration_start' => now(),
-        'registration_form_saved_at' => now(),
-        'registration_common_field_requirements' => [
-            'email' => false,
-            'contact_number' => false,
-        ],
-    ], $overrides));
-}
-
-/**
- * @param array<string, mixed> $overrides
- * @return array<string, mixed>
- */
 function identity_pub_payload(array $overrides = []): array
 {
     return array_merge([
-        'first_name' => 'Maria',
-        'last_name' => 'Santos',
-        'email' => '',
-        'contact_number' => '',
-        'age' => 28,
-        'address' => 'Manila',
-        'responses' => [],
+        'first_name' => 'Maria', 'last_name' => 'Santos', 'email' => '',
+        'contact_number' => '', 'age' => 28, 'address' => 'Manila', 'responses' => [],
     ], $overrides);
 }
 
-// ---------------------------------------------------------------------------
-// Accepted combinations
-// ---------------------------------------------------------------------------
+test('required identity combinations are accepted after verification', function (bool $email, bool $phone, string $number) {
+    $event = identity_pub_event(['email' => $email, 'contact_number' => $phone]);
+    completePublicRegistration($this, $event, identity_pub_payload([
+        'email' => $email ? 'maria@example.com' : '', 'contact_number' => $number,
+    ]))->assertSessionHasNoErrors();
+    expect(Registration::count())->toBe(1);
+})->with([[true, false, ''], [false, true, '09171234567'], [true, true, '09171234567'], [false, true, '+639171234567']]);
 
-test('an email-only submission is accepted', function () {
-    $event = identity_pub_event();
-
-    $response = $this->post("/r/{$event->registration_slug}", identity_pub_payload([
-        'email' => 'maria@example.com',
-        'contact_number' => '',
-    ]));
-
-    $response->assertSessionHasNoErrors();
-    expect(Registration::where('event_id', $event->id)->count())->toBe(1);
-});
-
-test('a phone-only submission is accepted', function () {
-    $event = identity_pub_event();
-
-    $response = $this->post("/r/{$event->registration_slug}", identity_pub_payload([
-        'email' => '',
-        'contact_number' => '09171234567',
-    ]));
-
-    $response->assertSessionHasNoErrors();
-    expect(Registration::where('event_id', $event->id)->count())->toBe(1);
-});
-
-test('a submission with both email and phone is accepted', function () {
-    $event = identity_pub_event();
-
-    $response = $this->post("/r/{$event->registration_slug}", identity_pub_payload([
-        'email' => 'maria@example.com',
-        'contact_number' => '09171234567',
-    ]));
-
-    $response->assertSessionHasNoErrors();
-    expect(Registration::where('event_id', $event->id)->count())->toBe(1);
-});
-
-test('a +63-prefixed phone counts as a valid identity key', function () {
-    $event = identity_pub_event();
-
-    $response = $this->post("/r/{$event->registration_slug}", identity_pub_payload([
-        'email' => '',
-        'contact_number' => '+639171234567',
-    ]));
-
-    $response->assertSessionHasNoErrors();
-    expect(Registration::where('event_id', $event->id)->count())->toBe(1);
-});
-
-// ---------------------------------------------------------------------------
-// Rejected combinations
-// ---------------------------------------------------------------------------
-
-test('a submission with neither email nor phone is rejected', function () {
-    $event = identity_pub_event();
-
-    $response = $this->post("/r/{$event->registration_slug}", identity_pub_payload());
-
-    $response->assertSessionHasErrors('identity');
-    expect(Registration::where('event_id', $event->id)->count())->toBe(0);
+test('a submission without a usable required identity is rejected', function (string $email, string $phone) {
+    $event = identity_pub_event(['email' => false, 'contact_number' => true]);
+    $this->post('/r/identity', identity_pub_payload(['email' => $email, 'contact_number' => $phone]))->assertSessionHasErrors('identity');
+    expect(Registration::count())->toBe(0);
     expect(Participant::count())->toBe(0);
-});
+})->with([['', ''], ['', 'not-a-phone'], ['   ', ''], ['optional@example.com', '']]);
 
-test('a submission with blank email and unparseable phone is rejected', function () {
-    $event = identity_pub_event();
-
-    $response = $this->post("/r/{$event->registration_slug}", identity_pub_payload([
-        'email' => '',
-        'contact_number' => 'not-a-phone',
-    ]));
-
-    $response->assertSessionHasErrors('identity');
-    expect(Registration::where('event_id', $event->id)->count())->toBe(0);
-});
-
-test('a submission with a whitespace email and no phone is rejected', function () {
-    $event = identity_pub_event();
-
-    $response = $this->post("/r/{$event->registration_slug}", identity_pub_payload([
-        'email' => '   ',
-        'contact_number' => '',
-    ]));
-
-    $response->assertSessionHasErrors('identity');
-    expect(Registration::where('event_id', $event->id)->count())->toBe(0);
+test('legacy configuration with both contacts optional cannot create unverified global identities', function () {
+    $event = identity_pub_event(['email' => false, 'contact_number' => false]);
+    $this->post('/r/identity', identity_pub_payload(['email' => 'maria@example.com', 'contact_number' => '09171234567']))
+        ->assertSessionHasErrors('identity');
+    expect(Participant::count())->toBe(0);
+    expect(Registration::count())->toBe(0);
 });

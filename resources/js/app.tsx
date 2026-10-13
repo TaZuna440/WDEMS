@@ -20,6 +20,7 @@ void createInertiaApp({
                 return AuthLoginLayout;
             case name === 'registrations/public':
             case name === 'registrations/closed':
+            case name === 'registrations/verify':
                 return PublicLayout;
             case name.startsWith('auth/'):
                 return AuthLayout;

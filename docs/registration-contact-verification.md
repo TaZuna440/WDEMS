@@ -1,0 +1,138 @@
+# Participant contact verification
+
+Current implementation reference, added 2026-10-13. Read with
+`docs/dev-workflow/README.md`, `docs/registration.md`,
+`docs/participant-identity.md`, and `docs/authentication.md`.
+Historical descriptions of immediate public registration are superseded by
+this workflow. Attendance walk-in and bulk paper intake keep their existing
+participant-resolution contract.
+
+## Public registration
+
+1. Submit the existing form at `/r/{registration_slug}`. Validation uses
+   `Event::isCommonFieldRequired()`; omitted settings retain the existing
+   required default. No Participant, Registration, or field response is
+   created at this point.
+2. The browser receives an encrypted, HttpOnly, SameSite=Lax cookie scoped to
+   that event path. Continue in that browser at `/r/{registration_slug}/verification`.
+   The random bearer token is never placed in a URL or page props. The database
+   stores its SHA-256 hash and an encrypted pending payload.
+3. Required email receives a six-digit code through the existing Resend mailer.
+   Required phone waits for an authorized organizer to generate a code and
+   communicate it externally using their own phone. WDEMS sends no SMS.
+4. Submit each required code. One verified channel cannot bypass the other.
+   Then select **Complete registration**. Confirmation appears on the
+   verification page only after the final transaction succeeds.
+
+The screen distinguishes pending, delivery failure, cooldown, invalid code,
+code expiry, attempt lockout, challenge expiry, changed requirements, closed
+registration, and completion. Refresh status after staff generate a phone code.
+Email send failure invalidates the new code, keeps the challenge pending, and
+allows retry after cooldown. No provider exception details are shown or logged.
+
+## Staff phone queue
+
+**Phone verification** in the sidebar opens `/registrations/verification`.
+The existing `auth`, `verified.or.admin`, and `device.trusted` middleware apply.
+The authorization check permits administrators or a staff member who created
+that event. Other staff cannot generate codes for it or see it in their queue.
+Unknown roles are denied. Existing administrator email/device exemptions and
+staff's `email_two_factor_enabled` setting are respected.
+
+The queue contains the event name, submitted phone, timestamps, and verification
+state; it excludes names, emails, addresses, custom answers, and bearer secrets.
+Generating a code returns it once to that authorized request. The UI shows it
+in a transient dialog and conceals it on close, hidden tab, or expiry. There is
+no retrieval endpoint or plaintext code stored in the database. A lost code
+requires regeneration after cooldown. Communicate it only to the submitted
+number; WDEMS cannot attest how staff perform that external step.
+
+## Persisted security controls
+
+- Codes use `App\Services\Otp\OtpCode`: secure random six digits, HMAC storage,
+  and constant-time matching. Code lifetime is ten minutes.
+- A channel can issue another code after 60 seconds. Regeneration invalidates
+  the previous code. Five incorrect attempts lock that channel for the entire
+  challenge; generating new codes does not reset the count.
+- Successful verification consumes the code and records that channel's verified
+  timestamp independently. Replay is rejected.
+- The challenge lasts at most 24 hours, including after successful individual
+  verification. Current event association, status, requiredness, and finalization
+  state are checked server-side. Changed requiredness requires a fresh submission.
+- Payload validation runs again at finalization. Address length is capped at 255
+  to match the existing participant database column. Custom response keys must
+  be event-owned canonical IDs; response count and string length are bounded.
+- All mutations use database transactions, taking event and challenge row locks
+  in a consistent order. Identity matches are locked; existing unique indexes
+  remain in place. Unique-constraint races are retried safely. The participant,
+  registration, answers, and finalized marker commit together or all roll back.
+- Same-challenge completion retries are idempotent. A new challenge for an
+  already registered identity receives a generic organizer-assistance error.
+- Existing web CSRF middleware protects mutations. Routes have IP/user request
+  throttles in addition to persisted challenge limits. Sensitive responses use
+  no-store, no-referrer, noindex headers and encrypted Inertia history.
+- Application error logging in this module contains only event/challenge IDs;
+  no raw OTP, token, contact values, transport details, or secret links.
+
+## Identity and optional fields
+
+Only required, successfully verified identifiers participate in global
+Participant lookup or creation. Optional email/phone never triggers verification
+or updates an existing participant, even when supplied. Both submitted values
+are retained on Registration as `submitted_email` and
+`submitted_contact_number`, including when an existing participant is reused.
+Existing records have nullable snapshots; there is no historical backfill.
+
+Verified email and normalized phone that match the same participant reuse it
+without replacing its details. If they match different participants, finalization
+stops with a non-revealing error and no merge or partial writes. Reconciliation
+remains an organizer task; there is no automatic merge interface.
+
+The form builder already forbids both contacts optional. Legacy invalid events
+with both optional now reject public submissions safely; fix their requirements
+through the existing event form builder. Names and optional contacts cannot
+substitute for a verified identity.
+
+## Deployment and retention
+
+Deploy both additive `2026_10_13_100000` and `2026_10_13_100100` migrations with
+the completed application code through the normal release process. Preserve
+`APP_KEY`; it protects pending payloads and cookies. Use the existing Resend
+credentials and sender configuration. This module explicitly chooses the Resend
+transport so a default log mailer cannot write participant codes to logs.
+
+Run the normal Laravel scheduler. `routes/console.php` prunes expired challenge
+rows hourly through `model:prune --model=App\Models\RegistrationVerificationChallenge`.
+Successful finalization clears pending payload and code hashes immediately.
+Abandoned challenges are rejected at expiry even if the scheduler is stopped;
+physical deletion then waits for the scheduler or a manual prune run. Cookie
+lifetime also ends after 24 hours. Browser loss requires a new submission.
+
+## Automated verification
+
+Normal tests use `phpunit.xml` SQLite `:memory:` and `Mail::fake()`; they need no
+provider credentials. Build assets first with `npm run build` for existing
+Inertia rendering tests. Supply a synthetic APP_KEY to tests when the sandbox
+has no environment file. Do not cache configuration or run tests against the
+local development database.
+
+`tests/Feature/Public/RegistrationVerificationTest.php` covers gates, security,
+mail failure, snapshots, conflict handling, middleware, CSRF, pruning, and retry
+rollback. Public registration regressions complete the real verification
+endpoints through `tests/Support/PublicVerification.php`.
+
+The separate concurrency suite deliberately requires an empty disposable
+MySQL-compatible database named `wdems_verification_test`. It resets that database.
+It is excluded from the ordinary in-memory suite. With test-only connection
+variables and a synthetic APP_KEY exported, run:
+
+```sh
+WDEMS_CONCURRENCY_TEST=1 DB_CONNECTION=mysql DB_DATABASE=wdems_verification_test \
+  php artisan test tests/Integration/RegistrationVerificationConcurrencyTest.php
+```
+
+Two subprocesses compete for a locked event row and verify same-challenge retries
+and independent duplicate submissions. The test asserts exactly one participant,
+registration, answer, and finalized challenge. It was exercised on MariaDB 10.11
+with InnoDB; production MySQL and actual Resend delivery require deployment
+verification. Staff's external phone communication remains a manual operation.

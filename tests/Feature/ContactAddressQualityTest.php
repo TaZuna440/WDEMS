@@ -24,7 +24,6 @@ uses(RefreshDatabase::class);
  * Helpers are prefixed cq_ (contact quality) to avoid Pest function
  * collisions with sibling test files.
  */
-
 function cq_staff(): User
 {
     return User::factory()->create([
@@ -35,7 +34,7 @@ function cq_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function cq_public_event(array $overrides = []): Event
 {
@@ -56,7 +55,7 @@ function cq_public_event(array $overrides = []): Event
  * The quality rules still fire when a value is present — the
  * nullable prefix only allows a blank.
  *
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function cq_walkin_event(array $overrides = []): Event
 {
@@ -76,7 +75,7 @@ function cq_walkin_event(array $overrides = []): Event
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
  */
 function cq_public_payload(array $overrides = []): array
@@ -155,8 +154,8 @@ test('public: an address with no letters is rejected', function () {
 test('public: a valid landline is accepted when email is also present', function () {
     $event = cq_public_event();
 
-    $response = $this->post(
-        "/r/{$event->registration_slug}",
+    $response = completePublicRegistration($this,
+        $event,
         cq_public_payload(['contact_number' => '02-8123-4567']),
     );
 
@@ -219,3 +218,5 @@ test('walk-in: a valid landline is accepted when email is also present', functio
 
     expect(Registration::where('event_id', $event->id)->count())->toBe(1);
 });
+
+require_once __DIR__.'/../Support/PublicVerification.php';

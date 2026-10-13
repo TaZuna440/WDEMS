@@ -1,0 +1,418 @@
+<?php
+
+use App\Mail\RegistrationVerificationOtpMail;
+use App\Models\Event;
+use App\Models\Participant;
+use App\Models\Registration;
+use App\Models\RegistrationField;
+use App\Models\RegistrationFieldResponse;
+use App\Models\RegistrationVerificationChallenge as Challenge;
+use App\Models\User;
+use App\Services\Otp\OtpCode;
+use App\Services\RegistrationVerification\RegistrationVerificationService as Verification;
+use App\Services\TwoFactor\EmailTwoFactorService;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Mail\MailManager;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
+use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
+
+require_once __DIR__.'/../../Support/PublicVerification.php';
+
+function verificationEvent(bool $email = true, bool $phone = false): Event
+{
+    return Event::create([
+        'created_by' => User::factory()->create(['role' => 'staff', 'email_two_factor_enabled' => false])->id,
+        'event_type' => 'community_run', 'event_name' => 'Verification Run',
+        'event_date' => now()->addWeek(), 'status' => 'registration_open',
+        'registration_slug' => bin2hex(random_bytes(4)), 'registration_start' => now(),
+        'registration_form_saved_at' => now(),
+        'registration_common_field_requirements' => ['email' => $email, 'contact_number' => $phone],
+    ]);
+}
+
+function verificationPayload(array $overrides = []): array
+{
+    return array_replace([
+        'first_name' => 'Maria', 'last_name' => 'Santos', 'age' => 28,
+        'address' => 'Manila', 'email' => 'maria@example.com',
+        'contact_number' => '+63 917 123 4567', 'responses' => [],
+    ], $overrides);
+}
+
+function startVerification(TestCase $test, Event $event, array $payload = []): array
+{
+    $response = $test->post('/r/'.$event->registration_slug, verificationPayload($payload));
+    $response->assertRedirect('/r/'.$event->registration_slug.'/verification');
+    $name = Verification::cookieName($event);
+    $cookie = $response->getCookie($name);
+    expect($cookie->isHttpOnly())->toBeTrue();
+    expect($cookie->getSameSite())->toBe('lax');
+    expect($cookie->getPath())->toBe('/r/'.$event->registration_slug);
+    $test->withCookie($name, $cookie->getValue());
+
+    return [Challenge::latest('id')->firstOrFail(), $cookie->getValue(), '/r/'.$event->registration_slug.'/verification'];
+}
+
+beforeEach(function () {
+    Mail::fake();
+});
+
+test('email intake stores encrypted pending data and no registration records', function () {
+    $event = verificationEvent();
+    $field = RegistrationField::create(['event_id' => $event->id, 'label' => 'Size', 'field_type' => 'text', 'is_required' => true, 'display_order' => 0]);
+    [$challenge, $token, $url] = startVerification($this, $event, ['responses' => [$field->id => 'Medium']]);
+    expect(Participant::count())->toBe(0);
+    expect(Registration::count())->toBe(0);
+    expect(RegistrationFieldResponse::count())->toBe(0);
+    $raw = DB::table('registration_verification_challenges')->first();
+    expect($raw->token_hash)->toBe(hash('sha256', $token))->not->toBe($token);
+    expect($raw->payload)->not->toContain('maria@example.com', 'Medium', '+63');
+    $mail = Mail::sent(RegistrationVerificationOtpMail::class)->sole();
+    expect($mail->code)->toMatch('/\A[0-9]{6}\z/');
+    expect(OtpCode::matches($mail->code, $raw->email_code_hash))->toBeTrue();
+    expect($mail->render())->toContain($mail->code, 'Verification Run');
+    $this->get($url)->assertOk()->assertHeader('Referrer-Policy', 'no-referrer')
+        ->assertInertia(fn (Assert $page) => $page->component('registrations/verify')->where('verification.ready', false)->missing('verification.token')->missing('verification.payload'));
+    $this->post($url.'/complete')->assertSessionHasErrors('verification');
+    $this->post($url.'/email', ['code' => $mail->code])->assertSessionHasNoErrors();
+    expect(Registration::count())->toBe(0);
+    $this->post($url.'/complete')->assertSessionHasNoErrors()->assertRedirect($url);
+    expect(Registration::count())->toBe(1);
+    expect(RegistrationFieldResponse::sole()->value)->toBe('Medium');
+    expect($challenge->refresh()->payload)->toBeNull();
+    expect($challenge->email_code_hash)->toBeNull();
+    $this->get($url)->assertInertia(fn (Assert $page) => $page->where('verification.status', 'finalized'));
+});
+
+test('phone only and both-channel registrations require every gate and finalize once', function (bool $email) {
+    $event = verificationEvent($email, true);
+    [$challenge, , $url] = startVerification($this, $event);
+    $owner = User::findOrFail($event->created_by);
+    $phone = $this->actingAs($owner)->postJson('/registrations/verification/'.$challenge->id.'/phone-code')
+        ->assertOk()->assertJsonStructure(['code', 'expires_in_seconds'])->json('code');
+    expect($phone)->toMatch('/\A[0-9]{6}\z/');
+    auth()->forgetGuards();
+    $this->post($url.'/phone', ['code' => $phone])->assertSessionHasNoErrors();
+    if ($email) {
+        $this->post($url.'/complete')->assertSessionHasErrors('verification');
+        expect(Registration::count())->toBe(0);
+        $this->post($url.'/email', ['code' => Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code])->assertSessionHasNoErrors();
+    } else {
+        Mail::assertNothingSent();
+    }
+    $this->post($url.'/complete')->assertSessionHasNoErrors();
+    $this->post($url.'/complete')->assertSessionHasNoErrors();
+    expect(Registration::count())->toBe(1);
+    expect(Participant::count())->toBe(1);
+})->with([false, true]);
+
+test('email verification alone cannot bypass required phone', function () {
+    $event = verificationEvent(true, true);
+    [, , $url] = startVerification($this, $event);
+    $this->post($url.'/email', ['code' => Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code])->assertSessionHasNoErrors();
+    $this->post($url.'/complete')->assertSessionHasErrors('verification');
+    expect(Participant::count())->toBe(0);
+});
+
+test('staff queue and generation enforce real authentication and authorization', function (string $kind, int $status, ?string $redirect) {
+    $event = verificationEvent(false, true);
+    [$challenge] = startVerification($this, $event);
+    if ($kind !== 'guest') {
+        $owner = User::findOrFail($event->created_by);
+        $actor = match ($kind) {
+            'unverified' => tap($owner)->forceFill(['email_verified_at' => null]),
+            'untrusted' => tap($owner)->forceFill(['email_two_factor_enabled' => true]),
+            'other_staff' => User::factory()->create(['role' => 'staff', 'email_two_factor_enabled' => false]),
+            default => User::factory()->create(['role' => 'viewer', 'email_two_factor_enabled' => false]),
+        };
+        $actor->save();
+        $this->actingAs($actor);
+    }
+    $response = $this->post('/registrations/verification/'.$challenge->id.'/phone-code');
+    $response->assertStatus($status);
+    if ($redirect !== null) {
+        $response->assertRedirect(route($redirect));
+    }
+    expect($challenge->refresh()->phone_code_hash)->toBeNull();
+    $queue = $this->get('/registrations/verification');
+    if ($kind === 'other_staff') {
+        $queue->assertOk()->assertInertia(fn (Assert $page) => $page->has('challenges', 0));
+    } else {
+        $queue->assertStatus($status);
+    }
+})->with([
+    ['guest', 302, 'login'], ['unverified', 302, 'verification.notice'],
+    ['untrusted', 302, 'device.verify'], ['other_staff', 403, null], ['unknown_role', 403, null],
+]);
+
+test('admin exemption works and queue exposes only the contact needed for manual verification', function () {
+    $event = verificationEvent(false, true);
+    [$challenge, $token] = startVerification($this, $event);
+    $admin = User::factory()->create(['role' => 'admin', 'email_verified_at' => null, 'email_two_factor_enabled' => true]);
+    $response = $this->actingAs($admin)->get('/registrations/verification');
+    $response->assertOk()->assertInertia(fn (Assert $page) => $page->has('challenges', 1)
+        ->where('challenges.0.phone', '+63 917 123 4567')->missing('challenges.0.email')->missing('challenges.0.payload')->missing('challenges.0.token_hash'));
+    expect($response->headers->get('Cache-Control'))->toContain('no-store');
+    expect($response->getContent())->not->toContain($token, 'maria@example.com');
+    $response = $this->postJson('/registrations/verification/'.$challenge->id.'/phone-code')->assertOk();
+    expect($response->headers->get('Cache-Control'))->toContain('no-store');
+});
+
+test('incorrect codes lock each channel after five attempts and regeneration never resets attempts', function (string $channel) {
+    $event = verificationEvent($channel === 'email', $channel === 'phone');
+    [$challenge, $token, $url] = startVerification($this, $event);
+    $service = app(Verification::class);
+    $actor = User::findOrFail($event->created_by);
+    $code = $channel === 'email' ? Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code : $service->generatePhone($challenge, $actor);
+    $wrong = $code === '000000' ? '111111' : '000000';
+    $this->post($url.'/'.$channel, ['code' => $wrong])->assertSessionHasErrors($channel);
+    $this->travel(60)->seconds();
+    if ($channel === 'email') {
+        expect($service->sendEmail($event, $token))->toBeNull();
+        $replacement = Mail::sent(RegistrationVerificationOtpMail::class)->last()->code;
+    } else {
+        $replacement = $service->generatePhone($challenge, $actor);
+    }
+    expect($replacement)->not->toBe($code);
+    $this->post($url.'/'.$channel, ['code' => $code])->assertSessionHasErrors($channel);
+    for ($i = 0; $i < 3; $i++) {
+        $wrong = $replacement === '000000' ? '111111' : '000000';
+        $this->post($url.'/'.$channel, ['code' => $wrong])->assertSessionHasErrors($channel);
+    }
+    $this->post($url.'/'.$channel, ['code' => $replacement])->assertSessionHasErrors($channel);
+    expect($challenge->refresh()->getAttribute($channel.'_attempts'))->toBe(5);
+    expect($challenge->getAttribute($channel.'_verified_at'))->toBeNull();
+    $this->travel(60)->seconds();
+    if ($channel === 'email') {
+        expect($service->sendEmail($event, $token))->toContain('Too many');
+    } else {
+        expect(fn () => $service->generatePhone($challenge, $actor))->toThrow(ValidationException::class);
+    }
+    expect(Registration::count())->toBe(0);
+})->with(['email', 'phone']);
+
+test('cooldown is enforced at 59 seconds and allows issuance at 60 seconds', function (string $channel) {
+    $event = verificationEvent($channel === 'email', $channel === 'phone');
+    [$challenge, , $url] = startVerification($this, $event);
+    if ($channel === 'phone') {
+        $this->actingAs(User::findOrFail($event->created_by));
+        $url = '/registrations/verification/'.$challenge->id.'/phone-code';
+        $this->postJson($url)->assertOk();
+    } else {
+        $url .= '/email/resend';
+    }
+    $hash = $challenge->refresh()->getAttribute($channel.'_code_hash');
+    $this->travel(59)->seconds();
+    if ($channel === 'phone') {
+        $this->postJson($url)->assertUnprocessable();
+    } else {
+        $this->post($url)->assertSessionHasErrors('email');
+    }
+    expect($challenge->refresh()->getAttribute($channel.'_code_hash'))->toBe($hash);
+    $this->travel(1)->seconds();
+    if ($channel === 'phone') {
+        $this->postJson($url)->assertOk();
+    } else {
+        $this->post($url)->assertSessionHasNoErrors();
+    }
+    expect($challenge->refresh()->getAttribute($channel.'_code_hash'))->not->toBe($hash);
+})->with(['email', 'phone']);
+
+test('code expires at ten minutes and a consumed code cannot be reused', function (string $channel) {
+    $event = verificationEvent($channel === 'email', $channel === 'phone');
+    [$challenge, $token, $url] = startVerification($this, $event);
+    $service = app(Verification::class);
+    $actor = User::findOrFail($event->created_by);
+    $code = $channel === 'email' ? Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code : $service->generatePhone($challenge, $actor);
+    $this->travel(10)->minutes();
+    $this->post($url.'/'.$channel, ['code' => $code])->assertSessionHasErrors($channel);
+    if ($channel === 'email') {
+        $service->sendEmail($event, $token);
+        $code = Mail::sent(RegistrationVerificationOtpMail::class)->last()->code;
+    } else {
+        $code = $service->generatePhone($challenge, $actor);
+    }
+    $this->post($url.'/'.$channel, ['code' => $code])->assertSessionHasNoErrors();
+    $this->post($url.'/'.$channel, ['code' => $code])->assertSessionHasErrors($channel);
+    expect($challenge->refresh()->getAttribute($channel.'_code_hash'))->toBeNull();
+})->with(['email', 'phone']);
+
+test('expired challenges reject verification resend finalization and staff generation', function () {
+    $event = verificationEvent(true, true);
+    [$challenge, , $url] = startVerification($this, $event);
+    $this->travel(24)->hours();
+    $this->get($url)->assertInertia(fn (Assert $page) => $page->where('verification.status', 'expired'));
+    foreach (['email', 'email/resend', 'complete'] as $action) {
+        $this->post($url.'/'.$action, ['code' => Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code])->assertSessionHasErrors('verification');
+    }
+    $this->actingAs(User::findOrFail($event->created_by))->postJson('/registrations/verification/'.$challenge->id.'/phone-code')->assertUnprocessable();
+    expect(Participant::count())->toBe(0);
+});
+
+test('missing forged and event-mismatched tokens cannot access a challenge', function () {
+    $event = verificationEvent();
+    [$challenge, $token, $url] = startVerification($this, $event);
+    $other = verificationEvent();
+    $this->withCookie(Verification::cookieName($other), $token)->get('/r/'.$other->registration_slug.'/verification')
+        ->assertInertia(fn (Assert $page) => $page->where('verification.status', 'missing'));
+    foreach (['', 'bad-token', str_repeat('a', 64)] as $invalid) {
+        $this->withCookie(Verification::cookieName($event), $invalid)->post($url.'/complete')->assertSessionHasErrors('verification');
+    }
+    expect($challenge->refresh()->finalized_at)->toBeNull();
+});
+
+test('optional contacts are snapshots and cannot resolve or update participant identities', function (bool $emailRequired) {
+    $event = verificationEvent($emailRequired, ! $emailRequired);
+    $existing = Participant::create(['first_name' => 'Other', 'last_name' => 'Person', 'age' => 40,
+        'email' => $emailRequired ? 'other@example.com' : 'maria@example.com',
+        'contact_number' => $emailRequired ? '09171234567' : '09179999999']);
+    completePublicRegistration($this, $event, verificationPayload())->assertSessionHasNoErrors();
+    $registration = Registration::sole();
+    expect($registration->participant_id)->not->toBe($existing->id);
+    expect($registration->submitted_email)->toBe('maria@example.com');
+    expect($registration->submitted_contact_number)->toBe('+63 917 123 4567');
+    $participant = $registration->participant;
+    expect($participant->email)->toBe($emailRequired ? 'maria@example.com' : null);
+    expect($participant->contact_number_normalized)->toBe($emailRequired ? null : '09171234567');
+    expect($existing->refresh()->first_name)->toBe('Other');
+    expect(Challenge::sole()->getAttribute($emailRequired ? 'phone_issued_at' : 'email_issued_at'))->toBeNull();
+})->with([true, false]);
+
+test('two verified identifiers reuse the same participant without rewriting details', function () {
+    $event = verificationEvent(true, true);
+    $participant = Participant::create(['first_name' => 'Original', 'last_name' => 'Person', 'age' => 40, 'email' => 'maria@example.com', 'contact_number' => '09171234567']);
+    completePublicRegistration($this, $event, verificationPayload())->assertSessionHasNoErrors();
+    expect(Registration::sole()->participant_id)->toBe($participant->id);
+    expect(Participant::count())->toBe(1);
+    expect($participant->refresh()->first_name)->toBe('Original');
+});
+
+test('verified identifiers belonging to different participants fail without merging', function () {
+    $event = verificationEvent(true, true);
+    $a = Participant::create(['first_name' => 'First', 'last_name' => 'Person', 'age' => 40, 'email' => 'maria@example.com']);
+    $b = Participant::create(['first_name' => 'Second', 'last_name' => 'Person', 'age' => 30, 'contact_number' => '09171234567']);
+    $before = Participant::orderBy('id')->get()->toArray();
+    completePublicRegistration($this, $event, verificationPayload())->assertSessionHasErrors('verification');
+    expect(Participant::orderBy('id')->get()->toArray())->toBe($before);
+    expect(Registration::count())->toBe(0);
+    expect(Challenge::sole()->finalized_at)->toBeNull();
+});
+
+test('delivery failure persists a safe retry state without completing anything', function () {
+    Mail::shouldReceive('mailer')->with('resend')->once()->andThrow(new RuntimeException('provider unavailable'));
+    $event = verificationEvent();
+    [$challenge, , $url] = startVerification($this, $event);
+    expect($challenge->email_delivery_failed)->toBeTrue();
+    expect($challenge->email_code_hash)->toBeNull();
+    expect($challenge->email_verified_at)->toBeNull();
+    expect(Participant::count())->toBe(0);
+    $this->post($url.'/complete')->assertSessionHasErrors('verification');
+    $this->travel(60)->seconds();
+    Mail::swap(new MailManager(app()));
+    Mail::fake();
+    $this->post($url.'/email/resend')->assertSessionHasNoErrors();
+    expect($challenge->refresh()->email_delivery_failed)->toBeFalse();
+});
+
+test('repeated pending submissions preserve challenge cooldown and attempts', function () {
+    $event = verificationEvent();
+    [$challenge, $token] = startVerification($this, $event);
+    $challenge->forceFill(['email_attempts' => 3])->save();
+    [$again, $same] = startVerification($this, $event);
+    expect($again->id)->toBe($challenge->id);
+    expect($same)->toBe($token);
+    expect($again->email_attempts)->toBe(3);
+    Mail::assertSentCount(1);
+});
+
+test('changed payload supersedes the old challenge and invalidates its token', function () {
+    $event = verificationEvent();
+    [$first, $token] = startVerification($this, $event);
+    startVerification($this, $event, ['email' => 'new@example.com']);
+    expect($first->refresh()->payload)->toBeNull();
+    expect(app(Verification::class)->publicState($event, $token)['status'])->toBe('expired');
+});
+
+test('current event configuration and field validation are checked again before finalizing', function (string $change) {
+    $event = verificationEvent();
+    [, , $url] = startVerification($this, $event);
+    $this->post($url.'/email', ['code' => Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code])->assertSessionHasNoErrors();
+    match ($change) {
+        'closed' => $event->update(['status' => 'registration_closed']),
+        'requirements' => $event->update(['registration_common_field_requirements' => ['email' => true, 'contact_number' => true]]),
+        'field' => RegistrationField::create(['event_id' => $event->id, 'label' => 'Required answer', 'field_type' => 'text', 'is_required' => true, 'display_order' => 0]),
+    };
+    $this->post($url.'/complete')->assertSessionHasErrors('verification');
+    expect(Participant::count())->toBe(0);
+})->with(['closed', 'requirements', 'field']);
+
+test('failure during answer creation rolls back participant registration and finalization', function () {
+    $event = verificationEvent();
+    $field = RegistrationField::create(['event_id' => $event->id, 'label' => 'Answer', 'field_type' => 'text', 'is_required' => true, 'display_order' => 0]);
+    [$challenge, , $url] = startVerification($this, $event, ['responses' => [$field->id => 'Yes']]);
+    $this->post($url.'/email', ['code' => Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code]);
+    RegistrationFieldResponse::creating(fn () => throw new RuntimeException('simulated write failure'));
+    try {
+        $this->post($url.'/complete')->assertSessionHasErrors('verification');
+        expect(Participant::count())->toBe(0);
+        expect(Registration::count())->toBe(0);
+        expect($challenge->refresh()->finalized_at)->toBeNull();
+    } finally {
+        RegistrationFieldResponse::flushEventListeners();
+    }
+    $this->post($url.'/complete')->assertSessionHasNoErrors();
+    expect(RegistrationFieldResponse::count())->toBe(1);
+});
+
+test('verification endpoints throttle and never flash OTP input', function () {
+    $event = verificationEvent();
+    [, , $url] = startVerification($this, $event);
+    $this->post($url.'/email', ['code' => 'invalid'])->assertSessionHasErrors('email')->assertSessionMissing('_old_input.code');
+    for ($i = 0; $i < 9; $i++) {
+        $this->post($url.'/complete');
+    }
+    $this->post($url.'/complete')->assertTooManyRequests();
+});
+
+test('a verified staff owner with a trusted device can generate a phone code', function () {
+    $event = verificationEvent(false, true);
+    [$challenge] = startVerification($this, $event);
+    $owner = User::findOrFail($event->created_by);
+    $owner->forceFill(['email_two_factor_enabled' => true])->save();
+    $device = app(EmailTwoFactorService::class)->trustDevice($owner, 'Test browser', '127.0.0.1');
+    $this->actingAs($owner)->withCookie(EmailTwoFactorService::DEVICE_COOKIE_NAME, $device)
+        ->withCredentials()->postJson('/registrations/verification/'.$challenge->id.'/phone-code')->assertOk();
+});
+
+test('public and staff mutation routes enforce CSRF outside the test bypass', function () {
+    $event = verificationEvent(false, true);
+    [$challenge, , $url] = startVerification($this, $event);
+    $this->app->bind(PreventRequestForgery::class, function ($app) {
+        return new class($app, $app['encrypter']) extends PreventRequestForgery
+        {
+            protected function runningUnitTests()
+            {
+                return false;
+            }
+        };
+    });
+    $this->post($url.'/phone', ['code' => '123456'])->assertStatus(419);
+    $this->post($url.'/email/resend')->assertStatus(419);
+    $this->post($url.'/complete')->assertStatus(419);
+    $this->actingAs(User::findOrFail($event->created_by))
+        ->postJson('/registrations/verification/'.$challenge->id.'/phone-code')->assertStatus(419);
+    expect($challenge->refresh()->phone_code_hash)->toBeNull();
+});
+
+test('pruning removes abandoned expired payloads and preserves active challenges', function () {
+    $event = verificationEvent(false, true);
+    [$old] = startVerification($this, $event);
+    $this->travel(24)->hours();
+    [$active] = startVerification($this, $event);
+    $this->artisan('model:prune', ['--model' => [Challenge::class]])->assertSuccessful();
+    expect(Challenge::find($old->id))->toBeNull();
+    expect(Challenge::find($active->id))->not->toBeNull();
+});

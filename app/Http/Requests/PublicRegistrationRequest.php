@@ -7,11 +7,32 @@ use App\Concerns\HumanNameQualityRules;
 use App\Models\Event;
 use App\Models\Participant;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Validator;
 
 class PublicRegistrationRequest extends FormRequest
 {
     use ContactAndAddressQualityRules;
     use HumanNameQualityRules;
+
+    private ?Event $pendingEvent = null;
+
+    /**
+     * Reuse the public form contract against the current event at finalization.
+     * The pending payload is decrypted server-side; no client resubmission can
+     * replace the contact values that were verified.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public static function validatePending(Event $event, #[\SensitiveParameter] array $payload): array
+    {
+        $request = static::create('/', 'POST', $payload);
+        $request->pendingEvent = $event;
+        $validator = Validator::make($payload, $request->rules(), $request->messages());
+        $request->withValidator($validator);
+
+        return $validator->validate();
+    }
 
     /**
      * No auth on the public submission route. The route middleware
@@ -23,31 +44,8 @@ class PublicRegistrationRequest extends FormRequest
     }
 
     /**
-     * Six common participant fields, plus a `responses` map keyed by
-     * registration_field_id.
-     *
-     * Required-ness of three of the six fields (email, contact_number,
-     * address) is per-event — set in the form builder and read via
-     * Event::isCommonFieldRequired(). First name, last name, and age
-     * are always required.
-     *
-     * Name fields (first_name, last_name) go through personNameRules(),
-     * which composes length bounds with the shared
-     * HumanNameQualityRules. That trait is the same one already used
-     * by event_name, partners.*.name, and the form builder's label
-     * field — reused here rather than duplicated.
-     *
-     * Contact number and address go through
-     * ContactAndAddressQualityRules, a sibling trait that catches
-     * keyboard mashing ("fgfdgfdgdfg", "dfdfdsfdsfdsfd") while
-     * admitting real phone numbers and addresses. The quality rules
-     * only apply when the field is present — the per-event
-     * nullable/required prefix handles the empty case, and Laravel
-     * skips subsequent rules when the value is null.
-     *
-     * The at-least-one identity rule (email OR contact_number) lives
-     * in withValidator() — it depends on the normalized form of the
-     * phone, which is not known during the standard rules pass.
+     * Six common participant fields plus event-owned custom responses.
+     * Requiredness comes only from Event::isCommonFieldRequired().
      *
      * @return array<string, mixed>
      */
@@ -65,25 +63,15 @@ class PublicRegistrationRequest extends FormRequest
             'age' => ['required', 'integer', 'min:1', 'max:120'],
             'address' => $this->commonFieldRules('address', [
                 'string',
-                'max:500',
+                'max:255',
                 ...$this->addressQualityRules(),
             ]),
-            'responses' => ['nullable', 'array'],
+            'responses' => ['nullable', 'array', 'max:5'],
             'responses.*' => ['nullable'],
         ];
     }
 
-    /**
-     * Rules for a participant's name field.
-     *
-     * Composes length bounds with the shared humanNameQualityRules().
-     * No minimum length is enforced beyond `required` — two-letter
-     * names ("Bo", "Uy") and short surnames are legitimate. The
-     * quality rules carry the "does this look like a real name"
-     * weight; the length rule only guards the upper bound.
-     *
-     * @return array<int, string>
-     */
+    /** @return array<int, string> */
     private function personNameRules(): array
     {
         return [
@@ -95,51 +83,30 @@ class PublicRegistrationRequest extends FormRequest
     }
 
     /**
-     * Build the rule list for a common field whose required-ness
-     * depends on the event. Always-required fields do not go through
-     * this method — they use a fixed `required` rule.
-     *
-     * Falls back to `required` when no Event is bound, which matches
-     * the column's NULL-means-required default and keeps the failure
-     * mode safe.
-     *
      * @param  array<int, string>  $formatRules
      * @return array<int, string>
      */
     private function commonFieldRules(string $field, array $formatRules): array
     {
-        $event = $this->route('event');
-
+        $event = $this->pendingEvent ?? $this->route('event');
         $isRequired = ! ($event instanceof Event) || $event->isCommonFieldRequired($field);
 
         return array_merge([$isRequired ? 'required' : 'nullable'], $formatRules);
     }
 
     /**
-     * Post-rules validation. Runs in three passes:
-     *
-     *   1. Custom field responses — key ownership and format.
-     *   2. Required custom fields — iterating the field list, not
-     *      the submitted keys (a required field the participant
-     *      skipped produces no key in `responses`).
-     *   3. At-least-one identity — email or normalizable phone. A
-     *      submitted phone that does not normalize counts as no
-     *      phone. See docs/participant-identity.md §7.
-     *
-     * The identity check is form-level: the error key is `identity`,
-     * not `email` or `contact_number`. The rule is about the pair,
-     * not either field in isolation.
+     * Validate custom response ownership, type and requiredness, then ensure
+     * at least one required (therefore verifiable) identity key is available.
+     * Optional contacts remain valid input, but cannot satisfy identity.
      */
     public function withValidator($validator): void
     {
         $validator->after(function ($v): void {
-            $event = $this->route('event');
+            $event = $this->pendingEvent ?? $this->route('event');
 
             if (! $event instanceof Event) {
                 return;
             }
-
-            // -------- Pass 1 + 2: custom fields --------
 
             $fields = $event->registrationFields()->get();
             $responses = $this->input('responses', []);
@@ -151,11 +118,12 @@ class PublicRegistrationRequest extends FormRequest
             foreach ($responses as $fieldId => $value) {
                 $field = $fields->firstWhere('id', (int) $fieldId);
 
-                if ($field === null) {
+                if ($field === null || (string) (int) $fieldId !== (string) $fieldId) {
                     $v->errors()->add(
                         "responses.{$fieldId}",
                         'This field does not belong to this event.',
                     );
+
                     continue;
                 }
 
@@ -187,41 +155,23 @@ class PublicRegistrationRequest extends FormRequest
                 }
             }
 
-            // -------- Pass 3: at-least-one identity --------
-
             $email = $this->input('email');
             $phone = $this->input('contact_number');
+            $hasRequiredEmail = $event->isCommonFieldRequired('email')
+                && is_string($email) && trim($email) !== '';
+            $hasRequiredPhone = $event->isCommonFieldRequired('contact_number')
+                && Participant::normalizeContactNumber(is_string($phone) ? $phone : null) !== null;
 
-            $emailBlank = ! is_string($email) || trim($email) === '';
-            $phoneBlank = Participant::normalizeContactNumber(
-                is_string($phone) ? $phone : null,
-            ) === null;
-
-            if ($emailBlank && $phoneBlank) {
+            if (! $hasRequiredEmail && ! $hasRequiredPhone) {
                 $v->errors()->add(
                     'identity',
-                    'Please provide at least an email address or a contact number.',
+                    'A required email address or Philippine mobile number is needed to verify your registration. Contact the organizer if neither is required.',
                 );
             }
         });
     }
 
-    /**
-     * Custom messages for the name-quality regex rules and the new
-     * contact/address quality regexes.
-     *
-     * The name rules themselves live in HumanNameQualityRules. Laravel
-     * reports any of the three `regex:` failures under the key
-     * `{field}.regex` and the not_regex failure under
-     * `{field}.not_regex`, so two overrides per field cover all four.
-     *
-     * Without these overrides Laravel defaults to the raw format
-     * message ("The first name format is invalid") which is
-     * technically correct but unhelpful. Same wording the wizard
-     * already uses for event_name.
-     *
-     * @return array<string, string>
-     */
+    /** @return array<string, string> */
     public function messages(): array
     {
         return [
@@ -240,12 +190,16 @@ class PublicRegistrationRequest extends FormRequest
         return $value === null || $value === '' || $value === [];
     }
 
-    /**
-     * @param  array<int, string>  $options
-     */
+    /** @param array<int, string> $options */
     private function validateType($validator, int $fieldId, string $type, mixed $value, array $options): void
     {
         $key = "responses.{$fieldId}";
+
+        if (is_string($value) && mb_strlen($value) > 5000) {
+            $validator->errors()->add($key, 'Must not exceed 5000 characters.');
+
+            return;
+        }
 
         switch ($type) {
             case 'text':
