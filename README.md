@@ -13,8 +13,8 @@ authentication.
 ## Status
 
 The core workflow is running end-to-end — events, registration form
-builder, public submission surface, and the identity model that
-powers deduplication and returning-participant flags.
+builder, three-phase submission (submit → verify → finalize), and the
+identity model that powers deduplication and returning-participant flags.
 
 | Feature | Status |
 |---|---|
@@ -30,14 +30,16 @@ powers deduplication and returning-participant flags.
 | Custom Date / Time / Distance pickers | ✅ |
 | Map picker (Leaflet + Nominatim) | ✅ |
 | Registration — form builder (common + up to 5 custom fields) | ✅ |
-| Registration — public submission surface at `/r/{slug}` | ✅ |
+| Registration — public submission surface (submit → verify → finalize) | ✅ |
 | Registration — per-event required/optional toggles | ✅ |
 | Registration — legal layer (demo privacy + terms, consent) | 🚧 demo |
-| Participant identity model (email + normalized phone) | 📋 planned |
-| Registration monitoring (live feed during registration) | 📋 planned |
-| Attendance recording UI | 🚧 |
-| Walk-in / paper registration UI | ⏸ |
-| Post-run monitoring (recurring participants, rates) | ⏸ |
+| Participant identity model (email + normalized phone) | ✅ |
+| Registration monitoring (live submission feed) | ✅ |
+| Attendance recording UI (search, filter, pagination, walk-in) | ✅ |
+| Walk-in / paper registration UI (single dialog + batch table) | ✅ |
+| Post-run monitoring (returning participants, live submission rates) | ✅ |
+| Registration — contact verification (email OTP + staff phone OTP) | ✅ |
+| Registration — deletion with OTP | ✅ |
 
 **Test suite:** run `php artisan test` for the current count. Auth,
 event deletion, and registration have broad coverage. Attendance and
@@ -290,11 +292,6 @@ removed. They are kept for historical context only.
   checkbox. Server-side consent recording, per-event legal content, and
   guardian fields for minors are deferred to Phase 3.5 and wait on real
   legal content. See `docs/known-issues.md` ISSUE-009.
-- **Attendance recording.** `AttendanceController` and
-  `events/attendance.tsx` exist and can mark attendance for existing
-  registrations. The page is functional but has not been rebuilt for
-  search, pagination, or walk-in support — that is Phase 4 of the
-  registration plan.
 
 ### Known gaps
 
@@ -324,15 +321,17 @@ removed. They are kept for historical context only.
 | **Auth** | Login, email 2FA, trusted devices, password management | ✅ |
 | **Events** | Event CRUD, wizard, lifecycle, deletion with OTP | ✅ |
 | **Registration — form builder** | Per-event registration form, common + custom fields | ✅ |
-| **Registration — public surface** | Anonymous submission at `/r/{slug}` | ✅ |
+| **Registration — public surface** | Anonymous submit → verify → finalize at `/r/{slug}` | ✅ |
 | **Registration — field requirements** | Per-event required/optional toggles | ✅ |
+| **Registration — contact verification** | Email OTP + staff phone OTP, three-phase intake | ✅ |
+| **Registration — deletion with OTP** | Staff delete a registration via email OTP | ✅ |
 | **Registration — legal layer (demo)** | Privacy notice + terms modals, consent checkbox | 🚧 demo |
-| **Participant identity** | Email + phone identity, cross-event deduplication | 📋 planned |
-| **Registration monitoring** | Live submission feed during the registration window | 📋 planned |
+| **Participant identity** | Email + phone identity, cross-event deduplication | ✅ |
+| **Registration monitoring** | Live submission feed during the registration window | ✅ |
 | **Compliance (Phase 3.5)** | Per-event legal content, consent recording, guardian fields | 📋 planned |
-| **Attendance** | Attendance recording UI, wired to real registrations | 🚧 |
-| **Walk-in registration** | On-site registration for latecomers | ⏸ |
-| **Post-run monitoring** | Recurring participants, attendance rates | ⏸ |
+| **Attendance** | Attendance recording UI, wired to real registrations | ✅ |
+| **Walk-in registration** | On-site registration for latecomers | ✅ |
+| **Post-run monitoring** | Recurring participants, attendance rates | ✅ |
 
 The phased build plan for **Participant identity** and **Registration
 monitoring** lives in

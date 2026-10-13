@@ -532,3 +532,22 @@ Also recorded honestly. The patterns worth repeating.
   task type, consistent practices, observed failures, working
   patterns, and stop-and-ask conditions. Recorded at the developer's
   request.
+
+---
+
+## Correction to §9 (2026-10-13)
+
+The P9 section above records:
+
+> README.md still listed "Map picker with reverse geocoding" as ✅,
+> even though FIX-016 had removed the map picker.
+
+That claim is wrong. FIX-016b tightened the URL regex. It did not
+remove the map picker. The map picker files remain in the tree
+(`resources/js/components/map-picker.tsx`,
+`resources/js/components/map-picker-leaflet.tsx`), are still
+referenced by `VenueStep.tsx`, and still work.
+
+The README row is accurate. §9's claim about it is not.
+
+Recorded per P7 — the original text stays, this block revokes it.

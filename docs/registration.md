@@ -434,3 +434,61 @@ Phase 5 of the plan. Not built.
   code exists." Corrections for §1 (table), §2 (state machine),
   §6 (lock signal + slug length), §8 (deletion). Full
   spec-to-reference conversion deferred.
+
+---
+
+## Corrections — Status block (2026-10-13)
+
+The `## Status — Implemented (2026-10-02)` block above reads:
+
+> The registration subsystem is live end-to-end.
+
+That was accurate on 2026-10-02. It is no longer accurate.
+
+Commit `4394986` (2026-10-13, "feat(registration): verify participant
+contacts before finalizing intake") rewrote the public submission
+path. The flow at `/r/{slug}` is now three-phase:
+
+1. **Submit.** The form posts to `PublicRegistrationController::store`.
+   No Participant or Registration is created. A
+   `RegistrationVerificationChallenge` row is created and an encrypted
+   HttpOnly cookie is set scoped to `/r/{slug}`.
+
+2. **Verify.** The user is redirected to
+   `/r/{slug}/verification`. Required email is verified by an OTP
+   delivered through Resend. Required phone is verified by a
+   staff-generated code communicated externally.
+
+3. **Finalize.** Once every required channel is verified, the user
+   clicks **Complete registration**. The final Participant,
+   Registration, and `RegistrationFieldResponse` rows commit in one
+   transaction.
+
+### New columns and table (2026-10-13)
+
+| Object | Purpose |
+|---|---|
+| `registration_verification_challenges` table | Pending intake. One row per submit. Encrypted payload, token hash, per-channel OTP state, 24-hour TTL |
+| `registrations.submitted_email` | Snapshot of the value the participant typed. Nullable. Not an identity key |
+| `registrations.submitted_contact_number` | Same, for phone. Nullable. Not an identity key |
+
+Migrations:
+
+    database/migrations/2026_10_13_100000_create_registration_verification_challenges_table.php
+    database/migrations/2026_10_13_100100_add_submitted_contacts_to_registrations_table.php
+
+Both are additive. No existing columns were dropped or altered.
+
+### Where the full design lives
+
+`docs/registration-contact-verification.md` is the authoritative
+reference for the shipped flow — every state, every limit, every
+non-obvious behavior. Read it before touching the public path.
+
+### Identity model — unchanged in spirit
+
+`Participant::resolveFrom()` is still the identity resolver. The
+change is *when* it runs: at finalize, not at submit. Only verified
+identity keys participate in resolution. Optional contact values are
+stored on the Registration as `submitted_*` snapshots and never touch
+`participants.email` or `participants.contact_number`.

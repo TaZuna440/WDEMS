@@ -338,3 +338,45 @@ If you need to add a new interface to `User`, do so alongside
 Full details of both fixes: `docs/fixes.md` FIX-002 and FIX-003.
 Subsystem view: `docs/authentication.md` `## Corrections — Email
 Verification`.
+
+---
+
+## 17. Reading-order additions (2026-10-13)
+
+Section §7's reading-order table was written before several
+subsystems shipped. Two entries are missing. When working on these
+tasks, ask for the corresponding doc:
+
+| Task touches | Ask for |
+|---|---|
+| Public registration verification, contact OTPs, staff phone queue | `docs/registration-contact-verification.md` |
+| Non-obvious behaviors that don't fit a subsystem doc | `docs/implementation-notes.md` |
+
+### Why `registration-contact-verification.md` matters
+
+Since commit `4394986` (2026-10-13), the public form at `/r/{slug}` no
+longer creates a Participant or Registration on submit. It creates a
+`RegistrationVerificationChallenge` and redirects to a verification
+page. Final records only commit after every required channel is
+verified.
+
+An AI session that assumes immediate creation will propose fixes for
+a flow that no longer exists. Read the doc first.
+
+### Why `implementation-notes.md` matters
+
+It records behaviors that cross subsystem boundaries — error merge
+order in the wizard, shared name-quality rules, slug constants, rate
+limiter inventory. These are the behaviors most likely to be
+"cleaned up" by a well-meaning AI and silently broken.
+
+### Companion file
+
+`docs/fixes.md` — every fixed problem with its evidence. Not a
+reading-order entry, but useful when a claim about the current state
+seems to contradict something else.
+
+### Cross-references
+
+- Section §7 above — the original reading-order table
+- `docs/progress.md` 2026-10-13 entry — the doc-pass record

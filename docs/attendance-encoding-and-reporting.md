@@ -833,3 +833,55 @@ Total: 5–6 sessions.
   middleware designed. Print-layout via CSS-only. Lock semantics
   enumerated. Build order B → A → C with 5–6 session estimate.
   Eight open items flagged. No code.
+
+---
+
+## Corrections (2026-10-13)
+
+Append-only corrections based on the source review. Where this section
+disagrees with the earlier spec body, this section takes precedence.
+
+### SPEC-GAP-1 — Auto-advance must use EventWorkflow
+
+Section 6.1 directly assigns `$event->status`, bypassing the workflow
+service. The architecture requires every transition to use
+`App\Services\EventWorkflow`, which rejects illegal transitions.
+
+Correction to step 5. Import `App\Services\EventWorkflow` and call:
+
+    app(EventWorkflow::class)->start($event);
+
+Keep the existing middleware checks and `event.status.auto_advanced`
+logging. Change only the transition mechanism.
+
+---
+
+### SPEC-GAP-2 — Report aggregation belongs in a service
+
+Section 5.8 assigns three aggregate payloads to
+`ReportController::show`. The architecture rule in `architecture.md`
+requires multi-step domain operations to live behind a service.
+
+Correction. Introduce `app/Services/Reporting/ReportService.php` with
+`build(Event $event): array`. It assembles the summary, cross-event,
+and participant payloads. The controller calls the service and
+returns the Inertia response; report aggregation does not live in
+the controller.
+
+---
+
+### SPEC-GAP-3 — Rate-limit row encoding
+
+Section 3.3 saves each row on blur. The current mark route has no
+route-level throttle, while the provider defines eight limiters and
+`implementation-notes.md` documents only five.
+
+When this feature ships, register `attendance-encode-row`, keyed by
+user ID and event, with a limit of 60 requests per minute. Apply
+`throttle:attendance-encode-row` to
+`POST /events/{event}/attendance/{registration}/mark`.
+
+Update the limiter inventory to nine entries when the new limiter
+is implemented. Do not describe the limiter as active before then.
+
+---
