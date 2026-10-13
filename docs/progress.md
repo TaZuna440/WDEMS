@@ -1670,3 +1670,23 @@ and (pending) `docs/issues-inventory.md`.
 | Attendance encoding + finalize + report spec | `docs/attendance-encoding-and-reporting.md` |
 | Event deletion pattern (mirrored) | `docs/event-deletion.md` |
 | Backlog | `docs/known-issues.md` |
+
+---
+
+## 2026-10-13 — Consolidated issues inventory deferred
+
+An attempt to create `docs/issues-inventory.md` — a single-file view
+of every open bug, gap, drift item, and deliberate fragile pattern —
+was attempted four times. Each write truncated or lost markdown
+symbols through the paste channel. The file was removed.
+
+The content is fully preserved in the session that produced it. Every
+entry it would have contained is already recorded in a canonical doc:
+
+- `docs/known-issues.md` — ISSUE-001 through ISSUE-013
+- `docs/fixes.md` — FIX-001 through FIX-027
+- `docs/event-creation-issues.md` — EC-01 through EC-13
+- Subsystem docs for the fragile patterns and dead-code entries
+
+A future session with a working paste channel can regenerate the
+inventory from those sources. No information was lost.
