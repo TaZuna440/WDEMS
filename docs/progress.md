@@ -2008,3 +2008,120 @@ None new. The full open list remains in `docs/known-issues.md`.
       tests/Feature/Events/AttendanceEncodingModeTest.php                                   (new)
       tests/Feature/Events/AttendanceBulkEncodingModeTest.php                               (new)
       tests/Feature/Public/RegistrationConfirmationMailTest.php                             (new)
+
+---
+
+## 2026-10-14 (later) — Feature B: finalize event
+
+### Summary
+
+Feature B of `docs/attendance-encoding-and-reporting.md` shipped.
+The event lifecycle gains its terminal transition: Ongoing to
+Completed, password-gated at the route level.
+
+An auto-advance middleware runs on every authenticated request and
+flips RegistrationClosed events to Ongoing once their start moment
+has passed. Idempotent; races resolve through the workflow service.
+
+20 new tests. Full suite at end of session: 377 passed, 1169
+assertions.
+
+### Documentation created
+
+None.
+
+### Documentation appended
+
+| File | Change |
+|---|---|
+| `docs/attendance-encoding-and-reporting.md` | Pointer section noting Feature B is shipped; corrections to Sections 3.7, 4.4, and 4.6 |
+| `docs/progress.md` | This entry |
+
+### Code changes
+
+| File | Change |
+|---|---|
+| `app/Http/Middleware/AdvanceEventStatus.php` | **New** — auto-advances RegistrationClosed to Ongoing once start moment has passed |
+| `bootstrap/app.php` | Registered `event.advance` alias |
+| `routes/web.php` | Added `POST /events/{event}/finalize` with `RequirePassword`; attached `event.advance` to the main group |
+| `app/Models/Event.php` | Added `canFinalize()` guard |
+| `app/Http/Controllers/EventController.php` | Added `finalize()` action; exposed `can_finalize` in the show payload |
+| `resources/js/pages/events/show.tsx` | Finalize Event button and confirmation modal |
+
+### Test changes
+
+| File | Change | Result |
+|---|---|---|
+| `tests/Feature/Events/EventFinalizeTest.php` | **New** — 10 tests | All pass |
+| `tests/Feature/Events/EventAutoAdvanceTest.php` | **New** — 10 tests | All pass |
+
+### Database changes
+
+None.
+
+### Environment changes
+
+None.
+
+### Bugs fixed
+
+None. Feature addition.
+
+### Bugs found but not fixed
+
+None new. The finalize-redirect target (`events.show` instead of
+`events.report`) is a deliberate deferral until Feature C ships.
+
+### Failures during the session
+
+**One, recovered.**
+
+`EventFinalizeTest::it rejects finalize on a registration_closed event`
+failed with a 302 instead of 403 on first run. Root cause: the test
+used `event_date => today()` in the base helper, and `AdvanceEventStatus`
+auto-advanced the event to Ongoing before the controller could reject
+the finalize attempt. The fix: use a future `event_date` for tests
+whose subject is a non-Ongoing state. A comment in the fixed test
+records the interaction.
+
+Standing rule recorded: any test whose subject is a time-sensitive
+status (`registration_closed`, `ongoing`) or a state transition must
+consider whether the auto-advance middleware will fire first.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `php artisan test` | 377 passed, 1169 assertions |
+| `php artisan route:list --name=events.finalize` | 1 route with RequirePassword in the chain |
+| `npx tsc --noEmit` | silent |
+| `npm run build` | succeeds; new `check-circle-*.js` chunk |
+
+### Commits
+
+    <hash>  feat(events): finalize event with password gate and auto-advance middleware
+
+### Cross-reference
+
+| Subsystem | Primary doc |
+|---|---|
+| Feature B spec | `docs/attendance-encoding-and-reporting.md` section 4 |
+| Auto-advance design and SPEC-GAP-1 | Same doc, sections 4.3 and Corrections |
+| Attendance code (already shipped) | `docs/attendance-code.md` |
+| Event lifecycle and workflow service | `docs/event-creation.md` section 7 |
+
+### Files touched this date — full inventory
+
+    Backend:
+      app/Http/Middleware/AdvanceEventStatus.php                 (new)
+      bootstrap/app.php
+      routes/web.php
+      app/Models/Event.php
+      app/Http/Controllers/EventController.php
+
+    Frontend:
+      resources/js/pages/events/show.tsx
+
+    Tests:
+      tests/Feature/Events/EventFinalizeTest.php                 (new)
+      tests/Feature/Events/EventAutoAdvanceTest.php              (new)

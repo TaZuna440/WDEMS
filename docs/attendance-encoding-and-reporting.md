@@ -907,3 +907,53 @@ Features B (finalize event) and C (end-of-event report) remain
 unbuilt. When Feature C ships, its summary section should use
 `verified_at` to distinguish code-verified attendance from staff
 override.
+
+---
+
+## Pointer: finalize event shipped (2026-10-14)
+
+Feature B — the finalize-event transition from Ongoing to
+Completed — shipped on 2026-10-14. Section 4 above describes the
+design; this note records what landed.
+
+**What shipped:**
+
+- `AdvanceEventStatus` middleware. Auto-advances registration_closed
+  to ongoing once the event's start moment has passed. Runs on the
+  main authenticated group after auth and device.trusted.
+- `Event::canFinalize()` — status must be Ongoing.
+- `EventController::finalize()` — checks the guard, calls
+  `EventWorkflow::complete()`, logs `event.finalized`.
+- Route `POST /events/{event}/finalize`, wrapped in Laravel's
+  `RequirePassword` middleware.
+- Finalize Event button and confirmation modal on `events/show.tsx`.
+
+**Deferred:**
+
+- The redirect target after finalize is `events.show`, not
+  `events.report`. When Feature C ships, that becomes
+  `events.report`. One line to change in
+  `EventController::finalize()`.
+
+**Corrections to Section 4.6 ("What locks after finalize"):**
+
+- The encoding page's `canEncode()` guard mentioned in Section 3.7
+  does not exist. The equivalent in shipped code is
+  `canRecordAttendanceNow()` for the mark and walk-in endpoints, and
+  `canViewAttendance()` for page rendering. All four write endpoints
+  reject Completed; the page renders read-only.
+- Section 6.1's auto-advance behavior specified calling
+  `EventWorkflow` rather than assigning status directly (SPEC-GAP-1).
+  Shipped as specified.
+- Section 4.4's modal description specified a password field in the
+  modal. Not shipped — the route-level `RequirePassword` middleware
+  handles re-authentication. The modal explains consequences only.
+
+**Unchanged from the plan:**
+
+- The trade-off in Section 4.3 stands. An event whose date has passed
+  but was never visited stays RegistrationClosed until someone opens
+  a page that binds it. Zero infrastructure, safe failure.
+- Reversibility (Section 4.8). Once Completed, the event cannot be
+  moved back. The only paths to change data are admin event deletion
+  or a direct database edit.
