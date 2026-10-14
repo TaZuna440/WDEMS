@@ -418,3 +418,48 @@ description of the current phone channel.
     storage/app/firebase/service-account.json  (gitignored)
     .env  VITE_FIREBASE_*  (public web SDK config)
     .env  FIREBASE_CREDENTIALS  (path to service account)
+
+---
+
+## 19. Reading-order additions — second pass (2026-10-14)
+
+Section §7's reading-order table was written before several
+subsystems shipped. §17 (2026-10-13) added two entries. Four more
+are still missing. When working on these tasks, ask for the
+corresponding doc:
+
+| Task touches | Ask for |
+|---|---|
+| Public registration form, verification challenge, finalize | `docs/registration.md` |
+| Attendance code, workspace lookup, `verified_at`, live/deferred encoding | `docs/attendance-code.md` |
+| Three-mode attendance workspace (Mark / Confirm / Batch) | `docs/attendance-redesign.md` |
+| Attendance encoding spec, finalize event, end-of-event report | `docs/attendance-encoding-and-reporting.md` |
+
+### Why each matters
+
+`docs/registration.md` is the registration feature spec, now marked
+implemented via its `## Corrections — Status block (2026-10-13)`
+and `## Correction: attendance code issued at finalize` blocks.
+Read both corrections before touching the public path.
+
+`docs/attendance-code.md` is the reference for the per-registration
+attendance code and the live / deferred encoding modes, shipped in
+commit `d05c7e7`. It supersedes the encoding-workspace half of
+`attendance-encoding-and-reporting.md`.
+
+`docs/attendance-redesign.md` describes the three-mode workspace
+(Mark / Confirm / Batch) that the attendance page implements. The
+window gate, search, filter chips, and pagination behavior all live
+there.
+
+`docs/attendance-encoding-and-reporting.md` remains the forward spec
+for two unbuilt features — finalize event (§4) and end-of-event
+report (§5). Do not read it as documentation of current code except
+where its `## Pointer: the attendance code shipped (2026-10-14)`
+section says otherwise.
+
+### Cross-references
+
+- Section §7 above — the original reading-order table
+- Section §17 — first reading-order addition (2026-10-13)
+- `docs/progress.md` 2026-10-14 entry — the shipping session
