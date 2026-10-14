@@ -526,3 +526,29 @@ alongside `first_name`, `last_name`, and `age`.
 Full record:
 `docs/registration-contact-verification.md`
 `## Corrections (2026-10-14)` block.
+
+---
+
+## Correction: attendance code issued at finalize (2026-10-14)
+
+The `## Corrections — Status block (2026-10-13)` section above
+describes the three-phase public flow. Finalization step 3 is now
+amended to include issuing the participant's attendance code.
+
+Commit `d05c7e7` added:
+
+- `RegistrationVerificationService::finalize()` now generates a
+  per-registration attendance code on the same transaction that
+  creates the `Registration` row.
+- A `RegistrationConfirmationMail` is dispatched via
+  `DB::afterCommit()` to `submitted_email`, carrying the code. Sent
+  only when the participant provided an email.
+- The code is displayed on the confirmation page
+  (`registrations/verify.tsx`) inside an "Your attendance code"
+  panel, with a copy button.
+
+Nothing else about the public flow changed. The three phases,
+the challenge state machine, the identity resolver contract, and
+the registration field responses all behave as before.
+
+Full reference: `docs/attendance-code.md`.

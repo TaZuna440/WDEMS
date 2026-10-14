@@ -1824,3 +1824,187 @@ unconditionally.
 ### Commit
 
     b552cbb  feat(registration): replace staff-mediated phone with Firebase Phone Auth
+
+---
+
+## 2026-10-14 — Attendance code + live/deferred encoding
+
+### Summary
+
+Two related problems closed in one shipped feature:
+
+1. **Pre-registered attendance was recorded on staff's word.** A
+   volunteer at the table could mark anyone Present by name alone.
+   No proof the person in front of them was the person the system
+   had registered.
+2. **Walk-in arrival time was wrong whenever encoding happened
+   late.** Paper forms encoded days after the event stamped
+   `attendance_time` with the encoding moment, not the arrival.
+
+Fixed by adding a per-registration attendance code — issued at
+finalize, delivered by confirmation page and email, presented at
+the table — plus live / deferred encoding modes for walk-ins.
+
+Shipped in commit `d05c7e7`. 19 files changed, 1937 insertions,
+50 deletions. 27 new tests.
+
+**Full suite at end of session:** 537 passed, 3 skipped, 1957
+assertions. Duration ~35s. Up from 510 passed at session start
+(+27 net new tests, matching the four new test files).
+
+### Documentation created
+
+| File | Lines | Purpose |
+|---|---|---|
+| `docs/attendance-code.md` | 490 | Reference for the code, lookup, verification semantics, and encoding modes |
+
+### Documentation appended
+
+| File | Change |
+|---|---|
+| `docs/attendance-encoding-and-reporting.md` | Pointer section to the new attendance-code doc |
+| `docs/progress.md` | This entry |
+
+### Code changes
+
+Backend:
+
+| File | Change |
+|---|---|
+| `app/Services/RegistrationVerification/RegistrationVerificationService.php` | Issues the code in `finalize()`, dispatches `RegistrationConfirmationMail` via `DB::afterCommit()` |
+| `app/Http/Controllers/AttendanceController.php` | `show()` accepts `?code=` and normalizes five variants; `mark()` sets `verified_at`; `walkIn()` and `bulkWalkIn()` honor `encoding_mode` |
+| `app/Http/Requests/WalkInRegistrationRequest.php` | Accepts `encoding_mode` and `arrival_time`; Pass 3 requires arrival time when deferred |
+| `app/Http/Requests/BulkWalkInRegistrationRequest.php` | Same shape at the batch level, per-row arrival time |
+| `app/Models/Registration.php` | `attendance_code` added to fillable |
+| `app/Models/Attendance.php` | `verified_at` added to fillable and casts |
+| `app/Mail/RegistrationConfirmationMail.php` | **New** — one-shot mailable; code + event name; subject `WDEMS — Your {event_name} attendance code` |
+
+Frontend:
+
+| File | Change |
+|---|---|
+| `resources/js/pages/events/attendance.tsx` | Code lookup input; batch-mode encoding toggle; verified-code pass-through on mark |
+| `resources/js/pages/registrations/verify.tsx` | Attendance code panel with copy button on the finalized state |
+| `resources/js/components/walk-in-dialog.tsx` | Encoding mode toggle and arrival time input |
+| `resources/js/components/bulk-walk-in-table.tsx` | Per-row arrival time input in deferred mode |
+| `resources/js/lib/attendance-bulk-validation.ts` | Client mirror of the deferred arrival-time requirement |
+
+### Test changes
+
+| File | Change | Result |
+|---|---|---|
+| `tests/Feature/Events/AttendanceVerificationTest.php` | **New** — 10 tests | All pass |
+| `tests/Feature/Events/AttendanceEncodingModeTest.php` | **New** — 7 tests | All pass |
+| `tests/Feature/Events/AttendanceBulkEncodingModeTest.php` | **New** — 7 tests | All pass |
+| `tests/Feature/Public/RegistrationConfirmationMailTest.php` | **New** — 3 tests | All pass |
+
+### Database changes
+
+| Migration | Purpose |
+|---|---|
+| `2026_10_14_100000_add_attendance_code_to_registrations_table.php` | Adds `registrations.attendance_code`, varchar(16), nullable, unique with `event_id` |
+| `2026_10_14_100001_add_verified_at_to_attendances_table.php` | Adds `attendances.verified_at`, timestamp nullable, indexed |
+
+Both additive. No backfill required.
+
+### Environment changes
+
+None.
+
+### Bugs fixed
+
+None. This is a feature addition, not a bug fix.
+
+### Bugs found but not fixed
+
+None new. The full open list remains in `docs/known-issues.md`.
+
+### Failures during the session
+
+**Four, all recovered.**
+
+1. **`publicState()` change broke no test but needed `DB::afterCommit()`
+   verification.** Theoretically risky — the callback might not fire
+   inside `RefreshDatabase`'s test wrapper. Empirically fine: the
+   `RegistrationConfirmationMailTest::sends the confirmation mail on
+   successful finalize` test passed on the first run. No code change
+   needed.
+
+2. **Block 4a `Attendance` model missing `verified_at` from fillable.**
+   Adding the column to the migration was not enough — `updateOrCreate`
+   uses `fill()`, which respects `$fillable`. Caught by the new
+   verification test on first run. Fixed by adding `verified_at` to
+   the fillable array and casts. **Rule recorded:** adding a column to
+   a table means two file changes — migration and model.
+
+3. **Bulk walk-in type mismatch.** `persistBulkWalkInRow()` was
+   type-hinted `Illuminate\Support\Carbon` but received
+   `Carbon\CarbonImmutable` from `event_date->copy()`. Caught by the
+   full `AttendanceBulkWalkInTest` run. Fixed by switching the hint
+   to `Carbon\CarbonInterface`. **Rule recorded in the new doc §6.3.**
+
+4. **Bulk encoding test helper reused the same phone number.** Two-row
+   tests silently failed on the second row with a `rows.1.identity`
+   error that `assertRedirect()` did not catch. Fixed with a static
+   counter in `attbulk_row()`. **Rule recorded:** multi-row test
+   payloads must give each row a distinct identity value.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `php artisan test` | 3 skipped, 537 passed, 1957 assertions |
+| `npx tsc --noEmit` | silent |
+| `npm run build` | succeeds; `verify-*.js` chunk grew 2.35 kB |
+| Manual browser: public form → verify → finalize → code panel | confirmed |
+| Manual browser: code lookup narrows to one row | confirmed |
+| Manual browser: mark Present with matching code sets `verified_at` | confirmed |
+
+### Commits
+
+    d05c7e7  feat(attendance): issue per-registration code and add live/deferred encoding
+
+### Cross-reference
+
+| Subsystem | Primary doc |
+|---|---|
+| Attendance code reference | `docs/attendance-code.md` |
+| Original three-feature spec | `docs/attendance-encoding-and-reporting.md` |
+| Registration verification flow | `docs/registration-contact-verification.md` |
+| Slug constants (alphabet source) | `docs/implementation-notes.md` section 3 |
+
+### Files touched this date — full inventory
+
+    Documentation (new):
+      docs/attendance-code.md
+
+    Documentation (appended):
+      docs/attendance-encoding-and-reporting.md
+      docs/progress.md
+
+    Backend code:
+      app/Services/RegistrationVerification/RegistrationVerificationService.php
+      app/Http/Controllers/AttendanceController.php
+      app/Http/Requests/WalkInRegistrationRequest.php
+      app/Http/Requests/BulkWalkInRegistrationRequest.php
+      app/Models/Registration.php
+      app/Models/Attendance.php
+      app/Mail/RegistrationConfirmationMail.php                          (new)
+
+    Frontend code:
+      resources/js/pages/events/attendance.tsx
+      resources/js/pages/registrations/verify.tsx
+      resources/js/components/walk-in-dialog.tsx
+      resources/js/components/bulk-walk-in-table.tsx
+      resources/js/lib/attendance-bulk-validation.ts
+
+    Migrations and views:
+      database/migrations/2026_10_14_100000_add_attendance_code_to_registrations_table.php  (new)
+      database/migrations/2026_10_14_100001_add_verified_at_to_attendances_table.php        (new)
+      resources/views/emails/registration-confirmation.blade.php                            (new)
+
+    Tests:
+      tests/Feature/Events/AttendanceVerificationTest.php                                   (new)
+      tests/Feature/Events/AttendanceEncodingModeTest.php                                   (new)
+      tests/Feature/Events/AttendanceBulkEncodingModeTest.php                               (new)
+      tests/Feature/Public/RegistrationConfirmationMailTest.php                             (new)

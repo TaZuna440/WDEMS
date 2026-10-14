@@ -773,3 +773,31 @@ the 11th request.
 - Phase A complete — window + custom fields on the single dialog
 - Phase B complete — Confirm mode, which established the mode
   toggle this phase extends
+
+---
+
+## Correction: live / deferred encoding and the attendance code (2026-10-14)
+
+Sections 5 through 8 above describe the walk-in flows as always
+stamping `attendance_time` with the moment of encoding. That is no
+longer accurate. Commit `d05c7e7` added:
+
+- **Live / deferred encoding modes.** Single and bulk walk-in
+  dialogs now carry an `encoding_mode` toggle. Live (the default)
+  stamps `now()`. Deferred reads a per-entry `arrival_time` off the
+  paper form and combines it with the event's date. Existing
+  callers that omit the field fall into the live branch and behave
+  exactly as before.
+- **The per-registration attendance code.** Pre-registered
+  participants receive a code at finalize and present it at the
+  table. Code lookup narrows the workspace list to one row.
+  Matched marks carry `attendances.verified_at`; all other marks
+  (search-and-click, bulk, admin override, walk-ins) leave it
+  null.
+
+Full reference: `docs/attendance-code.md`.
+
+The window gate (`canRecordAttendanceNow()`), the search and filter
+semantics, the six filter chips, the page layout, and the bulk
+marking behavior are unchanged by this work. Only the encoding
+mode axis is new.

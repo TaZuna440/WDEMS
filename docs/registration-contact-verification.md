@@ -267,3 +267,24 @@ wrap, `Kreait\Firebase\Factory` cannot locate the file and fails with
 
 `storage/app/firebase/` is gitignored. The service account JSON must
 never be committed.
+
+---
+
+## Correction: attendance code on finalize (2026-10-14)
+
+The "Public registration" section above describes step 4 as ending
+at "Complete registration". Commit `d05c7e7` extended the finalize
+transaction to also generate the participant's attendance code and
+dispatch a confirmation email.
+
+The email is sent via `DB::afterCommit()`, so a transport failure
+never rolls back the registration. The code is also rendered on the
+confirmation page immediately. If the mail fails silently, the
+participant still has the code on the page and in the browser
+cookie.
+
+No other part of the verification flow changed. Email OTP, Firebase
+phone auth, challenge state machine, and the finalize transaction
+boundary all behave as before.
+
+Full reference: `docs/attendance-code.md`.

@@ -432,3 +432,51 @@ framework's middleware had to be given something to enforce.
 See `docs/fixes.md` FIX-002 and FIX-003. See
 `docs/authentication.md` `## Corrections — Email Verification` for the
 subsystem-level view.
+
+---
+
+## Corrections (2026-10-14)
+
+Append-only. Two items in the body above are stale.
+
+### Deletion algorithm references dropped tables
+
+The "Deletion Algorithm" section lists six steps, two of which
+reference tables that no longer exist:
+
+    Step 3 — Delete registration_options  (table dropped)
+    Step 5 — Delete event_options         (table dropped)
+
+`event_options` and `registration_options` were dropped in Phase 2
+of the registration build (commit `1ec697d`, 2026-09-26). The
+current ordered delete is:
+
+    1. Collect registration IDs for the event
+    2. Delete attendances           (via registration_id)
+    3. Delete registrations         (via event_id)
+    4. Delete the event
+
+The RESTRICT constraint on `registration_options.event_option_id`
+was the reason for the original ordered-delete design. That
+constraint no longer exists — the table is gone. The current
+ordered delete remains out of caution: `attendances.registration_id`
+is CASCADE, but the explicit step makes the delete testable in
+isolation and survives schema changes without silent breakage.
+
+### `google_form_response_id` does not exist
+
+The Data Model section claims:
+
+    registrations
+      ...
+      UNIQUE (event_id, google_form_response_id)   <- legacy column, unused
+
+No such column exists. `2026_09_16_160321_create_registrations_table.php`
+declares the schema, and there is no `google_form_response_id`
+column in it. The `source` and `registered_at` columns are the only
+survivors of the Google-integration era; `google_form_response_id`
+was never added.
+
+This is the same stale-claim pattern recorded as D-3 in
+`docs/participant-identity-and-monitoring-plan.md` Phase 0
+findings. Both docs are now corrected.

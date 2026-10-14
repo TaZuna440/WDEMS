@@ -885,3 +885,25 @@ Update the limiter inventory to nine entries when the new limiter
 is implemented. Do not describe the limiter as active before then.
 
 ---
+
+---
+
+## Pointer: the attendance code shipped (2026-10-14)
+
+Feature A's encoding-workspace half — the per-registration
+attendance code, the code lookup on the workspace, and the
+verified-mark semantics — shipped on 2026-10-14 in commit
+`d05c7e7`. See `docs/attendance-code.md` for the reference.
+
+That new doc covers:
+
+- The code format, generation, storage, and delivery
+- The lookup at the table (normalization, precedence, empty state)
+- The `attendances.verified_at` column and its semantics
+- Live and deferred encoding modes for single and bulk walk-ins
+- The `CarbonInterface` lesson from the bulk controller
+
+Features B (finalize event) and C (end-of-event report) remain
+unbuilt. When Feature C ships, its summary section should use
+`verified_at` to distinguish code-verified attendance from staff
+override.
