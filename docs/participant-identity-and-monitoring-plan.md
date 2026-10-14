@@ -1340,3 +1340,40 @@ Two corrections to the block itself:
 
 Full design reference for the shipped flow:
 `docs/registration-contact-verification.md`.
+
+---
+
+## Phase 11 addendum — phone channel is Firebase-mediated (2026-10-14)
+
+The Phase 11 block above describes the phone channel as staff-mediated:
+the organizer generates a code and communicates it externally. Commit
+`b552cbb` replaced that with Firebase Phone Auth on 2026-10-14.
+
+What changed at the plan level:
+
+- The staff phone queue (`registrations/verification`) is deleted.
+- `RegistrationVerificationController::index()` and `::generatePhone()`
+  are deleted.
+- `RegistrationVerificationService::generatePhone()` and
+  `::authorizeStaff()` are deleted.
+- The `registration-verification-phone` and
+  `registration-verification-staff-view` rate limiters are deleted.
+- The new public route is
+  `POST /r/{event:registration_slug}/verification/phone/firebase`.
+- `verifyPhoneWithFirebase()` verifies an ID token via the Firebase
+  Admin SDK and requires the verified phone to match the submitted
+  phone after normalization.
+- Phone is now structurally required:
+  `Event::COMMON_FIELDS_ALWAYS_REQUIRED` includes `contact_number`;
+  `COMMON_FIELDS_TOGGLEABLE` no longer does.
+
+The email channel is unchanged. The challenge table schema is
+unchanged — `phone_verified_at` and `phone_attempts` are still written,
+just by a different path. The `phone_code_hash`, `phone_issued_at`, and
+`phone_expires_at` columns remain in the schema but are no longer
+populated by the Firebase path; they are kept for now rather than
+dropped in a schema migration, since dropping them is independent work
+with no immediate benefit.
+
+Full record: `docs/registration-contact-verification.md`
+`## Corrections (2026-10-14)` block.

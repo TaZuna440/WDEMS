@@ -1767,3 +1767,60 @@ with Firebase Phone Auth (prototype, free tier). Email OTP path
 unchanged. Estimated ~1 session. Not started.
 
 ---
+
+---
+
+## 2026-10-14 — Firebase Phone Auth replaces the staff-mediated phone channel
+
+### Summary
+
+Two combined changes to the public registration flow.
+
+**Phone verification is now Firebase-mediated.** Staff no longer
+generate a code and communicate it manually. The public user completes
+an SMS challenge in the browser, and the Firebase ID token is posted
+to `/r/{slug}/verification/phone/firebase`. The service verifies the
+token via the Admin SDK and records `phone_verified_at` on success.
+The email channel is unchanged.
+
+**Phone is now structurally required.** `contact_number` moved from
+`Event::COMMON_FIELDS_TOGGLEABLE` to `Event::COMMON_FIELDS_ALWAYS_REQUIRED`.
+The form builder's common-field toggle for phone is disabled.
+Every `isCommonFieldRequired('contact_number')` call now returns true
+unconditionally.
+
+### New files
+
+    config/firebase.php
+    resources/js/lib/firebase.ts
+    resources/js/components/firebase-phone-verifier.tsx
+    tests/Feature/Public/RegistrationVerificationFirebaseTest.php
+
+### Deleted
+
+    resources/js/pages/registrations/verification-queue.tsx
+
+### Modified
+
+    app/Http/Controllers/RegistrationVerificationController.php
+    app/Models/Event.php
+    app/Providers/AppServiceProvider.php
+    app/Services/RegistrationVerification/RegistrationVerificationService.php
+    resources/js/components/app-sidebar.tsx
+    resources/js/pages/events/registration-form.tsx
+    resources/js/pages/registrations/verify.tsx
+    routes/registration-verification.php
+
+### Dependencies
+
+    composer require kreait/laravel-firebase
+    npm install firebase
+
+### Verification
+
+    php artisan test                         510 passed, 3 skipped
+    npx tsc --noEmit                         silent
+
+### Commit
+
+    b552cbb  feat(registration): replace staff-mediated phone with Firebase Phone Auth

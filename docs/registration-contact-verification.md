@@ -136,3 +136,134 @@ and independent duplicate submissions. The test asserts exactly one participant,
 registration, answer, and finalized challenge. It was exercised on MariaDB 10.11
 with InnoDB; production MySQL and actual Resend delivery require deployment
 verification. Staff's external phone communication remains a manual operation.
+
+---
+
+## Corrections (2026-10-14)
+
+Append-only. The body above describes the staff-mediated phone flow
+that shipped on 2026-10-13. Commit `b552cbb` replaced that channel
+with Firebase Phone Auth on 2026-10-14. Where this section disagrees
+with the body, this section wins.
+
+### §1 step 3 — phone is now Firebase-mediated
+
+Body reads:
+
+> Required phone waits for an authorized organizer to generate a code
+> and communicate it externally using their own phone. WDEMS sends no
+> SMS.
+
+Correction. Required phone is verified by Firebase Phone Auth in the
+browser. The user completes a reCAPTCHA, receives an SMS code sent by
+Firebase (not WDEMS), enters the code, and the Firebase SDK returns an
+ID token. The frontend posts the token to
+`POST /r/{slug}/verification/phone/firebase`. The service verifies the
+token with the Admin SDK and, on success, sets `phone_verified_at` on
+the challenge.
+
+WDEMS still does not send an SMS. The SMS is sent by Google's Firebase
+service, not by WDEMS. Firebase credentials live server-side at
+`storage/app/firebase/service-account.json`; the web SDK config lives
+in `.env` under `VITE_FIREBASE_*`.
+
+### §1 step 4 — the phone code input is now a reCAPTCHA + SMS widget
+
+Body reads:
+
+> Submit each required code. One verified channel cannot bypass the
+> other.
+
+Correction. Email is still a six-digit code input. Phone is now a
+reCAPTCHA checkbox, a "Send verification code" button, and a
+six-digit SMS input. The two channels still cannot bypass each other —
+`allVerified()` remains the gate before finalization.
+
+### §2 — the entire staff phone queue section is obsolete
+
+Body describes:
+
+- The queue at `/registrations/verification`
+- Staff generating codes via `registration-verification.phone-code`
+- `authorizeStaff()` gating code generation on event ownership
+
+All of this is gone. The queue page is deleted, the sidebar entry is
+removed, the controller actions and service methods are deleted, the
+route group is removed, and the two rate limiters are removed.
+
+The Firebase path is deliberately unauthenticated on the public side:
+the participant's own phone is the authenticator. No staff action is
+required. If Firebase fails, the participant retries — there is no
+manual fallback.
+
+### §3 — persisted security controls apply to email only
+
+Body describes six-digit codes, ten-minute lifetime, sixty-second
+resend cooldown, five-attempt lockout, single-use success, and
+`OtpCode` HMAC storage. All of that still applies — but to the
+**email** channel only.
+
+The phone channel is verified by Firebase. There is no code stored on
+the challenge, no resend cooldown, and no code expiry — those are all
+Firebase's responsibility. What the challenge still records for phone:
+
+- `phone_verified_at` — set when Firebase verification succeeds
+- `phone_attempts` — incremented on invalid token, missing phone claim,
+  or phone mismatch. Lockout at `MAX_ATTEMPTS = 5` still applies.
+
+The 24-hour challenge TTL, transaction locking, address length cap,
+CSRF, and no-PII-in-logs invariants all apply unchanged to both
+channels.
+
+### §4 — phone is no longer optional
+
+Body reads:
+
+> Optional email/phone never triggers verification or updates an
+> existing participant, even when supplied.
+
+Correction. Phone is now structurally required on every event.
+`Event::COMMON_FIELDS_TOGGLEABLE` no longer contains
+`contact_number`; it lives in `COMMON_FIELDS_ALWAYS_REQUIRED`
+alongside `first_name`, `last_name`, and `age`. The form builder's
+common-field toggle for phone is disabled.
+
+Consequence. The scenario the body describes — "optional phone never
+triggers verification" — can no longer occur. Email remains optional.
+Address remains optional. Phone does not.
+
+### §6 — automated verification, updated
+
+Body names `tests/Feature/Public/RegistrationVerificationTest.php`.
+That file remains the primary suite and still passes — but the six
+staff/queue tests inside it are deleted.
+
+New: `tests/Feature/Public/RegistrationVerificationFirebaseTest.php`
+covers the Firebase token path with a stubbed Admin SDK. Six tests:
+matching phone, matching across normalized formats, mismatched phone,
+missing `phone_number` claim, invalid token, and already-verified
+guard.
+
+The stub constructs a real `Lcobucci\JWT\Token\DataSet` and returns it
+from a `Mockery::mock(UnencryptedToken::class)` whose `claims()` method
+is stubbed. This satisfies `verifyIdToken()`'s declared return type
+without needing a real Firebase project.
+
+### New configuration
+
+    config/firebase.php                         published config
+    storage/app/firebase/service-account.json   Admin SDK credentials
+    .env  VITE_FIREBASE_API_KEY                 web SDK config
+    .env  VITE_FIREBASE_AUTH_DOMAIN
+    .env  VITE_FIREBASE_PROJECT_ID
+    .env  VITE_FIREBASE_APP_ID
+    .env  FIREBASE_CREDENTIALS                  path to service account
+    .env  FIREBASE_PROJECT_ID
+
+`config/firebase.php` wraps `FIREBASE_CREDENTIALS` in `base_path()` so
+a relative path in `.env` resolves from the project root. Without the
+wrap, `Kreait\Firebase\Factory` cannot locate the file and fails with
+"Unable to determine the Firebase Project ID".
+
+`storage/app/firebase/` is gitignored. The service account JSON must
+never be committed.
