@@ -45,3 +45,6 @@ yarn-error.log
 /Event::*
 /[
 /it
+
+# Firebase service account — never commit
+/storage/app/firebase/

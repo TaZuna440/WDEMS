@@ -56,6 +56,7 @@ class Event extends Model
         'first_name',
         'last_name',
         'age',
+        'contact_number',
     ];
 
     /**
@@ -67,7 +68,6 @@ class Event extends Model
      */
     public const COMMON_FIELDS_TOGGLEABLE = [
         'email',
-        'contact_number',
         'address',
     ];
 

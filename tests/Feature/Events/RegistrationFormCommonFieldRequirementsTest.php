@@ -42,7 +42,6 @@ function rfreqs_payload(array $overrides = []): array
         'fields' => [],
         'common_field_requirements' => [
             'email' => true,
-            'contact_number' => true,
             'address' => true,
         ],
     ], $overrides);
@@ -86,7 +85,6 @@ test('saving with email optional persists the map', function () {
         rfreqs_payload([
             'common_field_requirements' => [
                 'email' => false,
-                'contact_number' => true,
                 'address' => true,
             ],
         ]),
@@ -95,7 +93,6 @@ test('saving with email optional persists the map', function () {
     $stored = $event->fresh()->registration_common_field_requirements;
     expect($stored)->toBeArray();
     expect($stored['email'])->toBeFalse();
-    expect($stored['contact_number'])->toBeTrue();
     expect($stored['address'])->toBeTrue();
 });
 
@@ -108,7 +105,6 @@ test('saving with email and address optional persists the map', function () {
         rfreqs_payload([
             'common_field_requirements' => [
                 'email' => false,
-                'contact_number' => true,
                 'address' => false,
             ],
         ]),
@@ -116,7 +112,6 @@ test('saving with email and address optional persists the map', function () {
 
     $stored = $event->fresh()->registration_common_field_requirements;
     expect($stored['email'])->toBeFalse();
-    expect($stored['contact_number'])->toBeTrue();
     expect($stored['address'])->toBeFalse();
 });
 
@@ -130,7 +125,6 @@ test('re-saving with all-required compresses back to NULL', function () {
         rfreqs_payload([
             'common_field_requirements' => [
                 'email' => false,
-                'contact_number' => true,
                 'address' => true,
             ],
         ]),
@@ -221,7 +215,6 @@ test('saving custom fields alongside a requirements map works', function () {
             ],
             'common_field_requirements' => [
                 'email' => false,
-                'contact_number' => true,
                 'address' => true,
             ],
         ]),

@@ -3,7 +3,6 @@
 use App\Mail\RegistrationVerificationOtpMail;
 use App\Models\Event;
 use App\Models\RegistrationVerificationChallenge;
-use App\Models\User;
 use App\Services\RegistrationVerification\RegistrationVerificationService;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
@@ -23,9 +22,12 @@ function completePublicRegistration(TestCase $test, Event $event, array $payload
         $test->post($url.'/email', ['code' => $code])->assertSessionHasNoErrors();
     }
     if ($event->isCommonFieldRequired('contact_number')) {
+        // Firebase Phone Auth cannot be exercised from the test suite
+        // without stubbing the Admin SDK. Write the verified marker
+        // directly — the helper's job is to produce a finalized
+        // registration, not to exercise the phone path itself.
         $challenge = RegistrationVerificationChallenge::where('event_id', $event->id)->latest('id')->firstOrFail();
-        $code = app(RegistrationVerificationService::class)->generatePhone($challenge, User::findOrFail($event->created_by));
-        $test->post($url.'/phone', ['code' => $code])->assertSessionHasNoErrors();
+        $challenge->forceFill(['phone_verified_at' => now()])->save();
     }
 
     return $test->post($url.'/complete');

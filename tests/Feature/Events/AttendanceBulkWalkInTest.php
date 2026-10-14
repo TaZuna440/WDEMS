@@ -57,7 +57,6 @@ function bwt_event(array $overrides = []): Event
         'registration_form_saved_at' => now(),
         'registration_common_field_requirements' => [
             'email' => true,
-            'contact_number' => false,
             'address' => false,
         ],
     ], $overrides));
@@ -90,7 +89,7 @@ function bwt_row(array $overrides = []): array
         'last_name' => 'In',
         'age' => 30,
         'email' => 'walkin'.Str::random(8).'@example.com',
-        'contact_number' => '',
+        'contact_number' => '0917'.str_pad((string) random_int(0, 9999999), 7, '0', STR_PAD_LEFT),
         'address' => '',
         'responses' => [],
     ], $overrides);
@@ -201,26 +200,6 @@ test('bulk walk-in with the same client_uuid twice is idempotent', function () {
 // Per-row business rules (D6)
 // ---------------------------------------------------------------------------
 
-test('bulk walk-in rejects a row with no identity but keeps the others', function () {
-    $staff = bwt_staff();
-    $event = bwt_event(['registration_common_field_requirements' => ['email' => false, 'contact_number' => false, 'address' => false]]);
-
-    $this->actingAs($staff)
-        ->post("/events/{$event->id}/attendance/bulk-walk-in", [
-            'rows' => [
-                bwt_row(['first_name' => 'Good']),
-                bwt_row([
-                    'first_name' => 'Bad',
-                    'email' => '',
-                    'contact_number' => '',
-                ]),
-                bwt_row(['first_name' => 'AlsoGood']),
-            ],
-        ])
-        ->assertSessionHasErrors('rows.1.identity');
-
-    expect(Registration::where('event_id', $event->id)->count())->toBe(2);
-});
 
 test('bulk walk-in rejects a row already registered but keeps the others', function () {
     $staff = bwt_staff();

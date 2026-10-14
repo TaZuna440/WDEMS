@@ -4,7 +4,6 @@ import {
     ClipboardCheck,
     ClipboardList,
     LayoutGrid,
-    Phone,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -24,11 +23,6 @@ import type { NavItem } from '@/types';
 const mainNavItems: NavItem[] = [
     { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
     { title: 'Registration', href: '/registrations', icon: ClipboardList },
-    {
-        title: 'Phone verification',
-        href: '/registrations/verification',
-        icon: Phone,
-    },
     { title: 'Attendance', href: '/attendance', icon: ClipboardCheck },
     { title: 'Events', href: '/events', icon: CalendarDays },
 ];

@@ -1,5 +1,6 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useState, type FormEvent } from 'react';
+import FirebasePhoneVerifier from '@/components/firebase-phone-verifier';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,7 @@ type Props = {
         email?: ChannelState;
         phone?: ChannelState;
         ready?: boolean;
+        submitted_phone?: string | null;
     };
 };
 
@@ -225,11 +227,11 @@ export default function VerifyRegistration({
                             />
                         )}
                         {verification.phone && (
-                            <ContactVerification
-                                channel="phone"
-                                state={verification.phone}
-                                url={verification_url}
-                                now={now}
+                            <FirebasePhoneVerifier
+                                submittedPhone={verification.submitted_phone ?? ""}
+                                verifyUrl={`${verification_url}/phone/firebase`}
+                                disabled={false}
+                                verified={verification.phone.status === "verified"}
                             />
                         )}
                         <Button

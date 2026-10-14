@@ -93,14 +93,6 @@ test('email can be toggled to optional', function () {
     expect($event->isCommonFieldRequired('email'))->toBeFalse();
 });
 
-test('contact_number can be toggled to optional', function () {
-    $event = reqs_event([
-        'registration_common_field_requirements' => ['contact_number' => false],
-    ]);
-
-    expect($event->isCommonFieldRequired('contact_number'))->toBeFalse();
-});
-
 test('address can be toggled to optional', function () {
     $event = reqs_event([
         'registration_common_field_requirements' => ['address' => false],

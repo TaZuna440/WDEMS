@@ -11,7 +11,6 @@ use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\RegistrationFieldResponse;
 use App\Models\RegistrationVerificationChallenge as Challenge;
-use App\Models\User;
 use App\Services\Otp\OtpCode;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -105,6 +104,7 @@ class RegistrationVerificationService
         return [
             'status' => 'pending',
             'expires_at' => $challenge->expires_at->toIso8601String(),
+            'submitted_phone' => $challenge->payload['contact_number'] ?? null,
             'email' => $this->channelState($challenge, 'email'),
             'phone' => $this->channelState($challenge, 'phone'),
             'ready' => $this->allVerified($challenge),
@@ -143,33 +143,9 @@ class RegistrationVerificationService
         });
     }
 
-    /** Only the authorized action receives the plaintext code, once. */
-    public function generatePhone(Challenge $challenge, User $actor): string
-    {
-        return DB::transaction(function () use ($challenge, $actor): string {
-            $event = Event::query()->lockForUpdate()->findOrFail($challenge->event_id);
-            $this->authorizeStaff($event, $actor);
-            $challenge = Challenge::query()->where('event_id', $event->id)
-                ->lockForUpdate()->findOrFail($challenge->id);
-            $this->assertPending($challenge, $event);
-
-            if ($error = $this->issuanceError($challenge, 'phone')) {
-                throw ValidationException::withMessages(['phone' => $error]);
-            }
-
-            return $this->issue($challenge, 'phone');
-        }, 3);
-    }
-
-    public function authorizeStaff(Event $event, User $actor): void
-    {
-        abort_unless($actor->isAdmin() || ($actor->role === 'staff'
-            && (int) $event->created_by === (int) $actor->id), 403);
-    }
-
     public function verify(Event $event, #[\SensitiveParameter] ?string $token, string $channel, #[\SensitiveParameter] string $code): ?string
     {
-        abort_unless(in_array($channel, ['email', 'phone'], true), 404);
+        abort_unless($channel === 'email', 404);
 
         return DB::transaction(function () use ($event, $token, $channel, $code): ?string {
             [, $challenge] = $this->lockPending($event, $token);
@@ -429,10 +405,62 @@ class RegistrationVerificationService
         }
     }
 
+    public function verifyPhoneWithFirebase(Event $event, #[\SensitiveParameter] ?string $token, #[\SensitiveParameter] string $idToken): ?string
+    {
+        return DB::transaction(function () use ($event, $token, $idToken): ?string {
+            [, $challenge] = $this->lockPending($event, $token);
+            if (! $challenge->phone_required) {
+                return 'This contact does not require verification.';
+            }
+            if ($challenge->phone_verified_at !== null) {
+                return 'This contact is already verified.';
+            }
+
+            try {
+                $verified = app(\Kreait\Firebase\Contract\Auth::class)->verifyIdToken($idToken);
+            } catch (\Throwable) {
+                $attempts = $challenge->phone_attempts + 1;
+                $challenge->forceFill(['phone_attempts' => $attempts])->save();
+
+                return $attempts >= self::MAX_ATTEMPTS
+                    ? 'Too many incorrect attempts. Start a new registration.'
+                    : 'We could not verify that token. Please try again.';
+            }
+
+            $verifiedPhone = $verified->claims()->get('phone_number');
+            if (! is_string($verifiedPhone)) {
+                $challenge->forceFill(['phone_attempts' => $challenge->phone_attempts + 1])->save();
+
+                return 'The verified phone number is missing from the token.';
+            }
+
+            $submittedPhone = $challenge->payload['contact_number'] ?? null;
+            $normalizedVerified = Participant::normalizeContactNumber($verifiedPhone);
+            $normalizedSubmitted = is_string($submittedPhone)
+                ? Participant::normalizeContactNumber($submittedPhone)
+                : null;
+
+            if ($normalizedVerified === null || $normalizedSubmitted === null
+                || $normalizedVerified !== $normalizedSubmitted) {
+                $challenge->forceFill(['phone_attempts' => $challenge->phone_attempts + 1])->save();
+
+                return 'The verified phone number does not match the one you submitted.';
+            }
+
+            $challenge->forceFill([
+                'phone_verified_at' => now(),
+                'phone_code_hash' => null,
+                'phone_expires_at' => null,
+            ])->save();
+
+            return null;
+        }, 3);
+    }
+
     private function identityConflict(): never
     {
         throw ValidationException::withMessages([
-            'verification' => 'We could not complete this registration. Please contact the event organizer for assistance.',
+            'verification' => 'You already have a registration for this event, or your verified details conflict with an existing participant. If you believe this is an error, contact the event organizer.',
         ]);
     }
 }

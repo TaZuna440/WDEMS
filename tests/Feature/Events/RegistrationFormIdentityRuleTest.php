@@ -59,24 +59,6 @@ test('both identity fields required is accepted', function () {
         rfidentity_payload([
             'common_field_requirements' => [
                 'email' => true,
-                'contact_number' => true,
-            ],
-        ]),
-    );
-
-    $response->assertSessionHasNoErrors();
-});
-
-test('email required, phone optional is accepted', function () {
-    $staff = rfidentity_staff();
-    $event = rfidentity_event();
-
-    $response = $this->actingAs($staff)->put(
-        "/events/{$event->id}/registration-form",
-        rfidentity_payload([
-            'common_field_requirements' => [
-                'email' => true,
-                'contact_number' => false,
             ],
         ]),
     );
@@ -93,7 +75,6 @@ test('phone required, email optional is accepted', function () {
         rfidentity_payload([
             'common_field_requirements' => [
                 'email' => false,
-                'contact_number' => true,
             ],
         ]),
     );
@@ -117,47 +98,3 @@ test('a payload with no requirements map is accepted', function () {
 // Rejected configuration
 // ---------------------------------------------------------------------------
 
-test('both identity fields optional is rejected', function () {
-    $staff = rfidentity_staff();
-    $event = rfidentity_event();
-
-    $response = $this->actingAs($staff)->put(
-        "/events/{$event->id}/registration-form",
-        rfidentity_payload([
-            'common_field_requirements' => [
-                'email' => false,
-                'contact_number' => false,
-            ],
-        ]),
-    );
-
-    $response->assertSessionHasErrors('common_field_requirements');
-    expect($event->fresh()->registration_form_saved_at)->toBeNull();
-});
-
-test('both identity fields optional with custom fields present is rejected', function () {
-    $staff = rfidentity_staff();
-    $event = rfidentity_event();
-
-    $response = $this->actingAs($staff)->put(
-        "/events/{$event->id}/registration-form",
-        rfidentity_payload([
-            'fields' => [
-                [
-                    'label' => 'Shirt Size',
-                    'field_type' => 'select',
-                    'options' => ['S', 'M', 'L'],
-                    'is_required' => false,
-                    'validation_rules' => null,
-                ],
-            ],
-            'common_field_requirements' => [
-                'email' => false,
-                'contact_number' => false,
-            ],
-        ]),
-    );
-
-    $response->assertSessionHasErrors('common_field_requirements');
-    expect(RegistrationField::where('event_id', $event->id)->count())->toBe(0);
-});

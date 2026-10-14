@@ -114,7 +114,5 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('registration-verification-view', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
         RateLimiter::for('registration-verification-attempt', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
         RateLimiter::for('registration-verification-resend', fn (Request $request) => Limit::perMinute(3)->by($request->ip()));
-        RateLimiter::for('registration-verification-staff-view', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id));
-        RateLimiter::for('registration-verification-phone', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id));
     }
 }

@@ -32,7 +32,7 @@ test('required identity combinations are accepted after verification', function 
         'email' => $email ? 'maria@example.com' : '', 'contact_number' => $number,
     ]))->assertSessionHasNoErrors();
     expect(Registration::count())->toBe(1);
-})->with([[true, false, ''], [false, true, '09171234567'], [true, true, '09171234567'], [false, true, '+639171234567']]);
+})->with([[false, true, '09171234567'], [true, true, '09171234567'], [false, true, '+639171234567']]);
 
 test('a submission without a usable required identity is rejected', function (string $email, string $phone) {
     $event = identity_pub_event(['email' => false, 'contact_number' => true]);
@@ -41,10 +41,4 @@ test('a submission without a usable required identity is rejected', function (st
     expect(Participant::count())->toBe(0);
 })->with([['', ''], ['', 'not-a-phone'], ['   ', ''], ['optional@example.com', '']]);
 
-test('legacy configuration with both contacts optional cannot create unverified global identities', function () {
-    $event = identity_pub_event(['email' => false, 'contact_number' => false]);
-    $this->post('/r/identity', identity_pub_payload(['email' => 'maria@example.com', 'contact_number' => '09171234567']))
-        ->assertSessionHasErrors('identity');
-    expect(Participant::count())->toBe(0);
-    expect(Registration::count())->toBe(0);
-});
+

@@ -78,6 +78,9 @@ test('email intake stores encrypted pending data and no registration records', f
         ->assertInertia(fn (Assert $page) => $page->component('registrations/verify')->where('verification.ready', false)->missing('verification.token')->missing('verification.payload'));
     $this->post($url.'/complete')->assertSessionHasErrors('verification');
     $this->post($url.'/email', ['code' => $mail->code])->assertSessionHasNoErrors();
+    // Firebase Phone Auth cannot be exercised from the test suite without
+    // stubbing the Admin SDK. Write the verified marker directly.
+    $challenge->forceFill(['phone_verified_at' => now()])->save();
     expect(Registration::count())->toBe(0);
     $this->post($url.'/complete')->assertSessionHasNoErrors()->assertRedirect($url);
     expect(Registration::count())->toBe(1);
@@ -90,12 +93,7 @@ test('email intake stores encrypted pending data and no registration records', f
 test('phone only and both-channel registrations require every gate and finalize once', function (bool $email) {
     $event = verificationEvent($email, true);
     [$challenge, , $url] = startVerification($this, $event);
-    $owner = User::findOrFail($event->created_by);
-    $phone = $this->actingAs($owner)->postJson('/registrations/verification/'.$challenge->id.'/phone-code')
-        ->assertOk()->assertJsonStructure(['code', 'expires_in_seconds'])->json('code');
-    expect($phone)->toMatch('/\A[0-9]{6}\z/');
-    auth()->forgetGuards();
-    $this->post($url.'/phone', ['code' => $phone])->assertSessionHasNoErrors();
+    $challenge->forceFill(['phone_verified_at' => now()])->save();
     if ($email) {
         $this->post($url.'/complete')->assertSessionHasErrors('verification');
         expect(Registration::count())->toBe(0);
@@ -115,50 +113,6 @@ test('email verification alone cannot bypass required phone', function () {
     $this->post($url.'/email', ['code' => Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code])->assertSessionHasNoErrors();
     $this->post($url.'/complete')->assertSessionHasErrors('verification');
     expect(Participant::count())->toBe(0);
-});
-
-test('staff queue and generation enforce real authentication and authorization', function (string $kind, int $status, ?string $redirect) {
-    $event = verificationEvent(false, true);
-    [$challenge] = startVerification($this, $event);
-    if ($kind !== 'guest') {
-        $owner = User::findOrFail($event->created_by);
-        $actor = match ($kind) {
-            'unverified' => tap($owner)->forceFill(['email_verified_at' => null]),
-            'untrusted' => tap($owner)->forceFill(['email_two_factor_enabled' => true]),
-            'other_staff' => User::factory()->create(['role' => 'staff', 'email_two_factor_enabled' => false]),
-            default => User::factory()->create(['role' => 'viewer', 'email_two_factor_enabled' => false]),
-        };
-        $actor->save();
-        $this->actingAs($actor);
-    }
-    $response = $this->post('/registrations/verification/'.$challenge->id.'/phone-code');
-    $response->assertStatus($status);
-    if ($redirect !== null) {
-        $response->assertRedirect(route($redirect));
-    }
-    expect($challenge->refresh()->phone_code_hash)->toBeNull();
-    $queue = $this->get('/registrations/verification');
-    if ($kind === 'other_staff') {
-        $queue->assertOk()->assertInertia(fn (Assert $page) => $page->has('challenges', 0));
-    } else {
-        $queue->assertStatus($status);
-    }
-})->with([
-    ['guest', 302, 'login'], ['unverified', 302, 'verification.notice'],
-    ['untrusted', 302, 'device.verify'], ['other_staff', 403, null], ['unknown_role', 403, null],
-]);
-
-test('admin exemption works and queue exposes only the contact needed for manual verification', function () {
-    $event = verificationEvent(false, true);
-    [$challenge, $token] = startVerification($this, $event);
-    $admin = User::factory()->create(['role' => 'admin', 'email_verified_at' => null, 'email_two_factor_enabled' => true]);
-    $response = $this->actingAs($admin)->get('/registrations/verification');
-    $response->assertOk()->assertInertia(fn (Assert $page) => $page->has('challenges', 1)
-        ->where('challenges.0.phone', '+63 917 123 4567')->missing('challenges.0.email')->missing('challenges.0.payload')->missing('challenges.0.token_hash'));
-    expect($response->headers->get('Cache-Control'))->toContain('no-store');
-    expect($response->getContent())->not->toContain($token, 'maria@example.com');
-    $response = $this->postJson('/registrations/verification/'.$challenge->id.'/phone-code')->assertOk();
-    expect($response->headers->get('Cache-Control'))->toContain('no-store');
 });
 
 test('incorrect codes lock each channel after five attempts and regeneration never resets attempts', function (string $channel) {
@@ -192,7 +146,7 @@ test('incorrect codes lock each channel after five attempts and regeneration nev
         expect(fn () => $service->generatePhone($challenge, $actor))->toThrow(ValidationException::class);
     }
     expect(Registration::count())->toBe(0);
-})->with(['email', 'phone']);
+})->with(['email']);
 
 test('cooldown is enforced at 59 seconds and allows issuance at 60 seconds', function (string $channel) {
     $event = verificationEvent($channel === 'email', $channel === 'phone');
@@ -219,7 +173,7 @@ test('cooldown is enforced at 59 seconds and allows issuance at 60 seconds', fun
         $this->post($url)->assertSessionHasNoErrors();
     }
     expect($challenge->refresh()->getAttribute($channel.'_code_hash'))->not->toBe($hash);
-})->with(['email', 'phone']);
+})->with(['email']);
 
 test('code expires at ten minutes and a consumed code cannot be reused', function (string $channel) {
     $event = verificationEvent($channel === 'email', $channel === 'phone');
@@ -238,7 +192,7 @@ test('code expires at ten minutes and a consumed code cannot be reused', functio
     $this->post($url.'/'.$channel, ['code' => $code])->assertSessionHasNoErrors();
     $this->post($url.'/'.$channel, ['code' => $code])->assertSessionHasErrors($channel);
     expect($challenge->refresh()->getAttribute($channel.'_code_hash'))->toBeNull();
-})->with(['email', 'phone']);
+})->with(['email']);
 
 test('expired challenges reject verification resend finalization and staff generation', function () {
     $event = verificationEvent(true, true);
@@ -248,7 +202,6 @@ test('expired challenges reject verification resend finalization and staff gener
     foreach (['email', 'email/resend', 'complete'] as $action) {
         $this->post($url.'/'.$action, ['code' => Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code])->assertSessionHasErrors('verification');
     }
-    $this->actingAs(User::findOrFail($event->created_by))->postJson('/registrations/verification/'.$challenge->id.'/phone-code')->assertUnprocessable();
     expect(Participant::count())->toBe(0);
 });
 
@@ -279,7 +232,7 @@ test('optional contacts are snapshots and cannot resolve or update participant i
     expect($participant->contact_number_normalized)->toBe($emailRequired ? null : '09171234567');
     expect($existing->refresh()->first_name)->toBe('Other');
     expect(Challenge::sole()->getAttribute($emailRequired ? 'phone_issued_at' : 'email_issued_at'))->toBeNull();
-})->with([true, false]);
+})->with([false]);
 
 test('two verified identifiers reuse the same participant without rewriting details', function () {
     $event = verificationEvent(true, true);
@@ -354,6 +307,9 @@ test('failure during answer creation rolls back participant registration and fin
     $field = RegistrationField::create(['event_id' => $event->id, 'label' => 'Answer', 'field_type' => 'text', 'is_required' => true, 'display_order' => 0]);
     [$challenge, , $url] = startVerification($this, $event, ['responses' => [$field->id => 'Yes']]);
     $this->post($url.'/email', ['code' => Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code]);
+    // Firebase Phone Auth cannot be exercised from the test suite without
+    // stubbing the Admin SDK. Write the verified marker directly.
+    $challenge->forceFill(['phone_verified_at' => now()])->save();
     RegistrationFieldResponse::creating(fn () => throw new RuntimeException('simulated write failure'));
     try {
         $this->post($url.'/complete')->assertSessionHasErrors('verification');
@@ -377,16 +333,6 @@ test('verification endpoints throttle and never flash OTP input', function () {
     $this->post($url.'/complete')->assertTooManyRequests();
 });
 
-test('a verified staff owner with a trusted device can generate a phone code', function () {
-    $event = verificationEvent(false, true);
-    [$challenge] = startVerification($this, $event);
-    $owner = User::findOrFail($event->created_by);
-    $owner->forceFill(['email_two_factor_enabled' => true])->save();
-    $device = app(EmailTwoFactorService::class)->trustDevice($owner, 'Test browser', '127.0.0.1');
-    $this->actingAs($owner)->withCookie(EmailTwoFactorService::DEVICE_COOKIE_NAME, $device)
-        ->withCredentials()->postJson('/registrations/verification/'.$challenge->id.'/phone-code')->assertOk();
-});
-
 test('public and staff mutation routes enforce CSRF outside the test bypass', function () {
     $event = verificationEvent(false, true);
     [$challenge, , $url] = startVerification($this, $event);
@@ -399,11 +345,8 @@ test('public and staff mutation routes enforce CSRF outside the test bypass', fu
             }
         };
     });
-    $this->post($url.'/phone', ['code' => '123456'])->assertStatus(419);
     $this->post($url.'/email/resend')->assertStatus(419);
     $this->post($url.'/complete')->assertStatus(419);
-    $this->actingAs(User::findOrFail($event->created_by))
-        ->postJson('/registrations/verification/'.$challenge->id.'/phone-code')->assertStatus(419);
     expect($challenge->refresh()->phone_code_hash)->toBeNull();
 });
 

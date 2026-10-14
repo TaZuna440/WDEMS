@@ -131,7 +131,7 @@ test('an omitted optional field allows registration after required contacts are 
     unset($payload[$field]);
     completePublicRegistration($this, $event, $payload)->assertSessionHasNoErrors();
     expect(Registration::where('event_id', $event->id)->count())->toBe(1);
-})->with(['email', 'contact_number', 'address']);
+})->with(['email', 'address']);
 
 test('a submission without email is rejected when email is required', function () {
     $event = public_event(['registration_common_field_requirements' => ['email' => true]]);

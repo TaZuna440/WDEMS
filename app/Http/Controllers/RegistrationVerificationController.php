@@ -2,19 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\EventStatus;
 use App\Models\Event;
-use App\Models\RegistrationVerificationChallenge as Challenge;
 use App\Services\RegistrationVerification\RegistrationVerificationService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class RegistrationVerificationController extends Controller
 {
@@ -45,6 +41,22 @@ class RegistrationVerificationController extends Controller
         ));
     }
 
+    public function firebasePhone(Request $request, Event $event): RedirectResponse
+    {
+        $validator = Validator::make($request->only('id_token'), [
+            'id_token' => ['required', 'string', 'max:4096'],
+        ]);
+        if ($validator->fails()) {
+            return $this->backToVerification($event)->withErrors([
+                'phone' => 'Missing or invalid verification token.',
+            ]);
+        }
+
+        return $this->publicAction($event, 'phone', fn () => $this->verification->verifyPhoneWithFirebase(
+            $event, $this->token($request, $event), $validator->validated()['id_token'],
+        ));
+    }
+
     public function resendEmail(Request $request, Event $event): RedirectResponse
     {
         return $this->publicAction($event, 'email', fn () => $this->verification->sendEmail(
@@ -59,66 +71,6 @@ class RegistrationVerificationController extends Controller
 
             return null;
         });
-    }
-
-    public function index(Request $request): Response
-    {
-        $user = $request->user();
-        abort_unless($user->isAdmin() || $user->role === 'staff', 403);
-
-        $pending = Challenge::query()
-            ->where('phone_required', true)->whereNull('phone_verified_at')
-            ->whereNull('finalized_at')->where('expires_at', '>', now())
-            ->where('created_at', '>', now()->subHours(RegistrationVerificationService::CHALLENGE_TTL_HOURS))
-            ->whereHas('event', function ($query) use ($user) {
-                $query->where('status', EventStatus::RegistrationOpen)
-                    ->where(fn ($query) => $query->whereNull('registration_end')->orWhere('registration_end', '>', now()));
-                if (! $user->isAdmin()) {
-                    $query->where('created_by', $user->id);
-                }
-            })->with('event')->oldest()->paginate(25);
-
-        // Explicit projection: no email, name, address, custom answers, token or hash.
-        $rows = $pending->getCollection()->filter(
-            fn (Challenge $challenge) => $this->verification->challengeState($challenge, $challenge->event) === 'pending',
-        )->map(fn (Challenge $challenge) => [
-            'id' => $challenge->id,
-            'event_name' => $challenge->event->event_name,
-            'phone' => $challenge->payload['contact_number'] ?? '',
-            'created_at' => $challenge->created_at->toIso8601String(),
-            'expires_at' => $challenge->expires_at->toIso8601String(),
-            'channel' => $this->verification->channelState($challenge, 'phone'),
-            'generate_url' => route('registration-verification.phone-code', ['challenge' => $challenge->id]),
-        ])->values();
-
-        return Inertia::render('registrations/verification-queue', [
-            'challenges' => $rows,
-            'previous_url' => $pending->previousPageUrl(),
-            'next_url' => $pending->nextPageUrl(),
-        ]);
-    }
-
-    public function generatePhone(Request $request, Challenge $challenge): JsonResponse
-    {
-        // Also checked again under the event lock before issuing the code.
-        $this->verification->authorizeStaff($challenge->event, $request->user());
-        try {
-            $code = $this->verification->generatePhone($challenge, $request->user());
-        } catch (ValidationException $exception) {
-            return response()->json(['message' => collect($exception->errors())->flatten()->first()], 422);
-        } catch (HttpException $exception) {
-            throw $exception;
-        } catch (\Throwable) {
-            Log::error('registration.verification.phone_failed', ['challenge_id' => $challenge->id]);
-
-            return response()->json(['message' => 'The code could not be generated. Refresh and try again.'], 503);
-        }
-
-        return response()->json([
-            'code' => $code,
-            'expires_in_seconds' => RegistrationVerificationService::CODE_TTL_SECONDS,
-            'message' => 'Communicate this code to the submitted phone number yourself. WDEMS has not sent an SMS.',
-        ]);
     }
 
     private function token(Request $request, Event $event): ?string

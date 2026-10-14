@@ -78,6 +78,7 @@ function wicf_payload(array $overrides = []): array
         'last_name' => 'In',
         'age' => 30,
         'email' => 'walkin'.uniqid().'@example.com',
+        'contact_number' => '0917'.str_pad((string) random_int(0, 9999999), 7, '0', STR_PAD_LEFT),
     ], $overrides);
 }
 

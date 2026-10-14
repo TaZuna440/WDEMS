@@ -18,21 +18,12 @@ Route::middleware([ProtectRegistrationVerification::class])
         Route::post('complete', [RegistrationVerificationController::class, 'complete'])
             ->middleware('throttle:registration-verification-attempt')
             ->name('public-registration.verification.complete');
+        Route::post('phone/firebase', [RegistrationVerificationController::class, 'firebasePhone'])
+            ->middleware('throttle:registration-verification-attempt')
+            ->name('public-registration.verification.phone.firebase');
         Route::post('{channel}', [RegistrationVerificationController::class, 'verify'])
-            ->whereIn('channel', ['email', 'phone'])
+            ->whereIn('channel', ['email'])
             ->middleware('throttle:registration-verification-attempt')
             ->name('public-registration.verification.verify');
     });
 
-// Admins retain the existing verified.or.admin and device.trusted exemptions.
-// Staff must additionally own the event; this is checked in the module on every
-// generation request and in the queue query before projecting contact data.
-Route::middleware(['auth', 'verified.or.admin', 'device.trusted', ProtectRegistrationVerification::class])
-    ->group(function () {
-        Route::get('registrations/verification', [RegistrationVerificationController::class, 'index'])
-            ->middleware('throttle:registration-verification-staff-view')
-            ->name('registration-verification.index');
-        Route::post('registrations/verification/{challenge}/phone-code', [RegistrationVerificationController::class, 'generatePhone'])
-            ->middleware('throttle:registration-verification-phone')
-            ->name('registration-verification.phone-code');
-    });

@@ -379,6 +379,7 @@ test('walk-in creates participant, registration, and attendance', function () {
             'last_name' => 'In',
             'age' => 30,
             'email' => 'walkin@example.com',
+            'contact_number' => '0917'.str_pad((string) random_int(0, 9999999), 7, '0', STR_PAD_LEFT),
             'mark_present' => true,
         ])
         ->assertRedirect(route('events.attendance', $event));
@@ -407,6 +408,7 @@ test('walk-in defaults to marking present when flag is omitted', function () {
             'last_name' => 'In',
             'age' => 30,
             'email' => 'walkin-default@example.com',
+            'contact_number' => '0917'.str_pad((string) random_int(0, 9999999), 7, '0', STR_PAD_LEFT),
         ])
         ->assertRedirect();
 
@@ -427,6 +429,7 @@ test('walk-in without mark_present does not create an attendance row', function 
             'last_name' => 'In',
             'age' => 30,
             'email' => 'walkin-nomark@example.com',
+            'contact_number' => '0917'.str_pad((string) random_int(0, 9999999), 7, '0', STR_PAD_LEFT),
             'mark_present' => false,
         ])
         ->assertRedirect();
@@ -486,6 +489,7 @@ test('walk-in on a completed event returns 403', function () {
             'last_name' => 'In',
             'age' => 30,
             'email' => 'nope@example.com',
+            'contact_number' => '0917'.str_pad((string) random_int(0, 9999999), 7, '0', STR_PAD_LEFT),
         ])
         ->assertForbidden();
 });
