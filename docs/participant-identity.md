@@ -466,3 +466,22 @@ paper intake. Public finalization uses a separate transactional verification
 service and preserves first-write-wins and all existing uniqueness constraints.
 See [Participant contact verification](registration-contact-verification.md)
 for the complete flow, staff authorization, limits, migrations, and operations.
+
+## Correction to §Corrections — public contact verification (2026-10-14)
+
+The cross-reference at the end of the previous corrections block reads:
+
+> See [Participant contact verification](registration-contact-verification.md)
+> for the complete flow, staff authorization, limits, migrations, and
+> operations.
+
+"Staff authorization" referred to the removed staff phone queue.
+Commit `b552cbb` (2026-10-14) replaced that channel with Firebase
+Phone Auth. There is no staff authorization step for phone
+verification any longer — the participant's own phone is the
+authenticator.
+
+Everything else in the previous corrections block still describes the
+shipped flow accurately. The linked document's
+`## Corrections (2026-10-14)` block is the authoritative description of
+the current phone channel.

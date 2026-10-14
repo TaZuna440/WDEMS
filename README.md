@@ -38,7 +38,7 @@ identity model that powers deduplication and returning-participant flags.
 | Attendance recording UI (search, filter, pagination, walk-in) | ✅ |
 | Walk-in / paper registration UI (single dialog + batch table) | ✅ |
 | Post-run monitoring (returning participants, live submission rates) | ✅ |
-| Registration — contact verification (email OTP + staff phone OTP) | ✅ |
+| Registration — contact verification (email OTP + Firebase phone auth) | ✅ |
 | Registration — deletion with OTP | ✅ |
 
 **Test suite:** run `php artisan test` for the current count. Auth,
@@ -323,7 +323,7 @@ removed. They are kept for historical context only.
 | **Registration — form builder** | Per-event registration form, common + custom fields | ✅ |
 | **Registration — public surface** | Anonymous submit → verify → finalize at `/r/{slug}` | ✅ |
 | **Registration — field requirements** | Per-event required/optional toggles | ✅ |
-| **Registration — contact verification** | Email OTP + staff phone OTP, three-phase intake | ✅ |
+| **Registration — contact verification** | Email OTP + Firebase phone auth, three-phase intake | ✅ |
 | **Registration — deletion with OTP** | Staff delete a registration via email OTP | ✅ |
 | **Registration — legal layer (demo)** | Privacy notice + terms modals, consent checkbox | 🚧 demo |
 | **Participant identity** | Email + phone identity, cross-event deduplication | ✅ |
