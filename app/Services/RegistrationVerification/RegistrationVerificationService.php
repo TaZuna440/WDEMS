@@ -5,6 +5,7 @@ namespace App\Services\RegistrationVerification;
 use App\Enums\EventStatus;
 use App\Enums\RegistrationStatus;
 use App\Http\Requests\PublicRegistrationRequest;
+use App\Mail\RegistrationConfirmationMail;
 use App\Mail\RegistrationVerificationOtpMail;
 use App\Models\Event;
 use App\Models\Participant;
@@ -16,6 +17,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 /**
  * Owns public contact verification and atomic intake. Attendance callers keep
@@ -30,6 +32,35 @@ class RegistrationVerificationService
     public const MAX_ATTEMPTS = 5;
 
     public const CHALLENGE_TTL_HOURS = 24;
+
+    /**
+     * Alphabet for the per-registration attendance code.
+     *
+     * Uppercased variant of EventController::SLUG_ALPHABET. Same
+     * exclusions — no I, L, O, 0, 1 — so the code reads cleanly over
+     * a phone line. Uppercase so it is visually distinct from the
+     * lowercase event slug at /r/{slug}.
+     *
+     * Duplicated from EventController deliberately: extracting the
+     * constant would touch a file unrelated to this feature. If the
+     * alphabet ever changes, both sites must be updated together.
+     * See implementation-notes.md §3 for the slug constant record.
+     */
+    public const ATTENDANCE_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+    /**
+     * Characters drawn from ATTENDANCE_CODE_ALPHABET before the dash
+     * is inserted. Eight characters gives 31^8 ≈ 8.5×10^11 possible
+     * codes per event — the same collision space as the slug.
+     */
+    public const ATTENDANCE_CODE_LENGTH = 8;
+
+    /**
+     * Collision-retry ceiling, matching EventController's
+     * SLUG_MAX_ATTEMPTS. Collisions at this scale are effectively
+     * impossible; the loop makes the failure mode explicit.
+     */
+    public const ATTENDANCE_CODE_MAX_ATTEMPTS = 3;
 
     /** @return non-empty-string */
     public static function cookieName(Event $event): string
@@ -88,7 +119,22 @@ class RegistrationVerificationService
             ->when($lock, fn ($query) => $query->lockForUpdate())->first();
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Public-facing state of a challenge.
+     *
+     * The 'finalized' state carries the registration's attendance_code
+     * so the verification page can display it and the participant can
+     * save it for event day. The code is a bearer lookup key, not a
+     * secret — showing it to the participant who owns the challenge is
+     * the point.
+     *
+     * The code may be null if the registration was deleted after
+     * finalization (the challenge's registration_id FK is
+     * nullOnDelete). In that case the page falls back to the plain
+     * confirmation message with no code panel.
+     *
+     * @return array<string, mixed>
+     */
     public function publicState(Event $event, #[\SensitiveParameter] ?string $token): array
     {
         $challenge = $this->findChallenge($event, $token);
@@ -97,6 +143,18 @@ class RegistrationVerificationService
         }
 
         $status = $this->challengeState($challenge, $event);
+
+        if ($status === 'finalized') {
+            $registration = $challenge->registration_id !== null
+                ? Registration::find($challenge->registration_id)
+                : null;
+
+            return [
+                'status' => 'finalized',
+                'attendance_code' => $registration?->attendance_code,
+            ];
+        }
+
         if ($status !== 'pending') {
             return ['status' => $status];
         }
@@ -189,6 +247,16 @@ class RegistrationVerificationService
     /**
      * Exactly one transaction owns the Participant, Registration, custom answers,
      * and finalized marker. Unique constraints also arbitrate other intake paths.
+     *
+     * Also issues the per-registration attendance code. The code is only set on
+     * 'form' registrations — walk-ins are created by AttendanceController with a
+     * NULL attendance_code, because their presence is a fact of their encoding,
+     * not a claim the system needs to verify.
+     *
+     * The confirmation email is dispatched via DB::afterCommit() so a transport
+     * failure never rolls back the registration. The participant has the code
+     * on the confirmation page immediately; the email is a durable second copy
+     * for the case where they close the tab before saving it.
      */
     public function finalize(Event $event, #[\SensitiveParameter] ?string $token): void
     {
@@ -252,6 +320,7 @@ class RegistrationVerificationService
                         'registered_at' => now(),
                         'submitted_email' => $payload['email'] ?? null,
                         'submitted_contact_number' => $payload['contact_number'] ?? null,
+                        'attendance_code' => $this->generateAttendanceCode($event),
                     ]);
 
                     foreach ($payload['responses'] ?? [] as $fieldId => $value) {
@@ -269,6 +338,32 @@ class RegistrationVerificationService
                         'email_code_hash' => null,
                         'phone_code_hash' => null,
                     ])->save();
+
+                    // Capture the values the confirmation email needs.
+                    // The closure runs after the outer transaction
+                    // commits — so a transport failure cannot roll back
+                    // the registration. A failure is swallowed: the
+                    // participant has the code on the confirmation page,
+                    // and the email is a durable second copy, not a
+                    // required channel.
+                    $submittedEmail = $registration->submitted_email;
+                    $attendanceCode = $registration->attendance_code;
+
+                    if ($submittedEmail !== null && $attendanceCode !== null) {
+                        DB::afterCommit(function () use ($submittedEmail, $attendanceCode, $event): void {
+                            try {
+                                Mail::mailer('resend')->to($submittedEmail)->send(
+                                    new RegistrationConfirmationMail(
+                                        $attendanceCode,
+                                        $event->event_name,
+                                    ),
+                                );
+                            } catch (\Throwable) {
+                                // Transport messages may include contact values.
+                                // Do not log or report the exception.
+                            }
+                        });
+                    }
                 }, 3);
 
                 return;
@@ -280,6 +375,59 @@ class RegistrationVerificationService
                 }
             }
         }
+    }
+
+    /**
+     * Build a unique attendance code for this event.
+     *
+     * Scoped to the event, not globally: the same code may exist on
+     * registrations for two different events without confusion. The
+     * workspace looks up by (event_id, attendance_code).
+     *
+     * Caller holds the event row lock (finalize() takes it at the
+     * top of the transaction), so concurrent finalizations for the
+     * same event are serialized. The unique index on
+     * (event_id, attendance_code) is a defense-in-depth backstop.
+     *
+     * @throws RuntimeException When three consecutive candidates all collide.
+     */
+    private function generateAttendanceCode(Event $event): string
+    {
+        for ($attempt = 0; $attempt < self::ATTENDANCE_CODE_MAX_ATTEMPTS; $attempt++) {
+            $candidate = $this->randomAttendanceCode();
+
+            $exists = Registration::query()
+                ->where('event_id', $event->id)
+                ->where('attendance_code', $candidate)
+                ->exists();
+
+            if (! $exists) {
+                return $candidate;
+            }
+        }
+
+        throw new RuntimeException(
+            'Could not generate a unique attendance code after '
+            .self::ATTENDANCE_CODE_MAX_ATTEMPTS.' attempts.',
+        );
+    }
+
+    /**
+     * Draw ATTENDANCE_CODE_LENGTH characters from the alphabet and
+     * insert a dash between the two groups of four. KM4XP2N7 → KM4X-P2N7.
+     *
+     * Uniqueness is checked by the caller, not here.
+     */
+    private function randomAttendanceCode(): string
+    {
+        $max = strlen(self::ATTENDANCE_CODE_ALPHABET) - 1;
+        $raw = '';
+
+        for ($i = 0; $i < self::ATTENDANCE_CODE_LENGTH; $i++) {
+            $raw .= self::ATTENDANCE_CODE_ALPHABET[random_int(0, $max)];
+        }
+
+        return substr($raw, 0, 4).'-'.substr($raw, 4);
     }
 
     /** @return array{Event, Challenge} */

@@ -1,4 +1,5 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Check, Copy, Ticket } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import FirebasePhoneVerifier from '@/components/firebase-phone-verifier';
 import InputError from '@/components/input-error';
@@ -37,8 +38,98 @@ type Props = {
         phone?: ChannelState;
         ready?: boolean;
         submitted_phone?: string | null;
+        /**
+         * The per-registration attendance code. Only present when the
+         * verification status is 'finalized' and the underlying
+         * registration still exists. Null when the registration was
+         * deleted after finalization, or the code was never issued
+         * (walk-in sources do not carry a code).
+         */
+        attendance_code?: string | null;
     };
 };
+
+/**
+ * The participant's attendance code, presented once registration is
+ * confirmed. This is the code they show or speak at the event table so
+ * staff can look them up and verify their attendance.
+ *
+ * The code is a bearer lookup key, not a secret. It is displayed to
+ * the owner of the challenge — the same participant who completed
+ * verification. Nothing is leaked by showing it on this page.
+ *
+ * The panel is not rendered if the code is null. That happens when
+ * the registration was deleted after finalization, or when the source
+ * is a walk-in (walk-ins never receive a code).
+ */
+function AttendanceCodePanel({ code }: { code: string }) {
+    const [copied, setCopied] = useState(false);
+
+    const copy = async () => {
+        try {
+            await navigator.clipboard.writeText(code);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // Clipboard API unavailable (insecure context, older
+            // browser). Fall back to silently doing nothing — the
+            // participant can still select the code manually.
+        }
+    };
+
+    return (
+        <section className="grid gap-4 rounded-xl border border-lime-brand/30 bg-lime-brand/5 p-6">
+            <div className="flex items-center gap-2">
+                <Ticket className="h-4 w-4 text-lime-brand" />
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-lime-brand">
+                    Your attendance code
+                </h2>
+            </div>
+
+            <p
+                className="select-all text-center font-mono text-4xl font-semibold tracking-[0.3em] text-foreground"
+                aria-label={`Attendance code ${code}`}
+            >
+                {code}
+            </p>
+
+            <p className="text-center text-sm text-muted-foreground">
+                Present this at the event table so staff can verify your
+                attendance.
+            </p>
+
+            <div className="flex items-center justify-center">
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={copy}
+                >
+                    {copied ? (
+                        <>
+                            <Check className="mr-2 h-3.5 w-3.5 text-lime-brand" />
+                            Copied
+                        </>
+                    ) : (
+                        <>
+                            <Copy className="mr-2 h-3.5 w-3.5" />
+                            Copy code
+                        </>
+                    )}
+                </Button>
+            </div>
+
+            <p
+                role="status"
+                className="text-center text-xs text-muted-foreground"
+            >
+                {copied
+                    ? 'Copied to clipboard.'
+                    : 'Save this code. You will need it on event day.'}
+            </p>
+        </section>
+    );
+}
 
 function ContactVerification({
     channel,
@@ -216,6 +307,14 @@ export default function VerifyRegistration({
                     {expired ? messages.expired : messages[verification.status]}
                 </p>
                 <InputError message={errors.verification} />
+
+                {verification.status === 'finalized' &&
+                    verification.attendance_code && (
+                        <AttendanceCodePanel
+                            code={verification.attendance_code}
+                        />
+                    )}
+
                 {verification.status === 'pending' && !expired && (
                     <>
                         {verification.email && (

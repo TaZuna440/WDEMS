@@ -1,4 +1,4 @@
-import { UserPlus, X } from 'lucide-react';
+import { Clock, UserPlus, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { useForm } from '@inertiajs/react';
 import InputError from '@/components/input-error';
@@ -28,6 +28,8 @@ type ServerField = {
     options: string[];
     is_required: boolean;
 };
+
+type EncodingMode = 'live' | 'deferred';
 
 type Props = {
     eventId: number;
@@ -60,6 +62,8 @@ export default function WalkInDialog({
         mark_present: boolean;
         identity: string;
         responses: Record<number, string | string[]>;
+        encoding_mode: EncodingMode;
+        arrival_time: string;
     }>({
         first_name: '',
         last_name: '',
@@ -74,6 +78,14 @@ export default function WalkInDialog({
         // the server ignores the value.
         identity: '',
         responses: {},
+        // Live is the default: the staff member is entering the
+        // participant at the table, right now. attendance_time on the
+        // server will be now().
+        encoding_mode: 'live',
+        // Only used when encoding_mode === 'deferred'. Server ignores
+        // it when the mode is live. Required in deferred mode — see
+        // WalkInRegistrationRequest::withValidator() Pass 3.
+        arrival_time: '',
     });
 
     useEffect(() => {
@@ -121,6 +133,8 @@ export default function WalkInDialog({
         <span className="text-destructive"> *</span>
     );
 
+    const isDeferred = form.data.encoding_mode === 'deferred';
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
@@ -137,6 +151,77 @@ export default function WalkInDialog({
                 </DialogHeader>
 
                 <form onSubmit={submit} className="flex flex-col gap-4">
+                    {/* Encoding mode — commits the whole submission to
+                        either a live timestamp (now()) or a deferred
+                        arrival time read off a paper form. Live is the
+                        default; the mode must be chosen before the
+                        details are entered. */}
+                    <div className="grid gap-3 rounded-md border border-white/5 bg-white/[0.02] p-3">
+                        <Label>Encoding mode</Label>
+                        <div className="inline-flex w-fit rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    form.setData('encoding_mode', 'live')
+                                }
+                                className={
+                                    form.data.encoding_mode === 'live'
+                                        ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
+                                        : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
+                                }
+                            >
+                                Live — encoding as they arrive
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    form.setData('encoding_mode', 'deferred')
+                                }
+                                className={
+                                    form.data.encoding_mode === 'deferred'
+                                        ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
+                                        : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
+                                }
+                            >
+                                Deferred — transcribing from paper
+                            </button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            {isDeferred
+                                ? 'Arrival time will be read from the paper form. Use this when entering a walk-in after the fact.'
+                                : 'Arrival time will be recorded as right now. Use this when the participant is standing in front of you.'}
+                        </p>
+                    </div>
+
+                    {/* Arrival time — only meaningful when the mode is
+                        deferred. In live mode the server stamps now()
+                        and ignores any submitted value. */}
+                    {isDeferred && (
+                        <div className="grid gap-2">
+                            <Label htmlFor="walk-in-arrival-time">
+                                <Clock className="mr-1 inline h-3.5 w-3.5" />
+                                Arrival time{requiredMark}
+                            </Label>
+                            <Input
+                                id="walk-in-arrival-time"
+                                type="time"
+                                value={form.data.arrival_time}
+                                onChange={(e) =>
+                                    form.setData(
+                                        'arrival_time',
+                                        e.target.value,
+                                    )
+                                }
+                                aria-invalid={!!form.errors.arrival_time}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                The time on the paper form, not the current
+                                time.
+                            </p>
+                            <InputError message={form.errors.arrival_time} />
+                        </div>
+                    )}
+
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="grid gap-2">
                             <Label htmlFor="walk-in-first-name">

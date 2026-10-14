@@ -6,11 +6,13 @@ import {
     Clock,
     Plus,
     Search,
+    Ticket,
     Unlock,
     Lock,
     UserCheck,
     MoreHorizontal,
     Save,
+    X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AttendanceFilterChips, {
@@ -47,6 +49,8 @@ type AttendanceStatus = 'present' | 'late' | 'absent' | 'excused';
 
 type PageMode = 'mark' | 'confirm' | 'batch';
 
+type EncodingMode = 'live' | 'deferred';
+
 type StatusOption = {
     value: AttendanceStatus;
     label: string;
@@ -56,6 +60,7 @@ type AttendanceRow = {
     id: number;
     source: string;
     registered_at: string | null;
+    attendance_code: string | null;
     participant: {
         id: number | null;
         full_name: string | null;
@@ -67,6 +72,7 @@ type AttendanceRow = {
         status_label: string;
         time: string | null;
         notes: string | null;
+        verified_at: string | null;
     } | null;
 };
 
@@ -106,6 +112,7 @@ type Props = {
     filters: {
         q: string;
         filter: AttendanceFilter;
+        code: string;
     };
     can_mark: boolean;
     is_admin: boolean;
@@ -151,6 +158,7 @@ export default function EventsAttendance({
     attendance_statuses,
 }: Props) {
     const [localSearch, setLocalSearch] = useState(filters.q);
+    const [localCode, setLocalCode] = useState(filters.code);
     const [marking, setMarking] = useState<number | null>(null);
     const [walkInOpen, setWalkInOpen] = useState(false);
     const [mode, setMode] = useState<PageMode>('mark');
@@ -169,20 +177,43 @@ export default function EventsAttendance({
     const [bulkErrors, setBulkErrors] = useState<Record<string, string>>({});
     const [bulkSubmitting, setBulkSubmitting] = useState(false);
 
+    // Batch-level encoding mode. One choice for the whole stack of
+    // paper forms: either the operator is entering participants as
+    // they arrive (live), or transcribing a paper form after the fact
+    // (deferred). In deferred mode, each row carries its own arrival
+    // time; the server uses it to stamp attendance_time.
+    const [batchEncodingMode, setBatchEncodingMode] =
+        useState<EncodingMode>('live');
+
     const baseUrl = `/events/${event.id}/attendance`;
+    const codeActive = filters.code !== '';
 
     const sharedQuery = (overrides: Record<string, string | number> = {}) => ({
-        ...(localSearch !== '' ? { q: localSearch } : {}),
-        ...(filters.filter !== 'all' ? { filter: filters.filter } : {}),
+        ...(codeActive ? { code: filters.code } : {}),
+        ...(! codeActive && localSearch !== '' ? { q: localSearch } : {}),
+        ...(! codeActive && filters.filter !== 'all'
+            ? { filter: filters.filter }
+            : {}),
         ...(force_open ? { force_open: 1 } : {}),
         ...overrides,
     });
+
+    // The server returns the canonical code (uppercase, dashes
+    // reinstated). Sync the input to it after each lookup so the
+    // volunteer sees the normalized form.
+    useEffect(() => {
+        setLocalCode(filters.code);
+    }, [filters.code]);
 
     useEffect(() => {
         setSelected(new Set());
     }, [rows]);
 
     useEffect(() => {
+        if (codeActive) {
+            return;
+        }
+
         const timer = setTimeout(() => {
             if (localSearch === filters.q) {
                 return;
@@ -198,29 +229,83 @@ export default function EventsAttendance({
 
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [localSearch]);
+    }, [localSearch, codeActive]);
 
-    const mark = (registrationId: number, status: AttendanceStatus) => {
-        setMarking(registrationId);
-        router.post(
-            `${baseUrl}/${registrationId}/mark`,
+    const submitCode = (e: React.FormEvent) => {
+        e.preventDefault();
+        const trimmed = localCode.trim();
+        if (trimmed === '') return;
+
+        // The code takes precedence over search and filter on the
+        // server. Send only the code (plus force_open for admins) —
+        // the existing q and filter are dropped from the URL.
+        router.get(
+            baseUrl,
             {
-                status,
-                force_open: force_open ? 1 : 0,
+                code: trimmed,
+                ...(force_open ? { force_open: 1 } : {}),
             },
             {
                 preserveScroll: true,
                 preserveState: true,
-                only: ['rows', 'counts'],
-                onFinish: () => setMarking(null),
+                replace: true,
+                only: ['rows', 'pagination', 'counts', 'filters'],
             },
         );
+    };
+
+    const clearCode = () => {
+        setLocalCode('');
+        router.get(
+            baseUrl,
+            force_open ? { force_open: 1 } : {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+                only: ['rows', 'pagination', 'counts', 'filters'],
+            },
+        );
+    };
+
+    /**
+     * Mark a single registration.
+     *
+     * When a code is active and the status being set is a presence
+     * state (Present or Late), the lookup code is passed through as
+     * `verified_code`. The server checks it against the registration's
+     * stored attendance_code and, on match, stamps `verified_at`.
+     *
+     * For absence statuses (Absent, Excused) the code is not sent —
+     * the server would ignore it anyway (a code proves presence, not
+     * absence), and omitting it keeps the payload honest about intent.
+     */
+    const mark = (registrationId: number, status: AttendanceStatus) => {
+        setMarking(registrationId);
+
+        const payload: Record<string, string | number> = {
+            status,
+            force_open: force_open ? 1 : 0,
+        };
+
+        const isPresenceStatus = status === 'present' || status === 'late';
+
+        if (codeActive && isPresenceStatus) {
+            payload.verified_code = filters.code;
+        }
+
+        router.post(`${baseUrl}/${registrationId}/mark`, payload, {
+            preserveScroll: true,
+            preserveState: true,
+            only: ['rows', 'counts'],
+            onFinish: () => setMarking(null),
+        });
     };
 
     const toggleForceOpen = () => {
         router.get(
             baseUrl,
-            sharedQuery(force_open ? {} : { force_open: 1 }),
+            sharedQuery(force_open ? { force_open: 0 } : { force_open: 1 }),
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -322,10 +407,13 @@ export default function EventsAttendance({
             return;
         }
 
+        const deferred = batchEncodingMode === 'deferred';
+
         const { errors } = validateBulkWalkInRows(
             nonEmpty,
             event.registration_fields,
             event.common_field_requirements,
+            deferred,
         );
 
         setBulkErrors(errors);
@@ -340,6 +428,7 @@ export default function EventsAttendance({
             `${baseUrl}/bulk-walk-in`,
             {
                 rows: nonEmpty,
+                encoding_mode: batchEncodingMode,
                 force_open: force_open ? 1 : 0,
             },
             {
@@ -519,6 +608,49 @@ export default function EventsAttendance({
                             </p>
                         </div>
 
+                        {/* Encoding mode — one choice for the whole
+                            batch. Live stamps each row with now();
+                            Deferred reads each row's arrival_time off
+                            the paper form. */}
+                        <div className="grid gap-3 rounded-md border border-white/5 bg-white/[0.02] p-3">
+                            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                Encoding mode
+                            </span>
+                            <div className="inline-flex w-fit rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setBatchEncodingMode('live')
+                                    }
+                                    className={
+                                        batchEncodingMode === 'live'
+                                            ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
+                                            : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
+                                    }
+                                >
+                                    Live — encoding as they arrive
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setBatchEncodingMode('deferred')
+                                    }
+                                    className={
+                                        batchEncodingMode === 'deferred'
+                                            ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
+                                            : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
+                                    }
+                                >
+                                    Deferred — transcribing from paper
+                                </button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {batchEncodingMode === 'deferred'
+                                    ? 'Each row needs its own arrival time, read from the paper form.'
+                                    : 'Each row will be stamped with the current time as you submit.'}
+                            </p>
+                        </div>
+
                         {bulkErrors.rows && (
                             <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
                                 {bulkErrors.rows}
@@ -533,6 +665,7 @@ export default function EventsAttendance({
                             onChange={setBulkRows}
                             disabled={bulkSubmitting}
                             maxRows={MAX_BULK_ROWS}
+                            deferred={batchEncodingMode === 'deferred'}
                         />
 
                         <div className="flex flex-col gap-2 border-t border-white/5 pt-4 sm:flex-row sm:items-center sm:justify-between">
@@ -555,6 +688,62 @@ export default function EventsAttendance({
                     </div>
                 ) : (
                     <div className="glass-panel flex flex-col gap-4 rounded-xl p-6">
+                        {/* Attendance-code lookup. The volunteer types
+                            the code the participant speaks; the code
+                            narrows the list to the matching row. Search
+                            and filters are disabled while a code is
+                            active — the code is a lookup, not a filter. */}
+                        <form
+                            onSubmit={submitCode}
+                            className="flex flex-col gap-2 sm:flex-row sm:items-center"
+                        >
+                            <div className="relative w-full sm:max-w-xs">
+                                <Ticket className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-lime-brand" />
+                                <Input
+                                    value={localCode}
+                                    onChange={(e) =>
+                                        setLocalCode(e.target.value)
+                                    }
+                                    placeholder="KM4X-P2N7"
+                                    autoComplete="off"
+                                    maxLength={12}
+                                    aria-label="Attendance code"
+                                    className="pl-9 font-mono uppercase tracking-wider"
+                                />
+                            </div>
+                            {codeActive ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={clearCode}
+                                >
+                                    <X className="mr-2 h-3.5 w-3.5" />
+                                    Clear code
+                                </Button>
+                            ) : (
+                                <Button
+                                    type="submit"
+                                    disabled={localCode.trim() === ''}
+                                >
+                                    Look up
+                                </Button>
+                            )}
+                        </form>
+
+                        {codeActive && (
+                            <div className="flex items-start gap-3 rounded-xl border border-lime-brand/30 bg-lime-brand/5 p-3">
+                                <Ticket className="mt-0.5 h-4 w-4 shrink-0 text-lime-brand" />
+                                <p className="text-sm text-lime-brand">
+                                    Showing the registration matching{' '}
+                                    <span className="font-mono font-medium">
+                                        {filters.code}
+                                    </span>
+                                    . Clear the code to return to the full
+                                    list.
+                                </p>
+                            </div>
+                        )}
+
                         {/* Toolbar */}
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="relative w-full sm:max-w-xs">
@@ -566,6 +755,7 @@ export default function EventsAttendance({
                                     }
                                     placeholder="Search name, email, phone..."
                                     className="pl-9"
+                                    disabled={codeActive}
                                 />
                             </div>
 
@@ -587,6 +777,7 @@ export default function EventsAttendance({
                             counts={counts}
                             baseUrl={baseUrl}
                             search={localSearch}
+                            disabled={codeActive}
                         />
 
                         {/* Confirm-mode bulk toolbar */}
@@ -606,6 +797,7 @@ export default function EventsAttendance({
                             <EmptyState
                                 hasSearch={localSearch !== ''}
                                 hasFilter={filters.filter !== 'all'}
+                                code={filters.code}
                             />
                         ) : (
                             <div className="overflow-x-auto">
@@ -659,7 +851,11 @@ export default function EventsAttendance({
                                             return (
                                                 <tr
                                                     key={row.id}
-                                                    className="border-b border-white/5 last:border-b-0"
+                                                    className={`border-b border-white/5 last:border-b-0 ${
+                                                        codeActive
+                                                            ? 'bg-lime-brand/5'
+                                                            : ''
+                                                    }`}
                                                 >
                                                     {isConfirmMode && (
                                                         <td className="py-3 pr-3">
@@ -883,10 +1079,27 @@ export default function EventsAttendance({
 function EmptyState({
     hasSearch,
     hasFilter,
+    code,
 }: {
     hasSearch: boolean;
     hasFilter: boolean;
+    code: string;
 }) {
+    if (code !== '') {
+        return (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Ticket className="h-8 w-8 text-muted-foreground/40" />
+                <p className="mt-3 text-sm text-foreground">
+                    No registration matches{' '}
+                    <span className="font-mono font-medium">{code}</span>.
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                    Check the code, or clear it and search by name.
+                </p>
+            </div>
+        );
+    }
+
     if (hasSearch || hasFilter) {
         return (
             <div className="flex flex-col items-center justify-center py-16 text-center">

@@ -8,12 +8,27 @@ use App\Concerns\WalkInFieldValidationRules;
 use App\Models\Event;
 use App\Models\Participant;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class WalkInRegistrationRequest extends FormRequest
 {
     use ContactAndAddressQualityRules;
     use HumanNameQualityRules;
     use WalkInFieldValidationRules;
+
+    /**
+     * Encoding modes accepted by the walk-in endpoint.
+     *
+     * Live — staff is registering the participant at the table, right
+     * now. The server stamps attendance_time with now(), matching the
+     * current behavior. This is the default when the field is absent.
+     *
+     * Deferred — staff is transcribing a paper form after the fact.
+     * The server uses the submitted arrival_time instead of now(), so
+     * the record preserves when the participant actually arrived, not
+     * when the encoding happened.
+     */
+    public const ENCODING_MODES = ['live', 'deferred'];
 
     /**
      * Staff are creating this on behalf of a participant. The route
@@ -28,7 +43,8 @@ class WalkInRegistrationRequest extends FormRequest
     /**
      * Six common participant fields, plus a `mark_present` flag, plus
      * the event's custom fields keyed by registration_field_id in a
-     * `responses` map.
+     * `responses` map. Plus the encoding mode and, when deferred, the
+     * arrival time.
      *
      * Required-ness of three of the six common fields (email,
      * contact_number, address) is per-event, read via
@@ -65,25 +81,37 @@ class WalkInRegistrationRequest extends FormRequest
             'mark_present' => ['boolean'],
             'responses' => ['nullable', 'array'],
             'responses.*' => ['nullable'],
+
+            // Encoding mode. Absent or null means "live" — the current
+            // behavior, kept as the default for backwards compatibility.
+            'encoding_mode' => ['nullable', 'string', Rule::in(self::ENCODING_MODES)],
+
+            // Arrival time. Only meaningful when encoding_mode is
+            // 'deferred'. Required in that case (checked in
+            // withValidator so the error lands under the right key).
+            'arrival_time' => ['nullable', 'date_format:H:i'],
         ];
     }
 
     /**
-     * Post-rules validation. Runs in four passes:
+     * Post-rules validation. Runs in five passes:
      *
      *   1. Custom field responses — key ownership and format.
      *   2. Required custom fields — iterating the field list, not
      *      the submitted keys (a required field the staff member
      *      skipped produces no key in `responses`).
-     *   3. At-least-one identity — email or normalizable phone.
+     *   3. Encoding mode — arrival_time is required when the mode is
+     *      deferred. In live mode, any submitted arrival_time is
+     *      ignored by the controller.
+     *   4. At-least-one identity — email or normalizable phone.
      *      Early-returns when this fails so the duplicate check
      *      below is not run against a blank identity.
-     *   4. Not already registered for this event.
+     *   5. Not already registered for this event.
      *
      * Passes 1 + 2 mirror PublicRegistrationRequest::withValidator()
      * exactly. The isEmpty() and validateResponseType() helpers come
      * from the WalkInFieldValidationRules trait — shared with the
-     * bulk walk-in request introduced in Phase C.
+     * bulk walk-in request.
      */
     public function withValidator($validator): void
     {
@@ -142,7 +170,19 @@ class WalkInRegistrationRequest extends FormRequest
                 }
             }
 
-            // -------- Pass 3: at-least-one identity --------
+            // -------- Pass 3: encoding mode --------
+
+            $mode = $this->input('encoding_mode') ?? 'live';
+            $arrivalTime = $this->input('arrival_time');
+
+            if ($mode === 'deferred' && ($arrivalTime === null || trim((string) $arrivalTime) === '')) {
+                $v->errors()->add(
+                    'arrival_time',
+                    'Arrival time is required when transcribing from paper.',
+                );
+            }
+
+            // -------- Pass 4: at-least-one identity --------
 
             $email = $this->input('email');
             $phone = $this->input('contact_number');
@@ -161,7 +201,7 @@ class WalkInRegistrationRequest extends FormRequest
                 return;
             }
 
-            // -------- Pass 4: not already registered --------
+            // -------- Pass 5: not already registered --------
 
             $existing = null;
 
@@ -227,9 +267,9 @@ class WalkInRegistrationRequest extends FormRequest
 
     /**
      * Custom messages for the name quality regexes, the contact and
-     * address quality regexes, the identity error, and the custom
-     * field errors. Mirrors PublicRegistrationRequest for the custom
-     * field keys.
+     * address quality regexes, the identity error, the arrival-time
+     * error, and the custom field errors. Mirrors
+     * PublicRegistrationRequest for the custom field keys.
      *
      * @return array<string, string>
      */
@@ -244,6 +284,7 @@ class WalkInRegistrationRequest extends FormRequest
             'address.regex' => 'Please enter a valid address.',
             'address.not_regex' => 'Please enter a valid address.',
             'identity.required' => 'Please provide at least an email address or a contact number.',
+            'arrival_time.date_format' => 'Enter the arrival time as HH:MM (24-hour).',
         ];
     }
 }

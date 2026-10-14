@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'notes',
     'submitted_email',
     'submitted_contact_number',
+    'attendance_code',
 ])]
 class Registration extends Model
 {

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'attendance_time',
     'recorded_by',
     'notes',
+    'verified_at',
 ])]
 class Attendance extends Model
 {
@@ -21,6 +22,7 @@ class Attendance extends Model
         return [
             'attendance_status' => AttendanceStatus::class,
             'attendance_time' => 'datetime',
+            'verified_at' => 'datetime',
         ];
     }
 

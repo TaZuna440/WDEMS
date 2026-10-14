@@ -7,6 +7,7 @@ use App\Concerns\HumanNameQualityRules;
 use App\Concerns\WalkInFieldValidationRules;
 use App\Models\Event;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * Bulk walk-in registration payload.
@@ -15,12 +16,24 @@ use Illuminate\Foundation\Http\FormRequest;
  * submission, plus a `client_uuid` for idempotency. No `mark_present`
  * per row — bulk rows always mark present (Phase C scope decision).
  *
+ * Encoding mode is a single top-level field for the whole batch,
+ * unlike the single-row walk-in dialog where it is one submission.
+ * You are either transcribing a stack of paper forms (deferred) or
+ * entering live arrivals back-to-back (live). Per-row modes would be
+ * over-engineering.
+ *
+ * When the batch mode is 'deferred', each row carries its own
+ * `arrival_time` — different people on the same paper stack arrived
+ * at different times. When the mode is 'live', arrival_time is
+ * ignored if submitted.
+ *
  * Validation split:
  *
  *   - This request validates SHAPE. Array bounds, per-row field
  *     rules (name quality, age range, per-event common field
- *     required-ness), custom field ownership and format, and
- *     client_uuid uniqueness within the payload.
+ *     required-ness), custom field ownership and format,
+ *     client_uuid uniqueness within the payload, encoding mode,
+ *     and per-row arrival_time.
  *
  *   - The controller validates BUSINESS RULES per row. Identity
  *     resolution, duplicate-against-existing, duplicate-within-batch.
@@ -38,6 +51,13 @@ class BulkWalkInRegistrationRequest extends FormRequest
     use WalkInFieldValidationRules;
 
     public const MAX_ROWS = 100;
+
+    /**
+     * Encoding modes accepted at the batch level. Same list as the
+     * single-row walk-in request; see WalkInRegistrationRequest for
+     * the full semantics.
+     */
+    public const ENCODING_MODES = ['live', 'deferred'];
 
     /**
      * Route middleware is the gate (auth + verified.or.admin +
@@ -82,17 +102,30 @@ class BulkWalkInRegistrationRequest extends FormRequest
             'rows.*.responses' => ['nullable', 'array'],
             'rows.*.responses.*' => ['nullable'],
 
+            // Top-level encoding mode. Absent or null means "live" —
+            // current behavior, kept as the default for backwards
+            // compatibility.
+            'encoding_mode' => ['nullable', 'string', Rule::in(self::ENCODING_MODES)],
+
+            // Per-row arrival time. Only meaningful when the batch
+            // mode is 'deferred'. Required in that case (checked in
+            // withValidator so the error lands under the row key).
+            'rows.*.arrival_time' => ['nullable', 'date_format:H:i'],
+
             'force_open' => ['nullable', 'boolean'],
         ];
     }
 
     /**
-     * Post-rules validation. Runs two passes over the rows:
+     * Post-rules validation. Runs three passes over the rows:
      *
      *   1. Custom field responses — key ownership and format per row.
      *      Error keys: `rows.{i}.responses.{field_id}`.
      *   2. Required custom fields — iterating each row's field list,
      *      not the submitted keys.
+     *   3. Encoding mode — when the batch mode is 'deferred',
+     *      arrival_time is required per row. Error keys:
+     *      `rows.{i}.arrival_time`.
      *
      * Pass 1 and 2 mirror WalkInRegistrationRequest::withValidator()
      * for shape. Business rules (identity, duplicate) live in the
@@ -118,6 +151,9 @@ class BulkWalkInRegistrationRequest extends FormRequest
             if (! is_array($rows)) {
                 return;
             }
+
+            $mode = $this->input('encoding_mode') ?? 'live';
+            $deferred = $mode === 'deferred';
 
             foreach ($rows as $i => $row) {
                 if (! is_array($row)) {
@@ -171,6 +207,21 @@ class BulkWalkInRegistrationRequest extends FormRequest
                             'This field is required.',
                         );
                     }
+                }
+
+                // -------- Pass 3: arrival time per row when deferred --------
+
+                if (! $deferred) {
+                    continue;
+                }
+
+                $arrivalTime = $row['arrival_time'] ?? null;
+
+                if ($arrivalTime === null || trim((string) $arrivalTime) === '') {
+                    $v->errors()->add(
+                        "rows.{$i}.arrival_time",
+                        'Arrival time is required for each row when transcribing from paper.',
+                    );
                 }
             }
         });
@@ -230,6 +281,8 @@ class BulkWalkInRegistrationRequest extends FormRequest
             'rows.*.contact_number.regex' => 'Please enter a valid phone number.',
             'rows.*.address.regex' => 'Please enter a valid address.',
             'rows.*.address.not_regex' => 'Please enter a valid address.',
+
+            'rows.*.arrival_time.date_format' => 'Enter the arrival time as HH:MM (24-hour).',
         ];
     }
 }

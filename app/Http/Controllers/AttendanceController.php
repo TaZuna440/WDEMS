@@ -12,6 +12,7 @@ use App\Models\Event;
 use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\RegistrationFieldResponse;
+use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -84,11 +85,27 @@ class AttendanceController extends Controller
             $filter = 'all';
         }
 
-        $baseQuery = function () use ($event, $search) {
+        // Attendance-code lookup. Accepts KM4X-P2N7 and its common
+        // typographic variants (lowercase, missing dash, spaced).
+        // Normalizes to the stored format. When present, the code takes
+        // precedence over q and filter — the operator's mental model is
+        // "show me this person," not "filter the list by this code."
+        $code = $this->normalizeAttendanceCode(
+            (string) $request->input('code', ''),
+        );
+        $codeActive = $code !== '';
+
+        $baseQuery = function () use ($event, $search, $code, $codeActive) {
             $q = Registration::query()
                 ->where('registrations.event_id', $event->id)
                 ->join('participants', 'participants.id', '=', 'registrations.participant_id')
                 ->select('registrations.*');
+
+            if ($codeActive) {
+                $q->where('registrations.attendance_code', $code);
+
+                return $q;
+            }
 
             if ($search !== '') {
                 $like = '%'.$search.'%';
@@ -103,6 +120,10 @@ class AttendanceController extends Controller
             return $q;
         };
 
+        // Chip counts reflect the current search (or the code, when
+        // active). This is deliberate and tested: with ?q=Maria, the
+        // All chip reads "2," not "4" — the volunteer sees the size of
+        // their current result set, not the size of the event.
         $counts = [
             'all' => $baseQuery()->count(),
             'unmarked' => $baseQuery()->whereDoesntHave('attendance')->count(),
@@ -122,13 +143,17 @@ class AttendanceController extends Controller
 
         $query = $baseQuery()->with([
             'participant:id,first_name,last_name,email,contact_number',
-            'attendance:id,registration_id,attendance_status,attendance_time,notes',
+            'attendance:id,registration_id,attendance_status,attendance_time,notes,verified_at',
         ]);
 
-        if ($filter === 'unmarked') {
-            $query->whereDoesntHave('attendance');
-        } elseif ($filter !== 'all') {
-            $query->whereHas('attendance', fn ($q) => $q->where('attendance_status', $filter));
+        // Filter chips are ignored when a code is active — the code
+        // already narrows to at most one row.
+        if (! $codeActive) {
+            if ($filter === 'unmarked') {
+                $query->whereDoesntHave('attendance');
+            } elseif ($filter !== 'all') {
+                $query->whereHas('attendance', fn ($q) => $q->where('attendance_status', $filter));
+            }
         }
 
         $query->orderBy('participants.last_name')
@@ -141,6 +166,7 @@ class AttendanceController extends Controller
             'id' => $r->id,
             'source' => $r->source,
             'registered_at' => $r->registered_at?->toIso8601String(),
+            'attendance_code' => $r->attendance_code,
             'participant' => [
                 'id' => $r->participant?->id,
                 'full_name' => $r->participant?->fullName(),
@@ -152,6 +178,7 @@ class AttendanceController extends Controller
                 'status_label' => $r->attendance->attendance_status->label(),
                 'time' => $r->attendance->attendance_time?->toIso8601String(),
                 'notes' => $r->attendance->notes,
+                'verified_at' => $r->attendance->verified_at?->toIso8601String(),
             ] : null,
         ]);
 
@@ -181,6 +208,7 @@ class AttendanceController extends Controller
             'filters' => [
                 'q' => $search,
                 'filter' => $filter,
+                'code' => $code,
             ],
             'can_mark' => $forceOpen || $event->canRecordAttendanceNow(),
             'is_admin' => $isAdmin,
@@ -194,6 +222,22 @@ class AttendanceController extends Controller
         ]);
     }
 
+    /**
+     * Mark a single registration.
+     *
+     * Accepts an optional `verified_code`. When present, the server
+     * checks it against the registration's stored attendance_code. If
+     * the code matches AND the status being set is Present or Late
+     * (the two states that mean "this person showed up"), the row's
+     * `verified_at` is stamped with now(). The code is the proof;
+     * anything else leaves `verified_at` null.
+     *
+     * Absent and Excused never set `verified_at` — the code proves
+     * presence, not absence. A verified absence is a contradiction.
+     *
+     * See docs/attendance-encoding-and-reporting.md §12 and
+     * SPEC-GAP-4 for the design rationale.
+     */
     public function mark(Request $request, Event $event, Registration $registration): RedirectResponse
     {
         $forceOpen = $request->user()?->isAdmin() === true
@@ -210,6 +254,7 @@ class AttendanceController extends Controller
         $validated = $request->validate([
             'status' => ['required', Rule::enum(AttendanceStatus::class)],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'verified_code' => ['nullable', 'string', 'max:16'],
         ]);
 
         $status = AttendanceStatus::from($validated['status']);
@@ -220,6 +265,23 @@ class AttendanceController extends Controller
             AttendanceStatus::Late,
         ], true);
 
+        // Verification: the submitted code must normalize to the
+        // registration's stored code. The status must be one of the
+        // presence states. Anything else leaves `verified_at` null.
+        $verifiedAt = null;
+        $submittedCode = $this->normalizeAttendanceCode(
+            (string) ($validated['verified_code'] ?? ''),
+        );
+
+        if (
+            $shouldRecordTime
+            && $submittedCode !== ''
+            && $registration->attendance_code !== null
+            && $submittedCode === $registration->attendance_code
+        ) {
+            $verifiedAt = now();
+        }
+
         $registration->attendance()->updateOrCreate(
             ['registration_id' => $registration->id],
             [
@@ -227,6 +289,7 @@ class AttendanceController extends Controller
                 'attendance_time' => $shouldRecordTime ? now() : null,
                 'recorded_by' => $user->id,
                 'notes' => $validated['notes'] ?? null,
+                'verified_at' => $verifiedAt,
             ],
         );
 
@@ -248,6 +311,13 @@ class AttendanceController extends Controller
      * Idempotent. Writes go through the same attendance()->updateOrCreate()
      * the single-row mark uses. Rerunning is a no-op for already-present
      * rows.
+     *
+     * Bulk marking never sets `verified_at`. Reconciling from a paper
+     * sheet is a bulk action, not a verification — the paper sheet is
+     * its own record, and the system is not independently proving that
+     * any of those people were physically present. Rows marked through
+     * this path carry `verified_at = null` and are counted as
+     * unverified in the report.
      *
      * No rate limiter — this is a trusted-staff write operation, and the
      * single-row mark endpoint has no limiter either. If abuse becomes a
@@ -279,6 +349,7 @@ class AttendanceController extends Controller
                         'attendance_status' => AttendanceStatus::Present,
                         'attendance_time' => now(),
                         'recorded_by' => $user->id,
+                        'verified_at' => null,
                     ],
                 );
 
@@ -384,6 +455,21 @@ class AttendanceController extends Controller
      * `source = 'paper'` for every row — the operator is transcribing
      * a physical form, not registering someone who just walked up to
      * the table.
+     *
+     * Encoding mode is a single top-level field for the whole batch.
+     *
+     *   - Live (default). Each row's attendance_time is now() — the
+     *     batch is being entered as people arrive. Same as the
+     *     original behavior.
+     *
+     *   - Deferred. Each row's attendance_time is computed from the
+     *     event's date and that row's `arrival_time`. The batch
+     *     preserves when each person actually arrived, not when the
+     *     transcription happened.
+     *
+     * Per-row arrival_time is validation-required when deferred (see
+     * BulkWalkInRegistrationRequest Pass 3). In live mode, any
+     * submitted arrival_time is ignored.
      */
     public function bulkWalkIn(BulkWalkInRegistrationRequest $request, Event $event): RedirectResponse
     {
@@ -397,6 +483,9 @@ class AttendanceController extends Controller
         $validated = $request->validated();
         $user = $request->user();
         $rows = $validated['rows'];
+
+        $encodingMode = $validated['encoding_mode'] ?? 'live';
+        $deferred = $encodingMode === 'deferred';
 
         $errors = [];
         $seenParticipantIds = [];
@@ -412,10 +501,23 @@ class AttendanceController extends Controller
                 continue;
             }
 
+            // Compute the per-row attendance timestamp. Live mode uses
+            // now(); deferred mode uses the row's arrival_time on the
+            // event's date. Validation guarantees arrival_time is
+            // present when deferred, but the guard is defensive.
+            if ($deferred && isset($row['arrival_time']) && $row['arrival_time'] !== null) {
+                $attendanceTime = $event->event_date
+                    ->copy()
+                    ->setTimeFromTimeString($row['arrival_time']);
+            } else {
+                $attendanceTime = now();
+            }
+
             $error = $this->persistBulkWalkInRow(
                 $row,
                 $event,
                 $user,
+                $attendanceTime,
                 $seenParticipantIds,
             );
 
@@ -448,7 +550,19 @@ class AttendanceController extends Controller
      * BEFORE `resolveFrom()` so a rejected row never creates an
      * orphan Participant.
      *
+     * The attendance timestamp is passed in by the caller — either
+     * now() for live encoding, or the row's arrival_time on the
+     * event's date for deferred. This method does not compute it.
+     *
+     * The parameter is typed as CarbonInterface rather than the
+     * concrete Carbon or CarbonImmutable because the two callers
+     * produce different concrete classes: now() returns a mutable
+     * Illuminate\Support\Carbon, and event_date (cast as
+     * immutable_datetime) returns a CarbonImmutable. Both implement
+     * CarbonInterface.
+     *
      * @param  array<string, mixed>  $row
+     * @param  \Carbon\CarbonInterface  $attendanceTime
      * @param  array<int, int>  $seenParticipantIds  Mutable, accumulates
      *                                                participants already
      *                                                seen in this batch.
@@ -457,6 +571,7 @@ class AttendanceController extends Controller
         array $row,
         Event $event,
         $user,
+        CarbonInterface $attendanceTime,
         array &$seenParticipantIds,
     ): ?string {
         $email = is_string($row['email'] ?? null) ? trim($row['email']) : '';
@@ -500,7 +615,7 @@ class AttendanceController extends Controller
         }
 
         // All checks passed. Persist.
-        DB::transaction(function () use ($row, $event, $user, &$seenParticipantIds, $email, $phone): void {
+        DB::transaction(function () use ($row, $event, $user, $attendanceTime, &$seenParticipantIds, $email, $phone): void {
             $participant = Participant::resolveFrom(
                 $email !== '' ? $email : null,
                 $phone,
@@ -535,7 +650,7 @@ class AttendanceController extends Controller
 
             $registration->attendance()->create([
                 'attendance_status' => AttendanceStatus::Present,
-                'attendance_time' => now(),
+                'attendance_time' => $attendanceTime,
                 'recorded_by' => $user->id,
             ]);
         });
@@ -569,6 +684,28 @@ class AttendanceController extends Controller
         return implode(' ', $parts);
     }
 
+    /**
+     * Register a single walk-in participant.
+     *
+     * Two encoding modes:
+     *
+     *   - Live (default, or encoding_mode = 'live'). The staff member
+     *     is registering the participant at the table, right now. The
+     *     server stamps attendance_time with now(). This matches the
+     *     original behavior; requests that omit encoding_mode fall
+     *     through here.
+     *
+     *   - Deferred (encoding_mode = 'deferred'). The staff member is
+     *     transcribing a paper form after the fact. The submitted
+     *     `arrival_time` (HH:MM) is combined with the event's
+     *     event_date and used as attendance_time, so the record
+     *     preserves when the participant actually arrived — not when
+     *     the encoding happened.
+     *
+     * Arrival time is validation-required when deferred (see
+     * WalkInRegistrationRequest Pass 3). In live mode, any submitted
+     * arrival_time is ignored.
+     */
     public function walkIn(WalkInRegistrationRequest $request, Event $event): RedirectResponse
     {
         $forceOpen = $request->user()?->isAdmin() === true
@@ -581,7 +718,21 @@ class AttendanceController extends Controller
         $validated = $request->validated();
         $user = $request->user();
 
-        DB::transaction(function () use ($validated, $event, $user): void {
+        $encodingMode = $validated['encoding_mode'] ?? 'live';
+        $arrivalTime = $validated['arrival_time'] ?? null;
+
+        // Compute the attendance timestamp once, outside the
+        // transaction. Live mode uses now(); deferred mode uses the
+        // arrival time on the event's date.
+        if ($encodingMode === 'deferred' && $arrivalTime !== null) {
+            $attendanceTime = $event->event_date
+                ->copy()
+                ->setTimeFromTimeString($arrivalTime);
+        } else {
+            $attendanceTime = now();
+        }
+
+        DB::transaction(function () use ($validated, $event, $user, $attendanceTime): void {
             $participant = Participant::resolveFrom(
                 $validated['email'] ?? null,
                 $validated['contact_number'] ?? null,
@@ -615,13 +766,39 @@ class AttendanceController extends Controller
             if ($validated['mark_present'] ?? true) {
                 $registration->attendance()->create([
                     'attendance_status' => AttendanceStatus::Present,
-                    'attendance_time' => now(),
+                    'attendance_time' => $attendanceTime,
                     'recorded_by' => $user->id,
                 ]);
             }
         });
 
         return redirect()->route('events.attendance', $event);
+    }
+
+    /**
+     * Normalize an attendance-code input to its stored form.
+     *
+     * The stored format is KM4X-P2N7 (4 + dash + 4). Operators may
+     * type it in any of these forms:
+     *
+     *   KM4X-P2N7   (canonical)
+     *   km4x-p2n7   (lowercase)
+     *   KM4XP2N7    (no dash)
+     *   KM4X P2N7   (space instead of dash)
+     *
+     * All normalize to KM4X-P2N7. Returns '' for anything that does
+     * not reduce to 8 alphanumerics — those never match anything, and
+     * the caller treats the code as inactive.
+     */
+    private function normalizeAttendanceCode(string $input): string
+    {
+        $clean = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $input) ?? '');
+
+        if (strlen($clean) !== 8) {
+            return '';
+        }
+
+        return substr($clean, 0, 4).'-'.substr($clean, 4);
     }
 
     /**

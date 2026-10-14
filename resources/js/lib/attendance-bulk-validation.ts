@@ -15,6 +15,10 @@
  * generates one per row from crypto.randomUUID() and keeps it stable
  * across edits. If somehow a row reaches the server without one, the
  * request's `uuid` rule catches it.
+ *
+ * The client DOES validate `arrival_time` when the batch is in
+ * deferred encoding mode — a per-row HH:MM is required in that mode,
+ * matching the server's Pass 3 in BulkWalkInRegistrationRequest.
  */
 
 import {
@@ -25,6 +29,12 @@ import {
 
 export type BulkWalkInRow = RegistrationFormData & {
     client_uuid: string;
+    /**
+     * HH:MM string. Only meaningful when the batch encoding mode is
+     * 'deferred'. In live mode the server ignores this field and
+     * stamps attendance_time with now().
+     */
+    arrival_time: string;
 };
 
 export type BulkWalkInValidationResult = {
@@ -36,15 +46,16 @@ export function validateBulkWalkInRows(
     rows: BulkWalkInRow[],
     fields: ServerField[],
     commonFieldRequirements: Record<string, boolean> = {},
+    deferred = false,
 ): BulkWalkInValidationResult {
     const errors: Record<string, string> = {};
     const invalidRowIndexes: number[] = [];
 
     rows.forEach((row, i) => {
-        // Strip the client_uuid before passing to the shared validator.
-        // It has no counterpart on RegistrationFormData, and the
-        // validator would ignore it anyway — but keeping the shape
-        // exact avoids surprises if the shared validator grows.
+        // Strip the client-only fields before passing to the shared
+        // validator. They have no counterpart on RegistrationFormData,
+        // and the validator would ignore them anyway — but keeping the
+        // shape exact avoids surprises if the shared validator grows.
         const rowData: RegistrationFormData = {
             first_name: row.first_name,
             last_name: row.last_name,
@@ -55,11 +66,21 @@ export function validateBulkWalkInRows(
             responses: row.responses,
         };
 
-        const rowErrors = validateRegistrationForm(
-            rowData,
-            fields,
-            commonFieldRequirements,
-        );
+        const rowErrors: Record<string, string> = {
+            ...validateRegistrationForm(
+                rowData,
+                fields,
+                commonFieldRequirements,
+            ),
+        };
+
+        // Deferred-mode arrival time is required per row. The server
+        // enforces the same rule in Pass 3 of
+        // BulkWalkInRegistrationRequest.
+        if (deferred && row.arrival_time.trim() === '') {
+            rowErrors.arrival_time =
+                'Arrival time is required for each row when transcribing from paper.';
+        }
 
         const keys = Object.keys(rowErrors);
 
@@ -82,7 +103,8 @@ export function validateBulkWalkInRows(
  *
  * The row is blank except for the client_uuid. Age is typed as
  * `string | number` on RegistrationFormData but starts empty so the
- * input renders as blank.
+ * input renders as blank. arrival_time starts empty; the table only
+ * renders its input when the batch is in deferred mode.
  */
 export function makeBulkWalkInRow(): BulkWalkInRow {
     return {
@@ -94,5 +116,6 @@ export function makeBulkWalkInRow(): BulkWalkInRow {
         age: '',
         address: '',
         responses: {},
+        arrival_time: '',
     };
 }

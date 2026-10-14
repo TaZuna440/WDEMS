@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { Clock, Plus, Trash2 } from 'lucide-react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,14 @@ type Props = {
     onChange: (rows: BulkWalkInRow[]) => void;
     disabled?: boolean;
     maxRows: number;
+    /**
+     * True when the batch is being entered in deferred encoding mode.
+     * When true, each row renders an arrival-time input, required by
+     * both the client validator and the server's Pass 3 in
+     * BulkWalkInRegistrationRequest. When false (live), the input is
+     * hidden and any value the row carries is ignored by the server.
+     */
+    deferred?: boolean;
 };
 
 /**
@@ -39,6 +47,11 @@ type Props = {
  * idempotency and its own responses map for the event's custom
  * fields. Common fields (name, age, email, phone, address) render
  * on every row.
+ *
+ * In deferred mode, each row also renders an arrival-time input.
+ * This is the time on the paper form, not the time of encoding —
+ * the server uses it to stamp attendance_time on the created row so
+ * the record preserves when the participant actually arrived.
  *
  * Per-row errors come in through the `errors` prop keyed as
  * `rows.{i}.{field}` — same shape the server returns. InputError
@@ -57,6 +70,7 @@ export default function BulkWalkInTable({
     onChange,
     disabled = false,
     maxRows,
+    deferred = false,
 }: Props) {
     const updateRow = (index: number, patch: Partial<BulkWalkInRow>) => {
         const next = rows.slice();
@@ -266,6 +280,45 @@ export default function BulkWalkInTable({
                                     message={errors[`rows.${i}.address`]}
                                 />
                             </div>
+
+                            {/* Arrival time — only rendered in deferred
+                                mode. This is the time on the paper
+                                form, not the current time. The server
+                                uses it to stamp the row's
+                                attendance_time so the record preserves
+                                when the participant actually arrived. */}
+                            {deferred && (
+                                <div className="grid gap-1.5 sm:col-span-2">
+                                    <Label htmlFor={`rows.${i}.arrival_time`}>
+                                        <Clock className="mr-1 inline h-3.5 w-3.5" />
+                                        Arrival time{requiredMark}
+                                    </Label>
+                                    <Input
+                                        id={`rows.${i}.arrival_time`}
+                                        type="time"
+                                        value={row.arrival_time}
+                                        onChange={(e) =>
+                                            updateRow(i, {
+                                                arrival_time: e.target.value,
+                                            })
+                                        }
+                                        disabled={disabled}
+                                        className="max-w-[10rem]"
+                                        aria-invalid={
+                                            !!errors[`rows.${i}.arrival_time`]
+                                        }
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        The time on the paper form, not the
+                                        current time.
+                                    </p>
+                                    <InputError
+                                        message={
+                                            errors[`rows.${i}.arrival_time`]
+                                        }
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         {fields.length > 0 && (
