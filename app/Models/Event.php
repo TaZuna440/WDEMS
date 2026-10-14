@@ -226,6 +226,25 @@ class Event extends Model
         return $this->status === EventStatus::RegistrationOpen;
     }
 
+    /**
+     * Can the event be finalized (moved from Ongoing to Completed)?
+     *
+     * The only valid state to finalize from is Ongoing. Feature B of
+     * docs/attendance-encoding-and-reporting.md. Finalization is
+     * terminal: the workflow's allowedTransitions() gives Completed an
+     * empty list, so a finalized event cannot be reopened. The only
+     * ways to change a completed event's data are admin event deletion
+     * or a direct database edit.
+     *
+     * Placed alongside canCloseRegistration() so the terminal state
+     * machine transitions read as a unit: Draft → RegistrationOpen →
+     * RegistrationClosed → Ongoing → Completed.
+     */
+    public function canFinalize(): bool
+    {
+        return $this->status === EventStatus::Ongoing;
+    }
+
     public function canRecordAttendance(): bool
     {
         return in_array($this->status, [

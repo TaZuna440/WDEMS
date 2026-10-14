@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Services\EventWorkflow;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -96,6 +97,7 @@ class EventController extends Controller
                 'can_edit' => $event->canEdit(),
                 'can_open_registration' => $event->canOpenRegistration(),
                 'can_close_registration' => $event->canCloseRegistration(),
+                'can_finalize' => $event->canFinalize(),
             ],
             'related' => $related,
             'has_related_records' => array_sum($related) > 0,
@@ -268,6 +270,55 @@ class EventController extends Controller
         $workflow->closeRegistration($event);
 
         return redirect()->route('events.show', $event);
+    }
+
+    /**
+     * Finalize the event — the terminal transition from Ongoing to
+     * Completed.
+     *
+     * Feature B of docs/attendance-encoding-and-reporting.md.
+     * Password-gated at the route via Laravel's RequirePassword
+     * middleware, matching the settings/security endpoints. The
+     * controller does not validate a password itself; a missing or
+     * expired password session redirects to /confirm-password and
+     * back.
+     *
+     * Guard order:
+     *   1. canFinalize() — status must be Ongoing.
+     *   2. workflow->canTransition() — defense-in-depth, catches a
+     *      state change between the guard and the transition.
+     *
+     * Idempotent? No. A second POST returns 403 because the status
+     * is no longer Ongoing. This is intentional — the button
+     * disappears after the first click.
+     *
+     * Redirect target is events.show for now. When Feature C (the
+     * end-of-event report) ships, this becomes events.report. The
+     * change is a single line.
+     */
+    public function finalize(Event $event): RedirectResponse
+    {
+        if (! $event->canFinalize()) {
+            abort(403, 'This event cannot be finalized in its current state.');
+        }
+
+        $workflow = app(EventWorkflow::class);
+
+        if (! $workflow->canTransition($event, EventStatus::Completed)) {
+            abort(403, 'This event cannot be finalized.');
+        }
+
+        $workflow->complete($event);
+
+        Log::info('event.finalized', [
+            'event_id' => $event->id,
+            'actor_id' => auth()->id(),
+            'fired_at' => now()->toIso8601String(),
+        ]);
+
+        return redirect()
+            ->route('events.show', $event)
+            ->with('success', 'Event finalized. Attendance and registration data are now read-only.');
     }
 
     /**

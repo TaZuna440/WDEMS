@@ -11,6 +11,7 @@ use App\Http\Controllers\RegistrationDeletionController;
 use App\Http\Controllers\RegistrationFormController;
 use App\Http\Controllers\RegistrationMonitorController;
 use App\Http\Middleware\EnsureRegistrationIsOpen;
+use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -51,7 +52,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // (EnsureEmailIsVerifiedOrAdmin) and the device challenge
 // (EnsureDeviceIsTrusted), so the admin dashboard lives on the same
 // pipeline as everything else.
-Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(function () {
+//
+// `event.advance` auto-advances a RegistrationClosed event to
+// Ongoing once its start moment has passed. It runs after auth and
+// device.trusted, so an unauthenticated request never flips a
+// status. See app/Http/Middleware/AdvanceEventStatus.php.
+Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     // Registration queue — the organizer's daily workflow entry point.
@@ -110,6 +116,17 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted'])->group(functi
 
     Route::post('events/{event}/open-registration', [EventController::class, 'openRegistration'])->name('events.open-registration');
     Route::post('events/{event}/close-registration', [EventController::class, 'closeRegistration'])->name('events.close-registration');
+
+    // Finalize event — the terminal transition from Ongoing to
+    // Completed. Password-gated via Laravel's RequirePassword
+    // middleware, matching the settings/security endpoints. The
+    // controller checks the status and calls EventWorkflow::complete().
+    //
+    // Placed next to the other workflow routes so a reader sees the
+    // full lifecycle action set in one place.
+    Route::post('events/{event}/finalize', [EventController::class, 'finalize'])
+        ->middleware(RequirePassword::class)
+        ->name('events.finalize');
 
     Route::delete('events/{event}', [EventDeletionController::class, 'destroy'])->name('events.destroy');
     Route::post('events/{event}/deletion/request-otp', [EventDeletionController::class, 'requestOtp'])

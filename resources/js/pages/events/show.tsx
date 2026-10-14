@@ -3,6 +3,7 @@ import { useState } from 'react';
 import {
     ArrowLeft,
     Calendar,
+    CheckCircle2,
     ClipboardCheck,
     Clock,
     ExternalLink,
@@ -58,6 +59,7 @@ type EventData = {
     can_edit: boolean;
     can_open_registration: boolean;
     can_close_registration: boolean;
+    can_finalize: boolean;
 };
 
 type RelatedCounts = {
@@ -170,6 +172,40 @@ export default function EventsShow({
                 'No new participants can register after this. This action cannot be undone.',
             confirmLabel: 'Close Registration',
             onConfirm: () => router.post(`/events/${event.id}/close-registration`),
+        });
+    };
+
+    /**
+     * Finalize the event. Terminal transition from Ongoing to
+     * Completed. No password field in this modal — the route is
+     * wrapped in Laravel's RequirePassword middleware, which handles
+     * re-authentication transparently (and within the grace window,
+     * not at all).
+     */
+    const finalizeEvent = () => {
+        openConfirm({
+            variant: 'warning',
+            title: 'Finalize this event?',
+            description:
+                'This marks the event as complete. The event data becomes read-only.',
+            confirmLabel: 'Finalize Event',
+            children: (
+                <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                        After finalizing:
+                    </p>
+                    <ul className="ml-1 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+                        <li>Registrations become read-only</li>
+                        <li>Attendance marks are frozen</li>
+                        <li>Walk-in entry is disabled</li>
+                        <li>Encoding becomes read-only</li>
+                    </ul>
+                    <p className="text-sm font-medium text-foreground">
+                        This cannot be undone.
+                    </p>
+                </div>
+            ),
+            onConfirm: () => router.post(`/events/${event.id}/finalize`),
         });
     };
 
@@ -510,6 +546,17 @@ export default function EventsShow({
                                 >
                                     <UserPlus className="mr-2 h-4 w-4" />
                                     Open Registration
+                                </Button>
+                            )}
+
+                            {event.can_finalize && (
+                                <Button
+                                    onClick={finalizeEvent}
+                                    variant="outline"
+                                    className="justify-start border-amber-500/40 text-amber-400 hover:border-amber-500 hover:bg-amber-500 hover:text-navy-900"
+                                >
+                                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                                    Finalize Event
                                 </Button>
                             )}
                         </div>

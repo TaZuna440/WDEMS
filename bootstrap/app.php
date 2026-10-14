@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AdminMiddleware;
+use App\Http\Middleware\AdvanceEventStatus;
 use App\Http\Middleware\EnsureDeviceIsTrusted;
 use App\Http\Middleware\EnsureEmailIsVerifiedOrAdmin;
 use App\Http\Middleware\HandleAppearance;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => AdminMiddleware::class,
             'device.trusted' => EnsureDeviceIsTrusted::class,
             'verified.or.admin' => EnsureEmailIsVerifiedOrAdmin::class,
+            'event.advance' => AdvanceEventStatus::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
