@@ -378,3 +378,31 @@ reference the old one by number.
   constants, closed-registration status code, rate limiter
   inventory, pre-existing registration constraint, and the
   `c3b4384` commit-message defect.
+
+## Correction to §5 (2026-10-14)
+
+Section 5 states: "Five named rate limiters."
+
+As of commit `b552cbb` (2026-10-14), the actual count is **eleven**.
+Added since the original entry was written:
+
+- `walk-in-batch`
+- `registration-deletion-otp-request`
+- `registration-deletion-otp-verify`
+- `registration-verification-view`
+- `registration-verification-attempt`
+- `registration-verification-resend`
+
+Removed in the same session:
+
+- `registration-verification-staff-view`
+- `registration-verification-phone`
+
+The limiters are now split across two methods in `AppServiceProvider`:
+`configureRateLimiters()` holds eight of them, and
+`configureRegistrationVerificationLimits()` holds the three
+registration-verification entries. Both are called from `boot()`.
+
+The section's guidance about bound values and key selection still
+applies — this correction is only to the count and the method
+reference.

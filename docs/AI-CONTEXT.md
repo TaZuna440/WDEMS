@@ -380,3 +380,41 @@ seems to contradict something else.
 
 - Section §7 above — the original reading-order table
 - `docs/progress.md` 2026-10-13 entry — the doc-pass record
+
+---
+
+## 18. Phone verification is Firebase-mediated (2026-10-14)
+
+Section §17 above lists this reading-order entry:
+
+> | Public registration verification, contact OTPs, staff phone queue |
+> | `docs/registration-contact-verification.md` |
+
+The "staff phone queue" part is stale. Commit `b552cbb` (2026-10-14)
+replaced the staff-mediated phone channel with Firebase Phone Auth.
+There is no queue, no sidebar entry, no staff code generation.
+
+When working on public registration verification, the current flow is:
+
+- **Email** — six-digit OTP via Resend. Unchanged.
+- **Phone** — Firebase Phone Auth in the browser. The user completes a
+  reCAPTCHA, receives an SMS from Firebase, and the browser SDK
+  produces an ID token. The frontend posts the token to
+  `/r/{slug}/verification/phone/firebase`. The backend verifies it
+  through the Firebase Admin SDK.
+
+Phone is also now structurally required on every event.
+`Event::COMMON_FIELDS_TOGGLEABLE` no longer contains
+`contact_number`; it lives in `COMMON_FIELDS_ALWAYS_REQUIRED`.
+
+Section §7's reading-order table still points at the right file
+(`docs/registration-contact-verification.md`). Read it together with
+its `## Corrections (2026-10-14)` block, which is the authoritative
+description of the current phone channel.
+
+### Config touched
+
+    config/firebase.php
+    storage/app/firebase/service-account.json  (gitignored)
+    .env  VITE_FIREBASE_*  (public web SDK config)
+    .env  FIREBASE_CREDENTIALS  (path to service account)

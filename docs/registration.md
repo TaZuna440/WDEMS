@@ -492,3 +492,37 @@ change is *when* it runs: at finalize, not at submit. Only verified
 identity keys participate in resolution. Optional contact values are
 stored on the Registration as `submitted_*` snapshots and never touch
 `participants.email` or `participants.contact_number`.
+
+---
+
+## Corrections — Phone verification (2026-10-14)
+
+The `## Corrections — Status block (2026-10-13)` above describes the
+three-phase flow and its step 2 as:
+
+> Required email is verified by an OTP delivered through Resend.
+> Required phone is verified by a staff-generated code
+> communicated externally.
+
+That described the shipped state on 2026-10-13. Commit `b552cbb`
+(2026-10-14) replaced the phone channel with Firebase Phone Auth.
+
+Current state of step 2:
+
+- **Email** — six-digit OTP delivered by Resend. Unchanged.
+- **Phone** — reCAPTCHA, then Firebase sends the SMS. The browser SDK
+  produces an ID token which the frontend posts to
+  `/r/{slug}/verification/phone/firebase`. The server verifies the
+  token with the Firebase Admin SDK and requires the verified phone to
+  match the submitted phone after normalization.
+- **No staff action.** The verification queue, the sidebar entry, and
+  the `phone-code` endpoint are all deleted.
+
+Phone is also now structurally required on every event.
+`Event::COMMON_FIELDS_TOGGLEABLE` no longer contains
+`contact_number`; it lives in `COMMON_FIELDS_ALWAYS_REQUIRED`
+alongside `first_name`, `last_name`, and `age`.
+
+Full record:
+`docs/registration-contact-verification.md`
+`## Corrections (2026-10-14)` block.
