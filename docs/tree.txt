@@ -4,18 +4,20 @@
 |   |   `-- Fortify
 |   |       `-- ResetUserPassword.php
 |   |-- Concerns
+|   |   |-- ContactAndAddressQualityRules.php
 |   |   |-- EventValidationRules.php
 |   |   |-- HumanNameQualityRules.php
 |   |   |-- PasswordValidationRules.php
 |   |   |-- ProfileValidationRules.php
-|   |   `-- RegistrationFieldValidationRules.php
-|   |-- Console
-|   |   `-- Commands
+|   |   |-- RegistrationFieldValidationRules.php
+|   |   `-- WalkInFieldValidationRules.php
 |   |-- Enums
 |   |   |-- AttendanceStatus.php
 |   |   |-- EventStatus.php
 |   |   |-- EventType.php
 |   |   `-- RegistrationStatus.php
+|   |-- Exceptions
+|   |   `-- IdentityRequiredException.php
 |   |-- Http
 |   |   |-- Controllers
 |   |   |   |-- AttendanceController.php
@@ -27,29 +29,44 @@
 |   |   |   |-- EventDeletionController.php
 |   |   |   |-- PublicRegistrationController.php
 |   |   |   |-- RegistrationController.php
+|   |   |   |-- RegistrationDeletionController.php
 |   |   |   |-- RegistrationFormController.php
+|   |   |   |-- RegistrationMonitorController.php
+|   |   |   |-- RegistrationVerificationController.php
+|   |   |   |-- ReportController.php
 |   |   |   `-- Settings
 |   |   |       |-- ProfileController.php
 |   |   |       `-- SecurityController.php
 |   |   |-- Middleware
 |   |   |   |-- AdminMiddleware.php
+|   |   |   |-- AdvanceEventStatus.php
 |   |   |   |-- EnsureDeviceIsTrusted.php
 |   |   |   |-- EnsureEmailIsVerifiedOrAdmin.php
 |   |   |   |-- EnsureRegistrationIsOpen.php
 |   |   |   |-- HandleAppearance.php
-|   |   |   `-- HandleInertiaRequests.php
+|   |   |   |-- HandleInertiaRequests.php
+|   |   |   `-- ProtectRegistrationVerification.php
 |   |   `-- Requests
+|   |       |-- BulkMarkAttendanceRequest.php
+|   |       |-- BulkWalkInRegistrationRequest.php
+|   |       |-- EditParticipantRequest.php
 |   |       |-- EventRequest.php
+|   |       |-- FlagRegistrationRequest.php
 |   |       |-- PublicRegistrationRequest.php
 |   |       |-- RegistrationFieldRequest.php
-|   |       `-- Settings
-|   |           |-- PasswordUpdateRequest.php
-|   |           |-- ProfileDeleteRequest.php
-|   |           |-- ProfileUpdateRequest.php
-|   |           `-- TwoFactorAuthenticationRequest.php
+|   |       |-- SaveRegistrationNoteRequest.php
+|   |       |-- Settings
+|   |       |   |-- PasswordUpdateRequest.php
+|   |       |   |-- ProfileDeleteRequest.php
+|   |       |   |-- ProfileUpdateRequest.php
+|   |       |   `-- TwoFactorAuthenticationRequest.php
+|   |       `-- WalkInRegistrationRequest.php
 |   |-- Mail
 |   |   |-- EventDeletionOtpMail.php
-|   |   `-- LoginVerificationCodeMail.php
+|   |   |-- LoginVerificationCodeMail.php
+|   |   |-- RegistrationConfirmationMail.php
+|   |   |-- RegistrationDeletionOtpMail.php
+|   |   `-- RegistrationVerificationOtpMail.php
 |   |-- Models
 |   |   |-- Attendance.php
 |   |   |-- Event.php
@@ -57,6 +74,7 @@
 |   |   |-- RegistrationField.php
 |   |   |-- RegistrationFieldResponse.php
 |   |   |-- Registration.php
+|   |   |-- RegistrationVerificationChallenge.php
 |   |   `-- User.php
 |   |-- Providers
 |   |   |-- AppServiceProvider.php
@@ -66,10 +84,16 @@
 |       |   |-- EventDeletionOtpService.php
 |       |   |-- EventDeletionService.php
 |       |   |-- OtpResendTooSoonException.php
-|       |   `-- OtpVerificationResult.php
+|       |   |-- OtpVerificationResult.php
+|       |   |-- RegistrationDeletionOtpService.php
+|       |   `-- RegistrationDeletionService.php
 |       |-- EventWorkflow.php
 |       |-- Otp
 |       |   `-- OtpCode.php
+|       |-- RegistrationVerification
+|       |   `-- RegistrationVerificationService.php
+|       |-- Reporting
+|       |   `-- ReportService.php
 |       `-- TwoFactor
 |           |-- EmailTwoFactorResult.php
 |           `-- EmailTwoFactorService.php
@@ -86,6 +110,7 @@
 |   |-- cache.php
 |   |-- database.php
 |   |-- filesystems.php
+|   |-- firebase.php
 |   |-- fortify.php
 |   |-- inertia.php
 |   |-- logging.php
@@ -124,7 +149,17 @@
 |   |   |-- 2026_09_26_100000_add_registration_slug_to_events_table.php
 |   |   |-- 2026_09_26_100100_create_registration_field_responses_table.php
 |   |   |-- 2026_10_02_100000_add_registration_common_field_requirements_to_events_table.php
-|   |   `-- 2026_10_02_110000_make_contact_number_nullable_on_participants_table.php
+|   |   |-- 2026_10_02_110000_make_contact_number_nullable_on_participants_table.php
+|   |   |-- 2026_10_02_120000_add_contact_number_normalized_to_participants_table.php
+|   |   |-- 2026_10_02_121000_add_consent_columns_to_registrations_table.php
+|   |   |-- 2026_10_02_122000_add_unique_email_to_participants_table.php
+|   |   |-- 2026_10_02_123000_add_unique_normalized_phone_to_participants_table.php
+|   |   |-- 2026_10_08_062722_add_attendance_search_indexes_to_participants_table.php
+|   |   |-- 2026_10_10_140000_add_flagged_at_and_notes_to_registrations_table.php
+|   |   |-- 2026_10_13_100000_create_registration_verification_challenges_table.php
+|   |   |-- 2026_10_13_100100_add_submitted_contacts_to_registrations_table.php
+|   |   |-- 2026_10_14_100000_add_attendance_code_to_registrations_table.php
+|   |   `-- 2026_10_14_100001_add_verified_at_to_attendances_table.php
 |   `-- seeders
 |       |-- DatabaseSeeder.php
 |       `-- DemoUsersSeeder.php
@@ -137,6 +172,9 @@
 |   |-- archive
 |   |   |-- google-integration.md
 |   |   `-- phase-a-b-report.md
+|   |-- attendance-code.md
+|   |-- attendance-encoding-and-reporting.md
+|   |-- attendance-redesign.md
 |   |-- authentication.md
 |   |-- demo-email.md
 |   |-- development-log.md
@@ -147,10 +185,15 @@
 |   |-- event-creation-wizard.md
 |   |-- event-deletion.md
 |   |-- fixes.md
+|   |-- implementation-notes.md
 |   |-- known-issues.md
+|   |-- participant-identity-and-monitoring-plan.md
+|   |-- participant-identity.md
 |   |-- progress.md
+|   |-- registration-contact-verification.md
 |   |-- registration-development-plan.md
 |   |-- registration.md
+|   |-- registration-monitoring.md
 |   |-- TinkerManual.md
 |   `-- tree.txt
 |-- .editorconfig
@@ -200,7 +243,11 @@
 |   |   |   |   |   |   |-- index.ts
 |   |   |   |   |   |   |-- PublicRegistrationController.ts
 |   |   |   |   |   |   |-- RegistrationController.ts
+|   |   |   |   |   |   |-- RegistrationDeletionController.ts
 |   |   |   |   |   |   |-- RegistrationFormController.ts
+|   |   |   |   |   |   |-- RegistrationMonitorController.ts
+|   |   |   |   |   |   |-- RegistrationVerificationController.ts
+|   |   |   |   |   |   |-- ReportController.ts
 |   |   |   |   |   |   `-- Settings
 |   |   |   |   |   |       |-- index.ts
 |   |   |   |   |   |       |-- ProfileController.ts
@@ -257,20 +304,28 @@
 |   |   |   |-- app-shell.tsx
 |   |   |   |-- app-sidebar-header.tsx
 |   |   |   |-- app-sidebar.tsx
+|   |   |   |-- attendance-filter-chips.tsx
 |   |   |   |-- breadcrumbs.tsx
+|   |   |   |-- bulk-mark-toolbar.tsx
+|   |   |   |-- bulk-walk-in-table.tsx
 |   |   |   |-- confirm-dialog.tsx
 |   |   |   |-- date-picker.tsx
 |   |   |   |-- delete-user.tsx
 |   |   |   |-- distance-picker.tsx
+|   |   |   |-- edit-participant-dialog.tsx
 |   |   |   |-- event-deletion-otp-dialog.tsx
+|   |   |   |-- firebase-phone-verifier.tsx
 |   |   |   |-- heading.tsx
 |   |   |   |-- input-error.tsx
 |   |   |   |-- map-picker-leaflet.tsx
 |   |   |   |-- map-picker.tsx
 |   |   |   |-- nav-main.tsx
 |   |   |   |-- nav-user.tsx
+|   |   |   |-- note-dialog.tsx
+|   |   |   |-- pagination.tsx
 |   |   |   |-- partner-editor.tsx
 |   |   |   |-- password-input.tsx
+|   |   |   |-- registration-deletion-otp-dialog.tsx
 |   |   |   |-- registration-field-editor.tsx
 |   |   |   |-- sortable-field-list.tsx
 |   |   |   |-- text-link.tsx
@@ -304,6 +359,7 @@
 |   |   |   |   `-- tooltip.tsx
 |   |   |   |-- user-info.tsx
 |   |   |   |-- user-menu-content.tsx
+|   |   |   |-- walk-in-dialog.tsx
 |   |   |   |-- wdems-logo.tsx
 |   |   |   |-- wizard-progress.tsx
 |   |   |   `-- wizard.tsx
@@ -316,6 +372,7 @@
 |   |   |   |-- use-initials.tsx
 |   |   |   |-- use-mobile-navigation.ts
 |   |   |   |-- use-mobile.tsx
+|   |   |   |-- use-polling.ts
 |   |   |   `-- use-wizard-persistence.ts
 |   |   |-- layouts
 |   |   |   |-- app
@@ -333,7 +390,10 @@
 |   |   |   `-- settings
 |   |   |       `-- layout.tsx
 |   |   |-- lib
+|   |   |   |-- attendance-bulk-validation.ts
+|   |   |   |-- demo-legal-content.ts
 |   |   |   |-- event-validation.ts
+|   |   |   |-- firebase.ts
 |   |   |   |-- public-registration-validation.ts
 |   |   |   |-- registration-field-types.ts
 |   |   |   |-- registration-field-validation.ts
@@ -341,6 +401,8 @@
 |   |   |-- pages
 |   |   |   |-- admin
 |   |   |   |   `-- dashboard.tsx
+|   |   |   |-- attendance
+|   |   |   |   `-- index.tsx
 |   |   |   |-- auth
 |   |   |   |   |-- confirm-password.tsx
 |   |   |   |   |-- forgot-password.tsx
@@ -355,6 +417,7 @@
 |   |   |   |   |-- edit.tsx
 |   |   |   |   |-- index.tsx
 |   |   |   |   |-- registration-form.tsx
+|   |   |   |   |-- report.tsx
 |   |   |   |   |-- show.tsx
 |   |   |   |   `-- step
 |   |   |   |       |-- BasicsStep.tsx
@@ -364,7 +427,11 @@
 |   |   |   |-- registrations
 |   |   |   |   |-- closed.tsx
 |   |   |   |   |-- index.tsx
-|   |   |   |   `-- public.tsx
+|   |   |   |   |-- monitor
+|   |   |   |   |   |-- index.tsx
+|   |   |   |   |   `-- show.tsx
+|   |   |   |   |-- public.tsx
+|   |   |   |   `-- verify.tsx
 |   |   |   |-- settings
 |   |   |   |   |-- appearance.tsx
 |   |   |   |   |-- profile.tsx
@@ -374,6 +441,8 @@
 |   |   |   |-- admin
 |   |   |   |   `-- index.ts
 |   |   |   |-- appearance
+|   |   |   |   `-- index.ts
+|   |   |   |-- attendance
 |   |   |   |   `-- index.ts
 |   |   |   |-- boost
 |   |   |   |   `-- index.ts
@@ -387,7 +456,9 @@
 |   |   |   |   |-- deletion
 |   |   |   |   |   `-- index.ts
 |   |   |   |   |-- index.ts
-|   |   |   |   `-- registration-form
+|   |   |   |   |-- registration-form
+|   |   |   |   |   `-- index.ts
+|   |   |   |   `-- report
 |   |   |   |       `-- index.ts
 |   |   |   |-- index.ts
 |   |   |   |-- login
@@ -399,8 +470,16 @@
 |   |   |   |-- profile
 |   |   |   |   `-- index.ts
 |   |   |   |-- public-registration
+|   |   |   |   |-- index.ts
+|   |   |   |   `-- verification
+|   |   |   |       |-- index.ts
+|   |   |   |       `-- phone
+|   |   |   |           `-- index.ts
+|   |   |   |-- registration-monitor
 |   |   |   |   `-- index.ts
 |   |   |   |-- registrations
+|   |   |   |   |-- deletion
+|   |   |   |   |   `-- index.ts
 |   |   |   |   `-- index.ts
 |   |   |   |-- resend
 |   |   |   |   `-- index.ts
@@ -431,13 +510,19 @@
 |       |-- app.blade.php
 |       `-- emails
 |           |-- event-deletion-otp.blade.php
-|           `-- login-verification-code.blade.php
+|           |-- login-verification-code.blade.php
+|           |-- registration-confirmation.blade.php
+|           |-- registration-deletion-otp.blade.php
+|           `-- registration-verification-otp.blade.php
 |-- routes
 |   |-- console.php
+|   |-- registration-verification.php
 |   |-- settings.php
 |   `-- web.php
 |-- storage
 |   `-- app
+|       |-- firebase
+|       |   `-- service-account.json
 |       |-- .gitignore
 |       |-- private
 |       |   `-- .gitignore
@@ -454,26 +539,61 @@
 |   |   |   |-- PasswordConfirmationTest.php
 |   |   |   |-- PasswordResetTest.php
 |   |   |   `-- VerificationNotificationTest.php
+|   |   |-- ContactAddressQualityTest.php
 |   |   |-- DashboardTest.php
 |   |   |-- Events
+|   |   |   |-- AttendanceBulkEncodingModeTest.php
+|   |   |   |-- AttendanceBulkMarkTest.php
+|   |   |   |-- AttendanceBulkWalkInTest.php
+|   |   |   |-- AttendanceDateGateTest.php
+|   |   |   |-- AttendanceEncodingModeTest.php
+|   |   |   |-- AttendanceForceOpenTest.php
+|   |   |   |-- AttendanceTest.php
+|   |   |   |-- AttendanceVerificationTest.php
+|   |   |   |-- EventAutoAdvanceTest.php
 |   |   |   |-- EventCommonFieldRequirementsTest.php
 |   |   |   |-- EventDateRulesTest.php
 |   |   |   |-- EventDeletionAdminTest.php
 |   |   |   |-- EventDeletionStaffTest.php
 |   |   |   |-- EventDuplicateNameTest.php
+|   |   |   |-- EventFinalizeTest.php
 |   |   |   |-- EventScheduleRulesTest.php
+|   |   |   |-- EventStartTimeValidationTest.php
 |   |   |   |-- EventUrlRulesTest.php
 |   |   |   |-- EventWorkflowTest.php
+|   |   |   |-- RegistrationDeletionTest.php
 |   |   |   |-- RegistrationFormCommonFieldRequirementsTest.php
+|   |   |   |-- RegistrationFormIdentityRuleTest.php
 |   |   |   |-- RegistrationFormTest.php
-|   |   |   `-- RegistrationSlugTest.php
+|   |   |   |-- RegistrationLabelQualityTest.php
+|   |   |   |-- RegistrationMonitorActionsTest.php
+|   |   |   |-- RegistrationMonitorExtrasTest.php
+|   |   |   |-- RegistrationMonitorTest.php
+|   |   |   |-- RegistrationSlugTest.php
+|   |   |   |-- ReportControllerTest.php
+|   |   |   |-- ReportServiceTest.php
+|   |   |   `-- WalkInCustomFieldsTest.php
 |   |   |-- ExampleTest.php
+|   |   |-- Participants
+|   |   |   |-- ParticipantIdentityConstraintsTest.php
+|   |   |   `-- ParticipantIdentityResolverTest.php
 |   |   |-- Public
-|   |   |   `-- RegistrationSubmissionTest.php
+|   |   |   |-- ParticipantNameValidationTest.php
+|   |   |   |-- PublicRegistrationIdentityResolutionTest.php
+|   |   |   |-- PublicRegistrationIdentityRuleTest.php
+|   |   |   |-- RegistrationConfirmationMailTest.php
+|   |   |   |-- RegistrationSubmissionTest.php
+|   |   |   |-- RegistrationVerificationFirebaseTest.php
+|   |   |   `-- RegistrationVerificationTest.php
 |   |   `-- Settings
 |   |       |-- ProfileUpdateTest.php
 |   |       `-- SecurityTest.php
+|   |-- Integration
+|   |   `-- RegistrationVerificationConcurrencyTest.php
 |   |-- Pest.php
+|   |-- Support
+|   |   |-- FinalizeVerification.php
+|   |   `-- PublicVerification.php
 |   |-- TestCase.php
 |   `-- Unit
 |       |-- ExampleTest.php
@@ -486,4 +606,4 @@
     |-- extensions.json
     `-- settings.json
 
-115 directories, 372 files
+128 directories, 479 files
