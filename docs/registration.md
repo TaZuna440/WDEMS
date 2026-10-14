@@ -552,3 +552,41 @@ the challenge state machine, the identity resolver contract, and
 the registration field responses all behave as before.
 
 Full reference: `docs/attendance-code.md`.
+
+---
+
+## Status addendum (2026-10-15)
+
+Three public-form and verification changes landed in commit
+`1f0d07f`.
+
+### Duplicate check is earlier
+
+A submission whose submitted email or normalized phone already
+belongs to a registration on the same event is now rejected at
+`begin()` — the first phase, before any challenge row exists. The
+finalize-time check remains as a backstop.
+
+### Public form UX
+
+The public form gained:
+
+- Blur-time client validation with a `touched` set. Errors appear
+  after the user leaves a field and clear on edit. Before this,
+  the client validators only ran on submit.
+- A React-controlled consent checkbox. The HTML5 `required`
+  attribute was swallowing the submit event before any validator
+  ran — the user saw a native tooltip and nothing else.
+- Placeholders on all six common fields.
+- A CSS rule hiding the native number-input spinners on the Age
+  field.
+
+### Phone channel is toggleable
+
+`contact_number` is back in `Event::COMMON_FIELDS_TOGGLEABLE`. The
+form builder exposes the same checkbox email gets. The at-least-one
+rule (email or phone) still applies at save time.
+
+The `## Corrections — Phone verification (2026-10-14)` block above
+states the opposite. Where this addendum disagrees, this addendum
+wins.

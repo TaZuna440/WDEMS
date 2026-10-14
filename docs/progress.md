@@ -2125,3 +2125,159 @@ consider whether the auto-advance middleware will fire first.
     Tests:
       tests/Feature/Events/EventFinalizeTest.php                 (new)
       tests/Feature/Events/EventAutoAdvanceTest.php              (new)
+
+---
+
+## 2026-10-15 — Phone toggleable, reCAPTCHA hoist, Feature C committed
+
+### Summary
+
+Three commits landed on `main` and pushed to `origin/main`. Feature
+C (end-of-event report) was committed from pre-existing WIP.
+
+Session work (commit `1f0d07f`):
+
+- **Phone channel is toggleable.** `contact_number` moved back to
+  `Event::COMMON_FIELDS_TOGGLEABLE`. The form builder exposes the
+  same checkbox email gets. At-least-one (email or phone) still
+  enforced at save time.
+- **Duplicate check moves earlier.** `RegistrationVerificationService::begin()`
+  rejects a submission whose email or normalized phone already
+  belongs to a registration on the same event. Fires before the
+  challenge row is created.
+- **reCAPTCHA lifecycle.** Widget container hoisted above both
+  contact channels. Epoch counter re-inits a fresh verifier after
+  a failed send. Retry no longer calls a verifier bound to a
+  detached DOM node.
+- **Public form.** Consent checkbox is React-controlled, not HTML5
+  `required` — the native tooltip was swallowing the submit event.
+  Blur-time validation with a touched set. Placeholders on all six
+  common fields. Age spinner arrows hidden.
+- **Accessibility UI.** AccessibilityGrid moved from Extras step
+  to Basics step. Wizard step config updated in both `create.tsx`
+  and `edit.tsx`.
+
+Feature C (commit `95c79a5`):
+
+- `ReportController` + `app/Services/Reporting/ReportService.php`
+- Routes `events.report`, `events.report.export`
+- `EventController::finalize()` redirects to `events.report`
+- View Report button on the event show page (ongoing / completed)
+- Committed from pre-existing WIP; not reviewed this session
+
+Chore: `docs/tree.txt` and `docs/tree-full.txt` removed. Point-in-
+time directory snapshots that go stale within a session. The
+refresh in `19bb809` was made redundant by the removal in `bd11474`
+— the refresh did not need to land.
+
+### Code changes
+
+| File | Change |
+|---|---|
+| `app/Models/Event.php` | `contact_number` moved between constants |
+| `app/Services/RegistrationVerification/RegistrationVerificationService.php` | `assertNoDuplicateRegistration()` called from `begin()` |
+| `resources/js/pages/events/registration-form.tsx` | `toggleable: false` → `true` on phone |
+| `resources/js/components/firebase-phone-verifier.tsx` | `phoneRequired` prop, `recaptchaEpoch`, epoch in layout effect deps |
+| `resources/js/pages/registrations/verify.tsx` | `phoneIsRequired`, `emailNeedsWork`, `phoneNeedsWork` guards |
+| `resources/js/pages/registrations/public.tsx` | `consentAccepted` state, blur validation, placeholders |
+| `resources/js/pages/events/step/BasicsStep.tsx` | AccessibilityGrid added |
+| `resources/js/pages/events/step/ExtrasStep.tsx` | AccessibilityGrid removed |
+| `resources/js/pages/events/create.tsx` | Step config fields updated |
+| `resources/js/pages/events/edit.tsx` | Step config fields updated |
+| `resources/css/app.css` | `color-scheme` on `:root` / `.dark`, `#age` spinner hide |
+| `README.md` | `docs/TinkerManual.md` row dropped |
+| `docs/TinkerManual.md` | Removed |
+| `app/Http/Controllers/EventController.php` | Finalize redirects to `events.report` (Feature C) |
+| `routes/web.php` | `events.report`, `events.report.export` routes (Feature C) |
+| `resources/js/pages/events/show.tsx` | View Report button (Feature C) |
+
+### Documentation appended
+
+| File | Change |
+|---|---|
+| `docs/registration-contact-verification.md` | `## Corrections (2026-10-15)` |
+| `docs/registration.md` | `## Status addendum (2026-10-15)` |
+| `docs/event-creation-wizard.md` | (see Cross-reference — pending) |
+| `docs/attendance-encoding-and-reporting.md` | (see Cross-reference — pending) |
+| `docs/progress.md` | This entry |
+
+### Test changes
+
+None. No new tests added.
+
+### Database changes
+
+None.
+
+### Environment changes
+
+None.
+
+### Bugs fixed
+
+| Bug | Fix | Evidence |
+|---|---|---|
+| HTML5 `required` on consent swallowed submit | React-controlled checkbox + `InputError` slot | Browser: submit fires |
+| reCAPTCHA widget empty after failed send | `recaptchaEpoch` bump in layout effect deps | Browser: fresh widget on retry |
+| reCAPTCHA card unmounted during send | Container always mounted, `hidden` class | Browser: widget survives stages |
+| Duplicate only caught at finalize | `assertNoDuplicateRegistration()` in `begin()` | Browser: error on second submission |
+| Accessibility grid lived in Extras step | Moved to Basics step | Browser: step 1 shows grid |
+| No placeholders on public fields | Six placeholders added | Browser: hint text renders |
+| Age input showed native steppers | CSS rule scoped to `#age` | Browser: no arrows |
+
+### Bugs found but not fixed
+
+| # | Bug | Where documented |
+|---|---|---|
+| — | Email-only events show decorative reCAPTCHA (not server-enforced) | This entry |
+
+### Failures during the session
+
+**Two.**
+
+1. **`git status --short | grep -E '^[MADR]'` filtered out all
+   unstaged modifications.** The status format is `XY path` where
+   X is index status. Unstaged worktree modifications appear as
+   ` M path` with a leading space. The grep pattern matched
+   neither. Recovery: re-ran with
+   `grep -v '^?? storage/framework/views/'` — filter out the noise
+   instead of trying to filter in. Same class of mistake as the
+   untracked-file lesson recorded on 2026-09-25.
+
+2. **`storage/framework/views/.gitignore` was missing from disk.**
+   Earlier in the session it had been staged for deletion and then
+   unstaged. `git restore --staged` restores the index, not the
+   working tree. The 60+ compiled Blade files surfaced as
+   untracked as a result. Recovery:
+   `git restore storage/framework/views/.gitignore`.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| Browser: public form, consent unchecked | Inline error, no POST |
+| Browser: public form, consent checked | POST fires, redirects to verification |
+| Browser: duplicate submission (same email) | Error under `identity`, no challenge created |
+| Browser: reCAPTCHA on email-only event | Widget renders above email card |
+| Browser: reCAPTCHA after failed phone send | Fresh widget, retry works |
+| Browser: phone verified | reCAPTCHA card hides |
+| Browser: phone optional | Phone card hides |
+| `npx tsc --noEmit` | silent after each block |
+| `php -l app/Models/Event.php` | No syntax errors detected |
+| `git push origin main` | `e8841d4..bd11474 main -> main` |
+
+### Commits
+
+    bd11474  chore: remove redundant tree snapshots
+    19bb809  docs: refresh tree.txt snapshot
+    1f0d07f  feat(registration): phone toggleable, reCAPTCHA hoist, verify page hardening
+    95c79a5  feat(report): add end-of-event report with CSV export
+
+### Cross-reference
+
+| Subsystem | Primary doc |
+|---|---|
+| Registration contact verification | `docs/registration-contact-verification.md` |
+| Registration feature spec | `docs/registration.md` |
+| End-of-event report | `docs/attendance-encoding-and-reporting.md` |
+| Event creation wizard | `docs/event-creation-wizard.md` |

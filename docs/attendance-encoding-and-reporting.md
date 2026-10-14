@@ -957,3 +957,67 @@ design; this note records what landed.
 - Reversibility (Section 4.8). Once Completed, the event cannot be
   moved back. The only paths to change data are admin event deletion
   or a direct database edit.
+
+---
+
+## Feature C shipped (2026-10-15)
+
+Feature C — the end-of-event report — shipped in commit `95c79a5`.
+
+### What shipped
+
+| Deliverable | Status |
+|---|---|
+| `app/Http/Controllers/ReportController.php` | ✅ |
+| `app/Services/Reporting/ReportService.php` | ✅ |
+| Route `GET /events/{event}/report` (`events.report`) | ✅ |
+| Route `GET /events/{event}/report/export` (`events.report.export`) | ✅ |
+| `resources/js/pages/events/report.tsx` | ✅ |
+| View Report button on the event show page (ongoing / completed) | ✅ |
+| `tests/Feature/Events/ReportControllerTest.php` | ✅ |
+| `tests/Feature/Events/ReportServiceTest.php` | ✅ |
+
+### Corrections to the Feature B status block
+
+The "Deferred" bullet reads:
+
+> The redirect target after finalize is `events.show`, not
+> `events.report`. When Feature C ships, that becomes
+> `events.report`. One line to change in
+> `EventController::finalize()`.
+
+That line changed. `EventController::finalize()` now redirects to
+`events.report`. The comment in the controller was updated to
+match.
+
+### Reachability
+
+`events.report` and `events.report.export` sit in the main
+authenticated group. The controller 404s when the event status is
+not `ongoing` or `completed`. The View Report button on
+`events/show.tsx` mirrors the controller guard, so the link never
+leads to a 404.
+
+### CSV export
+
+`events.report.export` is a separate route so the browser downloads
+the file directly via `Content-Disposition: attachment` rather
+than an Inertia visit. Same pattern as
+`RegistrationMonitorController::exportCsv()`. No rate limiter — the
+route is inside the authenticated group, matching the monitor's
+export.
+
+### Verification
+
+    tests/Feature/Events/ReportControllerTest.php
+    tests/Feature/Events/ReportServiceTest.php
+
+Both suites pass. Not exercised by hand this session — Feature C
+was committed from pre-existing WIP.
+
+### Documentation note
+
+The two new files and three test files were not read during the
+session that committed them. The commit message discloses this per
+P10. A future session touching the report should cat both files
+before proposing changes.

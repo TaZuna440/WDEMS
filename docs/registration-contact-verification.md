@@ -288,3 +288,66 @@ phone auth, challenge state machine, and the finalize transaction
 boundary all behave as before.
 
 Full reference: `docs/attendance-code.md`.
+
+---
+
+## Corrections (2026-10-15)
+
+Append-only. The body and the 2026-10-14 correction describe the
+phone channel as structurally required and the duplicate check as
+a finalize-time concern. Commit `1f0d07f` changed three things on
+2026-10-15. Where this section disagrees with the body or the
+earlier correction, this section wins.
+
+### Phone is toggleable again
+
+The `## Corrections (2026-10-14)` block reads:
+
+> Phone is now structurally required on every event.
+> `Event::COMMON_FIELDS_TOGGLEABLE` no longer contains
+> `contact_number`; it lives in `COMMON_FIELDS_ALWAYS_REQUIRED`
+> alongside `first_name`, `last_name`, and `age`.
+
+Correction. `contact_number` moved back to
+`COMMON_FIELDS_TOGGLEABLE`. The form builder's phone checkbox is
+active again. Organizers may publish events where phone is
+optional, matching the email channel.
+
+The at-least-one rule still applies — the form builder rejects a
+save where both `email` and `contact_number` are toggled off.
+Whatever channels are required must be verified before
+finalization. Email-only events verify email only. Phone-only
+events verify phone only. Both-required events verify both.
+
+### Duplicate check runs at begin()
+
+The body describes the same-event duplicate-registration check as
+a finalize-time concern:
+
+> Run the same-event duplicate-registration check against the
+> resolved verified participant.
+
+Commit `1f0d07f` adds an earlier check in `begin()` — immediately
+after pending-payload validation, before the challenge row is
+created. The early check rejects a submission whose submitted
+email or normalized phone already belongs to a registration on
+the same event. It runs regardless of whether the channel is
+required.
+
+The finalize-time check remains. It is the backstop for two
+challenges for the same identity that were opened before either
+finalized.
+
+### reCAPTCHA is hoisted above both channels
+
+The `## Corrections (2026-10-14)` block describes the Firebase
+reCAPTCHA as rendered inside the phone card. Commit `1f0d07f`
+moved the widget container to a dedicated "Human verification"
+section above both contact cards.
+
+The card renders whenever any required channel still needs work.
+For events with phone required, the widget gates the SMS send
+(unchanged). For events with phone optional and only email
+required, the widget is a visual checkpoint — the solved token is
+not consumed server-side. A server-enforced gate for email-only
+events is a separate integration, not part of this flow.

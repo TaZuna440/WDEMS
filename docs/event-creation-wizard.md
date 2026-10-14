@@ -908,3 +908,64 @@ file is reference-focused.
   (checkpoint persistence), §5 (the four steps), §6 (field
   components), §7 (validation), §8 (create flow), §9 (edit flow),
   §10 (adjacent pages), §11 (open items), and §12 (references).
+
+---
+
+## Corrections (2026-10-15)
+
+### §5 — AccessibilityGrid moved to the Basics step
+
+The §5 description of the four wizard steps places the
+AccessibilityGrid inside the Extras step (step 4), alongside
+Partners.
+
+Correction. Commit `1f0d07f` moved AccessibilityGrid from the
+Extras step to the Basics step (step 1). Organizers now fill the
+accessibility flags alongside event type, name, and description —
+before Schedule and Venue.
+
+Rationale: accessibility flags are participant-facing
+qualifications. Participants use them to decide whether the event
+suits their conditions. They are not "extras" (optional
+post-completion details like partners) — they describe the event
+itself, the same category as its name and type.
+
+Files changed:
+
+    resources/js/pages/events/step/BasicsStep.tsx   (grid added)
+    resources/js/pages/events/step/ExtrasStep.tsx   (grid removed)
+    resources/js/pages/events/create.tsx            (step 1 fields extended)
+    resources/js/pages/events/edit.tsx              (step 1 fields extended)
+
+Extras step now carries only Partners. The step id, label, and
+position are unchanged.
+
+### §11 — Open item 11.6 partially closed
+
+The §11.6 open item reads:
+
+> `registration_closed → ongoing`, `ongoing → completed`, and
+> `* → cancelled` are all defined in
+> `EventStatus::allowedTransitions()` but have no controller
+> actions or routes.
+
+`registration_closed → ongoing` and `ongoing → completed` are now
+wired.
+
+- `registration_closed → ongoing` is handled by the
+  `AdvanceEventStatus` middleware. Idempotent; runs on the main
+  authenticated group. See
+  `docs/attendance-encoding-and-reporting.md` Feature B status
+  block.
+- `ongoing → completed` is `EventController::finalize()`, gated by
+  Laravel's `RequirePassword` middleware and `Event::canFinalize()`.
+
+`* → cancelled` remains unbuilt.
+
+### §12 — reference table addition
+
+Add row:
+
+    | `attendance-encoding-and-reporting.md` | Feature B (finalize
+      event) and Feature C (end-of-event report) — the terminal
+      lifecycle and its reporting surface |
