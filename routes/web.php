@@ -10,6 +10,7 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationDeletionController;
 use App\Http\Controllers\RegistrationFormController;
 use App\Http\Controllers\RegistrationMonitorController;
+use App\Http\Controllers\ReportController;
 use App\Http\Middleware\EnsureRegistrationIsOpen;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
@@ -127,6 +128,22 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     Route::post('events/{event}/finalize', [EventController::class, 'finalize'])
         ->middleware(RequirePassword::class)
         ->name('events.finalize');
+
+    // End-of-event report — Feature C of
+    // docs/attendance-encoding-and-reporting.md. Reachable when the
+    // event's status is ongoing or completed (the controller 404s
+    // otherwise). Also the finalize redirect target — after a
+    // successful finalize the user lands on the report, not the
+    // event show page.
+    Route::get('events/{event}/report', [ReportController::class, 'show'])
+        ->name('events.report');
+
+    // CSV export of the participants section. Separate route so the
+    // browser downloads the file directly (Content-Disposition:
+    // attachment) rather than an Inertia visit. No rate limiter —
+    // same reasoning as RegistrationMonitorController::exportCsv().
+    Route::get('events/{event}/report/export', [ReportController::class, 'exportCsv'])
+        ->name('events.report.export');
 
     Route::delete('events/{event}', [EventDeletionController::class, 'destroy'])->name('events.destroy');
     Route::post('events/{event}/deletion/request-otp', [EventDeletionController::class, 'requestOtp'])

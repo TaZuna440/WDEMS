@@ -7,6 +7,7 @@ import {
     ClipboardCheck,
     Clock,
     ExternalLink,
+    FileBarChart,
     FileText,
     MapPin,
     Pencil,
@@ -145,6 +146,12 @@ export default function EventsShow({
 
     // The registration form is editable only while the event is Draft.
     const canEditRegistrationForm = event.status === 'draft';
+
+    // The report is reachable when the event has attendance data to
+    // report on. This mirrors ReportController::show()'s guard, so the
+    // link never leads to a 404.
+    const canViewReport =
+        event.status === 'ongoing' || event.status === 'completed';
 
     // Open Registration is enabled by the server only when the event is
     // Draft AND the registration form has been saved at least once.
@@ -557,6 +564,19 @@ export default function EventsShow({
                                 >
                                     <CheckCircle2 className="mr-2 h-4 w-4" />
                                     Finalize Event
+                                </Button>
+                            )}
+
+                            {canViewReport && (
+                                <Button
+                                    variant="outline"
+                                    className="justify-start"
+                                    asChild
+                                >
+                                    <Link href={`/events/${event.id}/report`}>
+                                        <FileBarChart className="mr-2 h-4 w-4" />
+                                        View Report
+                                    </Link>
                                 </Button>
                             )}
                         </div>

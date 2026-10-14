@@ -292,9 +292,11 @@ class EventController extends Controller
      * is no longer Ongoing. This is intentional — the button
      * disappears after the first click.
      *
-     * Redirect target is events.show for now. When Feature C (the
-     * end-of-event report) ships, this becomes events.report. The
-     * change is a single line.
+     * Redirect target is events.report — Feature C's end-of-event
+     * report. After a successful finalize the user lands on the
+     * report, not the event show page. This matches section 5.2 of
+     * the same doc: the report is the natural next destination once
+     * the event is locked.
      */
     public function finalize(Event $event): RedirectResponse
     {
@@ -317,7 +319,7 @@ class EventController extends Controller
         ]);
 
         return redirect()
-            ->route('events.show', $event)
+            ->route('events.report', $event)
             ->with('success', 'Event finalized. Attendance and registration data are now read-only.');
     }
 
