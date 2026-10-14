@@ -12,14 +12,30 @@ import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/input-error';
 import { getFirebaseAuth } from '@/lib/firebase';
 
+export type PhoneStage =
+    | 'idle'
+    | 'sending'
+    | 'awaiting-code'
+    | 'verifying'
+    | 'verified';
+
 type Props = {
     submittedPhone: string;
     verifyUrl: string;
     disabled: boolean;
     verified: boolean;
+    /**
+     * When false, this event does not require phone verification.
+     * The component still initialises the Firebase reCAPTCHA into
+     * the external container (id: recaptchaContainerId) so the
+     * verification page can render it as a human-check, but no
+     * phone-specific UI renders. The solved token is not consumed
+     * — email-only events do not have an SMS to gate.
+     */
+    phoneRequired?: boolean;
+    recaptchaContainerId?: string;
+    onStageChange?: (stage: PhoneStage) => void;
 };
-
-type Stage = 'idle' | 'sending' | 'awaiting-code' | 'verifying' | 'verified';
 
 function toE164(phone: string): string | null {
     const digits = phone.replace(/\D/g, '');
@@ -55,25 +71,43 @@ export default function FirebasePhoneVerifier({
     verifyUrl,
     disabled,
     verified,
+    phoneRequired = true,
+    recaptchaContainerId,
+    onStageChange,
 }: Props) {
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
-    const [stage, setStage] = useState<Stage>(verified ? 'verified' : 'idle');
+    const [stage, setStage] = useState<PhoneStage>(verified ? 'verified' : 'idle');
     const [code, setCode] = useState('');
     const [message, setMessage] = useState('');
     const [recaptchaReady, setRecaptchaReady] = useState(false);
+    const [recaptchaEpoch, setRecaptchaEpoch] = useState(0);
     const confirmationRef = useRef<ConfirmationResult | null>(null);
     const recaptchaRef = useRef<RecaptchaVerifier | null>(null);
     const recaptchaContainerRef = useRef<HTMLDivElement>(null);
     const e164 = toE164(submittedPhone);
 
+    useEffect(() => {
+        onStageChange?.(stage);
+    }, [stage, onStageChange]);
+
     useLayoutEffect(() => {
-        if (verified || disabled || e164 === null) return;
+        if (disabled) return;
+        // Skip init when phone is required but the submitted value
+        // cannot be normalised — signInWithPhoneNumber cannot be
+        // called anyway, so the widget would be decorative.
+        if (phoneRequired && e164 === null) return;
         if (recaptchaRef.current !== null) return;
-        if (recaptchaContainerRef.current === null) return;
+
+        const resolvedContainer: HTMLElement | null =
+            recaptchaContainerId !== undefined
+                ? document.getElementById(recaptchaContainerId)
+                : recaptchaContainerRef.current;
+
+        if (resolvedContainer === null) return;
 
         const verifier = new RecaptchaVerifier(
             getFirebaseAuth(),
-            recaptchaContainerRef.current,
+            resolvedContainer,
             {
                 size: 'normal',
                 callback: () => setRecaptchaReady(true),
@@ -82,12 +116,7 @@ export default function FirebasePhoneVerifier({
         );
 
         recaptchaRef.current = verifier;
-
-        console.log('[firebase-phone-verifier] effect ran, rendering widget');
-        void verifier.render().then(
-            () => console.log('[firebase-phone-verifier] widget rendered'),
-            (err) => console.error('[firebase-phone-verifier] render failed', err),
-        );
+        void verifier.render();
 
         return () => {
             verifier.clear();
@@ -95,7 +124,7 @@ export default function FirebasePhoneVerifier({
             setRecaptchaReady(false);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [verified, disabled, e164]);
+    }, [disabled, e164, recaptchaContainerId, recaptchaEpoch, phoneRequired]);
 
     const handleSend = async (event: FormEvent) => {
         event.preventDefault();
@@ -114,10 +143,10 @@ export default function FirebasePhoneVerifier({
             );
             setStage('awaiting-code');
         } catch (error) {
-            console.error('[firebase-phone-verifier] send failed', error);
             const code = (error as { code?: string })?.code ?? 'unknown';
             setMessage(`[${code}] ${mapFirebaseError(error)}`);
             setStage('idle');
+            setRecaptchaEpoch((n) => n + 1);
         }
     };
 
@@ -138,7 +167,6 @@ export default function FirebasePhoneVerifier({
                 { preserveScroll: true },
             );
         } catch (error) {
-            console.error('[firebase-phone-verifier] verify failed', error);
             const code = (error as { code?: string })?.code ?? 'unknown';
             setMessage(`[${code}] ${mapFirebaseError(error)}`);
             setStage('awaiting-code');
@@ -158,6 +186,13 @@ export default function FirebasePhoneVerifier({
     useEffect(() => {
         if (verified) setStage('verified');
     }, [verified]);
+
+    // Visual-only mode for email-required / phone-optional events.
+    // The reCAPTCHA was initialised into the external container by
+    // the effect above; this component contributes no visible UI.
+    if (phoneRequired === false) {
+        return null;
+    }
 
     if (verified || stage === 'verified') {
         return (
@@ -201,10 +236,12 @@ export default function FirebasePhoneVerifier({
                 <span className="font-mono">{submittedPhone}</span>.
             </p>
 
-            <div
-                ref={recaptchaContainerRef}
-                className={stage === 'idle' ? '' : 'hidden'}
-            />
+            {recaptchaContainerId === undefined && (
+                <div
+                    ref={recaptchaContainerRef}
+                    className={stage === 'idle' ? '' : 'hidden'}
+                />
+            )}
 
             {stage === 'idle' && (
                 <form onSubmit={handleSend}>

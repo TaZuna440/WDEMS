@@ -1,7 +1,9 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { Check, Copy, Ticket } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
-import FirebasePhoneVerifier from '@/components/firebase-phone-verifier';
+import FirebasePhoneVerifier, {
+    type PhoneStage,
+} from '@/components/firebase-phone-verifier';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,30 +40,10 @@ type Props = {
         phone?: ChannelState;
         ready?: boolean;
         submitted_phone?: string | null;
-        /**
-         * The per-registration attendance code. Only present when the
-         * verification status is 'finalized' and the underlying
-         * registration still exists. Null when the registration was
-         * deleted after finalization, or the code was never issued
-         * (walk-in sources do not carry a code).
-         */
         attendance_code?: string | null;
     };
 };
 
-/**
- * The participant's attendance code, presented once registration is
- * confirmed. This is the code they show or speak at the event table so
- * staff can look them up and verify their attendance.
- *
- * The code is a bearer lookup key, not a secret. It is displayed to
- * the owner of the challenge — the same participant who completed
- * verification. Nothing is leaked by showing it on this page.
- *
- * The panel is not rendered if the code is null. That happens when
- * the registration was deleted after finalization, or when the source
- * is a walk-in (walk-ins never receive a code).
- */
 function AttendanceCodePanel({ code }: { code: string }) {
     const [copied, setCopied] = useState(false);
 
@@ -71,9 +53,8 @@ function AttendanceCodePanel({ code }: { code: string }) {
             setCopied(true);
             window.setTimeout(() => setCopied(false), 2000);
         } catch {
-            // Clipboard API unavailable (insecure context, older
-            // browser). Fall back to silently doing nothing — the
-            // participant can still select the code manually.
+            // Clipboard API unavailable. The participant can still
+            // select the code manually.
         }
     };
 
@@ -273,6 +254,7 @@ export default function VerifyRegistration({
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
     const completion = useForm({});
     const [now, setNow] = useState(() => Date.now());
+    const [phoneStage, setPhoneStage] = useState<PhoneStage>('idle');
     useEffect(() => {
         const timer = window.setInterval(() => setNow(Date.now()), 1000);
         return () => window.clearInterval(timer);
@@ -292,6 +274,37 @@ export default function VerifyRegistration({
         pending:
             'Verify every required contact, then complete your registration. Your place is not registered yet.',
     };
+
+    const emailChannel = verification.email;
+    const phoneChannel = verification.phone;
+
+    // A channel "needs work" when it is required (not 'optional') and
+    // has not yet been verified or locked.
+    const emailNeedsWork =
+        emailChannel !== undefined &&
+        emailChannel.status !== 'optional' &&
+        emailChannel.status !== 'verified' &&
+        emailChannel.status !== 'locked';
+
+    const phoneIsRequired =
+        phoneChannel !== undefined && phoneChannel.status !== 'optional';
+
+    const phoneNeedsWork =
+        phoneChannel !== undefined &&
+        phoneIsRequired &&
+        phoneChannel.status !== 'verified' &&
+        phoneChannel.status !== 'locked';
+
+    // The human check is shown whenever ANY channel still requires
+    // verification. When phone is required, Firebase consumes the
+    // token for the SMS send. When only email is required, the
+    // widget is a visual checkpoint — the token is not consumed.
+    // A server-enforced gate for email-only events is a separate
+    // integration, not part of this flow.
+    const showRecaptchaSection =
+        verification.status === 'pending' &&
+        !expired &&
+        (emailNeedsWork || phoneNeedsWork);
 
     return (
         <>
@@ -317,6 +330,23 @@ export default function VerifyRegistration({
 
                 {verification.status === 'pending' && !expired && (
                     <>
+                        {showRecaptchaSection && (
+                            <section
+                                className={
+                                    phoneStage === 'idle' || !phoneNeedsWork
+                                        ? 'grid gap-3 rounded-xl border border-white/10 p-6'
+                                        : 'hidden'
+                                }
+                            >
+                                <h2 className="text-lg font-semibold">
+                                    Human verification
+                                </h2>
+                                <p className="text-muted-foreground text-sm">
+                                    Complete the reCAPTCHA below to continue.
+                                </p>
+                                <div id="recaptcha-container" />
+                            </section>
+                        )}
                         {verification.email && (
                             <ContactVerification
                                 channel="email"
@@ -325,12 +355,15 @@ export default function VerifyRegistration({
                                 now={now}
                             />
                         )}
-                        {verification.phone && (
+                        {phoneChannel && (
                             <FirebasePhoneVerifier
                                 submittedPhone={verification.submitted_phone ?? ""}
                                 verifyUrl={`${verification_url}/phone/firebase`}
                                 disabled={false}
-                                verified={verification.phone.status === "verified"}
+                                verified={phoneChannel.status === "verified"}
+                                phoneRequired={phoneIsRequired}
+                                recaptchaContainerId="recaptcha-container"
+                                onStageChange={setPhoneStage}
                             />
                         )}
                         <Button

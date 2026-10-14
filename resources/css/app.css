@@ -65,6 +65,7 @@
    LIGHT MODE
    ===================================================== */
 :root {
+    color-scheme: light;
     --radius: 0.5rem;
 
     /* Brand lime — dimmed for readability on light backgrounds */
@@ -103,6 +104,7 @@
    DARK MODE — WDEMS Navy
    ===================================================== */
 .dark {
+    color-scheme: dark;
     /* Brand lime — bright and saturated (original #b6ff3b) */
     --lime-brand: oklch(0.88 0.21 129);
 
@@ -161,5 +163,22 @@
     .nav-group-label {
         @apply text-xs font-semibold uppercase tracking-wider mb-2 px-3;
         color: var(--muted-foreground);
+    }
+}
+
+@layer base {
+    /* Hide native number input spinners on the public registration
+       age field. Scope is deliberately narrow — #age is unique to
+       that page. If spinners become unwanted on other number inputs
+       (custom fields of type 'number'), promote the selector to
+       input[type='number']. */
+    #age::-webkit-outer-spin-button,
+    #age::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    #age {
+        -moz-appearance: textfield;
+        appearance: textfield;
     }
 }

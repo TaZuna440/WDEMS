@@ -1,6 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import { CalendarDays, CheckCircle2, ExternalLink, MapPin } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +13,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { DEMO_PRIVACY_NOTICE, DEMO_TERMS } from '@/lib/demo-legal-content';
 import {
     validateRegistrationForm,
@@ -39,6 +46,17 @@ type Props = {
     success: string | null;
 };
 
+type CommonFieldKey =
+    | 'first_name'
+    | 'last_name'
+    | 'email'
+    | 'contact_number'
+    | 'age'
+    | 'address';
+
+const CONSENT_ERROR =
+    'You must agree to the Privacy Notice and Terms & Conditions.';
+
 export default function PublicRegistration({
     event,
     fields,
@@ -56,17 +74,119 @@ export default function PublicRegistration({
         responses: {},
     });
 
-    const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+    // Errors are computed on every render from the current form data,
+    // but only *revealed* once the user has interacted with the field
+    // or attempted submit. This matches the blur-time validation rule
+    // established for the wizard and registration form builder.
+    const [touched, setTouched] = useState<Set<string>>(new Set());
+    const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+    // Consent is a React-controlled gate, not an HTML5 `required`
+    // attribute. HTML5 `required` blocks the submit event entirely,
+    // which means the submit handler, our client validators, and the
+    // server never run — the user sees a native tooltip and nothing
+    // else. Not persisted across reloads: consent is not yet recorded
+    // server-side (see ISSUE-010), so asking again after a reload is
+    // the honest behavior.
+    const [consentAccepted, setConsentAccepted] = useState(false);
     const [privacyOpen, setPrivacyOpen] = useState(false);
     const [termsOpen, setTermsOpen] = useState(false);
 
+    const clientErrors = useMemo(
+        () =>
+            validateRegistrationForm(
+                form.data,
+                fields,
+                common_field_requirements,
+            ),
+        [form.data, fields, common_field_requirements],
+    );
+
+    const visibleClientErrors: Record<string, string> = {};
+    for (const [key, message] of Object.entries(clientErrors)) {
+        if (hasAttemptedSubmit || touched.has(key)) {
+            visibleClientErrors[key] = message;
+        }
+    }
+
     const allErrors: Record<string, string> = {
         ...form.errors,
-        ...clientErrors,
+        ...visibleClientErrors,
     };
+
+    if (hasAttemptedSubmit && !consentAccepted) {
+        allErrors.consent = CONSENT_ERROR;
+    }
 
     const isRequired = (field: string): boolean =>
         common_field_requirements[field] ?? true;
+
+    const markTouched = (key: string) => {
+        setTouched((prev) => {
+            if (prev.has(key)) return prev;
+            const next = new Set(prev);
+            next.add(key);
+            return next;
+        });
+    };
+
+    // Mirrors FIX-022: a server error for a field clears the moment
+    // the user edits that field or any of its subkeys.
+    const clearServerErrors = (key: string) => {
+        const matching = Object.keys(form.errors).filter(
+            (k) => k === key || k.startsWith(`${key}.`),
+        );
+        if (matching.length > 0) {
+            form.clearErrors(...(matching as (keyof typeof form.data)[]));
+        }
+    };
+
+    const onCommonChange = (key: CommonFieldKey, value: string) => {
+        clearServerErrors(key);
+        form.setData(key, value);
+    };
+
+    const onCommonBlur = (key: CommonFieldKey) => {
+        markTouched(key);
+    };
+
+    const setResponse = (fieldId: number, value: string | string[]) => {
+        clearServerErrors(`responses.${fieldId}`);
+        form.setData('responses', {
+            ...form.data.responses,
+            [fieldId]: value,
+        });
+    };
+
+    const toggleCheckboxOption = (fieldId: number, option: string) => {
+        const current = form.data.responses[fieldId];
+        const list = Array.isArray(current) ? current : [];
+        const next = list.includes(option)
+            ? list.filter((v) => v !== option)
+            : [...list, option];
+        setResponse(fieldId, next);
+        markTouched(`responses.${fieldId}`);
+    };
+
+    const submit = (event_: FormEvent) => {
+        event_.preventDefault();
+        setHasAttemptedSubmit(true);
+
+        const errors = validateRegistrationForm(
+            form.data,
+            fields,
+            common_field_requirements,
+        );
+
+        if (!consentAccepted) {
+            errors.consent = CONSENT_ERROR;
+        }
+
+        if (Object.keys(errors).length > 0) {
+            return;
+        }
+
+        form.post(submit_url);
+    };
 
     if (success !== null) {
         return (
@@ -90,36 +210,6 @@ export default function PublicRegistration({
             </>
         );
     }
-
-    const setResponse = (fieldId: number, value: string | string[]) => {
-        form.setData('responses', {
-            ...form.data.responses,
-            [fieldId]: value,
-        });
-    };
-
-    const toggleCheckboxOption = (fieldId: number, option: string) => {
-        const current = form.data.responses[fieldId];
-        const list = Array.isArray(current) ? current : [];
-        const next = list.includes(option)
-            ? list.filter((v) => v !== option)
-            : [...list, option];
-        setResponse(fieldId, next);
-    };
-
-    const submit = (event_: FormEvent) => {
-        event_.preventDefault();
-        const errors = validateRegistrationForm(
-            form.data,
-            fields,
-            common_field_requirements,
-        );
-        setClientErrors(errors);
-        if (Object.keys(errors).length > 0) {
-            return;
-        }
-        form.post(submit_url);
-    };
 
     return (
         <>
@@ -178,8 +268,12 @@ export default function PublicRegistration({
                             <Label htmlFor="first_name">First name *</Label>
                             <Input
                                 id="first_name"
+                                placeholder="Juan"
                                 value={form.data.first_name}
-                                onChange={(e) => form.setData('first_name', e.target.value)}
+                                onChange={(e) =>
+                                    onCommonChange('first_name', e.target.value)
+                                }
+                                onBlur={() => onCommonBlur('first_name')}
                                 autoComplete="given-name"
                                 aria-invalid={!!allErrors.first_name}
                             />
@@ -190,8 +284,12 @@ export default function PublicRegistration({
                             <Label htmlFor="last_name">Last name *</Label>
                             <Input
                                 id="last_name"
+                                placeholder="Dela Cruz"
                                 value={form.data.last_name}
-                                onChange={(e) => form.setData('last_name', e.target.value)}
+                                onChange={(e) =>
+                                    onCommonChange('last_name', e.target.value)
+                                }
+                                onBlur={() => onCommonBlur('last_name')}
                                 autoComplete="family-name"
                                 aria-invalid={!!allErrors.last_name}
                             />
@@ -206,8 +304,12 @@ export default function PublicRegistration({
                                 id="email"
                                 type="email"
                                 inputMode="email"
+                                placeholder="you@example.com"
                                 value={form.data.email}
-                                onChange={(e) => form.setData('email', e.target.value)}
+                                onChange={(e) =>
+                                    onCommonChange('email', e.target.value)
+                                }
+                                onBlur={() => onCommonBlur('email')}
                                 autoComplete="email"
                                 aria-invalid={!!allErrors.email}
                             />
@@ -221,8 +323,12 @@ export default function PublicRegistration({
                             <Input
                                 id="contact_number"
                                 inputMode="tel"
+                                placeholder="09171234567"
                                 value={form.data.contact_number}
-                                onChange={(e) => form.setData('contact_number', e.target.value)}
+                                onChange={(e) =>
+                                    onCommonChange('contact_number', e.target.value)
+                                }
+                                onBlur={() => onCommonBlur('contact_number')}
                                 autoComplete="tel"
                                 aria-invalid={!!allErrors.contact_number}
                             />
@@ -237,8 +343,12 @@ export default function PublicRegistration({
                                 inputMode="numeric"
                                 min={1}
                                 max={120}
+                                placeholder="25"
                                 value={form.data.age}
-                                onChange={(e) => form.setData('age', e.target.value)}
+                                onChange={(e) =>
+                                    onCommonChange('age', e.target.value)
+                                }
+                                onBlur={() => onCommonBlur('age')}
                                 aria-invalid={!!allErrors.age}
                             />
                             <InputError message={allErrors.age} />
@@ -250,8 +360,12 @@ export default function PublicRegistration({
                             </Label>
                             <Input
                                 id="address"
+                                placeholder="Street, Barangay, City"
                                 value={form.data.address}
-                                onChange={(e) => form.setData('address', e.target.value)}
+                                onChange={(e) =>
+                                    onCommonChange('address', e.target.value)
+                                }
+                                onBlur={() => onCommonBlur('address')}
                                 autoComplete="street-address"
                                 aria-invalid={!!allErrors.address}
                             />
@@ -283,28 +397,44 @@ export default function PublicRegistration({
                                         <textarea
                                             id={`field-${field.id}`}
                                             value={typeof value === 'string' ? value : ''}
-                                            onChange={(e) => setResponse(field.id, e.target.value)}
+                                            onChange={(e) =>
+                                                setResponse(field.id, e.target.value)
+                                            }
+                                            onBlur={() =>
+                                                markTouched(`responses.${field.id}`)
+                                            }
                                             rows={4}
                                             aria-invalid={!!error}
-                                            className="flex min-h-[80px] w-full rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-foreground focus:border-lime-brand/50 focus:outline-none focus:ring-1 focus:ring-lime-brand/50"
+                                            className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
                                         />
                                     )}
 
                                     {field.field_type === 'select' && (
-                                        <select
-                                            id={`field-${field.id}`}
+                                        <Select
                                             value={typeof value === 'string' ? value : ''}
-                                            onChange={(e) => setResponse(field.id, e.target.value)}
-                                            aria-invalid={!!error}
-                                            className="h-9 w-full rounded-md border border-white/10 bg-white/[0.02] px-3 text-sm text-foreground focus:border-lime-brand/50 focus:outline-none"
+                                            onValueChange={(v) => {
+                                                setResponse(field.id, v);
+                                                markTouched(`responses.${field.id}`);
+                                            }}
                                         >
-                                            <option value="">Choose…</option>
-                                            {field.options.map((option) => (
-                                                <option key={option} value={option}>
-                                                    {option}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            <SelectTrigger
+                                                id={`field-${field.id}`}
+                                                className="w-full"
+                                                aria-invalid={!!error}
+                                            >
+                                                <SelectValue placeholder="Choose…" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {field.options.map((option) => (
+                                                    <SelectItem
+                                                        key={option}
+                                                        value={option}
+                                                    >
+                                                        {option}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     )}
 
                                     {field.field_type === 'radio' && (
@@ -319,7 +449,10 @@ export default function PublicRegistration({
                                                         name={`field-${field.id}`}
                                                         value={option}
                                                         checked={value === option}
-                                                        onChange={() => setResponse(field.id, option)}
+                                                        onChange={() => {
+                                                            setResponse(field.id, option);
+                                                            markTouched(`responses.${field.id}`);
+                                                        }}
                                                         className="h-4 w-4"
                                                     />
                                                     {option}
@@ -369,7 +502,12 @@ export default function PublicRegistration({
                                                         : 'text'
                                             }
                                             value={typeof value === 'string' ? value : ''}
-                                            onChange={(e) => setResponse(field.id, e.target.value)}
+                                            onChange={(e) =>
+                                                setResponse(field.id, e.target.value)
+                                            }
+                                            onBlur={() =>
+                                                markTouched(`responses.${field.id}`)
+                                            }
                                             aria-invalid={!!error}
                                         />
                                     )}
@@ -388,44 +526,52 @@ export default function PublicRegistration({
 
                     <InputError message={allErrors.identity} />
 
-                    {/* Consent — required. Privacy Notice and Terms open
-                        in modals below. HTML5 validation blocks submit
-                        if unchecked. Not recorded server-side yet;
-                        see ISSUE-009. */}
-                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm">
-                        <input
-                            type="checkbox"
-                            required
-                            className="mt-0.5 h-4 w-4 shrink-0"
-                        />
-                        <span className="text-muted-foreground">
-                            I have read and agree to the{' '}
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setPrivacyOpen(true);
+                    {/* Consent — React-controlled gate. Not HTML5
+                        `required`, because that blocks the submit
+                        event entirely. Not persisted across reloads;
+                        consent is not yet recorded server-side. See
+                        ISSUE-010. */}
+                    <div className="grid gap-1.5">
+                        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm">
+                            <input
+                                type="checkbox"
+                                checked={consentAccepted}
+                                onChange={(e) => {
+                                    setConsentAccepted(e.target.checked);
                                 }}
-                                className="font-medium text-lime-brand underline-offset-2 hover:underline"
-                            >
-                                Privacy Notice
-                            </button>{' '}
-                            and{' '}
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setTermsOpen(true);
-                                }}
-                                className="font-medium text-lime-brand underline-offset-2 hover:underline"
-                            >
-                                Terms &amp; Conditions
-                            </button>
-                            .
-                        </span>
-                    </label>
+                                aria-invalid={!!allErrors.consent}
+                                className="mt-0.5 h-4 w-4 shrink-0"
+                            />
+                            <span className="text-muted-foreground">
+                                I have read and agree to the{' '}
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setPrivacyOpen(true);
+                                    }}
+                                    className="font-medium text-lime-brand underline-offset-2 hover:underline"
+                                >
+                                    Privacy Notice
+                                </button>{' '}
+                                and{' '}
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setTermsOpen(true);
+                                    }}
+                                    className="font-medium text-lime-brand underline-offset-2 hover:underline"
+                                >
+                                    Terms &amp; Conditions
+                                </button>
+                                .
+                            </span>
+                        </label>
+                        <InputError message={allErrors.consent} />
+                    </div>
 
                     <Button
                         type="submit"

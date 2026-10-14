@@ -64,7 +64,7 @@ const COMMON_FIELDS: CommonFieldSpec[] = [
     { key: 'first_name', label: 'First name', toggleable: false },
     { key: 'last_name', label: 'Last name', toggleable: false },
     { key: 'email', label: 'Email', toggleable: true },
-    { key: 'contact_number', label: 'Contact number', toggleable: false },
+    { key: 'contact_number', label: 'Contact number', toggleable: true },
     { key: 'age', label: 'Age', toggleable: false },
     { key: 'address', label: 'Address', toggleable: true },
 ];

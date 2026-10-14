@@ -87,6 +87,13 @@ class RegistrationVerificationService
                 return ['token' => $token, 'created' => false];
             }
 
+            // Reject early: a completed registration for this event
+            // whose participant matches the submitted email or
+            // normalized phone is a duplicate. Runs regardless of
+            // whether the contact is required — an optional contact
+            // that already belongs to a registration still counts.
+            $this->assertNoDuplicateRegistration($event, $payload);
+
             if ($existing !== null && $existing->finalized_at === null) {
                 $existing->forceFill([
                     'expires_at' => now(), 'payload' => null,
@@ -445,6 +452,52 @@ class RegistrationVerificationService
         if ($challenge === null || $this->challengeState($challenge, $event) !== 'pending') {
             throw ValidationException::withMessages([
                 'verification' => 'This verification is unavailable, expired, or already completed. Refresh the page or start a new registration.',
+            ]);
+        }
+    }
+
+    /**
+     * Reject early: a completed registration for this event whose
+     * participant matches the submitted email or normalized phone.
+     *
+     * Runs regardless of whether the contact is required by the
+     * event — an optional contact that already belongs to a
+     * registration still counts as a duplicate.
+     *
+     * A match on a DIFFERENT event is not a duplicate. Participant
+     * identity is cross-event; registration is per-event.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function assertNoDuplicateRegistration(Event $event, #[\SensitiveParameter] array $payload): void
+    {
+        $email = $payload['email'] ?? null;
+        $email = is_string($email) && trim($email) !== '' ? trim($email) : null;
+
+        $phone = $payload['contact_number'] ?? null;
+        $normalized = is_string($phone) ? Participant::normalizeContactNumber($phone) : null;
+
+        if ($email === null && $normalized === null) {
+            return;
+        }
+
+        $exists = Registration::query()
+            ->where('event_id', $event->id)
+            ->whereHas('participant', function ($query) use ($email, $normalized): void {
+                $query->where(function ($inner) use ($email, $normalized): void {
+                    if ($email !== null) {
+                        $inner->orWhere('email', $email);
+                    }
+                    if ($normalized !== null) {
+                        $inner->orWhere('contact_number_normalized', $normalized);
+                    }
+                });
+            })
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'identity' => 'This email address or contact number is already registered for this event.',
             ]);
         }
     }

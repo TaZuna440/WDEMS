@@ -191,7 +191,6 @@ message.
 | `docs/progress.md` | Dated changelog, one entry per work session |
 | `docs/development-log.md` | Narrative record of what was built and when |
 | `docs/demo-email.md` | Repeatable Resend email demo procedure |
-| `docs/TinkerManual.md` | Common Tinker commands |
 
 **Historical (Google integration, removed from the project):**
 

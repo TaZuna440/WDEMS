@@ -1,3 +1,6 @@
+import AccessibilityGrid, {
+    type AccessibilityField,
+} from '@/components/accessibility-grid';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +21,7 @@ type FormData = {
     event_type: string;
     event_name: string;
     description: string;
-};
+} & Partial<Record<AccessibilityField, boolean>>;
 
 type Props = {
     data: FormData;
@@ -28,6 +31,18 @@ type Props = {
     isEdit?: boolean;
 };
 
+const ACCESSIBILITY_FIELDS: AccessibilityField[] = [
+    'walkers_welcome',
+    'all_paces_welcome',
+    'all_ages_welcome',
+    'stroller_friendly',
+    'wheelchair_accessible',
+    'sweeper_present',
+    'service_animals_allowed',
+    'leashed_pets_allowed',
+    'quiet_space_available',
+];
+
 export default function BasicsStep({
     data,
     setData,
@@ -35,6 +50,11 @@ export default function BasicsStep({
     eventTypes,
     isEdit = false,
 }: Props) {
+    const accessibilityValue: Partial<Record<AccessibilityField, boolean>> = {};
+    for (const field of ACCESSIBILITY_FIELDS) {
+        accessibilityValue[field] = data[field] === true;
+    }
+
     return (
         <div className="flex flex-col gap-6">
             <div>
@@ -97,6 +117,27 @@ export default function BasicsStep({
                 />
                 <InputError message={errors.description} />
             </div>
+
+            {/* Accessibility — participant-facing qualifications. Not
+                "extras": participants use these to decide whether the
+                event suits them. See event-creation-wizard.md. */}
+            <section className="flex flex-col gap-3 border-t border-white/5 pt-6">
+                <div>
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        Accessibility
+                    </h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                        Check everything that applies. These appear on the
+                        event page so participants know what to expect and
+                        can decide if the event suits them.
+                    </p>
+                </div>
+
+                <AccessibilityGrid
+                    value={accessibilityValue}
+                    onChange={(field, checked) => setData(field, checked)}
+                />
+            </section>
         </div>
     );
 }
