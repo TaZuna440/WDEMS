@@ -182,3 +182,126 @@
         appearance: textfield;
     }
 }
+
+/* =====================================================
+   UI REDESIGN — Stage 1: layered background + glass system
+   Append-only. Does not modify existing tokens or utilities.
+   Reference: docs + Figma prototype reviewed 2026-10-15.
+   ===================================================== */
+
+:root {
+    /* Light mode background — muted cool gradient (visible through glass) */
+    --app-bg-1: oklch(0.985 0.006 250);
+    --app-bg-2: oklch(0.955 0.014 220);
+    --app-bg-3: oklch(0.925 0.022 190);
+    --app-bg-glow: oklch(0.82 0.07 175 / 0.40);
+    --app-bg-texture-opacity: 0.035;
+
+    /* Glass tint strengths — light mode needs higher opacity for contrast */
+    --glass-card-tint: 68%;
+    --glass-sidebar-tint: 72%;
+    --glass-header-tint: 62%;
+    --glass-border-strength: 45%;
+}
+
+.dark {
+    /* Dark mode background — WDEMS navy → teal gradient */
+    --app-bg-1: oklch(0.14 0.045 250);
+    --app-bg-2: oklch(0.17 0.052 235);
+    --app-bg-3: oklch(0.20 0.062 195);
+    --app-bg-glow: oklch(0.60 0.15 175 / 0.20);
+    --app-bg-texture-opacity: 0.05;
+
+    --glass-card-tint: 32%;
+    --glass-sidebar-tint: 48%;
+    --glass-header-tint: 38%;
+    --glass-border-strength: 12%;
+}
+
+@layer base {
+    /* Layer 1 — the layered gradient backdrop. Fixed so it does not
+       scroll. z-index: -1 places it behind every application layer
+       without needing a wrapper element in the layout tree. */
+    body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background:
+            radial-gradient(60% 50% at 15% 10%, var(--app-bg-glow), transparent 70%),
+            radial-gradient(50% 60% at 85% 80%, var(--app-bg-glow), transparent 70%),
+            linear-gradient(135deg, var(--app-bg-1) 0%, var(--app-bg-2) 55%, var(--app-bg-3) 100%);
+    }
+
+    /* Layer 2 — subtle dot texture. No image file: 1px dots rendered
+       as a repeating radial-gradient. Opacity is theme-tuned above. */
+    body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        opacity: var(--app-bg-texture-opacity);
+        background-image: radial-gradient(currentColor 0.5px, transparent 0.5px);
+        background-size: 14px 14px;
+        color: var(--foreground);
+    }
+
+    /* The original body rule paints a solid --background color over
+       both layers. Override to transparent so the gradient shows
+       through. Appended later in the same layer, so it wins. */
+    body {
+        background-color: transparent;
+    }
+}
+
+@layer utilities {
+    /* Primary glass surface. Used for content cards (stat cards,
+       upcoming events, activity feed, quick access buttons).
+       Tint and border opacity come from the theme variables. */
+    .glass-card {
+        @apply backdrop-blur-xl border rounded-xl shadow-lg;
+        background-color: color-mix(in oklch, var(--card) var(--glass-card-tint), transparent);
+        border-color: color-mix(in oklch, var(--border) var(--glass-border-strength), transparent);
+    }
+
+    /* Stronger variant — for panels where text contrast matters more
+       than depth. Same recipe, higher tint. */
+    .glass-card-strong {
+        @apply backdrop-blur-2xl border rounded-xl shadow-xl;
+        background-color: color-mix(in oklch, var(--card) calc(var(--glass-card-tint) + 18%), transparent);
+        border-color: color-mix(in oklch, var(--border) calc(var(--glass-border-strength) + 10%), transparent);
+    }
+
+    /* Sidebar surface — denser than cards so navigation labels remain
+       legible over the gradient. Applied to the sidebar wrapper. */
+    .glass-sidebar {
+        @apply backdrop-blur-2xl border-r;
+        background-color: color-mix(in oklch, var(--sidebar) var(--glass-sidebar-tint), transparent);
+        border-color: color-mix(in oklch, var(--sidebar-border) var(--glass-border-strength), transparent);
+    }
+
+    /* Header surface — the top bar inside the main content area. */
+    .glass-header {
+        @apply backdrop-blur-xl border-b;
+        background-color: color-mix(in oklch, var(--card) var(--glass-header-tint), transparent);
+        border-color: color-mix(in oklch, var(--border) var(--glass-border-strength), transparent);
+    }
+
+    /* Optional inner specular highlight — a soft 1px light edge at the
+       top of a card, mimicking the reference. Requires the parent to
+       be position: relative and overflow: hidden. Opt-in per card. */
+    .glass-highlight::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background: linear-gradient(
+            180deg,
+            color-mix(in oklch, var(--foreground) 8%, transparent) 0%,
+            transparent 12%
+        );
+    }
+}
