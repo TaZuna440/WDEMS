@@ -21,6 +21,7 @@ void createInertiaApp({
             case name === 'registrations/public':
             case name === 'registrations/closed':
             case name === 'registrations/verify':
+            case name === 'registrations/confirmed':
                 return PublicLayout;
             case name.startsWith('auth/'):
                 return AuthLayout;

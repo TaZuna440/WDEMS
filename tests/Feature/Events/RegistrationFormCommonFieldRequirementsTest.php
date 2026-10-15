@@ -3,6 +3,7 @@
 use App\Models\Event;
 use App\Models\RegistrationField;
 use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
 
 /**
  * Covers the common_field_requirements payload in the form builder —
@@ -57,7 +58,31 @@ test('the builder page renders with the requirements map', function () {
 
     $this->actingAs($staff)
         ->get("/events/{$event->id}/registration-form")
-        ->assertOk();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('event.can_edit', true)
+            ->where('common_field_requirements.email', true)
+            ->where('common_field_requirements.contact_number', true));
+});
+
+test('a locked event reports can_edit false and retains its requirement values', function () {
+    $staff = rfreqs_staff();
+    $event = rfreqs_event();
+    $event->update([
+        'status' => 'registration_open',
+        'registration_common_field_requirements' => [
+            'email' => true,
+            'contact_number' => false,
+        ],
+    ]);
+
+    $this->actingAs($staff)
+        ->get("/events/{$event->id}/registration-form")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('event.can_edit', false)
+            ->where('common_field_requirements.email', true)
+            ->where('common_field_requirements.contact_number', false));
 });
 
 // ---------------------------------------------------------------------------
@@ -94,6 +119,24 @@ test('saving with email optional persists the map', function () {
     expect($stored)->toBeArray();
     expect($stored['email'])->toBeFalse();
     expect($stored['address'])->toBeTrue();
+});
+
+test('saving with contact number optional persists the map', function () {
+    $staff = rfreqs_staff();
+    $event = rfreqs_event();
+
+    $this->actingAs($staff)->put(
+        "/events/{$event->id}/registration-form",
+        rfreqs_payload([
+            'common_field_requirements' => [
+                'email' => true,
+                'contact_number' => false,
+                'address' => true,
+            ],
+        ]),
+    );
+
+    expect($event->fresh()->registration_common_field_requirements['contact_number'])->toBeFalse();
 });
 
 test('saving with email and address optional persists the map', function () {

@@ -79,14 +79,14 @@ function confmail_verified_challenge(Event $event, array $payload): array
     return [$token, $challenge];
 }
 
-it('renders the attendance code in the mail body', function () {
+it('renders the Registration Code wording and code in the mail body', function () {
     $mail = new RegistrationConfirmationMail('KM4X-P2N7', 'Test Event');
 
     $html = $mail->render();
 
-    expect($html)->toContain('KM4X-P2N7')
+    expect($html)->toContain('KM4X-P2N7', 'Registration Code')
         ->and($html)->toContain('Test Event')
-        ->and($mail->envelope()->subject)->toBe('WDEMS — Your Test Event attendance code');
+        ->and($mail->envelope()->subject)->toBe('WDEMS — Your Test Event Registration Code');
 });
 
 it('sends the confirmation mail on successful finalize', function () {

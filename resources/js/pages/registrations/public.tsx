@@ -29,13 +29,18 @@ import {
 
 type EventPayload = {
     event_name: string;
+    event_type: string | null;
     event_date: string | null;
     start_time: string | null;
-    venue: string;
-    venue_address: string;
+    end_time: string | null;
+    distance: string | null;
+    venue: string | null;
+    venue_address: string | null;
     venue_map_url: string | null;
     course_url: string | null;
     description: string | null;
+    partners: { name: string; type: string }[];
+    accessibility: string[];
 };
 
 type Props = {
@@ -222,20 +227,36 @@ export default function PublicRegistration({
                 </h1>
 
                 <div className="mt-3 flex flex-col gap-2 text-sm text-muted-foreground">
-                    {(event.event_date !== null || event.start_time !== null) && (
+                    {(event.event_type !== null ||
+                        event.event_date !== null ||
+                        event.start_time !== null ||
+                        event.end_time !== null ||
+                        event.distance !== null) && (
                         <div className="flex items-center gap-2">
                             <CalendarDays className="h-4 w-4" />
                             <span>
-                                {event.event_date}
-                                {event.start_time !== null && ` · ${event.start_time}`}
+                                {[
+                                    event.event_type,
+                                    event.event_date,
+                                    event.start_time !== null || event.end_time !== null
+                                        ? [event.start_time, event.end_time]
+                                              .filter(Boolean)
+                                              .join('–')
+                                        : null,
+                                    event.distance,
+                                ]
+                                    .filter(Boolean)
+                                    .join(' · ')}
                             </span>
                         </div>
                     )}
-                    <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        <span>{event.venue} — {event.venue_address}</span>
-                    </div>
-                    {event.venue_map_url !== null && (
+                    {(event.venue || event.venue_address) && (
+                        <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4" />
+                            <span>{[event.venue, event.venue_address].filter(Boolean).join(' · ')}</span>
+                        </div>
+                    )}
+                    {event.venue_map_url && (
                         <a
                             href={event.venue_map_url}
                             target="_blank"
@@ -246,11 +267,35 @@ export default function PublicRegistration({
                             View on map
                         </a>
                     )}
+                    {event.course_url && (
+                        <a
+                            href={event.course_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-lime-brand hover:underline"
+                        >
+                            <ExternalLink className="h-4 w-4" />
+                            View course
+                        </a>
+                    )}
                 </div>
 
                 {event.description !== null && event.description !== '' && (
                     <p className="mt-4 whitespace-pre-line text-sm text-foreground/80">
                         {event.description}
+                    </p>
+                )}
+                {event.accessibility.length > 0 && (
+                    <p className="mt-3 text-sm text-muted-foreground">
+                        {event.accessibility.join(' · ')}
+                    </p>
+                )}
+                {event.partners.length > 0 && (
+                    <p className="mt-3 text-sm text-muted-foreground">
+                        With{' '}
+                        {event.partners
+                            .map((partner) => `${partner.name} (${partner.type})`)
+                            .join(' · ')}
                     </p>
                 )}
             </div>

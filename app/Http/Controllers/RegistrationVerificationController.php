@@ -16,11 +16,17 @@ class RegistrationVerificationController extends Controller
 {
     public function __construct(private readonly RegistrationVerificationService $verification) {}
 
-    public function show(Request $request, Event $event): Response
+    public function show(Request $request, Event $event): Response|RedirectResponse
     {
+        $verification = $this->verification->publicState($event, $this->token($request, $event));
+
+        if ($verification['status'] === 'acknowledged') {
+            return redirect()->route('public-registration.confirmed', ['event' => $event->registration_slug]);
+        }
+
         return Inertia::render('registrations/verify', [
             'event_name' => $event->event_name,
-            'verification' => $this->verification->publicState($event, $this->token($request, $event)),
+            'verification' => $verification,
             'form_url' => route('public-registration.show', ['event' => $event->registration_slug]),
             'verification_url' => route('public-registration.verification', ['event' => $event->registration_slug]),
         ]);
@@ -71,6 +77,36 @@ class RegistrationVerificationController extends Controller
 
             return null;
         });
+    }
+
+    public function acknowledge(Request $request, Event $event): RedirectResponse
+    {
+        try {
+            $this->verification->acknowledgeCode($event, $this->token($request, $event));
+        } catch (ValidationException $exception) {
+            return $this->backToVerification($event)->withErrors([
+                'verification' => collect($exception->errors())->flatten()->first(),
+            ]);
+        } catch (\Throwable) {
+            Log::error('registration.verification.acknowledgement_failed', ['event_id' => $event->id]);
+
+            return $this->backToVerification($event)->withErrors([
+                'verification' => 'We could not finish this step. Refresh and try again.',
+            ]);
+        }
+
+        return redirect()->route('public-registration.confirmed', ['event' => $event->registration_slug])
+            ->withCookie(cookie(
+                RegistrationVerificationService::cookieName($event),
+                '',
+                -1,
+                '/r/'.$event->registration_slug,
+                null,
+                $request->isSecure(),
+                true,
+                false,
+                'lax',
+            ));
     }
 
     private function token(Request $request, Event $event): ?string

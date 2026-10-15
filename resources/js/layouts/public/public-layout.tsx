@@ -12,9 +12,11 @@ type Props = {
  * affordances. A visitor arriving from a share link should see the
  * event and the form, nothing else.
  *
- * Wired in resources/js/app.tsx for the two page names:
- *   - registrations/public  (the form)
- *   - registrations/closed  (the closed-state page)
+ * Wired in resources/js/app.tsx for the anonymous registration flow:
+ *   - registrations/public (the form)
+ *   - registrations/closed (the closed-state page)
+ *   - registrations/verify (the verification challenge)
+ *   - registrations/confirmed (the code-free completion page)
  */
 export default function PublicLayout({ children }: Props) {
     return (

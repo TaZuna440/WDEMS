@@ -18,6 +18,9 @@ Route::middleware([ProtectRegistrationVerification::class])
         Route::post('complete', [RegistrationVerificationController::class, 'complete'])
             ->middleware('throttle:registration-verification-attempt')
             ->name('public-registration.verification.complete');
+        Route::post('acknowledge-code', [RegistrationVerificationController::class, 'acknowledge'])
+            ->middleware('throttle:registration-verification-attempt')
+            ->name('public-registration.verification.acknowledge');
         Route::post('phone/firebase', [RegistrationVerificationController::class, 'firebasePhone'])
             ->middleware('throttle:registration-verification-attempt')
             ->name('public-registration.verification.phone.firebase');

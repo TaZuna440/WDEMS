@@ -51,7 +51,8 @@ test('an existing verified phone-only participant is reused across events', func
 test('a duplicate verified email for the same event is rejected safely', function () {
     $event = resolution_event();
     completePublicRegistration($this, $event, resolution_payload())->assertSessionHasNoErrors();
-    completePublicRegistration($this, $event, resolution_payload())->assertSessionHasErrors('verification');
+    $this->post('/r/'.$event->registration_slug, resolution_payload())
+        ->assertSessionHasErrors('identity');
     expect(Registration::count())->toBe(1);
 });
 
@@ -59,7 +60,8 @@ test('ISSUE-009 duplicate verified phone without email produces no unique constr
     $event = resolution_event(['registration_common_field_requirements' => ['email' => false, 'contact_number' => true]]);
     $payload = resolution_payload(['email' => '']);
     completePublicRegistration($this, $event, $payload)->assertSessionHasNoErrors();
-    completePublicRegistration($this, $event, $payload)->assertSessionHasErrors('verification');
+    $this->post('/r/'.$event->registration_slug, $payload)
+        ->assertSessionHasErrors('identity');
     expect(Registration::count())->toBe(1);
     expect(Participant::whereNull('email')->count())->toBe(1);
 });

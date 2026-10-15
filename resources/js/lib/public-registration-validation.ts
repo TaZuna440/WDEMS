@@ -255,11 +255,14 @@ export function validateRegistrationForm(
     // Under normal configuration at least one of email/contact_number
     // is required, so this check is defense in depth against a legacy
     // or manually-edited event where both are optional.
-    const emailBlank = isBlank(data.email);
-    const phoneBlank = isBlank(data.contact_number)
-        || normalizePhone(data.contact_number) === null;
+    const hasRequiredEmail =
+        isRequired('email') && !isBlank(data.email);
+    const hasRequiredPhone =
+        isRequired('contact_number') &&
+        !isBlank(data.contact_number) &&
+        normalizePhone(data.contact_number) !== null;
 
-    if (emailBlank && phoneBlank) {
+    if (!hasRequiredEmail && !hasRequiredPhone) {
         errors.identity = 'Please provide at least an email address or a contact number.';
     }
 

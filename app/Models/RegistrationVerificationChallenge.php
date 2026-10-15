@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $phone_required
  * @property CarbonInterface $expires_at
  * @property CarbonInterface|null $finalized_at
+ * @property CarbonInterface|null $code_acknowledged_at
  * @property int|null $registration_id
  * @property string|null $email_code_hash
  * @property string|null $phone_code_hash
@@ -54,6 +55,7 @@ class RegistrationVerificationChallenge extends Model
             'phone_attempts' => 'integer',
             'expires_at' => 'immutable_datetime',
             'finalized_at' => 'immutable_datetime',
+            'code_acknowledged_at' => 'immutable_datetime',
             'email_issued_at' => 'immutable_datetime',
             'phone_issued_at' => 'immutable_datetime',
             'email_expires_at' => 'immutable_datetime',

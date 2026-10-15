@@ -6,6 +6,7 @@ use App\Models\Registration;
 use App\Models\RegistrationField;
 use App\Models\RegistrationFieldResponse;
 use App\Models\User;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
 require_once __DIR__.'/../../Support/PublicVerification.php';
@@ -47,6 +48,73 @@ test('the public form renders for an open event', function () {
         ->assertInertia(fn (Assert $page) => $page->component('registrations/public'));
 });
 
+test('the public form exposes the existing event details before personal fields', function () {
+    $event = public_event([
+        'event_type' => 'fun_run',
+        'start_time' => '06:30:00',
+        'end_time' => '09:00:00',
+        'distance_value' => 5,
+        'distance_unit' => 'km',
+        'description' => 'A community course through the park.',
+        'venue' => 'Rizal Park',
+        'venue_address' => 'Manila',
+        'venue_map_url' => 'https://maps.example.test/run',
+        'course_url' => 'https://course.example.test/run',
+        'partners' => [['name' => 'Run Club', 'type' => 'host']],
+        'wheelchair_accessible' => true,
+        'quiet_space_available' => true,
+    ]);
+
+    $this->get("/r/{$event->registration_slug}")->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('event.event_name', 'Public Test Run')
+            ->where('event.event_type', 'Fun Run')
+            ->where('event.event_date', $event->fresh()->event_date?->toDateString())
+            ->where('event.start_time', '06:30')
+            ->where('event.end_time', '09:00')
+            ->where('event.distance', '5 KM')
+            ->where('event.venue', 'Rizal Park')
+            ->where('event.venue_address', 'Manila')
+            ->where('event.description', 'A community course through the park.')
+            ->where('event.venue_map_url', 'https://maps.example.test/run')
+            ->where('event.course_url', 'https://course.example.test/run')
+            ->where('event.partners.0.name', 'Run Club')
+            ->where('event.accessibility', ['Wheelchair accessible', 'Quiet space available']));
+
+    expect(Schema::hasColumn('events', 'event_type'))
+        ->toBeTrue()
+        ->and(Schema::hasColumn('events', 'end_time'))->toBeTrue()
+        ->and(Schema::hasColumn('events', 'distance_value'))->toBeTrue()
+        ->and(Schema::hasColumn('events', 'course_url'))->toBeTrue()
+        ->and(Schema::hasColumn('events', 'partners'))->toBeTrue();
+});
+
+test('the public event summary omits absent values cleanly', function () {
+    $event = public_event([
+        'start_time' => null,
+        'end_time' => null,
+        'distance_value' => null,
+        'venue' => null,
+        'venue_address' => null,
+        'venue_map_url' => null,
+        'course_url' => null,
+        'description' => null,
+        'partners' => null,
+    ]);
+
+    $this->get("/r/{$event->registration_slug}")->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('event.start_time', null)
+            ->where('event.end_time', null)
+            ->where('event.distance', null)
+            ->where('event.venue', null)
+            ->where('event.venue_map_url', null)
+            ->where('event.course_url', null)
+            ->where('event.description', null)
+            ->where('event.partners', [])
+            ->where('event.accessibility', []));
+});
+
 test('the closed page renders for an event that is not registration_open', function () {
     $event = public_event(['status' => 'registration_closed']);
     $this->get("/r/{$event->registration_slug}")->assertOk()
@@ -78,7 +146,8 @@ test('a verified submission creates participant registration and responses', fun
 test('a duplicate verified identity for the same event is safely rejected', function () {
     $event = public_event();
     completePublicRegistration($this, $event, public_payload())->assertSessionHasNoErrors();
-    completePublicRegistration($this, $event, public_payload())->assertSessionHasErrors('verification');
+    $this->post('/r/'.$event->registration_slug, public_payload())
+        ->assertSessionHasErrors('identity');
     expect(Registration::where('event_id', $event->id)->count())->toBe(1);
 });
 

@@ -130,15 +130,16 @@ class RegistrationVerificationService
      * Public-facing state of a challenge.
      *
      * The 'finalized' state carries the registration's attendance_code
-     * so the verification page can display it and the participant can
-     * save it for event day. The code is a bearer lookup key, not a
+     * until the participant acknowledges saving it, so the verification
+     * page can display it and the participant can save it for event day.
+     * The code is a bearer lookup key, not a
      * secret — showing it to the participant who owns the challenge is
      * the point.
      *
      * The code may be null if the registration was deleted after
      * finalization (the challenge's registration_id FK is
-     * nullOnDelete). In that case the page falls back to the plain
-     * confirmation message with no code panel.
+     * nullOnDelete). The participant can still acknowledge the
+     * finalized challenge; no code is exposed in that case.
      *
      * @return array<string, mixed>
      */
@@ -152,6 +153,10 @@ class RegistrationVerificationService
         $status = $this->challengeState($challenge, $event);
 
         if ($status === 'finalized') {
+            if ($challenge->code_acknowledged_at !== null) {
+                return ['status' => 'acknowledged'];
+            }
+
             $registration = $challenge->registration_id !== null
                 ? Registration::find($challenge->registration_id)
                 : null;
@@ -174,6 +179,27 @@ class RegistrationVerificationService
             'phone' => $this->channelState($challenge, 'phone'),
             'ready' => $this->allVerified($challenge),
         ];
+    }
+
+    /**
+     * Persist the participant's acknowledgement while holding the challenge
+     * row lock. Repeated requests with the original cookie are idempotent.
+     */
+    public function acknowledgeCode(Event $event, #[\SensitiveParameter] ?string $token): void
+    {
+        DB::transaction(function () use ($event, $token): void {
+            $challenge = $this->findChallenge($event, $token, true);
+
+            if ($challenge === null || $this->challengeState($challenge, $event) !== 'finalized') {
+                throw ValidationException::withMessages([
+                    'verification' => 'This registration confirmation is unavailable or expired. Start a new registration if you still need help.',
+                ]);
+            }
+
+            if ($challenge->code_acknowledged_at === null) {
+                $challenge->forceFill(['code_acknowledged_at' => now()])->save();
+            }
+        }, 3);
     }
 
     /** Send synchronously through the existing Resend transport; never the log mailer. */

@@ -7,7 +7,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
 /**
- * Delivers the participant's attendance code by email at the moment
+ * Delivers the participant's Registration Code by email at the moment
  * of registration finalization.
  *
  * The code is a bearer lookup key, not an OTP. It does not expire,
@@ -30,7 +30,7 @@ class RegistrationConfirmationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'WDEMS — Your '.$this->eventName.' attendance code',
+            subject: 'WDEMS — Your '.$this->eventName.' Registration Code',
         );
     }
 

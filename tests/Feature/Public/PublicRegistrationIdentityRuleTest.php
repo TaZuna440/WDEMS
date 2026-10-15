@@ -41,4 +41,16 @@ test('a submission without a usable required identity is rejected', function (st
     expect(Participant::count())->toBe(0);
 })->with([['', ''], ['', 'not-a-phone'], ['   ', ''], ['optional@example.com', '']]);
 
+test('legacy event data with both identity channels optional rejects public submissions', function () {
+    $event = identity_pub_event(['email' => false, 'contact_number' => false]);
+
+    $this->post('/r/'.$event->registration_slug, identity_pub_payload([
+        'email' => 'optional@example.com',
+        'contact_number' => '09171234567',
+    ]))->assertSessionHasErrors('identity');
+
+    expect(Registration::count())->toBe(0)
+        ->and(Participant::count())->toBe(0);
+});
+
 

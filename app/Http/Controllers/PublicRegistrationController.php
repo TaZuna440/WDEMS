@@ -27,6 +27,14 @@ class PublicRegistrationController extends Controller
         ]);
     }
 
+    public function confirmed(Event $event): Response
+    {
+        return Inertia::render('registrations/confirmed', [
+            'event_name' => $event->event_name,
+            'event_date' => $event->event_date?->toDateString(),
+        ]);
+    }
+
     /** Initial submission creates only an encrypted pending challenge. */
     public function store(
         PublicRegistrationRequest $request,
@@ -76,13 +84,40 @@ class PublicRegistrationController extends Controller
     {
         return [
             'event_name' => $event->event_name,
+            'event_type' => $event->event_type?->label(),
             'event_date' => $event->event_date?->toDateString(),
             'start_time' => $event->start_time?->format('H:i'),
+            'end_time' => $event->end_time?->format('H:i'),
+            'distance' => $event->distanceLabel(),
             'venue' => $event->venue,
             'venue_address' => $event->venue_address,
             'venue_map_url' => $event->venue_map_url,
             'course_url' => $event->course_url,
             'description' => $event->description,
+            'partners' => collect($event->partners ?? [])
+                ->filter(fn ($partner) => is_array($partner)
+                    && is_string($partner['name'] ?? null)
+                    && trim($partner['name']) !== ''
+                    && is_string($partner['type'] ?? null))
+                ->map(fn (array $partner) => [
+                    'name' => $partner['name'],
+                    'type' => ucfirst($partner['type']),
+                ])
+                ->values()
+                ->all(),
+            'accessibility' => collect([
+                'walkers_welcome' => 'Walkers welcome',
+                'all_paces_welcome' => 'All paces welcome',
+                'all_ages_welcome' => 'All ages welcome',
+                'stroller_friendly' => 'Stroller friendly',
+                'wheelchair_accessible' => 'Wheelchair accessible',
+                'sweeper_present' => 'Sweeper present',
+                'service_animals_allowed' => 'Service animals allowed',
+                'leashed_pets_allowed' => 'Leashed pets allowed',
+                'quiet_space_available' => 'Quiet space available',
+            ])->filter(fn ($label, $field) => (bool) $event->getAttribute($field))
+                ->values()
+                ->all(),
         ];
     }
 

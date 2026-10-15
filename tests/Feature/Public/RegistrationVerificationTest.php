@@ -90,6 +90,109 @@ test('email intake stores encrypted pending data and no registration records', f
     $this->get($url)->assertInertia(fn (Assert $page) => $page->where('verification.status', 'finalized'));
 });
 
+test('Registration Code is visible after finalization then permanently hidden after acknowledgement', function () {
+    $event = verificationEvent();
+    [$challenge, $token, $url] = startVerification($this, $event);
+    $emailCode = Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code;
+
+    $this->post($url.'/email', ['code' => $emailCode])->assertSessionHasNoErrors();
+    $this->post($url.'/complete')->assertSessionHasNoErrors();
+
+    $registration = Registration::sole();
+    $storedCode = $registration->attendance_code;
+    $this->get($url)->assertOk()->assertHeader('Cache-Control', 'no-store, private')
+        ->assertHeader('Referrer-Policy', 'no-referrer')
+        ->assertHeader('X-Robots-Tag', 'noindex, nofollow')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('verification.status', 'finalized')
+            ->where('verification.attendance_code', $storedCode));
+
+    // The code-free destination must remain reachable when the public form closes.
+    $event->update(['status' => 'registration_closed']);
+
+    $cookieName = Verification::cookieName($event);
+    $acknowledgement = $this->post($url.'/acknowledge-code')
+        ->assertRedirect('/r/'.$event->registration_slug.'/registered');
+    $expiredCookie = $acknowledgement->getCookie($cookieName);
+    expect($expiredCookie)->not->toBeNull()
+        ->and($expiredCookie->getPath())->toBe('/r/'.$event->registration_slug)
+        ->and($expiredCookie->getExpiresTime())->toBeLessThan(now()->getTimestamp());
+
+    $challenge->refresh();
+    $acknowledgedAt = $challenge->code_acknowledged_at;
+    expect($acknowledgedAt)->not->toBeNull()
+        ->and($registration->fresh()->attendance_code)->toBe($storedCode)
+        ->and(app(Verification::class)->publicState($event, $token))
+            ->toBe(['status' => 'acknowledged']);
+
+    $this->withCookie($cookieName, $token)->get($url)
+        ->assertRedirect('/r/'.$event->registration_slug.'/registered');
+    $this->get('/r/'.$event->registration_slug.'/registered')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('registrations/confirmed')
+            ->missing('attendance_code')
+            ->missing('verification.attendance_code'));
+
+    // Restoring the old cookie and repeating the POST is harmless.
+    $this->withCookie($cookieName, $token)->post($url.'/acknowledge-code')
+        ->assertRedirect('/r/'.$event->registration_slug.'/registered');
+    expect($challenge->fresh()->code_acknowledged_at->equalTo($acknowledgedAt))->toBeTrue();
+    $this->withCookie($cookieName, $token)->get($url)
+        ->assertRedirect('/r/'.$event->registration_slug.'/registered');
+});
+
+test('registered confirmation route resolves to the anonymous public layout', function () {
+    $event = verificationEvent();
+
+    $this->get('/r/'.$event->registration_slug.'/registered')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('registrations/confirmed')
+            ->where('event_name', 'Verification Run')
+            ->missing('attendance_code')
+            ->missing('verification.attendance_code'));
+
+    $middleware = app('router')->getRoutes()
+        ->getByName('public-registration.confirmed')
+        ->gatherMiddleware();
+    expect($middleware)->not->toContain('auth', 'verified', 'device.trusted', 'verified.or.admin', 'admin');
+
+    // The application has no JS test runner; this guards the Inertia page-name
+    // mapping directly so the confirmation page cannot fall through to AppLayout.
+    $resolver = file_get_contents(resource_path('js/app.tsx'));
+    expect($resolver)
+        ->toContain("case name === 'registrations/confirmed':\n                return PublicLayout;")
+        ->not->toContain("case name === 'registrations/confirmed':\n                return AppLayout;");
+});
+
+test('acknowledgement rejects pending missing invalid and expired challenges', function (string $state) {
+    $event = verificationEvent();
+
+    if ($state === 'missing') {
+        $this->post('/r/'.$event->registration_slug.'/verification/acknowledge-code')
+            ->assertSessionHasErrors('verification');
+
+        return;
+    }
+
+    [$challenge, $token, $url] = startVerification($this, $event);
+
+    if ($state === 'expired') {
+        $this->post($url.'/email', ['code' => Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code]);
+        $this->post($url.'/complete')->assertSessionHasNoErrors();
+        $this->travel(24)->hours();
+        $this->post($url.'/acknowledge-code')->assertSessionHasErrors('verification');
+    } elseif ($state === 'pending') {
+        $this->post($url.'/acknowledge-code')->assertSessionHasErrors('verification');
+    } elseif ($state === 'invalid') {
+        $this->withCookie(Verification::cookieName($event), 'invalid-token')
+            ->post($url.'/acknowledge-code')->assertSessionHasErrors('verification');
+    }
+
+    expect($challenge->fresh()->code_acknowledged_at)->toBeNull();
+})->with(['pending', 'missing', 'invalid', 'expired']);
+
 test('phone only and both-channel registrations require every gate and finalize once', function (bool $email) {
     $event = verificationEvent($email, true);
     [$challenge, , $url] = startVerification($this, $event);
@@ -233,6 +336,29 @@ test('optional contacts are snapshots and cannot resolve or update participant i
     expect($existing->refresh()->first_name)->toBe('Other');
     expect(Challenge::sole()->getAttribute($emailRequired ? 'phone_issued_at' : 'email_issued_at'))->toBeNull();
 })->with([false]);
+
+test('optional phone does not trigger Firebase verification or resolve participant identity', function () {
+    $event = verificationEvent(true, false);
+    $existing = Participant::create([
+        'first_name' => 'Existing', 'last_name' => 'Runner', 'age' => 40,
+        'email' => 'existing@example.com', 'contact_number' => '09171234567',
+    ]);
+    [$challenge, , $url] = startVerification($this, $event);
+
+    expect($challenge->phone_required)->toBeFalse();
+    $this->post($url.'/phone/firebase', ['id_token' => 'not-a-firebase-token'])
+        ->assertSessionHasErrors('phone');
+    expect($challenge->fresh()->phone_verified_at)->toBeNull();
+
+    $this->post($url.'/email', ['code' => Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code])
+        ->assertSessionHasNoErrors();
+    $this->post($url.'/complete')->assertSessionHasNoErrors();
+
+    $registration = Registration::sole();
+    expect($registration->participant_id)->not->toBe($existing->id)
+        ->and($registration->submitted_contact_number)->toBe('+63 917 123 4567')
+        ->and($registration->participant->contact_number_normalized)->toBeNull();
+});
 
 test('two verified identifiers reuse the same participant without rewriting details', function () {
     $event = verificationEvent(true, true);

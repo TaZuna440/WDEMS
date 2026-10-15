@@ -33,6 +33,14 @@ Route::middleware([EnsureRegistrationIsOpen::class])->group(function () {
         ->name('public-registration.store');
 });
 
+// Code-free completion destination remains available after registration closes.
+Route::get('r/{event:registration_slug}/registered', [PublicRegistrationController::class, 'confirmed'])
+    ->middleware([
+        App\Http\Middleware\ProtectRegistrationVerification::class,
+        'throttle:registration-verification-view',
+    ])
+    ->name('public-registration.confirmed');
+
 // Device verification routes — must be OUTSIDE the device.trusted middleware.
 // These stay under strict `verified` — an unverified user must verify their
 // email before touching the 2FA challenge. Admins never reach this group

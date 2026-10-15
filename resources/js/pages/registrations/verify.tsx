@@ -44,10 +44,12 @@ type Props = {
     };
 };
 
-function AttendanceCodePanel({ code }: { code: string }) {
+function RegistrationCodePanel({ code }: { code: string | null }) {
     const [copied, setCopied] = useState(false);
 
     const copy = async () => {
+        if (code === null) return;
+
         try {
             await navigator.clipboard.writeText(code);
             setCopied(true);
@@ -63,50 +65,63 @@ function AttendanceCodePanel({ code }: { code: string }) {
             <div className="flex items-center gap-2">
                 <Ticket className="h-4 w-4 text-lime-brand" />
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-lime-brand">
-                    Your attendance code
+                    Your Registration Code
                 </h2>
             </div>
 
-            <p
-                className="select-all text-center font-mono text-4xl font-semibold tracking-[0.3em] text-foreground"
-                aria-label={`Attendance code ${code}`}
-            >
-                {code}
-            </p>
-
-            <p className="text-center text-sm text-muted-foreground">
-                Present this at the event table so staff can verify your
-                attendance.
-            </p>
-
-            <div className="flex items-center justify-center">
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={copy}
+            {code !== null && (
+                <p
+                    className="select-all text-center font-mono text-4xl font-semibold tracking-[0.3em] text-foreground"
+                    aria-label={`Registration Code ${code}`}
                 >
-                    {copied ? (
-                        <>
-                            <Check className="mr-2 h-3.5 w-3.5 text-lime-brand" />
-                            Copied
-                        </>
-                    ) : (
-                        <>
-                            <Copy className="mr-2 h-3.5 w-3.5" />
-                            Copy code
-                        </>
-                    )}
-                </Button>
-            </div>
+                    {code}
+                </p>
+            )}
+
+            {code !== null && (
+                <p className="text-center text-sm text-muted-foreground">
+                    Present this at the event table so staff can find your
+                    registration.
+                </p>
+            )}
+
+            {code !== null && (
+                <div className="flex items-center justify-center">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={copy}
+                        aria-label={
+                            copied
+                                ? 'Registration Code copied'
+                                : 'Copy Registration Code'
+                        }
+                    >
+                        {copied ? (
+                            <>
+                                <Check className="mr-2 h-3.5 w-3.5 text-lime-brand" />
+                                Registration Code copied
+                            </>
+                        ) : (
+                            <>
+                                <Copy className="mr-2 h-3.5 w-3.5" />
+                                Copy Registration Code
+                            </>
+                        )}
+                    </Button>
+                </div>
+            )}
 
             <p
                 role="status"
                 className="text-center text-xs text-muted-foreground"
             >
-                {copied
-                    ? 'Copied to clipboard.'
-                    : 'Save this code. You will need it on event day.'}
+                {code === null
+                    ? 'Your registration is confirmed. A Registration Code is unavailable on this page.'
+                    : copied
+                    ? 'Registration Code copied to clipboard.'
+                    : 'Please copy your Registration Code or take a screenshot now. Once you confirm, it will no longer be displayed on this page.'}
             </p>
         </section>
     );
@@ -159,12 +174,12 @@ function ContactVerification({
                     <p className="text-muted-foreground text-sm">
                         {channel === 'email'
                             ? 'Enter the six-digit code emailed to your required email address.'
-                            : 'Event staff will communicate a six-digit code to your submitted phone number using their own phone. WDEMS does not send an SMS. Keep this page open or return in this browser.'}
+                            : 'Verify your phone number with the secure Firebase SMS check. Keep this page open while you complete it.'}
                     </p>
                     {state.status === 'waiting' && (
                         <p role="status">
                             {channel === 'phone'
-                                ? 'Waiting for event staff to generate your code.'
+                                ? 'Complete the Firebase SMS check to verify your phone.'
                                 : 'Request an email code to continue.'}
                         </p>
                     )}
@@ -179,14 +194,14 @@ function ContactVerification({
                             This code has expired.{' '}
                             {channel === 'email'
                                 ? 'Request another email code.'
-                                : 'Ask event staff to generate a new phone code.'}
+                                : 'Restart the Firebase phone check.'}
                         </p>
                     )}
                     {state.status === 'sent' && !expired && (
                         <p role="status">
                             {channel === 'email'
                                 ? 'Email code sent.'
-                                : 'Phone code generated. Wait for staff to communicate it.'}{' '}
+                                : 'Phone verification completed.'}{' '}
                             Codes expire after ten minutes.
                         </p>
                     )}
@@ -253,6 +268,7 @@ export default function VerifyRegistration({
 }: Props) {
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
     const completion = useForm({});
+    const acknowledgement = useForm({});
     const [now, setNow] = useState(() => Date.now());
     const [phoneStage, setPhoneStage] = useState<PhoneStage>('idle');
     useEffect(() => {
@@ -321,12 +337,24 @@ export default function VerifyRegistration({
                 </p>
                 <InputError message={errors.verification} />
 
-                {verification.status === 'finalized' &&
-                    verification.attendance_code && (
-                        <AttendanceCodePanel
-                            code={verification.attendance_code}
+                {verification.status === 'finalized' && (
+                    <>
+                        <RegistrationCodePanel
+                            code={verification.attendance_code ?? null}
                         />
-                    )}
+                        <Button
+                            type="button"
+                            disabled={acknowledgement.processing}
+                            onClick={() => acknowledgement.post(
+                                `${verification_url}/acknowledge-code`,
+                            )}
+                        >
+                            {acknowledgement.processing
+                                ? 'Finishing…'
+                                : "I've saved my Registration Code — finish"}
+                        </Button>
+                    </>
+                )}
 
                 {verification.status === 'pending' && !expired && (
                     <>

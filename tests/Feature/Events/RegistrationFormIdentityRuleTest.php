@@ -94,6 +94,24 @@ test('a payload with no requirements map is accepted', function () {
     $response->assertSessionHasNoErrors();
 });
 
+test('both email and contact number optional is rejected', function () {
+    $staff = rfidentity_staff();
+    $event = rfidentity_event();
+
+    $response = $this->actingAs($staff)->put(
+        "/events/{$event->id}/registration-form",
+        rfidentity_payload([
+            'common_field_requirements' => [
+                'email' => false,
+                'contact_number' => false,
+            ],
+        ]),
+    );
+
+    $response->assertSessionHasErrors('common_field_requirements');
+    expect($event->fresh()->registration_common_field_requirements)->toBeNull();
+});
+
 // ---------------------------------------------------------------------------
 // Rejected configuration
 // ---------------------------------------------------------------------------
