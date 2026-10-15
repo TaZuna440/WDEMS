@@ -76,7 +76,7 @@ export default function ScheduleStep({ data, setData, errors }: Props) {
                     Today or later, up to 2 years from today.
                 </p>
                 {isScheduledForToday && (
-                    <p className="flex items-start gap-2 text-xs text-yellow-500/90">
+                    <p className="flex items-start gap-2 text-xs text-[#13253B] dark:text-yellow-500/90">
                         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         <span>
                             Heads up — events scheduled for today have no

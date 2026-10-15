@@ -40,7 +40,7 @@ const ACTIVE_STYLES: Record<AttendanceFilter, string> = {
     unmarked: 'bg-secondary text-foreground border-white/20',
     present: 'bg-green-500/15 text-green-400 border-green-500/30',
     absent: 'bg-destructive/15 text-destructive border-destructive/30',
-    late: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30',
+    late: 'bg-[#13253B] text-white border border-[#13253B] dark:bg-yellow-500/15 dark:text-yellow-500 dark:border-yellow-500/30',
     excused: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
 };
 

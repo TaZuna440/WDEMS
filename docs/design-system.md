@@ -1,0 +1,375 @@
+# WDEMS — Design System
+
+**Audience:** Whoever edits `resources/css/app.css`, any
+`resources/js/pages/**/*.tsx`, or any `resources/js/components/**/*.tsx`.
+
+**Purpose:** Define the visual contract for WDEMS. Every color,
+opacity, and surface choice reads from the rules in this file. When a
+page looks wrong, the fix is "which rule is being violated" — not
+"tune a number until it looks right."
+
+**Status:** Live. Written 2026-10-15 during the light-mode redesign.
+
+---
+
+## 1. The four-layer model
+
+Every pixel on screen belongs to one of four layers. Each layer reads
+from its own set of values. No layer reaches into another's.
+
+    ┌──────────────────────────────────────────────┐
+    │  LAYER 3 — Content                           │
+    │    Text, icons, borders, controls.           │
+    │    Reads from: --foreground per mode.        │
+    │    Flips between light and dark.             │
+    ├──────────────────────────────────────────────┤
+    │  LAYER 2 — Glass surfaces                    │
+    │    Sidebar, panels, tables, modals.          │
+    │    Reads from: tier tint + backdrop-filter.  │
+    │    Flips between light and dark.             │
+    ├──────────────────────────────────────────────┤
+    │  LAYER 1 — Image + overlay                   │
+    │    The atmosphere.                           │
+    │    Reads from: --app-bg-image +              │
+    │                --app-bg-overlay.             │
+    │    Identical in both modes.                  │
+    ├──────────────────────────────────────────────┤
+    │  LAYER 0 — Base gradient                     │
+    │    Fallback if the image fails to load.      │
+    │    Reads from: --app-bg-1/2/3.               │
+    │    Flips between light and dark, but only    │
+    │    visible when LAYER 1 is absent.           │
+    └──────────────────────────────────────────────┘
+
+**Rule:** a component on Layer 3 does not know whether Layer 2 exists
+behind it. A component on Layer 2 does not know what Layer 1 is
+showing. Layers compose by order, not by coordination.
+
+---
+
+## 2. Glass tiers
+
+Not every glass surface is the same. There are three tiers, and each
+has an opacity band, a purpose, and a set of members.
+
+### Tier A — Structural surfaces
+
+    Members:
+      - Sidebar panel
+      - Top header strip / floating controls
+      - Modal backdrops
+      - Anything the user needs to find no matter what is behind it
+
+    Light tint band:  60% – 75%
+    Dark tint band:   45% – 60%
+
+Tier A surfaces are the "chrome" of the app. They must always be
+readable. When in doubt, they are the surfaces that go one step more
+opaque.
+
+### Tier B — Content panels
+
+    Members:
+      - Main cards (Needs Attention, Coming Up, table wrappers)
+      - Form sections
+      - Report blocks
+      - Any container holding primary content
+
+    Light tint band:  50% – 65%
+    Dark tint band:   32% – 45%
+
+Tier B surfaces carry the reading experience. They need enough opacity
+that text is legible against whatever is behind them, and enough
+transparency that the atmosphere is visible. This is where the
+"frosted glass over a photo" look lives.
+
+### Tier C — Internal rows and items
+
+    Members:
+      - Event rows inside a table
+      - Action items inside Needs Attention
+      - List rows inside a card
+      - Any element nested inside a Tier A or Tier B surface
+
+    Tint:             transparent
+    Tint:             transparent
+
+Tier C adds no glass of its own. It inherits its parent's surface and
+uses only `hover:bg-*` at low opacity for interaction feedback.
+Stacking glass on glass produces a muddy, darker inner surface. This
+is the current failure mode on `/registrations`.
+
+**One tint per surface.** Never nest glass inside glass.
+
+---
+
+## 3. Mode contract — what flips, what stays
+
+### What flips between light and dark
+
+- Every `--color-*` and `--sidebar-*` semantic token
+- `--lime-brand` (`#84CC16` light, `#B6FF3B` dark)
+- Tier tint percentages
+- `--foreground` (navy in light, white in dark)
+- `--border` (visible grey in light, translucent white in dark)
+
+### What does not flip
+
+- The image (`--app-bg-image`)
+- The overlay (`--app-bg-overlay` — same value in both modes)
+- Text placed directly on the image (see Section 7)
+- The `.glass-card`, `.glass-sidebar`, `.glass-header` recipes
+  themselves — only their inputs flip
+
+**Rule:** if a value changes between modes, it lives in either the
+`:root` block or the `.dark` block. If it does not change, it lives
+outside both.
+
+---
+
+## 4. Semantic colors
+
+Semantic colors are not brand. They carry meaning. Each has a
+light-mode value and a dark-mode value, and the meaning is preserved
+across the flip.
+
+| Semantic | Meaning | Light mode | Dark mode |
+|---|---|---|---|
+| **Brand / accent** | WDEMS identity, primary actions | `#84CC16` (lime) | `#B6FF3B` (lime) |
+| **Success / Completed** | Finished, confirmed, verified | `bg-green-500/15 text-green-700` | `bg-green-500/15 text-green-500` |
+| **Warning** | Attention needed, pending, urgent | see Section 5 | yellow family |
+| **Danger** | Destructive, errors, overdue | `bg-destructive/15 text-destructive` | `bg-destructive/15 text-destructive` |
+| **Neutral / Draft** | Inactive, not-yet-started | `bg-secondary text-foreground` | `bg-secondary text-foreground` |
+| **Info / Type** | Category label, informational | `bg-accent/15 text-teal-700` | `bg-accent/15 text-accent` |
+
+**Rule:** success is green in both modes. Brand is lime in both modes.
+Danger is red in both modes. Only the **warning** semantic has a
+different hue per mode (see Section 5).
+
+---
+
+## 5. The warning rule — yellow in dark, navy in light
+
+The warning semantic is the one place where the mode changes the hue,
+not just the shade. This is deliberate:
+
+- **Dark mode:** yellow (`bg-yellow-500/*` / `text-yellow-500`). Yellow
+  reads as warning against a dark navy background.
+- **Light mode:** navy (`#13253B`, WDEMS navy). Yellow on light glass
+  is low-contrast and reads as decoration, not as a warning. Navy
+  carries the same "attention" weight without the contrast problem.
+
+**Rule:** every yellow utility in the codebase must be paired with a
+light-mode override. The pattern is:
+
+    bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500
+
+Light value first (navy), dark override second (yellow). The `dark:`
+prefix is not optional.
+
+**Scope of this rule** — it applies to every occurrence of:
+
+- Warning badges (`registration_closed`, `pending`)
+- Warning dots (urgency indicators)
+- Warning borders and border-lefts
+- Warning text (`text-amber-*`, `text-yellow-*`)
+- Warning buttons
+- Warning panels (`bg-amber-500/*`)
+
+Amber and yellow are the same warning family. Both follow this rule.
+
+**Not in scope:** `text-amber-*` used for pure decoration in the
+absence of a warning meaning. There are none in the codebase today.
+
+---
+
+## 6. Text on the image
+
+Some text sits directly on the page image — not on a glass surface.
+Page headings, hero subtitles, empty-state titles when they overlap
+the image.
+
+The image is a fixed dark scene. In light mode, `--foreground` is
+navy — unreadable on dark. In dark mode, `--foreground` is white —
+readable.
+
+**Rule:** text placed directly on the image is white in both modes,
+with a soft dark shadow.
+
+The utilities:
+
+    .text-on-image         white + shadow
+    .text-on-image-muted   soft white + shadow
+
+Both are defined in `resources/css/app.css` and are identical in
+light and dark. They bypass the semantic tokens on purpose — the
+image is a color context neither mode's tokens describe.
+
+**When to use:** only for text that visually overlaps the raw image.
+Everything inside a Tier A or Tier B surface uses normal
+`--foreground` text.
+
+**When not to use:** inside cards, on the sidebar, inside modals.
+Text on glass reads from `--foreground`.
+
+---
+
+## 7. Tier assignments — current pages
+
+Every page's primary surface must declare its tier. This is the
+current audit.
+
+| Surface | File | Tier |
+|---|---|---|
+| Sidebar panel | `ui/sidebar.tsx` | A |
+| Top header strip | `app-sidebar-header.tsx` | A |
+| Floating sidebar trigger | `app-sidebar-header.tsx` | A |
+| Page hero heading | page body | Layer 3 (text-on-image) |
+| Dashboard — Needs Attention card | `dashboard.tsx` | B |
+| Dashboard — Coming Up card | `dashboard.tsx` | B |
+| Dashboard — action row | `dashboard.tsx` | C |
+| Events list — table wrapper | `events/index.tsx` | B |
+| Events list — table row | `events/index.tsx` | C |
+| Registrations — section cards | `registrations/index.tsx` | B |
+| Attendance — table wrapper | `events/attendance.tsx` | B |
+| Report — section cards | `events/report.tsx` | B |
+| Monitor — feed cards | `registrations/monitor/show.tsx` | B |
+| Any modal content | `ui/dialog.tsx`, `ui/sheet.tsx` | B |
+
+**Rule:** when you build a new page or component, decide its tier
+first. Tier A → Tier A opacity. Tier B → Tier B opacity. Tier C →
+no tint. Never split the difference.
+
+---
+
+## 8. Anti-patterns
+
+These are the mistakes that have actually happened in this codebase.
+Each one is a rule violation.
+
+### 8.1 Nested glass
+
+A Tier C row inside a Tier B card that has its own tint. Result: the
+row is darker than the card, and the eye reads them as separate
+surfaces. The current `/registrations` page does this.
+
+**Fix:** rows have no tint. Only `hover:bg-*`.
+
+### 8.2 Yellow or amber without a light-mode override
+
+`text-amber-400` in a class string with no `dark:` prefix. Result:
+yellow on white — unreadable. Violates Section 5.
+
+**Fix:** every yellow utility has a light value and a `dark:` value
+on the same line.
+
+### 8.3 Hard-coded hex outside the semantic set
+
+`border-[#CBD7E3]` applied without checking whether the file already
+has a `border-border` semantic. Result: two borders that are almost
+the same color but not quite.
+
+**Fix:** for anything expressible as a semantic token, use the token.
+Reserve hex for one-off utilities like the sidebar trigger or the
+warning-family override.
+
+### 8.4 Text on glass with `.text-on-image`
+
+Applying the on-image utility to text that's already inside a glass
+panel. Result: white text on white glass in light mode.
+
+**Fix:** `.text-on-image` is only for text that overlaps the raw
+image. Inside a panel, use `text-foreground`.
+
+### 8.5 Opacity drift
+
+Setting `--glass-card-tint` per page to make one page look right.
+Result: three pages look like three different applications. Violates
+Section 2.
+
+**Fix:** glass opacity is a global variable. If a specific page needs
+a different look, that page's surface is at the wrong tier — move it
+to Tier A or Tier C, don't change the number.
+
+### 8.6 Unpaired light/dark
+
+Any `bg-*` or `text-*` class that reads from a token that only exists
+in one mode. Result: unreadable text in the other mode.
+
+**Fix:** all semantic colors live in `:root` and `.dark` in
+`resources/css/app.css`. Components use `bg-background`,
+`text-foreground`, etc. — never raw hex per mode.
+
+---
+
+## 9. Enforcement
+
+Three mechanisms keep the rules from drifting:
+
+### 9.1 The audit script
+
+    scripts/audit-design.sh
+
+Runs three checks and exits non-zero if any fail:
+
+1. Every yellow/amber utility has a `dark:` variant on the same line.
+2. No `.text-on-image` usage outside page hero headings.
+3. No `--glass-*-tint` declaration outside `resources/css/app.css`.
+
+Run manually:
+
+    ./scripts/audit-design.sh
+
+Run before commit for any UI change.
+
+### 9.2 The AI-CONTEXT trap list
+
+`docs/AI-CONTEXT.md` gains a short section noting that this file
+exists and that CSS edits must read it first. AI sessions that touch
+colors read the design system before proposing changes.
+
+### 9.3 Review checklist
+
+Before any PR that touches `resources/css/app.css` or a `.tsx` file
+with color classes, run:
+
+    ./scripts/audit-design.sh
+    npx tsc --noEmit
+
+Both must pass. No exceptions for "just a small tweak."
+
+---
+
+## 10. What this document does not cover
+
+- Typography (deferred — the system uses Tailwind defaults plus
+  `--font-sans`)
+- Spacing scale (deferred — Tailwind's default scale, no custom
+  tokens)
+- Motion and transitions (deferred — Tailwind defaults)
+- Iconography (deferred — Lucide React, standard sizes)
+- Responsive breakpoints (deferred — Tailwind defaults)
+
+Those are visual concerns but separate from the color and surface
+system. Each gets its own doc if the project grows to need it.
+
+---
+
+## 11. Cross-references
+
+| Document | Purpose |
+|---|---|
+| `docs/design-system.md` | This file — the visual contract |
+| `resources/css/app.css` | The implementation |
+| `docs/dev-workflow/README.md` | The general workflow rules |
+| `docs/AI-CONTEXT.md` | Session bootstrap for AI tools |
+
+---
+
+## Changelog
+
+- **2026-10-15** — File created. Codifies the layer model, glass
+  tiers, mode contract, semantic colors, the yellow-to-navy warning
+  rule, text-on-image usage, tier assignments, anti-patterns, and
+  enforcement.
+

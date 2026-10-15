@@ -21,15 +21,15 @@ type Props = {
 
 const statusStyles: Record<string, string> = {
     draft: 'bg-secondary text-foreground',
-    registration_open: 'bg-lime-brand/20 text-lime-brand',
-    registration_closed: 'bg-yellow-500/15 text-yellow-500',
-    ongoing: 'bg-accent/20 text-accent',
-    completed: 'bg-green-500/15 text-green-500',
+    registration_open: 'bg-lime-brand/20 text-lime-700 dark:text-lime-brand',
+    registration_closed: 'bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500',
+    ongoing: 'bg-accent/20 text-teal-700 dark:text-accent',
+    completed: 'bg-green-500/15 text-green-700 dark:text-green-500',
     cancelled: 'bg-destructive/15 text-destructive',
 };
 
 const typeStyles: Record<string, string> = {
-    community_run: 'bg-accent/15 text-accent',
+    community_run: 'bg-accent/15 text-teal-700 dark:text-accent',
     fun_run: 'bg-secondary text-foreground',
 };
 
@@ -41,7 +41,7 @@ export default function EventsIndex({ events }: Props) {
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
-                    <div>
+                    <div className="pl-10">
                         <h1 className="text-2xl font-semibold text-foreground">
                             Events
                         </h1>

@@ -233,7 +233,7 @@ function RegistrationCard({
         <div
             className={`glass-panel rounded-xl p-4 ${
                 row.is_flagged
-                    ? 'border-l-2 border-l-amber-500/60'
+                    ? 'border-l-2 border-l-[#13253B]/60 dark:border-l-amber-500/60'
                     : ''
             }`}
         >
@@ -259,9 +259,9 @@ function RegistrationCard({
                     {row.has_shared_phone && (
                         <span
                             title="This phone number matches another registration."
-                            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/15"
+                            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#13253B]/15 dark:bg-amber-500/15"
                         >
-                            <AlertTriangle className="h-3 w-3 text-amber-400" />
+                            <AlertTriangle className="h-3 w-3 text-[#13253B] dark:text-amber-400" />
                         </span>
                     )}
                     <span
@@ -524,7 +524,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                             className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
                                 event.is_open
                                     ? 'bg-lime-brand/20 text-lime-brand'
-                                    : 'bg-yellow-500/15 text-yellow-500'
+                                    : 'bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500'
                             }`}
                         >
                             {event.is_open ? 'OPEN' : 'CLOSED'}

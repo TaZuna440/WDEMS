@@ -48,3 +48,11 @@ yarn-error.log
 
 # Firebase service account — never commit
 /storage/app/firebase/
+
+# Brand source assets — kept on disk, not in git.
+# Only the shipped .webp variant is tracked (public/brand/wdems_stage.webp).
+/public/brand/wdems_man.png
+/public/brand/wdems_man.webp
+/public/brand/wdems_stage.png
+/public/brand/wdems_tall_building.png
+/public/brand/wdems_tall_building.webp

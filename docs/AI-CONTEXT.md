@@ -463,3 +463,29 @@ section says otherwise.
 - Section §7 above — the original reading-order table
 - Section §17 — first reading-order addition (2026-10-13)
 - `docs/progress.md` 2026-10-14 entry — the shipping session
+
+---
+
+## 20. Design system — read before touching colors (2026-10-15)
+
+Visual changes to WDEMS are governed by `docs/design-system.md`.
+Read it before proposing any edit to a `.tsx` color class or to
+`resources/css/app.css`.
+
+The three most common traps, all documented in full in that file:
+
+1. **Yellow / amber without a light-mode override.** Every yellow
+   utility must be paired with `dark:`. Light mode uses
+   `#13253B` (WDEMS navy) for the warning semantic. See
+   design-system.md §5.
+
+2. **Nested glass.** Do not add a tint to a row inside a card.
+   Tier C surfaces are transparent and inherit their parent. See
+   §2.
+
+3. **`.text-on-image` on glass.** That utility is only for text
+   placed directly on the page image. Inside a panel, use
+   `text-foreground`. See §6.
+
+Run `./scripts/audit-design.sh` before committing any UI change.
+It checks Rule 1 hard and warns on the other two.

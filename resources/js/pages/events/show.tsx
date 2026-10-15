@@ -79,7 +79,7 @@ type Props = {
 const statusStyles: Record<string, string> = {
     draft: 'bg-secondary text-foreground',
     registration_open: 'bg-lime-brand/20 text-lime-brand',
-    registration_closed: 'bg-yellow-500/15 text-yellow-500',
+    registration_closed: 'bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500',
     ongoing: 'bg-accent/20 text-accent',
     completed: 'bg-green-500/15 text-green-500',
     cancelled: 'bg-destructive/15 text-destructive',
@@ -557,7 +557,7 @@ export default function EventsShow({
                                 <Button
                                     onClick={finalizeEvent}
                                     variant="outline"
-                                    className="justify-start border-amber-500/40 text-amber-400 hover:border-amber-500 hover:bg-amber-500 hover:text-navy-900"
+                                    className="justify-start bg-[#13253B] text-white border border-[#13253B] hover:bg-[#13253B]/90 dark:bg-transparent dark:border-amber-500/40 dark:text-amber-400 dark:hover:border-amber-500 dark:hover:bg-amber-500 dark:hover:text-navy-900"
                                 >
                                     <CheckCircle2 className="mr-2 h-4 w-4" />
                                     Finalize Event

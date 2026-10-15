@@ -68,36 +68,36 @@
     color-scheme: light;
     --radius: 0.5rem;
 
-    /* Brand lime — dimmed for readability on light backgrounds */
-    --lime-brand: oklch(0.60 0.19 130);
+    /* Brand lime — bright, matches dark-mode hue, readable on white */
+    --lime-brand: #84CC16;
 
-    --background: oklch(0.98 0.005 250);
-    --foreground: oklch(0.15 0.04 250);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.15 0.04 250);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.15 0.04 250);
-    --primary: var(--lime-brand);
-    --primary-foreground: oklch(0.15 0.04 250);
+    --background: #F3F7FB;
+    --foreground: #13253B;
+    --card: #FFFFFF;
+    --card-foreground: #13253B;
+    --popover: #FFFFFF;
+    --popover-foreground: #13253B;
+    --primary: #84CC16;
+    --primary-foreground: #0B1A2E;
     --secondary: oklch(0.95 0.005 250);
-    --secondary-foreground: oklch(0.15 0.04 250);
+    --secondary-foreground: #13253B;
     --muted: oklch(0.96 0.005 250);
-    --muted-foreground: oklch(0.5 0.02 250);
+    --muted-foreground: #526478;
     --accent: oklch(0.7 0.15 180);
-    --accent-foreground: oklch(1 0 0);
+    --accent-foreground: #FFFFFF;
     --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: oklch(1 0 0);
-    --border: oklch(0.9 0.005 250);
+    --destructive-foreground: #FFFFFF;
+    --border: #CBD7E3;
     --input: oklch(0.95 0.005 250);
-    --ring: var(--lime-brand);
-    --sidebar: oklch(1 0 0);
-    --sidebar-foreground: oklch(0.15 0.04 250);
-    --sidebar-primary: var(--lime-brand);
-    --sidebar-primary-foreground: oklch(0.15 0.04 250);
+    --ring: #84CC16;
+    --sidebar: #FFFFFF;
+    --sidebar-foreground: #13253B;
+    --sidebar-primary: #84CC16;
+    --sidebar-primary-foreground: #0B1A2E;
     --sidebar-accent: oklch(0.95 0.005 250);
-    --sidebar-accent-foreground: oklch(0.15 0.04 250);
-    --sidebar-border: oklch(0.9 0.005 250);
-    --sidebar-ring: var(--lime-brand);
+    --sidebar-accent-foreground: #13253B;
+    --sidebar-border: #CBD7E3;
+    --sidebar-ring: #84CC16;
 }
 
 /* =====================================================
@@ -198,10 +198,10 @@
     --app-bg-texture-opacity: 0.035;
 
     /* Glass tint strengths — light mode needs higher opacity for contrast */
-    --glass-card-tint: 68%;
-    --glass-sidebar-tint: 72%;
-    --glass-header-tint: 62%;
-    --glass-border-strength: 45%;
+    --glass-card-tint: 55%;
+    --glass-sidebar-tint: 60%;
+    --glass-header-tint: 50%;
+    --glass-border-strength: 65%;
 }
 
 .dark {
@@ -304,4 +304,154 @@
             transparent 12%
         );
     }
+}
+
+/* =====================================================
+   UI REDESIGN — Stage 2A: image background integration
+   Append-only. Overrides body::before from Stage 1 to add
+   a scene image behind the existing gradient layers.
+   Tunable opacity is per-theme via --app-bg-overlay.
+   ===================================================== */
+
+:root {
+    /* Light mode: image is a soft atmospheric hint. Overlay is
+       near-white at high opacity, so the scene shows through
+       faintly — enough to break the flat background, not enough
+       to compete with content. */
+    --app-bg-image: url('/brand/wdems_stage.webp');
+    --app-bg-overlay: oklch(0.14 0.045 250 / 0.25);
+}
+
+.dark {
+    /* Dark mode: image is the primary visual. Overlay is navy at
+       moderate opacity, muting the scene without hiding it. */
+    --app-bg-overlay: oklch(0.14 0.045 250 / 0.25);
+}
+
+@layer base {
+    /* Override Stage 1's body::before with a four-layer stack.
+       CSS background shorthand renders first-on-top, so the order
+       below is: overlay → image → glow 1 → glow 2 → base gradient.
+       If the image fails to load, everything below it still paints. */
+    body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background:
+            linear-gradient(var(--app-bg-overlay), var(--app-bg-overlay)),
+            var(--wdems-bg-image) center center / cover no-repeat,
+            radial-gradient(60% 50% at 15% 10%, var(--app-bg-glow), transparent 70%),
+            radial-gradient(50% 60% at 85% 80%, var(--app-bg-glow), transparent 70%),
+            linear-gradient(135deg, var(--app-bg-1) 0%, var(--app-bg-2) 55%, var(--app-bg-3) 100%);
+    }
+
+    /* Portrait mobile: anchor the crop to the top of the image
+       rather than the center. Most scene illustrations put the
+       focal content in the upper two-thirds. */
+    @media (max-width: 768px) {
+        body::before {
+            background-position: center top, center top, center, center, center;
+        }
+    }
+}
+/* =====================================================
+   UI REDESIGN — Stage 2C: transparent layout roots
+   The image layer from Stage 2A sits behind everything at
+   z-index -1. These rules make the layout roots stop
+   painting over it.
+
+   Unlayered CSS wins over Tailwind's layered utilities at
+   equal specificity, so no !important is needed.
+   ===================================================== */
+
+/* Sidebar panel — the inner surface of both the desktop
+   sidebar and the mobile sheet. Uses the same glass recipe
+   as .glass-sidebar, applied directly so it also catches
+   the mobile sheet (which does not go through the
+   AppSidebar component's className channel). */
+[data-sidebar="sidebar"] {
+  background-color: color-mix(
+    in oklch,
+    var(--sidebar) var(--glass-sidebar-tint),
+    transparent
+  );
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+}
+
+/* Main content column. Was opaque via bg-background; now
+   transparent so the image shows through the whole page. */
+[data-slot="sidebar-inset"] {
+  background-color: transparent;
+}
+
+/* Defensive: if a wrapper ever carries bg-sidebar (from
+   variant="inset"), override it. Harmless when the variant
+   does not apply. */
+[data-slot="sidebar-wrapper"] {
+  background-color: transparent;
+}
+
+/* =====================================================
+   UI REDESIGN — Stage 2A.1: theme-aware image filter
+   The source image is a dark scene. In light mode it reads
+   washed-out behind a light overlay. Brighten the whole
+   pseudo-element (image + overlay + gradients together)
+   so the scene reads as bright. In dark mode, leave it.
+   ===================================================== */
+
+:root {
+    --app-bg-filter: none;
+}
+
+.dark {
+    --app-bg-filter: none;
+}
+
+body::before {
+    filter: var(--app-bg-filter);
+}
+
+/* =====================================================
+   UI REDESIGN — Stage 2A.2: two-mode design system
+   Two text contexts, one image, both modes.
+
+   - Text on a glass surface (cards, sidebar): reads via
+     --foreground per mode. Dark on light glass, light on
+     dark glass.
+   - Text directly on the background image (headings, hero
+     copy): always white with a soft dark shadow, in BOTH
+     modes. The image is the same dark scene and cannot
+     supply light-mode contrast.
+   ===================================================== */
+
+@layer utilities {
+    .text-on-image {
+        color: oklch(0.99 0 0);
+        text-shadow:
+            0 1px 2px oklch(0 0 0 / 0.55),
+            0 0 24px oklch(0 0 0 / 0.35);
+    }
+
+    .text-on-image-muted {
+        color: oklch(0.93 0 0);
+        text-shadow:
+            0 1px 2px oklch(0 0 0 / 0.55),
+            0 0 24px oklch(0 0 0 / 0.35);
+    }
+}
+
+/* Header bar in the main content column: give it a subtle
+   glass so breadcrumbs read over the image in both modes,
+   without editing AppSidebarHeader. */
+[data-slot="sidebar-inset"] > header {
+    background-color: color-mix(
+        in oklch,
+        var(--card) var(--glass-header-tint),
+        transparent
+    );
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
 }

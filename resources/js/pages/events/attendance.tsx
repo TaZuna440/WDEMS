@@ -122,7 +122,7 @@ type Props = {
 
 const STATUS_STYLES: Record<AttendanceStatus, string> = {
     present: 'bg-green-500/15 text-green-400 border-green-500/30',
-    late: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30',
+    late: 'bg-[#13253B] text-white border border-[#13253B] dark:bg-yellow-500/15 dark:text-yellow-500 dark:border-yellow-500/30',
     absent: 'bg-destructive/15 text-destructive border-destructive/30',
     excused: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
 };
@@ -500,7 +500,7 @@ export default function EventsAttendance({
                                 onClick={toggleForceOpen}
                                 className={
                                     force_open
-                                        ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
+                                        ? 'bg-[#13253B]/20 text-[#13253B] hover:bg-[#13253B]/30 dark:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/30'
                                         : ''
                                 }
                             >
@@ -524,9 +524,9 @@ export default function EventsAttendance({
                 </div>
 
                 {force_open && (
-                    <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-                        <Unlock className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-                        <p className="text-sm text-amber-200">
+                    <div className="flex items-start gap-3 rounded-xl border border-[#13253B]/30 bg-[#13253B]/5 p-4 dark:border-amber-500/30 dark:bg-amber-500/5">
+                        <Unlock className="mt-0.5 h-4 w-4 shrink-0 text-[#13253B] dark:text-amber-400" />
+                        <p className="text-sm text-[#13253B] dark:text-amber-200">
                             Admin override active. Marking is enabled
                             outside the normal attendance window.
                         </p>

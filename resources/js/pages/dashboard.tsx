@@ -37,10 +37,10 @@ const URGENCY: Record<string, { label: string; dot: string; border: string; text
     },
     urgent: {
         label: 'URGENT',
-        dot: 'bg-yellow-500',
-        border: 'border-yellow-500/30',
-        text: 'text-yellow-500',
-        btn: 'border-yellow-500/40 text-yellow-500 hover:border-yellow-500 hover:bg-yellow-500 hover:text-navy-900',
+        dot: 'bg-[#13253B] dark:bg-yellow-500',
+        border: 'border-[#13253B]/25 dark:border-yellow-500/30',
+        text: 'text-[#13253B] dark:text-yellow-500',
+        btn: 'bg-[#13253B] text-white border border-[#13253B] hover:bg-[#13253B]/90 dark:bg-transparent dark:text-yellow-500 dark:border-yellow-500/40 dark:hover:bg-yellow-500 dark:hover:border-yellow-500 dark:hover:text-navy-900',
     },
     action: {
         label: 'ACTION NEEDED',
@@ -75,9 +75,9 @@ export default function Dashboard({ actionItems, upcoming }: Props) {
             <Head title="Dashboard" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                <div className="pl-10">
+                    <h1 className="text-2xl font-semibold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.55),0_0_24px_rgba(0,0,0,0.35)]">Dashboard</h1>
+                    <p className="mt-1 text-sm text-white/90 [text-shadow:0_1px_2px_rgba(0,0,0,0.55),0_0_24px_rgba(0,0,0,0.35)]">
                         What needs your attention right now.
                     </p>
                 </div>

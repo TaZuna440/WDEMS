@@ -30,7 +30,10 @@
                 /* WDEMS Navy #0b1a2e */
                 background-color: oklch(0.15 0.04 250);
             }
-        </style>
+            :root {
+        --wdems-bg-image: url('{{ asset('brand/wdems_stage.webp') }}');
+    }
+</style>
 
         <link rel="icon" href="/favicon.ico" sizes="any">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">

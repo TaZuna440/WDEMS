@@ -86,7 +86,7 @@ type Props = {
 
 const STATUS_STYLES: Record<string, string> = {
     present: 'bg-green-500/15 text-green-400 border-green-500/30',
-    late: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30',
+    late: 'bg-[#13253B] text-white border border-[#13253B] dark:bg-yellow-500/15 dark:text-yellow-500 dark:border-yellow-500/30',
     excused: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
     absent: 'bg-destructive/15 text-destructive border-destructive/30',
 };
@@ -147,7 +147,7 @@ function SummaryCard({
         accent === 'lime'
             ? 'text-lime-brand'
             : accent === 'amber'
-              ? 'text-amber-400'
+              ? 'text-[#13253B] dark:text-amber-400'
               : 'text-foreground';
 
     return (
@@ -370,14 +370,14 @@ function CrossEventSection({ crossEvent }: { crossEvent: CrossEvent }) {
                                         key={row.id}
                                         className={`border-b border-white/5 last:border-b-0 ${
                                             row.is_current
-                                                ? 'border-l-2 border-l-amber-500/60 bg-amber-500/5'
+                                                ? 'border-l-2 border-l-[#13253B]/60 bg-[#13253B]/5 dark:border-l-amber-500/60 dark:bg-amber-500/5'
                                                 : ''
                                         }`}
                                     >
                                         <td className="py-3 pr-4 font-medium text-foreground">
                                             {row.event_name}
                                             {row.is_current && (
-                                                <span className="ml-2 text-xs text-amber-400">
+                                                <span className="ml-2 text-xs text-[#13253B] dark:text-amber-400">
                                                     (this event)
                                                 </span>
                                             )}
@@ -732,8 +732,8 @@ export default function ReportShow({
                 </div>
 
                 {isLive && (
-                    <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 print:hidden">
-                        <p className="text-sm text-amber-200">
+                    <div className="flex items-start gap-3 rounded-xl border border-[#13253B]/30 bg-[#13253B]/5 p-4 print:hidden dark:border-amber-500/30 dark:bg-amber-500/5">
+                        <p className="text-sm text-[#13253B] dark:text-amber-200">
                             Live — numbers will change until the event is
                             finalized.
                         </p>
