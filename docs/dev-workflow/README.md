@@ -551,3 +551,85 @@ referenced by `VenueStep.tsx`, and still work.
 The README row is accurate. §9's claim about it is not.
 
 Recorded per P7 — the original text stays, this block revokes it.
+
+---
+
+## 10. `composer run dev` multiplex behavior (2026-10-15)
+
+`composer run dev` starts four processes under a single
+`@laravel/multiplex` parent:
+
+    server  → php artisan serve
+    queue   → php artisan queue:listen
+    logs    → php artisan pail
+    vite    → npm run dev
+
+Multiplex manages them as a unit. Killing any one child (e.g.
+`pkill -f "artisan pail"`) kills the parent, which kills the other
+three. The server and Vite die with it, and requests to
+`http://127.0.0.1:8000/` start returning connection-refused.
+
+### Detection
+
+`curl -s` swallows the error, but the timing exposes it:
+
+    time curl -s -o /dev/null -w "%{time_total}s\n" http://127.0.0.1:8000/
+
+A real Laravel request on this laptop takes 200ms–1.5s. A
+connection-refused response returns in **under 1ms** (0.0002s is
+typical). If the measured time is in the microseconds, the server
+is not running — the measurement is useless.
+
+Confirm with:
+
+    ps aux | grep -E "artisan serve|vite" | grep -v grep
+
+No output means the whole dev stack is down.
+
+### Recovery
+
+Ctrl-C the terminal that ran `composer run dev`, then start it
+again in a dedicated terminal. Do not try to restart individual
+children — multiplex will not re-adopt them.
+
+### If you need only the server
+
+Run `php artisan serve` directly in a terminal, in parallel with
+or instead of `composer run dev`. It does not need multiplex. Do
+this when the queue and log-tail processes are not in use — they
+consume MySQL connections and CPU that the single-threaded
+`artisan serve` contends for.
+
+### Note on `config:cache` and `route:cache` for performance
+
+`docs/AI-CONTEXT.md` §13 forbids caching config or routes in local
+development. That rule stands — the failure mode (tests connecting
+to MySQL, `RefreshDatabase` dropping every table) is real and
+documented.
+
+If you want the perf win anyway, the discipline is:
+
+1. `php artisan config:cache && php artisan route:cache`
+2. Use the app
+3. **Before any test run**: `php artisan config:clear && php artisan route:clear`
+
+A shell wrapper makes step 3 forget-proof:
+
+    wtest() {
+        php artisan config:clear
+        php artisan route:clear
+        php artisan test "$@"
+    }
+
+Add it to `~/.bashrc` and always run tests via `wtest`.
+
+### What is not a fix
+
+- **Splitting the 487 KB `app-*.js`** — bundle size is not the
+  bottleneck on localhost. The server response dominates.
+- **Switching to Redis** — the file driver captures 90% of the
+  session/cache win at zero setup. Redis is a production concern.
+- **`pnpm build` for dev** — kills HMR. Wrong trade for the dev
+  loop.
+- **Docker / Sail on WSL** — adds filesystem overhead that makes
+  local dev slower, not faster.
