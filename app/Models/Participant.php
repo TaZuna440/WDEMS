@@ -6,6 +6,7 @@ use App\Exceptions\IdentityRequiredException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'first_name',
@@ -28,6 +29,34 @@ class Participant extends Model
     public function registrations(): HasMany
     {
         return $this->hasMany(Registration::class);
+    }
+
+    /**
+     * Church membership record, if any.
+     *
+     * One per participant -- the members table holds a UNIQUE
+     * constraint on participant_id. Returns null when the participant
+     * has no member record.
+     *
+     * Per docs/church-events/06 sub-decision Q2a (2026-10-16).
+     */
+    public function member(): HasOne
+    {
+        return $this->hasOne(Member::class);
+    }
+
+    /**
+     * First-visit records for this participant.
+     *
+     * Zero or more over time -- a participant may attend a first
+     * service, lapse, and later return. Each row records one
+     * first-visit event. Promoted records are retained for history.
+     *
+     * Per docs/church-events/06 sub-decisions Q3a + Q3b (2026-10-16).
+     */
+    public function firstTimers(): HasMany
+    {
+        return $this->hasMany(FirstTimer::class);
     }
 
     public function fullName(): string
