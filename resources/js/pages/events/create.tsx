@@ -37,7 +37,6 @@ const STEPS: WizardStepConfig[] = [
             'sweeper_present',
             'service_animals_allowed',
             'leashed_pets_allowed',
-            'quiet_space_available',
         ],
         requiredFields: ['event_type', 'event_name'],
         validate: validateBasics,
@@ -51,7 +50,6 @@ const STEPS: WizardStepConfig[] = [
             'end_time',
             'distance_value',
             'distance_unit',
-            'course_url',
         ],
         requiredFields: [
             'event_date',
@@ -96,7 +94,6 @@ export default function EventsCreate({ event_types }: Props) {
         end_time: '',
         distance_value: null as number | null,
         distance_unit: 'km' as 'km' | 'mi',
-        course_url: '',
 
         // Step 3 — Venue
         venue: '',
@@ -107,15 +104,14 @@ export default function EventsCreate({ event_types }: Props) {
 
         // Step 4 — Extras
         partners: [] as { name: string; type: string }[],
-        walkers_welcome: false,
-        all_paces_welcome: false,
-        all_ages_welcome: false,
-        stroller_friendly: false,
-        wheelchair_accessible: false,
-        sweeper_present: false,
-        service_animals_allowed: false,
-        leashed_pets_allowed: false,
-        quiet_space_available: false,
+        walkers_welcome: true,
+        all_paces_welcome: true,
+        all_ages_welcome: true,
+        stroller_friendly: true,
+        wheelchair_accessible: true,
+        sweeper_present: true,
+        service_animals_allowed: true,
+        leashed_pets_allowed: true,
     });
 
     /**

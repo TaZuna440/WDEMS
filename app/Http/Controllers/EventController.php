@@ -70,7 +70,6 @@ class EventController extends Controller
                 'distance_value' => $event->distance_value,
                 'distance_unit' => $event->distance_unit,
                 'distance_label' => $event->distanceLabel(),
-                'course_url' => $event->course_url,
                 'venue' => $event->venue,
                 'venue_address' => $event->venue_address,
                 'venue_map_url' => $event->venue_map_url,
@@ -85,7 +84,6 @@ class EventController extends Controller
                 'sweeper_present' => $event->sweeper_present,
                 'service_animals_allowed' => $event->service_animals_allowed,
                 'leashed_pets_allowed' => $event->leashed_pets_allowed,
-                'quiet_space_available' => $event->quiet_space_available,
                 'status' => $event->status->value,
                 'status_label' => $event->status->label(),
                 'registration_start' => $event->registration_start?->toDateTimeString(),
@@ -132,7 +130,6 @@ class EventController extends Controller
             'end_time' => $validated['end_time'] ?? null,
             'distance_value' => $validated['distance_value'],
             'distance_unit' => $validated['distance_unit'],
-            'course_url' => $validated['course_url'] ?? null,
             'venue' => $validated['venue'],
             'venue_address' => $validated['venue_address'],
             'venue_map_url' => $validated['venue_map_url'] ?? null,
@@ -147,7 +144,6 @@ class EventController extends Controller
             'sweeper_present' => $validated['sweeper_present'] ?? false,
             'service_animals_allowed' => $validated['service_animals_allowed'] ?? false,
             'leashed_pets_allowed' => $validated['leashed_pets_allowed'] ?? false,
-            'quiet_space_available' => $validated['quiet_space_available'] ?? false,
             'status' => EventStatus::Draft,
         ]);
 
@@ -172,7 +168,6 @@ class EventController extends Controller
                 'end_time' => $event->end_time?->format('H:i'),
                 'distance_value' => $event->distance_value,
                 'distance_unit' => $event->distance_unit,
-                'course_url' => $event->course_url,
                 'venue' => $event->venue,
                 'venue_address' => $event->venue_address,
                 'venue_map_url' => $event->venue_map_url,
@@ -187,7 +182,6 @@ class EventController extends Controller
                 'sweeper_present' => $event->sweeper_present,
                 'service_animals_allowed' => $event->service_animals_allowed,
                 'leashed_pets_allowed' => $event->leashed_pets_allowed,
-                'quiet_space_available' => $event->quiet_space_available,
                 'status' => $event->status->value,
                 'status_label' => $event->status->label(),
             ],
@@ -210,7 +204,6 @@ class EventController extends Controller
             'end_time' => $validated['end_time'] ?? null,
             'distance_value' => $validated['distance_value'],
             'distance_unit' => $validated['distance_unit'],
-            'course_url' => $validated['course_url'] ?? null,
             'venue' => $validated['venue'],
             'venue_address' => $validated['venue_address'],
             'venue_map_url' => $validated['venue_map_url'] ?? null,
@@ -225,7 +218,6 @@ class EventController extends Controller
             'sweeper_present' => $validated['sweeper_present'] ?? false,
             'service_animals_allowed' => $validated['service_animals_allowed'] ?? false,
             'leashed_pets_allowed' => $validated['leashed_pets_allowed'] ?? false,
-            'quiet_space_available' => $validated['quiet_space_available'] ?? false,
         ]);
 
         return redirect()->route('events.show', $event);

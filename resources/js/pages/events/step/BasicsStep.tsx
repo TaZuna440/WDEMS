@@ -40,7 +40,6 @@ const ACCESSIBILITY_FIELDS: AccessibilityField[] = [
     'sweeper_present',
     'service_animals_allowed',
     'leashed_pets_allowed',
-    'quiet_space_available',
 ];
 
 export default function BasicsStep({
@@ -127,9 +126,10 @@ export default function BasicsStep({
                         Accessibility
                     </h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                        Check everything that applies. These appear on the
-                        event page so participants know what to expect and
-                        can decide if the event suits them.
+                        Everything is on by default. Uncheck any that do not
+                        apply. These appear on the event page so participants
+                        know what to expect and can decide if the event suits
+                        them.
                     </p>
                 </div>
 

@@ -69,12 +69,6 @@ trait EventValidationRules
             'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
             'distance_value' => ['required', 'numeric', 'min:0.01', 'max:9999.99'],
             'distance_unit' => ['required', Rule::in(['km', 'mi'])],
-            'course_url' => [
-                'nullable',
-                'string',
-                'max:500',
-                'regex:'.$this->httpUrlPattern(),
-            ],
 
             // Step 3 — Venue
             'venue' => ['required', 'string', 'min:3', 'max:255'],
@@ -108,7 +102,6 @@ trait EventValidationRules
             'sweeper_present' => ['boolean'],
             'service_animals_allowed' => ['boolean'],
             'leashed_pets_allowed' => ['boolean'],
-            'quiet_space_available' => ['boolean'],
         ];
     }
 
@@ -364,7 +357,6 @@ trait EventValidationRules
             'end_time.after' => 'End time must be after start time.',
             'event_date.after_or_equal' => 'Event date cannot be in the past.',
             'event_date.before' => 'Event date cannot be more than 2 years from today.',
-            'course_url.regex' => 'Course link must point to a specific location, like https://maps.app.goo.gl/abc123.',
             'venue_map_url.regex' => 'Map link must point to a specific location, like https://maps.app.goo.gl/abc123.',
         ];
     }

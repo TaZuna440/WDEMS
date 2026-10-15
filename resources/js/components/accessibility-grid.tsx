@@ -9,8 +9,7 @@ export type AccessibilityField =
     | 'wheelchair_accessible'
     | 'sweeper_present'
     | 'service_animals_allowed'
-    | 'leashed_pets_allowed'
-    | 'quiet_space_available';
+    | 'leashed_pets_allowed';
 
 type Feature = {
     field: AccessibilityField;
@@ -61,11 +60,6 @@ const GROUPS: Group[] = [
                 field: 'wheelchair_accessible',
                 label: 'Wheelchair accessible',
                 hint: 'Route is passable for wheelchairs',
-            },
-            {
-                field: 'quiet_space_available',
-                label: 'Quiet space available',
-                hint: 'A low-noise area exists for breaks',
             },
         ],
     },

@@ -37,7 +37,6 @@ type EventPayload = {
     venue: string | null;
     venue_address: string | null;
     venue_map_url: string | null;
-    course_url: string | null;
     description: string | null;
     partners: { name: string; type: string }[];
     accessibility: string[];
@@ -265,17 +264,6 @@ export default function PublicRegistration({
                         >
                             <ExternalLink className="h-4 w-4" />
                             View on map
-                        </a>
-                    )}
-                    {event.course_url && (
-                        <a
-                            href={event.course_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-lime-brand hover:underline"
-                        >
-                            <ExternalLink className="h-4 w-4" />
-                            View course
                         </a>
                     )}
                 </div>

@@ -178,7 +178,6 @@ export function validateSchedule(
     const endTime = asString(data.end_time).trim();
     const distanceValue = asNumber(data.distance_value);
     const distanceUnit = asString(data.distance_unit).trim();
-    const courseUrl = asString(data.course_url).trim();
 
     let startTimeValid = false;
 
@@ -262,14 +261,6 @@ export function validateSchedule(
         errors.distance_unit = 'Distance unit must be KM or Miles.';
     }
 
-    if (courseUrl) {
-        if (courseUrl.length > 500) {
-            errors.course_url = 'Course link must not exceed 500 characters.';
-        } else if (!HTTP_URL_PATTERN.test(courseUrl)) {
-            errors.course_url =
-                'Course link must point to a specific location, like https://maps.app.goo.gl/abc123.';
-        }
-    }
 
     return errors;
 }

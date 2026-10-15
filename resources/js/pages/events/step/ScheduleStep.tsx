@@ -5,7 +5,6 @@ import DistancePicker, {
 } from '@/components/distance-picker';
 import InputError from '@/components/input-error';
 import TimePicker from '@/components/time-picker';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 type FormData = {
@@ -14,7 +13,6 @@ type FormData = {
     end_time: string;
     distance_value: number | null;
     distance_unit: DistanceUnit;
-    course_url: string;
 };
 
 type Props = {
@@ -24,18 +22,6 @@ type Props = {
 };
 
 const MAX_EVENT_YEARS_AHEAD = 2;
-
-/**
- * If the user pasted a URL without a scheme (e.g. maps.app.goo.gl/xyz),
- * prepend https:// so the value passes both client and server validation.
- * Leaves the value alone if it already has a scheme, or if it is empty.
- */
-function normalizeCourseUrl(value: string): string {
-    const trimmed = value.trim();
-    if (trimmed === '') return '';
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    return `https://${trimmed}`;
-}
 
 function pickerBounds(): { min: Date; max: Date } {
     const min = new Date();
@@ -69,8 +55,7 @@ export default function ScheduleStep({ data, setData, errors }: Props) {
                     Schedule
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    When the event happens, how far it is, and where to find
-                    the course.
+                    When the event happens and how far it is.
                 </p>
             </div>
 
@@ -155,26 +140,6 @@ export default function ScheduleStep({ data, setData, errors }: Props) {
                 <p className="text-xs text-muted-foreground">
                     Choose a standard distance and switch between KM and Miles
                     — the value converts automatically.
-                </p>
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor="course_url">Course Link</Label>
-                <Input
-                    id="course_url"
-                    type="url"
-                    value={data.course_url}
-                    onChange={(e) => setData('course_url', e.target.value)}
-                    onBlur={(e) =>
-                        setData('course_url', normalizeCourseUrl(e.target.value))
-                    }
-                    placeholder="https://maps.app.goo.gl/..."
-                />
-                <InputError message={errors.course_url} />
-                <p className="text-xs text-muted-foreground">
-                    Paste any link to the route — Google Maps, Strava, GPX
-                    file, or a map image. If you leave out the https:// part,
-                    it is added automatically.
                 </p>
             </div>
         </div>

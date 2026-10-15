@@ -92,7 +92,6 @@ class PublicRegistrationController extends Controller
             'venue' => $event->venue,
             'venue_address' => $event->venue_address,
             'venue_map_url' => $event->venue_map_url,
-            'course_url' => $event->course_url,
             'description' => $event->description,
             'partners' => collect($event->partners ?? [])
                 ->filter(fn ($partner) => is_array($partner)
@@ -114,7 +113,6 @@ class PublicRegistrationController extends Controller
                 'sweeper_present' => 'Sweeper present',
                 'service_animals_allowed' => 'Service animals allowed',
                 'leashed_pets_allowed' => 'Leashed pets allowed',
-                'quiet_space_available' => 'Quiet space available',
             ])->filter(fn ($label, $field) => (bool) $event->getAttribute($field))
                 ->values()
                 ->all(),

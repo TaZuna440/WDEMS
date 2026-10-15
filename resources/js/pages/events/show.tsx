@@ -36,10 +36,10 @@ type EventData = {
     end_time: string | null;
     venue: string | null;
     venue_address: string | null;
+    venue_map_url: string | null;
     venue_latitude: number | null;
     venue_longitude: number | null;
     distance_label: string | null;
-    course_url: string | null;
     partners: Partner[] | null;
     walkers_welcome: boolean;
     all_paces_welcome: boolean;
@@ -49,7 +49,6 @@ type EventData = {
     sweeper_present: boolean;
     service_animals_allowed: boolean;
     leashed_pets_allowed: boolean;
-    quiet_space_available: boolean;
     status: string;
     status_label: string;
     registration_start: string | null;
@@ -107,7 +106,6 @@ const ACCESSIBILITY_LABELS: { key: keyof EventData; label: string }[] = [
     { key: 'sweeper_present', label: 'Sweeper present' },
     { key: 'service_animals_allowed', label: 'Service animals allowed' },
     { key: 'leashed_pets_allowed', label: 'Leashed pets allowed' },
-    { key: 'quiet_space_available', label: 'Quiet space available' },
 ];
 
 function DetailRow({
@@ -262,6 +260,8 @@ export default function EventsShow({
         ? `https://www.openstreetmap.org/?mlat=${event.venue_latitude}&mlon=${event.venue_longitude}#map=16/${event.venue_latitude}/${event.venue_longitude}`
         : null;
 
+    const hasVenueMapLink = event.venue_map_url !== null || osmUrl !== null;
+
     return (
         <>
             <Head title={event.event_name} />
@@ -367,7 +367,7 @@ export default function EventsShow({
                         </div>
 
                         {/* Venue */}
-                        {(event.venue || event.venue_address) && (
+                        {(event.venue || event.venue_address || hasVenueMapLink) && (
                             <div className="glass-panel rounded-xl p-6">
                                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                                     Venue
@@ -383,35 +383,32 @@ export default function EventsShow({
                                         {event.venue_address}
                                     </p>
                                 )}
-                                {osmUrl && (
-                                    <a
-                                        href={osmUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-lime-brand transition-colors hover:text-lime-brand/80"
-                                    >
-                                        View on OpenStreetMap
-                                        <ExternalLink className="h-3 w-3" />
-                                    </a>
+                                {hasVenueMapLink && (
+                                    <div className="mt-3 flex flex-wrap gap-4">
+                                        {event.venue_map_url && (
+                                            <a
+                                                href={event.venue_map_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1.5 text-xs font-medium text-lime-brand transition-colors hover:text-lime-brand/80"
+                                            >
+                                                View on map
+                                                <ExternalLink className="h-3 w-3" />
+                                            </a>
+                                        )}
+                                        {osmUrl && (
+                                            <a
+                                                href={osmUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1.5 text-xs font-medium text-lime-brand transition-colors hover:text-lime-brand/80"
+                                            >
+                                                View on OpenStreetMap
+                                                <ExternalLink className="h-3 w-3" />
+                                            </a>
+                                        )}
+                                    </div>
                                 )}
-                            </div>
-                        )}
-
-                        {/* Course */}
-                        {event.course_url && (
-                            <div className="glass-panel rounded-xl p-6">
-                                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                                    Course
-                                </h2>
-                                <a
-                                    href={event.course_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 text-sm font-medium text-lime-brand transition-colors hover:text-lime-brand/80"
-                                >
-                                    View Route
-                                    <ExternalLink className="h-4 w-4" />
-                                </a>
                             </div>
                         )}
 

@@ -59,10 +59,8 @@ test('the public form exposes the existing event details before personal fields'
         'venue' => 'Rizal Park',
         'venue_address' => 'Manila',
         'venue_map_url' => 'https://maps.example.test/run',
-        'course_url' => 'https://course.example.test/run',
         'partners' => [['name' => 'Run Club', 'type' => 'host']],
         'wheelchair_accessible' => true,
-        'quiet_space_available' => true,
     ]);
 
     $this->get("/r/{$event->registration_slug}")->assertOk()
@@ -77,15 +75,13 @@ test('the public form exposes the existing event details before personal fields'
             ->where('event.venue_address', 'Manila')
             ->where('event.description', 'A community course through the park.')
             ->where('event.venue_map_url', 'https://maps.example.test/run')
-            ->where('event.course_url', 'https://course.example.test/run')
             ->where('event.partners.0.name', 'Run Club')
-            ->where('event.accessibility', ['Wheelchair accessible', 'Quiet space available']));
+            ->where('event.accessibility', ['Wheelchair accessible']));
 
     expect(Schema::hasColumn('events', 'event_type'))
         ->toBeTrue()
         ->and(Schema::hasColumn('events', 'end_time'))->toBeTrue()
         ->and(Schema::hasColumn('events', 'distance_value'))->toBeTrue()
-        ->and(Schema::hasColumn('events', 'course_url'))->toBeTrue()
         ->and(Schema::hasColumn('events', 'partners'))->toBeTrue();
 });
 
@@ -97,7 +93,6 @@ test('the public event summary omits absent values cleanly', function () {
         'venue' => null,
         'venue_address' => null,
         'venue_map_url' => null,
-        'course_url' => null,
         'description' => null,
         'partners' => null,
     ]);
@@ -109,7 +104,6 @@ test('the public event summary omits absent values cleanly', function () {
             ->where('event.distance', null)
             ->where('event.venue', null)
             ->where('event.venue_map_url', null)
-            ->where('event.course_url', null)
             ->where('event.description', null)
             ->where('event.partners', [])
             ->where('event.accessibility', []));

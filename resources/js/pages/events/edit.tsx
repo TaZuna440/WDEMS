@@ -23,7 +23,6 @@ type EventData = {
     end_time: string | null;
     distance_value: number | null;
     distance_unit: string;
-    course_url: string | null;
     venue: string | null;
     venue_address: string | null;
     venue_map_url: string | null;
@@ -38,7 +37,6 @@ type EventData = {
     sweeper_present: boolean;
     service_animals_allowed: boolean;
     leashed_pets_allowed: boolean;
-    quiet_space_available: boolean;
     status: string;
     status_label: string;
 };
@@ -63,7 +61,6 @@ const STEPS: WizardStepConfig[] = [
             'sweeper_present',
             'service_animals_allowed',
             'leashed_pets_allowed',
-            'quiet_space_available',
         ],
         requiredFields: ['event_name'],
         validate: validateBasics,
@@ -77,7 +74,6 @@ const STEPS: WizardStepConfig[] = [
             'end_time',
             'distance_value',
             'distance_unit',
-            'course_url',
         ],
         requiredFields: [
             'event_date',
@@ -146,7 +142,6 @@ export default function EventsEdit({ event }: Props) {
         end_time: event.end_time ?? '',
         distance_value: normalizeDistance(event.distance_value),
         distance_unit: normalizeUnit(event.distance_unit),
-        course_url: event.course_url ?? '',
 
         // Step 3 — Venue
         venue: event.venue ?? '',
@@ -165,7 +160,6 @@ export default function EventsEdit({ event }: Props) {
         sweeper_present: event.sweeper_present,
         service_animals_allowed: event.service_animals_allowed,
         leashed_pets_allowed: event.leashed_pets_allowed,
-        quiet_space_available: event.quiet_space_available,
     });
 
     /**
