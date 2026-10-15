@@ -40,19 +40,24 @@ const MIN_EVENT_DURATION_MINUTES = 60;
 const MAX_EVENT_YEARS_AHEAD = 2;
 
 /**
- * Pattern for accepting user-pasted URLs.
+ * Pattern for accepting Google Maps URLs only.
  *
- * Requires:
- *   - http:// or https:// scheme
- *   - a host with at least one dot (rejects "https://fdhgdgfdgf")
- *   - a path, query, or fragment (rejects bare "https://maps.google.com")
- *   - at least one more character after that separator
+ * Accepted forms:
+ *   - https://www.google.com/maps/place/...
+ *   - https://google.com/maps/...
+ *   - https://www.google.com.ph/maps/...  (regional domains)
+ *   - https://maps.google.com/maps?q=...   (legacy query format)
+ *   - https://maps.app.goo.gl/...          (mobile share short link)
+ *   - https://goo.gl/maps/...              (legacy short link)
  *
- * Mirrors EventValidationRules::httpUrlPattern() on the server. Keep
- * both in sync.
+ * Non-Google hosts, fake google-prefixed hosts, and Google URLs
+ * without a /maps path are all rejected.
+ *
+ * Mirrors EventValidationRules::googleMapsUrlPattern() on the server.
+ * Keep both in sync.
  */
-const HTTP_URL_PATTERN =
-    /^https?:\/\/[a-z0-9-]+(\.[a-z0-9-]+)+[\/?#]\S+$/i;
+const GOOGLE_MAPS_URL_PATTERN =
+    /^https?:\/\/(?:(?:www\.|maps\.)?google\.[a-z]{2,}(?:\.[a-z]{2})?\/maps(?:\/|\?|#)|maps\.app\.goo\.gl\/|goo\.gl\/maps\/)\S+$/i;
 
 function asString(value: unknown): string {
     return typeof value === 'string' ? value : String(value ?? '');
@@ -261,7 +266,6 @@ export function validateSchedule(
         errors.distance_unit = 'Distance unit must be KM or Miles.';
     }
 
-
     return errors;
 }
 
@@ -295,9 +299,9 @@ export function validateVenue(
         if (venueMapUrl.length > 500) {
             errors.venue_map_url =
                 'Map link must not exceed 500 characters.';
-        } else if (!HTTP_URL_PATTERN.test(venueMapUrl)) {
+        } else if (!GOOGLE_MAPS_URL_PATTERN.test(venueMapUrl)) {
             errors.venue_map_url =
-                'Map link must point to a specific location, like https://maps.app.goo.gl/abc123.';
+                'Map link must be a Google Maps URL, like https://www.google.com/maps/place/... or https://maps.app.goo.gl/...';
         }
     }
 

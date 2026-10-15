@@ -92,7 +92,7 @@ export default function VenueStep({ data, setData, errors }: Props) {
                 />
                 <InputError message={errors.venue_map_url} />
                 <p className="text-xs text-muted-foreground">
-                    Optional. Open Google Maps, tap Share, and paste the link
+                    Optional. Paste a Google Maps link only. Open Google Maps, tap Share, and paste the URL
                     here. Participants will get a one-tap "navigate here"
                     button. If you leave out the https:// part, it is added
                     automatically.

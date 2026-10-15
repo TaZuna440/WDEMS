@@ -29,20 +29,25 @@ trait EventValidationRules
     public const MAX_EVENT_YEARS_AHEAD = 2;
 
     /**
-     * Pattern for accepting user-pasted URLs.
+     * Pattern for accepting Google Maps URLs only.
      *
-     * Requires:
-     *   - http:// or https:// scheme
-     *   - a host with at least one dot (rejects "https://fdhgdgfdgf")
-     *   - a path, query, or fragment (rejects bare "https://maps.google.com")
-     *   - at least one more character after that separator
+     * Accepted forms:
+     *   - https://www.google.com/maps/place/...
+     *   - https://google.com/maps/...
+     *   - https://www.google.com.ph/maps/...  (regional domains)
+     *   - https://maps.google.com/maps?q=...   (legacy query format)
+     *   - https://maps.app.goo.gl/...          (mobile share short link)
+     *   - https://goo.gl/maps/...              (legacy short link)
+     *
+     * Non-Google hosts, fake google-prefixed hosts, and Google URLs
+     * without a /maps path are all rejected.
      *
      * Mirrored in resources/js/lib/event-validation.ts as
-     * HTTP_URL_PATTERN. Keep both in sync.
+     * GOOGLE_MAPS_URL_PATTERN. Keep both in sync.
      */
-    protected function httpUrlPattern(): string
+    protected function googleMapsUrlPattern(): string
     {
-        return '/^https?:\/\/[a-z0-9-]+(\.[a-z0-9-]+)+[\/?#]\S+$/i';
+        return '/^https?:\/\/(?:(?:www\.|maps\.)?google\.[a-z]{2,}(?:\.[a-z]{2})?\/maps(?:\/|\?|#)|maps\.app\.goo\.gl\/|goo\.gl\/maps\/)\S+$/i';
     }
 
     /**
@@ -77,7 +82,7 @@ trait EventValidationRules
                 'nullable',
                 'string',
                 'max:500',
-                'regex:'.$this->httpUrlPattern(),
+                'regex:'.$this->googleMapsUrlPattern(),
             ],
             'venue_latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'venue_longitude' => ['nullable', 'numeric', 'between:-180,180'],
@@ -357,7 +362,7 @@ trait EventValidationRules
             'end_time.after' => 'End time must be after start time.',
             'event_date.after_or_equal' => 'Event date cannot be in the past.',
             'event_date.before' => 'Event date cannot be more than 2 years from today.',
-            'venue_map_url.regex' => 'Map link must point to a specific location, like https://maps.app.goo.gl/abc123.',
+            'venue_map_url.regex' => 'Map link must be a Google Maps URL, like https://www.google.com/maps/place/... or https://maps.app.goo.gl/...',
         ];
     }
 
