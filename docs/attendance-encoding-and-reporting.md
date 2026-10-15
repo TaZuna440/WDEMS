@@ -1021,3 +1021,31 @@ The two new files and three test files were not read during the
 session that committed them. The commit message discloses this per
 P10. A future session touching the report should cat both files
 before proposing changes.
+
+---
+
+## Code acknowledgement (2026-10-15)
+
+Commit `57c89f3` added an acknowledgement step on top of the code
+delivery shipped in `d05c7e7`. The participant must now explicitly
+confirm they have saved the code before the verification flow
+closes out.
+
+### Effect on the finalize flow
+
+`RegistrationVerificationService::finalize()` is unchanged — it
+still issues the code on the same transaction that creates the
+Registration. The change is downstream: `publicState()` now
+returns `'acknowledged'` once `code_acknowledged_at` is set on the
+challenge, and `verify.tsx` renders a confirmation button that
+records the acknowledgement and hides the code.
+
+### Effect on the verification page
+
+The code panel is renamed "Your Registration Code". It is only
+rendered while the challenge status is `'finalized'` and the code
+is not null. After acknowledgement, `show()` redirects to
+`/r/{slug}/registered` and the code is no longer visible.
+
+Full flow: `docs/registration-contact-verification.md` "Code
+acknowledgement (2026-10-15)".

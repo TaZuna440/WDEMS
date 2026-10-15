@@ -2281,3 +2281,74 @@ None.
 | Registration feature spec | `docs/registration.md` |
 | End-of-event report | `docs/attendance-encoding-and-reporting.md` |
 | Event creation wizard | `docs/event-creation-wizard.md` |
+
+---
+
+## 2026-10-15 (later) — Code acknowledgement flow
+
+### Summary
+
+Second commit of the same date. Adds an explicit acknowledgement
+step between finalization and completion.
+
+A participant who finalizes registration sees their Registration
+Code on the verification page. They must now click "I've saved my
+Registration Code — finish" before the flow closes out. The click
+records `code_acknowledged_at` on the challenge row, clears the
+challenge cookie, and redirects to a code-free completion page.
+
+Terminology: "attendance code" is renamed to "Registration Code"
+in every participant-facing string. The code value is unchanged.
+
+Also ships: public form event summary (type, end_time, distance,
+partners, accessibility), client-side at-least-one rule aligned to
+per-event required flags.
+
+### Code changes
+
+| File | Change |
+|---|---|
+| `database/migrations/2026_10_15_100000_add_code_acknowledged_at_to_registration_verification_challenges_table.php` | **New** — column |
+| `resources/js/pages/registrations/confirmed.tsx` | **New** — code-free completion page |
+| `app/Services/RegistrationVerification/RegistrationVerificationService.php` | `acknowledgeCode()`; `'acknowledged'` in `publicState()` |
+| `app/Http/Controllers/RegistrationVerificationController.php` | `acknowledge()`; `show()` redirect on acknowledged |
+| `app/Http/Controllers/PublicRegistrationController.php` | `confirmed()`; `eventPayload()` extended |
+| `app/Models/RegistrationVerificationChallenge.php` | Cast + property |
+| `app/Mail/RegistrationConfirmationMail.php` | Subject reworded |
+| `resources/views/emails/registration-confirmation.blade.php` | Reworded |
+| `routes/registration-verification.php` | `acknowledge-code` route |
+| `routes/web.php` | `/r/{slug}/registered` route |
+| `resources/js/app.tsx` | `registrations/confirmed` layout case |
+| `resources/js/layouts/public/public-layout.tsx` | Docblock |
+| `resources/js/lib/public-registration-validation.ts` | At-least-one aligned to required flags |
+| `resources/js/pages/registrations/public.tsx` | Event summary |
+| `resources/js/pages/registrations/verify.tsx` | `RegistrationCodePanel`; ack button |
+
+### Test changes
+
+Seven test files touched. Key additions:
+
+- `RegistrationVerificationTest` — acknowledgement lifecycle
+  (visible → ack → hidden), idempotent re-POST, registered route
+  middleware, rejection across pending/missing/invalid/expired,
+  optional phone does not trigger Firebase
+- `RegistrationSubmissionTest` — event summary payload presence
+  and absence
+- Others — aligned to new error key `identity` and "Registration
+  Code" wording
+
+### Database changes
+
+One migration: `2026_10_15_100000_add_code_acknowledged_at_to_registration_verification_challenges_table.php`
+— nullable timestamp column, additive, with matching `down()`.
+
+### Verification
+
+    php artisan test tests/Feature/Public tests/Feature/Events
+    491 passed (2028 assertions)
+
+Run before commit. All green.
+
+### Commits
+
+    57c89f3  feat(registration): code acknowledgement flow and public form event summary

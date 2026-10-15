@@ -351,3 +351,63 @@ For events with phone required, the widget gates the SMS send
 required, the widget is a visual checkpoint — the solved token is
 not consumed server-side. A server-enforced gate for email-only
 events is a separate integration, not part of this flow.
+
+---
+
+## Code acknowledgement (2026-10-15)
+
+Commit `57c89f3` added an explicit acknowledgement step between
+finalization and completion. Append-only; the sections above
+describe the flow before the acknowledgement layer.
+
+### What changed
+
+After the finalize transaction commits, the participant lands on
+the verification page and sees their Registration Code. Before the
+flow closes, they must click a confirmation button ("I've saved my
+Registration Code — finish"). This records `code_acknowledged_at`
+on the challenge row.
+
+The verify page's `publicState()` now returns one of two states for
+a finalized challenge:
+
+- `'finalized'` — the code is displayed and the acknowledgement
+  button is available.
+- `'acknowledged'` — the code is hidden; the acknowledgement button
+  is gone.
+
+### New column
+
+`registration_verification_challenges.code_acknowledged_at`,
+nullable timestamp, after `finalized_at`.
+
+### New routes
+
+    POST /r/{slug}/verification/acknowledge-code    → acknowledge()
+    GET  /r/{slug}/registered                        → confirmed()
+
+`acknowledge-code` runs under the existing
+`registration-verification-attempt` throttle. Idempotent — a
+repeated POST with the original cookie is a no-op.
+
+`/registered` sits outside the `EnsureRegistrationIsOpen` group
+but inside `ProtectRegistrationVerification`, so the code-free
+completion page remains reachable after registration closes. The
+page name is `registrations/confirmed`, wired to `PublicLayout` in
+`app.tsx`.
+
+### Cookie lifecycle
+
+`acknowledge()` clears the challenge cookie with a negative
+expiry and the same path, flags, and SameSite attribute used when
+the cookie was set in `PublicRegistrationController::store()`. A
+subsequent GET on `/verification` with the same cookie hits
+`show()`, sees `'acknowledged'`, and redirects to `/registered`.
+
+### Rename — "attendance code" → "Registration Code"
+
+Participant-facing strings (email subject, blade email body,
+verify page UI, mail docblock) were renamed. The code value itself
+is unchanged. The new label reflects what the code is: a lookup
+key the participant presents at the event table, not an attendance
+marking.

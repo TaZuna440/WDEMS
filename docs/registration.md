@@ -590,3 +590,44 @@ rule (email or phone) still applies at save time.
 The `## Corrections — Phone verification (2026-10-14)` block above
 states the opposite. Where this addendum disagrees, this addendum
 wins.
+
+---
+
+## Status addendum — acknowledgement (2026-10-15, later)
+
+A second change landed in commit `57c89f3`, after the earlier
+addendum on this date.
+
+### Code acknowledgement
+
+After finalization, the verify page displays the participant's
+Registration Code and a single confirmation button. Clicking the
+button records `code_acknowledged_at` on the challenge, clears the
+challenge cookie, and redirects to a code-free completion page at
+`/r/{slug}/registered`.
+
+Once acknowledged, revisiting `/verification` with the same cookie
+redirects to `/registered`. The code is no longer displayed.
+
+See `docs/registration-contact-verification.md` "Code
+acknowledgement (2026-10-15)" for the full flow.
+
+### Public form event summary
+
+The public form header now renders event_type label, end_time,
+distance, partners (name + type), and the active accessibility
+flags. Absent values are omitted cleanly.
+
+### "Registration Code" terminology
+
+Participant-facing strings now read "Registration Code" instead of
+"attendance code". The code value is unchanged.
+
+### Client validation aligned to per-event requirements
+
+`resources/js/lib/public-registration-validation.ts`'s at-least-one
+identity check now respects the per-event toggle state. Previously
+it fired whenever both email and phone were blank, even if one was
+optional. It now fires only when no *required* identity channel is
+satisfied — matching `PublicRegistrationRequest::withValidator()`
+Pass 3.
