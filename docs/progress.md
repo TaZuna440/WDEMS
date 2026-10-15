@@ -2352,3 +2352,63 @@ Run before commit. All green.
 ### Commits
 
     57c89f3  feat(registration): code acknowledgement flow and public form event summary
+
+---
+
+## 2026-10-15 (later still) — Accessibility defaults, course link and quiet space removal
+
+### Summary
+
+Third commit of the date. Three related changes to the event
+lifecycle.
+
+Accessibility flags default to `true` on the create form. Organizers
+uncheck what does not apply instead of checking what does.
+`quiet_space_available` removed end-to-end. Course link (`course_url`)
+removed end-to-end. Venue map link now renders on the event show
+page, matching the public form's pattern.
+
+Both removed DB columns are preserved for historical data — same
+pattern as the FAQ removal in `f03f450`.
+
+### Code changes
+
+| File | Change |
+|---|---|
+| `accessibility-grid.tsx` | `quiet_space_available` removed from union + grid |
+| `BasicsStep.tsx` | Fields array, helper text |
+| `ScheduleStep.tsx` | Course Link block removed |
+| `create.tsx` | Defaults flipped to true, quiet_space + course_url removed |
+| `edit.tsx` | quiet_space + course_url removed from type, fields, data |
+| `show.tsx` | Venue map link added, course + quiet_space sections removed |
+| `public.tsx` | course_url removed from type and header |
+| `event-validation.ts` | course_url removed from validateSchedule |
+| `EventValidationRules.php` | course_url rule + message removed; quiet_space rule removed |
+| `EventController.php` | store/update/edit/show payloads cleaned |
+| `PublicRegistrationController.php` | eventPayload trimmed |
+
+### Test changes
+
+| File | Change |
+|---|---|
+| `EventScheduleRulesTest.php` | 6 course_url tests removed |
+| `EventUrlRulesTest.php` | 8 course_url tests removed; venue_map_url untouched |
+| `RegistrationSubmissionTest.php` | Summary assertions aligned to removed fields |
+
+Full suite at close: **477 passed, 0 failed (1989 assertions)**.
+Down from 491 because 14 course_url tests were removed.
+
+### Verification
+
+    php artisan test tests/Feature/Public tests/Feature/Events
+    477 passed (1989 assertions)
+
+    npx tsc --noEmit
+    silent
+
+    php -l on both controllers and the trait
+    No syntax errors
+
+### Commits
+
+    6173540  feat(events): accessibility defaults to on, remove course link and quiet space, venue map link on show

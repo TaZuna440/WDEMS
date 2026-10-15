@@ -631,3 +631,29 @@ it fired whenever both email and phone were blank, even if one was
 optional. It now fires only when no *required* identity channel is
 satisfied — matching `PublicRegistrationRequest::withValidator()`
 Pass 3.
+
+---
+
+## Status addendum — event summary cleanup (2026-10-15, later)
+
+Commit `6173540` trimmed the public form's event summary.
+
+### Removed from the summary
+
+- **Course link.** The public form header no longer renders
+  `event.course_url`. Every event already stores a venue map link
+  and address; the course URL was rarely populated.
+- **`quiet_space_available`.** Removed from the accessibility flags
+  shown on the public form. The DB column is preserved for
+  historical data.
+
+### Unchanged
+
+- The event summary still renders event_type, date, time range,
+  distance, venue, venue address, venue map link, description,
+  partners, and the remaining eight accessibility flags.
+
+### See also
+
+- `docs/event-creation-wizard.md` "Corrections (2026-10-15, second
+  pass)" for the wizard-side changes.

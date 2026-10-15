@@ -969,3 +969,55 @@ Add row:
     | `attendance-encoding-and-reporting.md` | Feature B (finalize
       event) and Feature C (end-of-event report) — the terminal
       lifecycle and its reporting surface |
+
+---
+
+## Corrections (2026-10-15, second pass)
+
+Commit `6173540` changed three things in the wizard. Append-only;
+the earlier sections stand as historical records.
+
+### §5 — Accessibility flags default to on
+
+The wizard's accessibility checkboxes now default to `true` on the
+create form. The step-1 helper text reads "Everything is on by
+default. Uncheck any that do not apply."
+
+Rationale: most community runs are inherently welcoming. Opt-out
+is faster than opt-in, and organizers who need to uncheck a flag
+see its state clearly. The edit form reads whatever was persisted
+for the event; no backfill was run, so pre-existing events keep
+their original values.
+
+### §5 — `quiet_space_available` removed
+
+The flag is gone from the accessibility union type, the grid, the
+step configuration on both create and edit, and the labels list on
+the show page. The DB column is preserved for historical data,
+following the FAQ-removal precedent from commit `f03f450`.
+
+### §5 — Course Link removed from Schedule
+
+`course_url` is gone from step 2 (Schedule) — the input, the
+`normalizeCourseUrl()` helper, the `FormData` type, the client
+validation, the server validation, the show page's Course card,
+and the public form header. The DB column is preserved for
+historical data.
+
+Rationale: every event already stores a venue map link and a venue
+address. The separate course URL was rarely populated and
+duplicated the intent of the map link.
+
+### Files touched
+
+    resources/js/components/accessibility-grid.tsx
+    resources/js/pages/events/step/BasicsStep.tsx
+    resources/js/pages/events/step/ScheduleStep.tsx
+    resources/js/pages/events/create.tsx
+    resources/js/pages/events/edit.tsx
+    resources/js/pages/events/show.tsx
+    resources/js/pages/registrations/public.tsx
+    resources/js/lib/event-validation.ts
+    app/Concerns/EventValidationRules.php
+    app/Http/Controllers/EventController.php
+    app/Http/Controllers/PublicRegistrationController.php
