@@ -2810,3 +2810,171 @@ per-program code). Not yet decided.
   this one extends
 - `docs/progress.md` 2026-10-16 Phase 4 entry — the Fellowship
   module this sub-phase mirrors in structure
+
+---
+
+## 2026-10-16 — Phase 5C: Discipleship enrollment (M5, sub-phase C)
+
+Third sub-phase of the Discipleship module. Enrollment is the
+record that says "this participant is pursuing this program."
+Sessions (5D), attendance (5E), and progress (5F) all hang off
+this row.
+
+### Design decision — program-level with batch pointer
+
+Task list 5C.3 said "unique (participant, program, active)".
+Task list 5G.2 said "enrolled per batch". The two are in
+tension. Resolved by taking both:
+
+- **UNIQUE on (participant_id, program_id) — total, not
+  partial.** One enrollment row per participant per program,
+  for the participant's lifetime. Withdrawn and on_hold are
+  statuses, not deletions. Re-enrollment resets the same row.
+- **Nullable `batch_id`** records which cohort the participant
+  is currently in. A participant can move batches without a new
+  enrollment (update the pointer). Batch attribution for
+  per-batch reports comes from this column.
+
+MySQL 8 does not support filtered unique indexes. A "unique among
+active statuses" constraint would need a generated column or an
+expression index. Total unique is the simplest invariant that
+holds and matches how church discipleship actually works — you
+do not retake Life Class.
+
+### Withdraw semantics
+
+`DELETE /discipleship/enrollments/{enrollment}` sets
+`status = withdrawn`. It does **not** delete the row.
+
+Why: the total unique on (participant_id, program_id) is the
+invariant. Deleting would allow a second row to be created for
+the same participant+program, breaking that invariant and losing
+the history of the prior attempt. Withdraw as a status change is
+what makes the total unique safe to keep.
+
+A withdrawn participant who wants to retake the program has
+their existing row's status reset — not a new row.
+
+### What shipped
+
+Backend:
+
+- Migration `discipleship_enrollments` — participant_id (FK
+  CASCADE), program_id (FK CASCADE), batch_id (FK SET NULL),
+  status (24 chars), enrolled_at (nullable timestamp), notes,
+  created_by (FK RESTRICT). Index on (program_id, status) and
+  on batch_id. Unique on (participant_id, program_id).
+- `DiscipleshipEnrollmentStatus` enum — 5 values
+  (enrolled, in_progress, completed, withdrawn, on_hold), plus
+  a `values()` and an `activeValues()` helper (enrolled +
+  in_progress) and a `label()` method.
+- `DiscipleshipEnrollment` model — participant, program, batch,
+  creator relations. Status cast to the enum, enrolled_at
+  cast to immutable_datetime.
+- `DiscipleshipProgram::enrollments()` and
+  `DiscipleshipBatch::enrollments()` relations added.
+- `Participant::discipleshipEnrollments()` relation added via
+  head/tail split (same anchor pattern as Phase 4's
+  fellowshipAttendances).
+- `DiscipleshipEnrollmentController` — store, update, destroy.
+  A private `assertBatchBelongsToProgram()` guard prevents
+  cross-program batch assignment.
+- `DiscipleshipController::participantSearch()` — JSON
+  endpoint. Live-search over first_name / last_name / email /
+  contact_number. Returns up to 20, with an
+  `already_enrolled` flag per result so the picker can grey out
+  candidates without a second round trip.
+- 2 FormRequests under `Http/Requests/Discipleship/`.
+
+Routes:
+
+- 4 new routes under the discipleship prefix.
+- `POST /discipleship/programs/{program:slug}/enrollments`
+- `PUT /discipleship/enrollments/{enrollment}`
+- `DELETE /discipleship/enrollments/{enrollment}`
+  (route name `discipleship.enrollments.withdraw`)
+- `GET /discipleship/programs/{program:slug}/participant-search`
+  (JSON)
+
+Frontend:
+
+- `discipleship/show.tsx` fully rewritten (~1000 lines).
+  Batch list collapsed to compact inline rows. Enrollment table
+  added with participant, contact, batch, status badge, enrolled
+  date, and action buttons.
+- Three dialogs added:
+  - **Add Enrollment** — live participant search (debounced
+    fetch to the JSON endpoint), optional batch dropdown,
+    optional enrollment date, notes. Already-enrolled
+    participants render disabled in the result list.
+  - **Edit Enrollment** — status dropdown (5 options), batch
+    dropdown, notes.
+  - **Withdraw** — confirm dialog that explains the
+    row-survives semantics.
+- Status badge palette: enrolled (lime), in_progress (accent),
+  completed (green), withdrawn (destructive), on_hold (navy in
+  light, yellow in dark).
+
+### First JSON endpoint
+
+`DiscipleshipController::participantSearch()` is the first
+non-Inertia response in the codebase. The Add Enrollment picker
+is a debounced type-ahead; the Inertia partial-reload pattern
+does not fit a search box. Uses plain `fetch()` in the frontend
+with a 250ms debounce.
+
+If a second JSON endpoint appears, consider a shared
+`fetchJson()` helper. Not extracting now — one use is not a
+pattern.
+
+### Verification
+
+    php artisan test tests/Feature/Discipleship/
+    42 passed (138 assertions)
+
+    php artisan test
+    3 skipped, 737 passed (2820 assertions)
+
+    npx tsc --noEmit
+    silent
+
+### Commits
+
+    4a239f5  feat(discipleship): Phase 5C — enrollment module
+             13 files, 1788 insertions, 98 deletions
+
+### What comes next
+
+Phase 5D — sessions. Migration `discipleship_sessions`
+(batch_id, session_date, topic, notes, created_by). This brings
+the first routing decision of 5D: does `/discipleship/batches/
+{batch}` become a real detail page, or do sessions render inline
+on the program show page under each batch?
+
+At 5C the program show page is already ~1000 lines. Adding
+sessions inline would push it past the point where a dedicated
+page helps. Recommendation to record at 5D-1: a batch detail
+page at `/discipleship/batches/{batch}` that lists the batch's
+sessions.
+
+Phase 5E adds session attendance — a matrix of enrollments ×
+sessions, one row per participant per session. That page lives
+on the batch detail page too, or a per-session view.
+
+Phase 5F (progress) needs a decision on completion criteria
+storage: columns on the program (required_sessions int +
+extra_requirements json), a requirements table, or per-program
+code. Not yet decided. The service that computes progress
+(attended / applicable / percentage) can be built before the
+criteria storage is settled — the two are separable.
+
+### Cross-references
+
+- `docs/church-events/07-scope-and-task-division.md` §3.6 —
+  Phase 5 task breakdown (5C.1 through 5C.5)
+- `docs/progress.md` 2026-10-16 Phase 5B entry — the batch
+  sub-phase this one builds on
+- `docs/progress.md` 2026-10-16 Phase 5A entry — the program
+  sub-phase
+- `docs/participant-identity.md` — the Participant identity
+  model this enrollment references
