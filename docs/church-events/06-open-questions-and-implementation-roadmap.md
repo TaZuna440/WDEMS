@@ -2632,3 +2632,75 @@ block above.
 
 **Updated test count:** 3 skipped, 611 passed.
 
+
+---
+
+## Phase 2 frontend closure (2026-10-16)
+
+Append-only. The four frontend tasks deferred from the Phase 2
+closure block are now resolved. Two shipped as code; two turned
+out to be unnecessary.
+
+### Shipped
+
+Commit `21e6ffa` -- events index:
+- Kind filter chips (All / Running / Church) wired to ?kind=
+- `upcoming` status pill style for church events
+- `church` event type pill style
+- `church_category` sub-line under the event name
+- Empty state respects the active filter
+
+Commit `d2da45a` -- event detail:
+- `event_kind` and `church_category` added to EventData type
+- `upcoming` status pill style for church events
+- Event Type row shows `church_category` when present,
+  falls back to `event_type_label`
+
+### Not needed (with rationale)
+
+**`/events/create` branch for church events.**
+The controller already filters the wizard's `event_types`
+prop to `EventType::runningTypes()` (Phase 2 backend commit
+`c2f45af`). The wizard therefore shows only Community Run and
+Fun Run to organizers. No branch needed. Church events are
+created through module-specific flows (Services, Fellowship,
+etc.) that arrive in Phase 3+.
+
+**Event detail conditional sections.**
+`events/show.tsx` already hides sections conditionally:
+- Distance row only renders when `event.distance_label` is
+  non-null
+- Partners section only renders when `event.partners` is
+  non-empty
+- Accessibility section only renders when at least one flag
+  is true
+- Venue section only renders when a venue, address, or map
+  link is present
+
+A church event has all of those null or empty, so the sections
+that don't apply are already suppressed. No conditional
+branching on `event_kind` was required.
+
+### Verification
+
+    npx tsc --noEmit    (clean after both commits)
+    git diff            (three hunks per file, no deletions)
+
+Frontend-only changes. Test suite unaffected. No new tests
+written -- the frontend has no automated test harness (Pest
+runs against HTTP endpoints, not rendered output).
+
+### Effect on Phase 3
+
+Phase 3 (Services) can now display church events alongside
+running events on the unified events list. The category
+sub-line and the kind filter give the organizer enough
+context to see church events without opening them.
+
+### Files touched
+
+    resources/js/pages/events/index.tsx   (modified)
+    resources/js/pages/events/show.tsx    (modified)
+
+Nothing else in resources/, app/, or tests/ was modified.
+
