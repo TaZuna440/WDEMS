@@ -42,10 +42,10 @@ export default function FellowshipIndex({ fellowship_types }: Props) {
 
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
                 <div className="pl-10">
-                    <h1 className="text-2xl font-semibold text-foreground">
+                    <h1 className="text-on-image text-2xl font-semibold">
                         Fellowship
                     </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="text-on-image-muted mt-1 text-sm">
                         Fellowship gatherings and their attendance records.
                     </p>
                 </div>
