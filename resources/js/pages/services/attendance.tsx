@@ -151,7 +151,7 @@ export default function ServiceAttendance({
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
                 <Link
                     href={`/services/${occurrence.service_type}`}
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-on-image-muted transition-colors hover:text-on-image"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     {occurrence.service_type_label}
@@ -160,10 +160,10 @@ export default function ServiceAttendance({
                 {/* Header */}
                 <div className="glass-panel rounded-xl p-6">
                     <div className="pl-10">
-                        <h1 className="text-xl font-semibold text-foreground">
+                        <h1 className="text-on-image text-xl font-semibold">
                             {occurrence.service_type_label}
                         </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                        <p className="text-on-image-muted mt-1 text-sm">
                             {formatDate(occurrence.occurrence_date)}
                         </p>
                         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
