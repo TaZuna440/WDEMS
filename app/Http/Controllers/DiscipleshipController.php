@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DiscipleshipBatch;
 use App\Models\DiscipleshipProgram;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,21 +15,20 @@ use Inertia\Response;
  * later adds a program, the change point is
  * DiscipleshipProgramSeeder.
  *
- * Phase 5A. Batches (5B), enrollment (5C), sessions (5D),
- * attendance (5E), and progress/completion (5F) extend this
- * controller or add new ones in later sub-phases.
+ * Phase 5A. 5B added batches -- index gains batches_count per
+ * card, show gains the batch list plus a batches_count.
+ * Enrollment (5C), sessions (5D), attendance (5E), and progress
+ * (5F) extend this in later sub-phases.
  */
 class DiscipleshipController extends Controller
 {
     /**
-     * Landing: program cards.
-     *
-     * Shows each of the seeded programs in display order. The
-     * card links to the per-program view.
+     * Landing: program cards with batch counts.
      */
     public function index(): Response
     {
         $programs = DiscipleshipProgram::query()
+            ->withCount('batches')
             ->orderBy('display_order')
             ->orderBy('id')
             ->get()
@@ -37,6 +37,7 @@ class DiscipleshipController extends Controller
                 'name' => $p->name,
                 'slug' => $p->slug,
                 'description' => $p->description,
+                'batches_count' => $p->batches_count,
             ]);
 
         return Inertia::render('discipleship/index', [
@@ -45,14 +46,25 @@ class DiscipleshipController extends Controller
     }
 
     /**
-     * Per-program view.
+     * Per-program view: header plus the program's batches.
      *
-     * At 5A the payload is only the program. 5B adds the
-     * program's batches to the payload alongside the batch model
-     * and routes.
+     * Batches are ordered by start_date ascending -- the earliest
+     * cohort first, matching how a program's history reads. Tie-
+     * break on id for stable ordering when two batches share a
+     * start_date.
      */
     public function show(DiscipleshipProgram $program): Response
     {
+        $batches = $program->batches()
+            ->orderBy('start_date')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (DiscipleshipBatch $b) => [
+                'id' => $b->id,
+                'name' => $b->name,
+                'start_date' => $b->start_date->toDateString(),
+            ]);
+
         return Inertia::render('discipleship/show', [
             'program' => [
                 'id' => $program->id,
@@ -60,6 +72,8 @@ class DiscipleshipController extends Controller
                 'slug' => $program->slug,
                 'description' => $program->description,
             ],
+            'batches' => $batches,
+            'batches_count' => $batches->count(),
         ]);
     }
 }

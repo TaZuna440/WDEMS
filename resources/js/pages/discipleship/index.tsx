@@ -12,6 +12,7 @@ type ProgramRow = {
     name: string;
     slug: string;
     description: string | null;
+    batches_count: number;
 };
 
 type Props = {
@@ -21,9 +22,7 @@ type Props = {
 /**
  * Per-program icons, keyed by slug. The three School of Leaders
  * levels share GraduationCap -- they are one track at three
- * depths, not three distinct tracks. Distinct icons for each
- * level would imply a categorical difference that does not
- * exist.
+ * depths, not three distinct tracks.
  */
 const ICONS: Record<string, LucideIcon> = {
     'life-class': BookOpen,
@@ -71,6 +70,15 @@ export default function DiscipleshipIndex({ programs }: Props) {
                                             {program.description}
                                         </p>
                                     )}
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {program.batches_count === 0
+                                            ? 'No batches yet'
+                                            : `${program.batches_count} ${
+                                                  program.batches_count === 1
+                                                      ? 'batch'
+                                                      : 'batches'
+                                              }`}
+                                    </p>
                                 </div>
                             </Link>
                         );

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Auth\DeviceVerificationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DiscipleshipBatchController;
 use App\Http\Controllers\DiscipleshipController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventDeletionController;
@@ -297,6 +298,15 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     // ============================================================
 
     Route::prefix('discipleship')->name('discipleship.')->group(function () {
+
+        // Batch CRUD (Phase 5B). More specific than the program
+        // routes below, so declared first.
+        Route::post('programs/{program:slug}/batches', [DiscipleshipBatchController::class, 'store'])
+            ->name('batches.store');
+        Route::put('batches/{batch}', [DiscipleshipBatchController::class, 'update'])
+            ->name('batches.update');
+        Route::delete('batches/{batch}', [DiscipleshipBatchController::class, 'destroy'])
+            ->name('batches.destroy');
         Route::get('/', [DiscipleshipController::class, 'index'])
             ->name('index');
         Route::get('programs/{program:slug}', [DiscipleshipController::class, 'show'])
