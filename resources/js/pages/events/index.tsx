@@ -72,10 +72,10 @@ export default function EventsIndex({ events, filters }: Props) {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="pl-10">
-                        <h1 className="text-2xl font-semibold text-foreground">
+                        <h1 className="text-on-image text-2xl font-semibold">
                             Events
                         </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                        <p className="text-on-image-muted mt-1 text-sm">
                             All events across the WDEMS workflow
                         </p>
                     </div>
@@ -144,7 +144,7 @@ export default function EventsIndex({ events, filters }: Props) {
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-white/10 text-left">
+                                    <tr className="border-b border-border text-left">
                                         <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                             Event
                                         </th>
@@ -172,7 +172,7 @@ export default function EventsIndex({ events, filters }: Props) {
                                     {events.map((event) => (
                                         <tr
                                             key={event.id}
-                                            className="border-b border-white/5 transition-colors last:border-b-0 hover:bg-white/5"
+                                            className="border-b border-border transition-colors last:border-b-0 hover:bg-card/40"
                                         >
                                             <td className="px-6 py-4">
                                                 <Link
