@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'contact_number_normalized',
     'email',
     'age',
+    'birthday',
     'address',
 ])]
 class Participant extends Model
@@ -23,6 +24,7 @@ class Participant extends Model
     {
         return [
             'age' => 'integer',
+            'birthday' => 'date',
         ];
     }
 
@@ -57,6 +59,36 @@ class Participant extends Model
     public function firstTimers(): HasMany
     {
         return $this->hasMany(FirstTimer::class);
+    }
+
+    /**
+     * Attendance records for this participant on the Members track.
+     *
+     * One row per service occurrence the participant was marked on.
+     * The First-Timers track is a separate relation -- a participant
+     * appears on at most one of the two for any given occurrence.
+     *
+     * Phase 3, per client mockup.
+     */
+    public function serviceAttendanceMembers(): HasMany
+    {
+        return $this->hasMany(ServiceAttendanceMember::class);
+    }
+
+    /**
+     * Attendance records for this participant on the First-Timers
+     * track.
+     *
+     * Populated while the participant is a first-timer. After they
+     * are promoted to membership, new attendance goes through
+     * serviceAttendanceMembers() instead. Historical first-timer
+     * records are retained.
+     *
+     * Phase 3, per client mockup.
+     */
+    public function serviceAttendanceFirstTimers(): HasMany
+    {
+        return $this->hasMany(ServiceAttendanceFirstTimer::class);
     }
 
     public function fullName(): string
