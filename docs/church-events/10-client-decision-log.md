@@ -44,27 +44,27 @@ block below the Answer.
 | # | Theme | Blocks | Status |
 |---|---|---|---|
 | Q1  | Services in the new sidebar | Services doc, sidebar rework | Pending |
-| Q2  | Flat vs expandable sidebar | Navigation rework | Pending |
-| Q3  | Timothy Class nav placement | Youth module | Pending |
-| Q4  | Young Adult module contents | Young Adult module | Pending |
-| Q5  | Worship & Prayer module contents | Worship & Prayer module | Pending |
-| Q6  | Special Occasions Documents tab | Special Occasions module | Pending |
-| Q7  | Church Planning Timeline tab | Church Administration module | Pending |
-| Q8  | Outreaches location entity | Kids Ministry module | Pending |
-| Q9  | Ministry list (fixed vs editable) | Church Administration module | Pending |
-| Q10 | Payment tracking real vs bookkeeping | Youth Camp, Kids Ministry, Special Occasions | Pending |
-| Q11 | Payment gateway choice | Same as Q10 | Pending |
-| Q12 | Budget approval chain | Special Occasions module | Pending |
-| Q13 | Task assignment scope | Special Occasions, Church Planning | Pending |
-| Q14 | Progress calculation rule | Discipleship confirmation, Timothy Class, Campus Ministry | Pending |
-| Q15 | Discipleship "Not Started" status | Discipleship enum | Pending |
+| Q2  | Flat vs expandable sidebar | Navigation rework | Answered |
+| Q3  | Timothy Class nav placement | Youth module | Answered |
+| Q4  | Young Adult module contents | Young Adult module | Answered |
+| Q5  | Worship & Prayer module contents | Worship & Prayer module | Answered |
+| Q6  | Special Occasions Documents tab | Special Occasions module | Answered |
+| Q7  | Church Planning Timeline tab | Church Administration module | Answered |
+| Q8  | Outreaches location entity | Kids Ministry module | Answered |
+| Q9  | Ministry list (fixed vs editable) | Church Administration module | Answered |
+| Q10 | Payment tracking real vs bookkeeping | Youth Camp, Kids Ministry, Special Occasions | Answered |
+| Q11 | Payment gateway choice | Same as Q10 | Answered |
+| Q12 | Budget approval chain | Special Occasions module | Answered |
+| Q13 | Task assignment scope | Special Occasions, Church Planning | Answered |
+| Q14 | Progress calculation rule | Discipleship confirmation, Timothy Class, Campus Ministry | Answered |
+| Q15 | Discipleship "Not Started" status | Discipleship enum | Answered |
 | Q16 | Grade/Year level scope | Youth Camp, Kids Ministry, Campus Ministry, Timothy Class | Pending |
 | Q17 | Members / First-Timers pages | Navigation and first-timers promotion | Pending |
 | Q18 | Cell Group vs Services overlap | Cell Group module | Pending |
 | Q19 | Design system replacement | Every shipped page | Pending |
 | Q20 | Multi-tab URL semantics | Special Occasions, Ministry Meeting, VBS | Pending |
 
-**Coverage:** 20 questions, 0 answered.
+**Coverage:** 20 questions, 14 answered, 6 pending.
 
 ---
 
@@ -100,7 +100,9 @@ breadcrumb is computed and how the active state is tracked.
 Affects the navigation rework effort — significant if the answer
 is "replaced entirely."
 
-**Answer.** _Pending._
+**Answer.** The mockup sidebar is the final design for the entire system. The flat 7-item shipped sidebar is replaced entirely. The navigation rework target is the 14-item expandable structure shown in the mockup.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -115,7 +117,9 @@ Timothy Class is missing. Which is correct?
 the Youth module. If Timothy Class is a fifth sub-module, the
 sidebar expands to include it. If not, the hub card is wrong.
 
-**Answer.** _Pending._
+**Answer.** Yes - Timothy Class is included in the Youth Module. The Youth hub shows 5 sub-modules (Youth Camp, Youth Service, Huddle, Campus Ministry, Timothy Class). The sidebar sub-nav should list all 5.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -130,7 +134,9 @@ contents?
 **Context.** Without knowing what the module contains, no
 scoping or estimation is possible.
 
-**Answer.** _Pending._
+**Answer.** Young Adult has three top-level sub-modules: Service, Seminar, and Partner. Under Partner there is a nested GRC. Under GRC there are two sub-items: Care group and Fellowship. The module uses the same attendance/registration pattern as Services and Fellowship.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -142,7 +148,9 @@ contents?
 
 **Context.** Same as Q4.
 
-**Answer.** _Pending._
+**Answer.** Worship and Prayer has three sub-modules: Outdoor Prayer Meeting, Worship Night, and Prayer and Fasting. Same attendance/registration pattern as Services and Fellowship.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -158,7 +166,9 @@ links. The choice determines whether a new storage disk is
 needed, whether generation logic exists, or whether a simple URL
 column suffices.
 
-**Answer.** _Pending._
+**Answer.** Auto-generated documents. The Documents tab stores system-generated documents, not uploads and not external links.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -172,7 +182,9 @@ Free-form chronological list?
 A milestone list is a simple table. The two are very different
 effort-wise.
 
-**Answer.** _Pending._
+**Answer.** Client answered Option A. The question as sent did not use A/B/C labels -- it listed three options in sequence (Gantt-style bars with dependencies, Milestones only, Free-form chronological list). Option A most likely means the first option, but this should be confirmed before implementation.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -186,7 +198,9 @@ the future?
 **Context.** A fixed list is a hardcoded enum. A dynamic list is
 a new table with CRUD, plus the frontend to manage it.
 
-**Answer.** _Pending._
+**Answer.** Dynamic. Locations are created by staff. An Add Outreach button on the Outreaches hub lets staff add new locations. The four shown in the mockup (Wawang Pulo, Pasolo, Balubaran, Coloong) are seed data.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -201,7 +215,9 @@ editable? Who manages the list — admins only, or any staff?
 plus a management page. Permissions on the edit action depend on
 the answer to "who manages."
 
-**Answer.** _Pending._
+**Answer.** Add, edit, and delete are all allowed. Managed by Authorized staff. The seven shown are seed data.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -221,7 +237,9 @@ Bookkeeping means a status column and a manual toggle. Very
 different scope. This is the single largest gating question for
 the mockup expansion.
 
-**Answer.** _Pending._
+**Answer.** Remove payment tracking entirely. No gateway integration. No per-participant payment status. The Paid / Partial / For Payment badges shown in the mockup are not built. Budget becomes a simple record field -- a name and an amount, used for select special occasions such as the church anniversary.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -234,7 +252,9 @@ gateway is currently configured in WDEMS.
 **Context.** The gateway choice affects payment flow, refunds,
 fees, testing, and compliance. Applies only if Q10 = "real".
 
-**Answer.** _Pending._
+**Answer.** No gateway applies. Payment tracking is removed. See Q10.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -248,7 +268,9 @@ approves? Is there a role that must approve expenses, or is
 notifications. A self-set status is a dropdown. The two are
 different feature scopes.
 
-**Answer.** _Pending._
+**Answer.** No budget approval chain. Budget is recorded, not approved. The For Approval status shown in the mockup is not built.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -261,7 +283,9 @@ the "Assigned To" column.
 **Context.** Any-user assignment needs a user picker and
 per-user notifications. Role-only assignment is simpler.
 
-**Answer.** _Pending._
+**Answer.** Tasks can be assigned to any registered user. Not restricted by role.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -278,7 +302,14 @@ present + excused. The client should confirm this or override.
 If the wider product needs a different rule, the change is a
 one-line edit inside `DiscipleshipProgressService::progress()`.
 
-**Answer.** _Pending._
+**Answer.** Two statuses only -- Present and Absent. Excused is dropped. Applicable sessions = all sessions in the batch, not bounded by enrollment date. Only Present counts toward progress; Absent does not. Changes shipped Discipleship behavior in three ways. See the Migration note below.
+
+**Migration note.** The shipped Discipleship module (Phase 5E/5F) uses three statuses (present, absent, excused), bounds applicable sessions to enrollment date, and counts excused as attended. This answer changes all three. Two follow-up questions before the code changes:
+
+1. Existing attendance rows with status = excused -- convert to absent (preserve history as absence), delete the rows, or leave them? Recommendation: convert to absent.
+2. Sessions before enrollment -- under the new rule these count as applicable. A mid-batch joiner will show partial progress immediately. Confirm this is intended.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -293,7 +324,9 @@ Completed, Withdrawn, On Hold.
 **Context.** A sixth enum value changes the schema and status
 transition rules. A UI label is a rendering choice.
 
-**Answer.** _Pending._
+**Answer.** Not Started is dropped. Not added as a sixth enum value. Not rendered as a UI label. Enrollments that have no attendance yet just show their enrolled status as-is.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -386,3 +419,9 @@ the codebase uses tabs.
 - **2026-10-16** -- File created. Twenty questions from
   `docs/church-events/09-mockup-scope-inventory.md` transcribed
   with context and status tracking. All answers pending.
+
+- **2026-10-16** -- 14 answers recorded from the client (Q2-Q15).
+  Two flagged for clarification: Q7 (Option A ambiguous -- the
+  question was sent without A/B/C labels) and Q14 (migration path
+  for existing excused rows before the code changes). Remaining
+  unanswered: Q1, Q16, Q17, Q18, Q19, Q20.
