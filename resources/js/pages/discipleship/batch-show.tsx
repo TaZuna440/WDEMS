@@ -228,7 +228,7 @@ export default function DiscipleshipBatchShow({
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
                 <Link
                     href={`/discipleship/programs/${program.slug}`}
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-on-image-muted transition-colors hover:text-on-image"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     {program.name}
