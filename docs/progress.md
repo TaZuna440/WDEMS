@@ -3536,3 +3536,189 @@ plus preservation, both of which are already green.
   service and overview card this sub-phase reuses
 - `docs/progress.md` 2026-10-16 Phase 5C entry -- the
   enrollment list the filter and search operate over
+
+---
+
+## 2026-10-16 — Phase 5H: Discipleship closure and coverage audit (M5, sub-phase H)
+
+Final sub-phase of the Discipleship module. No new code. This
+entry is the closure record for the whole Phase 5 — eight
+sub-phases (5A–5H), one module shipped end to end.
+
+### Phase 5 summary
+
+| Sub-phase | Content | Code commit | Doc commit |
+|---|---|---|---|
+| 5A | Programs (seeded) | `979e0de` | `f3e4fc6` |
+| 5B | Batches | `3e57104` | `69ade42` |
+| 5C | Enrollments | `4a239f5` | `e859fe1` |
+| 5D | Sessions | `79e98d9` | `9a74b4c` |
+| 5E | Attendance matrix | `935ba21` | `7779a38` |
+| 5F | Progress + completion | `9b107a4` | `3164d07` |
+| 5G | Dashboard, filter, CSV | `d20fa3f` | `c217cac` |
+| 5H | Closure + coverage audit | (this entry) | — |
+
+**Total:** 7 code commits, 7 doc commits, 14 commits on `main`.
+
+**Test count at closure:** 791 passed, 3 skipped, 3,080
+assertions across the full suite. The Discipleship suite alone
+is 96 tests / 398 assertions.
+
+### What Discipleship ships
+
+The module delivers:
+
+- Six seeded programs (Life Class, Encounter God Retreat,
+  School of Leaders 1–3, Cell Convergence) — read-only, no UI
+  for creating new ones. The seeder is the change point.
+- Batches per program — the cohort unit.
+- Enrollment keyed on (participant_id, program_id) with a
+  nullable batch pointer. Total unique across the participant's
+  lifetime; withdraw is a status change, not a row deletion.
+- Sessions per batch — ordered by date, no artificial ordinal.
+- Session attendance as a matrix (enrollments × sessions) with
+  per-cell status and bulk upsert.
+- Progress = attended / applicable, with completion criteria
+  on the program (nullable required_sessions, JSON extras).
+- Dashboard view with search, status filter, batch filter, and
+  CSV export.
+
+Three modules now exist in the church-events workstream:
+Services (Phase 3), Fellowship (Phase 4), Discipleship
+(Phase 5). Two remain per doc 07: Youth (M6) and Cell Group
+(M7).
+
+### Coverage audit
+
+Every public controller action and service method has at least
+one test. Audit summary:
+
+| Layer | Tests | Coverage |
+|---|---|---|
+| Programs (model, controller, seeder) | 6 | full |
+| Batches (model, controller) | 12 | full |
+| Enrollments (model, controller, search) | 23 | full |
+| Sessions (model, controller) | 13 | full |
+| Attendance (model, controller, bulk) | 15 | full |
+| Progress service | 13 | full |
+| Filters, CSV export, counts | 15 | full |
+
+**Four non-covered methods, all cosmetic:**
+
+- `DiscipleshipBatch::creator()`
+- `DiscipleshipEnrollment::creator()`
+- `DiscipleshipSession::creator()`
+- `DiscipleshipAttendance::recorder()`
+
+These four `BelongsTo` relations exist for completeness — a
+future UI could render "recorded by" — but are not called by any
+controller, service, or view today. Testing them would be
+testing Laravel's `belongsTo`, not the application. Deliberately
+skipped. If a future feature starts using any of them, cover
+that feature end-to-end rather than adding a bare relation test.
+
+### Process notes accumulated during Phase 5
+
+Several process defects surfaced and were corrected in-session.
+Recording them here so a future session does not repeat them.
+
+**1. Empty-anchor guards are mandatory.** A fix block that
+attempted to reorder use statements in `routes/web.php`
+computed `head -n $((BATCH - 1))` with an empty anchor
+variable. The result evaluated to `head -n -1` — a valid
+invocation with "all but last line" semantics — and wrote the
+file back to itself minus the last line, then duplicated the
+rest. PHP parse error. Recovery required `git checkout` on
+`routes/web.php` and re-applying the affected block. Root
+cause: the fix was written as a one-off correction and skipped
+the `if [ -z "$VAR" ]; then ...; fi` guard that every other
+block this phase used. Restated rule: every head/tail split
+must have empty-anchor guards on every anchor variable, no
+exceptions.
+
+**2. `exit 1` in an interactive shell terminates the shell.**
+An earlier recovery block included a bare `exit 1` inside an
+anchor check. In an interactive bash session, `exit` closes
+the terminal, not just the script. The developer lost their
+session context. Restated rule: no `exit` inside any block
+delivered for interactive execution. Print the failure and
+continue; the operator decides whether to proceed.
+
+**3. Placeholder tokens in heredoc bodies must be avoided.**
+Two progress entries shipped with `<hash>` and `<N>`
+placeholders that were never replaced: the Phase 5F entry's
+Commits section, and the Phase 5G entry's Commits section.
+Both went to `origin/main` with the placeholders intact. The
+corrections appear below in this same entry. Rule for future
+sessions: when a heredoc body must contain a variable value,
+either compute it in the shell before the heredoc (bash
+substitution) or leave a `<!-- FILL IN -->` comment so the gap
+is visible — do not leave angle-bracket tokens that read like
+real content.
+
+### Correction — Phase 5F commits section
+
+The Phase 5F progress entry above was appended with literal
+placeholder tokens in its Commits section:
+
+    ### Commits
+
+        <hash>  feat(discipleship): Phase 5F — progress and completion
+                <N> files, <N> insertions, <N> deletions
+
+Per P7 (append-only corrections), the original entry stays as
+written. The correct values for that section:
+
+    9b107a4  feat(discipleship): Phase 5F — progress and completion
+             8 files, 946 insertions, 55 deletions
+
+### Correction — Phase 5G commits section
+
+The Phase 5G progress entry above was appended with a literal
+placeholder token in its Commits section:
+
+    ### Commits
+
+        <hash>  feat(discipleship): Phase 5G — search, filter, CSV export
+
+Per P7, the original entry stays as written. The correct value:
+
+    d20fa3f  feat(discipleship): Phase 5G — search, filter, CSV export
+             4 files, 886 insertions, 78 deletions
+
+### What this closure does NOT do
+
+- Does not write `docs/discipleship.md`. Phase 5 shipped with
+  the progress entries as the only record. A subsystem doc
+  modeling `docs/attendance-redesign.md` is the natural
+  follow-up but is not required for the phase to be considered
+  done. Deferred to a future session.
+- Does not extend the program payload with `required_sessions`
+  and `extra_requirements` at the top level. The Program
+  Details dialog in `discipleship/show.tsx` shows a placeholder
+  text about criteria because the payload does not carry the
+  two columns directly — they arrive per enrollment via the
+  progress sub-object. A small follow-up can add them.
+- Does not constrain enrollment status transitions. All five
+  values are currently legal from any state. No policy class
+  was added; nothing has asked for one.
+- Does not backfill `required_sessions` on the six seeded
+  programs. All six rows have `required_sessions = null`,
+  which reads as "no fixed requirement" — completion falls
+  back to 100% of applicable sessions. Populating per-program
+  thresholds is a client decision.
+
+### Cross-references
+
+- `docs/church-events/07-scope-and-task-division.md` §3.6 —
+  Phase 5 task breakdown (5A through 5H)
+- `docs/church-events/09-mockup-scope-inventory.md` — the
+  expanded scope reconciliation. Discipleship as shipped is a
+  subset of what the mockup shows; the mockup is a superset
+  pending client answers to Q1–Q20.
+- `docs/progress.md` 2026-10-16 Phase 5A through 5G entries —
+  the eight sub-phase records this closure summarizes
+- `docs/progress.md` 2026-10-16 Phase 4 entry — the Fellowship
+  module, structurally parallel to Discipleship
+- `docs/progress.md` 2026-10-16 Phase 3 entry — the Services
+  module, the first of the church-events workstreams
