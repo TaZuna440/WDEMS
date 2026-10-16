@@ -106,6 +106,22 @@ class Participant extends Model
         return $this->hasMany(FellowshipAttendance::class);
     }
 
+    /**
+     * Enrollment records for this participant at Discipleship
+     * programs.
+     *
+     * Zero or more. A participant can be enrolled in multiple
+     * programs (Life Class, School of Leaders 1, etc.) but only
+     * once per program -- enforced by the total unique on
+     * (participant_id, program_id) in the enrollments table.
+     *
+     * Phase 5C.
+     */
+    public function discipleshipEnrollments(): HasMany
+    {
+        return $this->hasMany(DiscipleshipEnrollment::class);
+    }
+
     public function fullName(): string
     {
         return trim("{$this->first_name} {$this->last_name}");

@@ -11,13 +11,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * A program is a course or track (Life Class, School of Leaders
  * 1-3, etc.). Each program contains many batches -- the batches()
+ * relation below -- and many enrollments -- the enrollments()
  * relation below.
  *
  * Program rows are seeded, not created through the UI. The six
  * known programs are defined in DiscipleshipProgramSeeder. If the
  * client later adds a seventh, the seeder is the change point.
  *
- * Phase 5A. batches() relation added in 5B.
+ * Phase 5A. batches() added in 5B. enrollments() added in 5C.
  */
 #[Fillable([
     'name',
@@ -37,5 +38,10 @@ class DiscipleshipProgram extends Model
     public function batches(): HasMany
     {
         return $this->hasMany(DiscipleshipBatch::class, 'program_id');
+    }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(DiscipleshipEnrollment::class, 'program_id');
     }
 }

@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\DeviceVerificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiscipleshipBatchController;
 use App\Http\Controllers\DiscipleshipController;
+use App\Http\Controllers\DiscipleshipEnrollmentController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventDeletionController;
 use App\Http\Controllers\FellowshipAttendanceController;
@@ -299,6 +300,17 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
 
     Route::prefix('discipleship')->name('discipleship.')->group(function () {
 
+        // Enrollment CRUD (Phase 5C). The destroy route is
+        // semantically a "withdraw" -- it sets status = withdrawn
+        // and keeps the row for history. See the controller
+        // docblock.
+        Route::post('programs/{program:slug}/enrollments', [DiscipleshipEnrollmentController::class, 'store'])
+            ->name('enrollments.store');
+        Route::put('enrollments/{enrollment}', [DiscipleshipEnrollmentController::class, 'update'])
+            ->name('enrollments.update');
+        Route::delete('enrollments/{enrollment}', [DiscipleshipEnrollmentController::class, 'destroy'])
+            ->name('enrollments.withdraw');
+
         // Batch CRUD (Phase 5B). More specific than the program
         // routes below, so declared first.
         Route::post('programs/{program:slug}/batches', [DiscipleshipBatchController::class, 'store'])
@@ -307,6 +319,12 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
             ->name('batches.update');
         Route::delete('batches/{batch}', [DiscipleshipBatchController::class, 'destroy'])
             ->name('batches.destroy');
+
+        // Participant search for the Add Enrollment picker.
+        // JSON, not Inertia -- a debounced type-ahead cannot use
+        // the partial-reload pattern. Returns up to 20 matches.
+        Route::get('programs/{program:slug}/participant-search', [DiscipleshipController::class, 'participantSearch'])
+            ->name('participants.search');
         Route::get('/', [DiscipleshipController::class, 'index'])
             ->name('index');
         Route::get('programs/{program:slug}', [DiscipleshipController::class, 'show'])

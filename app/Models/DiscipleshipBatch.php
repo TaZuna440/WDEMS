@@ -5,20 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One cohort of a Discipleship program.
  *
- * A batch is the unit of enrollment (5C), session scheduling (5D),
- * and progress reporting (5F). The program is the parent; the
- * batch is where the participant actually participates.
+ * A batch is the unit of session scheduling (5D) and progress
+ * reporting (5F). Enrollment is keyed at the program level (5C);
+ * a participant's enrollment row carries a nullable batch_id that
+ * points at the batch they are currently attending.
  *
- * Sessions (5D) will add a hasMany relation here in that
- * sub-phase. Enrollments (5C) will add another. Neither relation
- * is present at 5B -- forward-referencing classes that do not yet
- * exist would break the autoloader.
+ * sessions() relation lands in 5D. enrollments() is below.
  *
- * Phase 5B.
+ * Phase 5B. enrollments() added in 5C.
  */
 #[Fillable([
     'program_id',
@@ -43,5 +42,10 @@ class DiscipleshipBatch extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(DiscipleshipEnrollment::class, 'batch_id');
     }
 }
