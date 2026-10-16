@@ -82,7 +82,7 @@
     --secondary: oklch(0.95 0.005 250);
     --secondary-foreground: #13253B;
     --muted: oklch(0.96 0.005 250);
-    --muted-foreground: #526478;
+    --muted-foreground: #3D4F63;
     --accent: oklch(0.7 0.15 180);
     --accent-foreground: #FFFFFF;
     --destructive: oklch(0.577 0.245 27.325);
@@ -198,9 +198,9 @@
     --app-bg-texture-opacity: 0.035;
 
     /* Glass tint strengths — light mode needs higher opacity for contrast */
-    --glass-card-tint: 75%;
-    --glass-sidebar-tint: 65%;
-    --glass-header-tint: 70%;
+    --glass-card-tint: 88%;
+    --glass-sidebar-tint: 78%;
+    --glass-header-tint: 82%;
     --glass-border-strength: 65%;
 }
 
@@ -213,7 +213,7 @@
     --app-bg-texture-opacity: 0.05;
 
     --glass-card-tint: 32%;
-    --glass-sidebar-tint: 48%;
+    --glass-sidebar-tint: 65%;
     --glass-header-tint: 38%;
     --glass-border-strength: 12%;
 }
