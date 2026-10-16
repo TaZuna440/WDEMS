@@ -43,7 +43,7 @@ block below the Answer.
 
 | # | Theme | Blocks | Status |
 |---|---|---|---|
-| Q1  | Services in the new sidebar | Services doc, sidebar rework | Pending |
+| Q1  | Services in the new sidebar | Services doc, sidebar rework | Answered |
 | Q2  | Flat vs expandable sidebar | Navigation rework | Answered |
 | Q3  | Timothy Class nav placement | Youth module | Answered |
 | Q4  | Young Adult module contents | Young Adult module | Answered |
@@ -58,13 +58,13 @@ block below the Answer.
 | Q13 | Task assignment scope | Special Occasions, Church Planning | Answered |
 | Q14 | Progress calculation rule | Discipleship confirmation, Timothy Class, Campus Ministry | Answered |
 | Q15 | Discipleship "Not Started" status | Discipleship enum | Answered |
-| Q16 | Grade/Year level scope | Youth Camp, Kids Ministry, Campus Ministry, Timothy Class | Pending |
-| Q17 | Members / First-Timers pages | Navigation and first-timers promotion | Pending |
-| Q18 | Cell Group vs Services overlap | Cell Group module | Pending |
-| Q19 | Design system replacement | Every shipped page | Pending |
-| Q20 | Multi-tab URL semantics | Special Occasions, Ministry Meeting, VBS | Pending |
+| Q16 | Grade/Year level scope | Youth Camp, Kids Ministry, Campus Ministry, Timothy Class | Answered |
+| Q17 | Members / First-Timers pages | Navigation and first-timers promotion | Answered |
+| Q18 | Cell Group vs Services overlap | Cell Group module | Answered |
+| Q19 | Design system replacement | Every shipped page | Answered |
+| Q20 | Multi-tab URL semantics | Special Occasions, Ministry Meeting, VBS | Answered |
 
-**Coverage:** 20 questions, 14 answered, 6 pending.
+**Coverage:** 20 questions, 20 answered, 0 pending.
 
 ---
 
@@ -83,7 +83,11 @@ breadcrumbs, and the eventual Services subsystem doc. If
 Services is being removed, writing `docs/services.md` is wasted
 effort.
 
-**Answer.** _Pending._
+**Answer.** Attendance nests under Services in the sidebar.
+
+**Date.** 2026-10-16
+
+**Clarification.** Registration's placement in the new sidebar was not addressed. Follow-up pending.
 
 ---
 
@@ -185,6 +189,8 @@ effort-wise.
 **Answer.** Client answered Option A. The question as sent did not use A/B/C labels -- it listed three options in sequence (Gantt-style bars with dependencies, Milestones only, Free-form chronological list). Option A most likely means the first option, but this should be confirmed before implementation.
 
 **Date.** 2026-10-16
+
+**Clarification (2026-10-16).** Client confirmed: "Option A" means Gantt-style bars with dependencies. The Milestones-only and Free-form chronological list interpretations are rejected.
 
 ---
 
@@ -343,7 +349,11 @@ community-run participants don't)?
 participant. A per-event approach keeps it scoped to the modules
 that need it. Affects migration shape and future reporting.
 
-**Answer.** _Pending._
+**Answer.** Option A -- Global Participant Information. A column on the participants table, not per-event. Add edit and delete action functions to the participant information UI.
+
+**Original (Tagalog).** Need lang sa particular event. Option A. Global Participant Information. Lagay nalang function na actions, for edit and delete.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -357,7 +367,11 @@ top-level pages matching the mockup sidebar?
 straightforward once confirmed. Also unblocks the deferred
 first-timer promotion feature.
 
-**Answer.** _Pending._
+**Answer.** Yes -- dedicated pages for Members and First-Timers.
+
+**Original (Tagalog).** Yes sariling pages for Members and First-timers
+
+**Date.** 2026-10-16
 
 ---
 
@@ -373,7 +387,11 @@ model?
 full module's worth of work. Note that this overlaps with Q4
 from the original doc-06 question set (Cell Group placement).
 
-**Answer.** _Pending._
+**Answer.** Remove Cell Group from scope entirely. Not a module, not a category, not a sidebar item.
+
+**Original (Tagalog).** Tanggalin na Cell Group
+
+**Date.** 2026-10-16
 
 ---
 
@@ -393,7 +411,11 @@ the new pages. Very different amounts of work. Affects every
 existing page's `resources/css/app.css` and every `.tsx` color
 class.
 
-**Answer.** _Pending._
+**Answer.** Keep the current WDEMS design system. Apply it consistently -- every design feature should be connected across all pages.
+
+**Original (Tagalog).** Current WDEMS. Make every design features connected.
+
+**Date.** 2026-10-16
 
 ---
 
@@ -410,7 +432,11 @@ Local-state tabs are simpler but a refresh always returns to the
 first tab. A new UX pattern either way — no existing page in
 the codebase uses tabs.
 
-**Answer.** _Pending._
+**Answer.** Option A -- URL-persisted tabs. Each tab is a bookmarkable URL.
+
+**Original (Tagalog).** Option A. Url persisted tabs
+
+**Date.** 2026-10-16
 
 ---
 

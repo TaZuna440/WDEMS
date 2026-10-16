@@ -537,3 +537,40 @@ write a Services subsystem doc — it may become wasted effort.
   through Q20 awaiting client answers
 - `docs/progress.md` 2026-10-16 entries — Phase 4 and Phase 5
   closure records
+
+---
+
+## 22. Q1 answered — Services is staying (2026-10-16)
+
+Section §21 above records:
+
+> `docs/services.md` does not exist. Phase 3 shipped with progress
+> entries only. The scope inventory
+> (`docs/church-events/09-mockup-scope-inventory.md` Q1) asks
+> whether Services remains a top-level module after the mockup
+> sidebar is applied. Until that question is answered, do not
+> write a Services subsystem doc — it may become wasted effort.
+
+Q1 is now answered. The client confirmed on 2026-10-16 that
+Services stays in the sidebar, with Attendance nested beneath it.
+The full answer is recorded in
+`docs/church-events/10-client-decision-log.md` under Q1.
+
+### What changes
+
+- `docs/services.md` is **unblocked**. Writing it is no longer
+  deferred.
+- Services remains a top-level sidebar module. The Phase 3
+  implementation stays.
+
+### What is still open
+
+Registration's placement in the new sidebar was not addressed in
+the same answer. A follow-up question is pending. Until it is
+answered, do not move, rename, or fold the Registration module.
+
+### Cross-references
+
+- `docs/church-events/10-client-decision-log.md` — Q1, Q16–Q20
+  answers recorded 2026-10-16
+- Section §21 above — the original deferral this section revokes
