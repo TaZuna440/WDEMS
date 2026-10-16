@@ -2412,3 +2412,167 @@ Down from 491 because 14 course_url tests were removed.
 ### Commits
 
     6173540  feat(events): accessibility defaults to on, remove course link and quiet space, venue map link on show
+
+---
+
+## 2026-10-16 — Phase 4: Fellowship module (M4)
+
+Shipped the church Fellowship module. Per `docs/church-events/07`
+section 3.5, this is the second of the church-event workstreams
+(Services was Phase 3). Fellowship is structurally similar to
+Services — recurring-attendance tracking for a church context — but
+has three differences:
+
+1. **One attendance track, not two.** Services has Members and
+   First-Timers with distinct fields. Fellowship has one unified
+   roster. The "special feature" is per-group summary, not a second
+   track.
+2. **Groups are first-class.** Each Fellowship event has its own
+   set of groups (Parents, Youth, Children). Group assignment is
+   optional per participant.
+3. **Events have a name and description.** Services occurrences are
+   just dates; Fellowship events are named gatherings. So Fellowship
+   has an `update()` path — Services does not.
+
+### What shipped
+
+Backend:
+
+- 3 migrations — `fellowship_events`, `fellowship_groups`,
+  `fellowship_attendances`. All FKs cascade-correct.
+- `App\Enums\FellowshipType` — six fixed values (family, church,
+  pastors, leaders, womens, mens).
+- 3 models — `FellowshipEvent`, `FellowshipGroup`,
+  `FellowshipAttendance`.
+- `Participant::fellowshipAttendances()` relation.
+- 3 controllers — `FellowshipController` (index, show, store,
+  update, destroy), `FellowshipGroupController` (store, update,
+  destroy), `FellowshipAttendanceController` (show, store, mark,
+  destroy).
+- 6 FormRequests under `Http/Requests/Fellowship/`.
+
+Routes:
+
+- 12 routes under `/fellowship`, in the main authenticated group
+  (`auth`, `verified.or.admin`, `device.trusted`,
+  `event.advance`).
+- `{type}` constrained via `whereIn` to the six enum values.
+- `{event}`, `{group}`, `{attendance}` bound by controller
+  type-hint. No naming conflict with the existing `Event` route
+  param — the two live under different path prefixes and resolve
+  by type-hint, not by name.
+- Cross-event guards on every row-level action
+  (`assertGroupBelongsToEvent`, `assertBelongsToEvent`).
+
+Frontend:
+
+- Sidebar entry (`HeartHandshake`, between Services and Events).
+- 3 pages — `fellowship/index` (six type cards),
+  `fellowship/show` (per-type event list with create/edit dialog),
+  `fellowship/attendance` (roster + groups panel +
+  add-participant dialog + group dialog).
+
+Tests:
+
+- 45 tests across 3 files under `tests/Feature/Fellowship/`.
+
+### Full suite
+
+    3 skipped, 695 passed (2682 assertions)
+
+3 skipped = the pre-existing Fortify TOTP feature-skip.
+
+### Defects found and fixed during the session
+
+Two, both pre-commit, both mine.
+
+**1. Migration table name singular.** The `fellowship_attendances`
+migration was initially written as `fellowship_attendance` —
+singular. The `FellowshipAttendance` model extended Eloquent
+without a `$table` override, so Eloquent looked for
+`fellowship_attendances` (its default pluralisation). Every write
+to the model raised `SQLSTATE[HY000]: ... no such table:
+fellowship_attendances`.
+
+Fixed by rollback, rename, rewrite, re-migrate:
+
+    php artisan migrate:rollback --step=1
+    mv ...140200_create_fellowship_attendance_table.php \
+       ...140200_create_fellowship_attendances_table.php
+    # rewrite migration with plural table name
+    php artisan migrate
+
+Root cause: the model/migration pair was written in two separate
+blocks and the name match was not verified in between. The check
+that would have caught it —
+`Str::plural(Str::snake(class_basename($model)))` equals the
+string in `Schema::create(...)` — is now a carry-forward rule.
+
+**2. Test-helper function collision.** All three Fellowship test
+files declared a top-level `function makeParticipant(...)`. Pest
+loads every test file into a single PHP process, so the second
+file to load fatals on redeclaration. Additionally,
+`ServiceAttendanceControllerTest.php` already declared the same
+name, so the collision would also have hit on any full-suite run
+once the Fellowship files were added.
+
+Fixed by renaming every Fellowship test helper to a unique `fw*`
+prefix:
+
+    fwEvent              fwParticipantCtrl
+    fwParticipantAttn    fwParticipantGroup
+    fwOtherEvent         fwOtherEventAttn
+
+The Services helpers were left untouched. A follow-up session
+should hoist shared test helpers into `tests/Pest.php` or a
+`tests/Support/Helpers.php` so no module needs a prefix — but that
+refactor touches Services tests and was out of scope here.
+
+### Verification
+
+    php artisan test tests/Feature/Fellowship/
+    45 passed (190 assertions)
+
+    php artisan test
+    3 skipped, 695 passed (2682 assertions)
+
+    npx tsc --noEmit
+    silent
+
+    npm run build
+    ✓ built in 50.20s
+
+    php -l on all new backend files
+    No syntax errors
+
+### Commits
+
+    08784d0  feat(fellowship): Phase 4 — church Fellowship module
+             26 files, 3587 insertions
+
+### What comes next
+
+Phase 4 in this session covered the Fellowship module end to end.
+Remaining church-events work per `docs/church-events/07`:
+
+- Discipleship (M5) — program + batch + session + enrollment +
+  progress domain, not an event.
+- Youth (M6) — five sub-modules per the Youth mockup.
+- Dashboard and sidebar consolidation — the current sidebar is a
+  flat array; the mockups suggest grouping by module family.
+
+A dedicated `docs/fellowship.md` subsystem doc would be the
+natural next documentation step. Model on `docs/attendance-redesign.md`
+for structure. Not written this session.
+
+### Cross-references
+
+- `docs/church-events/07-scope-and-task-division.md` §3.5 — the
+  task list this phase implements
+- `docs/progress.md` 2026-10-16 Phase 3 entry — the Services
+  module this phase parallels
+- `docs/fixes.md` FIX-022 — the "clear server errors on field
+  edit" pattern reused in the Fellowship attendance page
+- `docs/AI-CONTEXT.md` §13 — the concurrent-artisan warning
+  observed during the migration rollback (queue:listen active,
+  migration ran 5× slower than baseline)
