@@ -15,9 +15,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * a participant's enrollment row carries a nullable batch_id that
  * points at the batch they are currently attending.
  *
- * sessions() relation lands in 5D. enrollments() is below.
+ * sessions() added in 5D. enrollments() added in 5C.
  *
- * Phase 5B. enrollments() added in 5C.
+ * Phase 5B.
  */
 #[Fillable([
     'program_id',
@@ -47,5 +47,10 @@ class DiscipleshipBatch extends Model
     public function enrollments(): HasMany
     {
         return $this->hasMany(DiscipleshipEnrollment::class, 'batch_id');
+    }
+
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(DiscipleshipSession::class, 'batch_id');
     }
 }

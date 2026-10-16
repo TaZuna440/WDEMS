@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiscipleshipBatchController;
 use App\Http\Controllers\DiscipleshipController;
 use App\Http\Controllers\DiscipleshipEnrollmentController;
+use App\Http\Controllers\DiscipleshipSessionController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventDeletionController;
 use App\Http\Controllers\FellowshipAttendanceController;
@@ -299,6 +300,18 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     // ============================================================
 
     Route::prefix('discipleship')->name('discipleship.')->group(function () {
+
+        // Batch detail + Session CRUD (Phase 5D). Batches have no
+        // slug -- {batch} binds by id. Sessions belong to a batch
+        // and cascade-delete with it.
+        Route::get('batches/{batch}', [DiscipleshipBatchController::class, 'show'])
+            ->name('batches.show');
+        Route::post('batches/{batch}/sessions', [DiscipleshipSessionController::class, 'store'])
+            ->name('sessions.store');
+        Route::put('sessions/{session}', [DiscipleshipSessionController::class, 'update'])
+            ->name('sessions.update');
+        Route::delete('sessions/{session}', [DiscipleshipSessionController::class, 'destroy'])
+            ->name('sessions.destroy');
 
         // Enrollment CRUD (Phase 5C). The destroy route is
         // semantically a "withdraw" -- it sets status = withdrawn

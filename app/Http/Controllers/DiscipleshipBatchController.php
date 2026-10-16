@@ -6,22 +6,68 @@ use App\Http\Requests\Discipleship\StoreDiscipleshipBatchRequest;
 use App\Http\Requests\Discipleship\UpdateDiscipleshipBatchRequest;
 use App\Models\DiscipleshipBatch;
 use App\Models\DiscipleshipProgram;
+use App\Models\DiscipleshipSession;
 use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
- * CRUD for Discipleship batches.
+ * CRUD for Discipleship batches, plus the batch detail page that
+ * hosts the session list.
  *
- * There is no index action: batches render on the program show
- * page, loaded via DiscipleshipController::show. This controller
- * handles only the write actions.
+ * The store, update, and destroy actions redirect back to the
+ * program show page. The show action is the batch detail page
+ * itself.
  *
- * All three actions redirect back to the program show page so the
- * operator sees the batch list after the write.
- *
- * Phase 5B.
+ * Phase 5B -- store, update, destroy. 5D adds show().
  */
 class DiscipleshipBatchController extends Controller
 {
+    /**
+     * Batch detail page: header plus the batch's sessions.
+     *
+     * Sessions are ordered by session_date ascending -- the
+     * chronological progression through the batch. Tie-break on
+     * id for stable ordering when two sessions share a date.
+     *
+     * Enrollments are counted but not listed here; the program
+     * show page owns the enrollment list. This page owns the
+     * sessions.
+     */
+    public function show(DiscipleshipBatch $batch): Response
+    {
+        $batch->load(['program:id,name,slug']);
+
+        $sessions = $batch->sessions()
+            ->orderBy('session_date')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (DiscipleshipSession $s) => [
+                'id' => $s->id,
+                'session_date' => $s->session_date->toDateString(),
+                'topic' => $s->topic,
+                'notes' => $s->notes,
+            ]);
+
+        $enrollmentsCount = $batch->enrollments()->count();
+
+        return Inertia::render('discipleship/batch-show', [
+            'batch' => [
+                'id' => $batch->id,
+                'name' => $batch->name,
+                'start_date' => $batch->start_date->toDateString(),
+            ],
+            'program' => [
+                'id' => $batch->program->id,
+                'name' => $batch->program->name,
+                'slug' => $batch->program->slug,
+            ],
+            'sessions' => $sessions,
+            'sessions_count' => $sessions->count(),
+            'enrollments_count' => $enrollmentsCount,
+        ]);
+    }
+
     public function store(
         StoreDiscipleshipBatchRequest $request,
         DiscipleshipProgram $program,

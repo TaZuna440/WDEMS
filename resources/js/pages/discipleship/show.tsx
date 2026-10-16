@@ -188,9 +188,12 @@ export default function DiscipleshipShow({
                                 >
                                     <div className="flex flex-1 items-center gap-3">
                                         <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                        <span className="text-sm font-medium text-foreground">
+                                        <Link
+                                            href={`/discipleship/batches/${batch.id}`}
+                                            className="text-sm font-medium text-foreground hover:text-lime-brand"
+                                        >
                                             {batch.name}
-                                        </span>
+                                        </Link>
                                         <span className="text-xs text-muted-foreground">
                                             Starts {formatDate(batch.start_date)}
                                         </span>
