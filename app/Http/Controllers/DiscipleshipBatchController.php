@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Discipleship\StoreDiscipleshipBatchRequest;
 use App\Http\Requests\Discipleship\UpdateDiscipleshipBatchRequest;
+use App\Models\DiscipleshipAttendance;
 use App\Models\DiscipleshipBatch;
+use App\Models\DiscipleshipEnrollment;
 use App\Models\DiscipleshipProgram;
 use App\Models\DiscipleshipSession;
 use Illuminate\Http\RedirectResponse;
@@ -13,26 +15,31 @@ use Inertia\Response;
 
 /**
  * CRUD for Discipleship batches, plus the batch detail page that
- * hosts the session list.
+ * hosts the session list and the attendance matrix.
  *
  * The store, update, and destroy actions redirect back to the
  * program show page. The show action is the batch detail page
  * itself.
  *
- * Phase 5B -- store, update, destroy. 5D adds show().
+ * Phase 5B -- store, update, destroy. 5D adds show(). 5E adds
+ * enrollments and attendances to show().
  */
 class DiscipleshipBatchController extends Controller
 {
     /**
-     * Batch detail page: header plus the batch's sessions.
+     * Batch detail page: header, session list, and the attendance
+     * matrix.
      *
-     * Sessions are ordered by session_date ascending -- the
-     * chronological progression through the batch. Tie-break on
-     * id for stable ordering when two sessions share a date.
+     * Enrollments in the payload are those whose batch_id points
+     * at this batch, plus program-level enrollments with a null
+     * batch pointer. Why both: a batch is a cohort of a program;
+     * enrollments are program-scoped with an optional batch
+     * pointer. An operator may want to mark a not-yet-batched
+     * enrollee who shows up. The matrix tolerates both.
      *
-     * Enrollments are counted but not listed here; the program
-     * show page owns the enrollment list. This page owns the
-     * sessions.
+     * Attendances are the sparse set of marked cells. The frontend
+     * renders an empty dropdown for any (enrollment, session) pair
+     * not present in the payload.
      */
     public function show(DiscipleshipBatch $batch): Response
     {
@@ -49,7 +56,32 @@ class DiscipleshipBatchController extends Controller
                 'notes' => $s->notes,
             ]);
 
-        $enrollmentsCount = $batch->enrollments()->count();
+        $enrollments = DiscipleshipEnrollment::query()
+            ->where('program_id', $batch->program_id)
+            ->where(function ($q) use ($batch): void {
+                $q->where('batch_id', $batch->id)
+                    ->orWhereNull('batch_id');
+            })
+            ->with('participant:id,first_name,last_name,email,contact_number')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (DiscipleshipEnrollment $e) => [
+                'id' => $e->id,
+                'participant_id' => $e->participant_id,
+                'full_name' => $e->participant?->fullName(),
+                'email' => $e->participant?->email,
+                'status' => $e->status->value,
+            ]);
+
+        $attendances = DiscipleshipAttendance::query()
+            ->whereIn('enrollment_id', $enrollments->pluck('id'))
+            ->whereIn('session_id', $sessions->pluck('id'))
+            ->get()
+            ->map(fn (DiscipleshipAttendance $a) => [
+                'enrollment_id' => $a->enrollment_id,
+                'session_id' => $a->session_id,
+                'status' => $a->status->value,
+            ]);
 
         return Inertia::render('discipleship/batch-show', [
             'batch' => [
@@ -64,7 +96,9 @@ class DiscipleshipBatchController extends Controller
             ],
             'sessions' => $sessions,
             'sessions_count' => $sessions->count(),
-            'enrollments_count' => $enrollmentsCount,
+            'enrollments' => $enrollments,
+            'enrollments_count' => $enrollments->count(),
+            'attendances' => $attendances,
         ]);
     }
 

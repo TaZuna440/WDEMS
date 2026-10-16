@@ -7,6 +7,7 @@ use App\Http\Controllers\DiscipleshipBatchController;
 use App\Http\Controllers\DiscipleshipController;
 use App\Http\Controllers\DiscipleshipEnrollmentController;
 use App\Http\Controllers\DiscipleshipSessionController;
+use App\Http\Controllers\DiscipleshipAttendanceController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventDeletionController;
 use App\Http\Controllers\FellowshipAttendanceController;
@@ -300,6 +301,13 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     // ============================================================
 
     Route::prefix('discipleship')->name('discipleship.')->group(function () {
+
+        // Attendance (Phase 5E). Bulk upsert for the batch matrix;
+        // single destroy for a cell the operator clears.
+        Route::post('batches/{batch}/attendances/bulk', [DiscipleshipAttendanceController::class, 'bulkUpsert'])
+            ->name('attendances.bulk');
+        Route::delete('attendances/{attendance}', [DiscipleshipAttendanceController::class, 'destroy'])
+            ->name('attendances.destroy');
 
         // Batch detail + Session CRUD (Phase 5D). Batches have no
         // slug -- {batch} binds by id. Sessions belong to a batch

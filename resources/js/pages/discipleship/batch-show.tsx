@@ -4,9 +4,11 @@ import {
     CalendarDays,
     Pencil,
     Plus,
+    Save,
     Trash2,
+    Users,
 } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import DatePicker from '@/components/date-picker';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -41,22 +43,58 @@ type SessionRow = {
     notes: string | null;
 };
 
+type EnrollmentRow = {
+    id: number;
+    participant_id: number;
+    full_name: string | null;
+    email: string | null;
+    status: string;
+};
+
+type AttendanceRow = {
+    enrollment_id: number;
+    session_id: number;
+    status: string;
+};
+
 type Props = {
     batch: BatchData;
     program: ProgramData;
     sessions: SessionRow[];
     sessions_count: number;
+    enrollments: EnrollmentRow[];
     enrollments_count: number;
+    attendances: AttendanceRow[];
+};
+
+type AttendanceStatus = 'present' | 'absent' | 'excused' | '';
+
+const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
+    { value: '', label: '—' },
+    { value: 'present', label: 'Present' },
+    { value: 'absent', label: 'Absent' },
+    { value: 'excused', label: 'Excused' },
+];
+
+const CELL_STYLES: Record<AttendanceStatus, string> = {
+    present:
+        'bg-lime-brand/15 text-lime-700 border-lime-brand/30 dark:text-lime-brand',
+    absent: 'bg-destructive/10 text-destructive border-destructive/30',
+    excused:
+        'bg-[#13253B]/10 text-[#13253B] border-[#13253B]/30 dark:bg-yellow-500/10 dark:text-yellow-500 dark:border-yellow-500/30',
+    '': 'bg-transparent text-muted-foreground border-white/10',
 };
 
 function formatDate(iso: string): string {
     const [y, m, d] = iso.split('-').map(Number);
     return new Date(y, m - 1, d).toLocaleDateString('en-US', {
-        weekday: 'short',
         month: 'short',
         day: 'numeric',
-        year: 'numeric',
     });
+}
+
+function cellKey(enrollmentId: number, sessionId: number): string {
+    return `${enrollmentId}:${sessionId}`;
 }
 
 export default function DiscipleshipBatchShow({
@@ -64,17 +102,91 @@ export default function DiscipleshipBatchShow({
     program,
     sessions,
     sessions_count,
+    enrollments,
     enrollments_count,
+    attendances,
 }: Props) {
     const [createOpen, setCreateOpen] = useState(false);
     const [editTarget, setEditTarget] = useState<SessionRow | null>(null);
     const { dialog, openConfirm } = useConfirmDialog();
 
+    // The matrix state. Seed from the server payload: one entry per
+    // saved attendance cell. Key is "enrollmentId:sessionId".
+    const [cells, setCells] = useState<Record<string, AttendanceStatus>>(() => {
+        const initial: Record<string, AttendanceStatus> = {};
+        for (const a of attendances) {
+            initial[cellKey(a.enrollment_id, a.session_id)] = a.status as AttendanceStatus;
+        }
+        return initial;
+    });
+
+    // Track which cells have been modified since load. Used both for
+    // the Save button's enabled state and to send only the dirty
+    // cells to the server.
+    const [dirty, setDirty] = useState<Set<string>>(new Set());
+    const [saving, setSaving] = useState(false);
+
+    // Reset local state if the server payload changes (e.g. after a
+    // save round-trip).
+    useEffect(() => {
+        const initial: Record<string, AttendanceStatus> = {};
+        for (const a of attendances) {
+            initial[cellKey(a.enrollment_id, a.session_id)] = a.status as AttendanceStatus;
+        }
+        setCells(initial);
+        setDirty(new Set());
+    }, [attendances]);
+
+    const hasDirty = dirty.size > 0;
+
+    const setCell = (enrollmentId: number, sessionId: number, status: AttendanceStatus) => {
+        const key = cellKey(enrollmentId, sessionId);
+        setCells((prev) => ({ ...prev, [key]: status }));
+        setDirty((prev) => {
+            const next = new Set(prev);
+            next.add(key);
+            return next;
+        });
+    };
+
+    const save = () => {
+        if (!hasDirty) return;
+        setSaving(true);
+
+        const payload = {
+            cells: Array.from(dirty)
+                .map((key) => {
+                    const [eidStr, sidStr] = key.split(':');
+                    const status = cells[key];
+                    // Skip cells that were cleared back to "—". Clearing
+                    // is handled separately via the destroy endpoint so
+                    // the server removes the row.
+                    if (status === '') return null;
+                    return {
+                        enrollment_id: Number(eidStr),
+                        session_id: Number(sidStr),
+                        status,
+                    };
+                })
+                .filter((c): c is { enrollment_id: number; session_id: number; status: 'present' | 'absent' | 'excused' } => c !== null),
+        };
+
+        if (payload.cells.length === 0) {
+            setSaving(false);
+            return;
+        }
+
+        router.post(`/discipleship/batches/${batch.id}/attendances/bulk`, payload, {
+            preserveScroll: true,
+            onFinish: () => setSaving(false),
+        });
+    };
+
     const deleteSession = (session: SessionRow) => {
         openConfirm({
             variant: 'danger',
             title: `Delete "${session.topic}"?`,
-            description: `Session on ${formatDate(session.session_date)} will be permanently removed.`,
+            description: `Session on ${formatDate(session.session_date)} will be permanently removed. Its attendance records will also be removed.`,
             confirmLabel: 'Delete',
             onConfirm: () =>
                 router.delete(`/discipleship/sessions/${session.id}`, {
@@ -87,7 +199,7 @@ export default function DiscipleshipBatchShow({
         <>
             <Head title={`${batch.name} — Discipleship`} />
 
-            <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
                 <Link
                     href={`/discipleship/programs/${program.slug}`}
                     className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -96,6 +208,7 @@ export default function DiscipleshipBatchShow({
                     {program.name}
                 </Link>
 
+                {/* Header */}
                 <div className="glass-panel rounded-xl p-6">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="pl-10">
@@ -125,22 +238,22 @@ export default function DiscipleshipBatchShow({
                     </div>
                 </div>
 
+                {/* Sessions */}
                 <section className="flex flex-col gap-3">
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                         Sessions
                     </h2>
 
                     {sessions.length === 0 ? (
-                        <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-16 text-center">
-                            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-lime-brand/15">
-                                <CalendarDays className="h-8 w-8 text-lime-brand" />
+                        <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-12 text-center">
+                            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-lime-brand/15">
+                                <CalendarDays className="h-7 w-7 text-lime-brand" />
                             </div>
-                            <h2 className="mb-2 text-lg font-semibold text-foreground">
+                            <p className="mb-1 text-sm font-medium text-foreground">
                                 No sessions yet
-                            </h2>
-                            <p className="mb-6 max-w-sm text-sm text-muted-foreground">
-                                Add the first session to begin scheduling
-                                this batch.
+                            </p>
+                            <p className="mb-6 max-w-sm text-xs text-muted-foreground">
+                                Add the first session to begin scheduling.
                             </p>
                             <Button
                                 onClick={() => setCreateOpen(true)}
@@ -194,6 +307,125 @@ export default function DiscipleshipBatchShow({
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+                </section>
+
+                {/* Attendance matrix */}
+                <section className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                            Attendance
+                        </h2>
+                        {hasDirty && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">
+                                    {dirty.size} unsaved{' '}
+                                    {dirty.size === 1 ? 'change' : 'changes'}
+                                </span>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={save}
+                                    disabled={saving}
+                                    className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
+                                >
+                                    <Save className="mr-1.5 h-3.5 w-3.5" />
+                                    {saving ? 'Saving…' : 'Save Attendance'}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+
+                    {enrollments.length === 0 ? (
+                        <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-12 text-center">
+                            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-lime-brand/15">
+                                <Users className="h-7 w-7 text-lime-brand" />
+                            </div>
+                            <p className="mb-1 text-sm font-medium text-foreground">
+                                No enrollments
+                            </p>
+                            <p className="max-w-sm text-xs text-muted-foreground">
+                                Enroll participants in this program before
+                                recording attendance.
+                            </p>
+                        </div>
+                    ) : sessions.length === 0 ? (
+                        <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-12 text-center">
+                            <p className="text-sm text-muted-foreground">
+                                Add at least one session to record attendance.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="glass-panel overflow-hidden rounded-xl">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-white/10">
+                                            <th className="sticky left-0 z-10 bg-background/80 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground backdrop-blur">
+                                                Participant
+                                            </th>
+                                            {sessions.map((s) => (
+                                                <th
+                                                    key={s.id}
+                                                    className="min-w-[100px] px-2 py-3 text-center text-xs font-medium text-muted-foreground"
+                                                    title={s.topic}
+                                                >
+                                                    {formatDate(s.session_date)}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {enrollments.map((enrollment) => (
+                                            <tr
+                                                key={enrollment.id}
+                                                className="border-b border-white/5 last:border-b-0"
+                                            >
+                                                <td className="sticky left-0 z-10 bg-background/80 px-4 py-3 font-medium text-foreground backdrop-blur">
+                                                    {enrollment.full_name ?? '—'}
+                                                </td>
+                                                {sessions.map((s) => {
+                                                    const key = cellKey(enrollment.id, s.id);
+                                                    const value = cells[key] ?? '';
+                                                    const isDirty = dirty.has(key);
+                                                    return (
+                                                        <td
+                                                            key={s.id}
+                                                            className="px-1 py-2 text-center"
+                                                        >
+                                                            <select
+                                                                value={value}
+                                                                onChange={(e) =>
+                                                                    setCell(
+                                                                        enrollment.id,
+                                                                        s.id,
+                                                                        e.target.value as AttendanceStatus,
+                                                                    )
+                                                                }
+                                                                className={`cursor-pointer rounded-full border px-2 py-1 text-xs font-medium outline-none ${CELL_STYLES[value]} ${
+                                                                    isDirty
+                                                                        ? 'ring-1 ring-lime-brand/40'
+                                                                        : ''
+                                                                }`}
+                                                            >
+                                                                {STATUS_OPTIONS.map((o) => (
+                                                                    <option
+                                                                        key={o.value}
+                                                                        value={o.value}
+                                                                    >
+                                                                        {o.label}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )}
                 </section>

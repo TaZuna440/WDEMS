@@ -6,6 +6,7 @@ use App\Enums\DiscipleshipEnrollmentStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One participant's enrollment in a Discipleship program.
@@ -19,9 +20,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * is currently in. Nullable when no batch is chosen yet, and
  * cleared to NULL if the batch is deleted.
  *
- * Attendance per session (5E) will be a separate table keyed on
- * this enrollment row plus a session. The hasMany relation lands
- * in that sub-phase, not here.
+ * attendances() added in 5E. One row per session attended (or
+ * not) by this enrollment.
  *
  * Phase 5C.
  */
@@ -62,5 +62,10 @@ class DiscipleshipEnrollment extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(DiscipleshipAttendance::class, 'enrollment_id');
     }
 }

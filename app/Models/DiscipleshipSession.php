@@ -5,16 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One meeting of a Discipleship batch.
  *
  * A batch contains many sessions. Sessions are the unit that
- * session attendance (5E) records against -- one attendance row
- * per enrollment per session.
+ * session attendance records against -- one attendance row per
+ * enrollment per session.
  *
  * Session order is derived from session_date, with id as a
  * tiebreak. There is no explicit session_number column.
+ *
+ * attendances() added in 5E.
  *
  * Phase 5D.
  */
@@ -42,5 +45,10 @@ class DiscipleshipSession extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(DiscipleshipAttendance::class, 'session_id');
     }
 }
