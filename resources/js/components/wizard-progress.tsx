@@ -12,6 +12,16 @@ type Props = {
     onStepClick?: (index: number) => void;
 };
 
+/**
+ * Wizard step indicator.
+ *
+ * Step pills use a mode-aware card surface so they read as solid
+ * chips over the page image in both light and dark modes. The
+ * active step keeps its lime fill. Visited steps keep the lime
+ * checkmark. Everything else uses --card / --secondary / --border
+ * so it flips with the mode rather than relying on hardcoded
+ * white utilities.
+ */
 export default function WizardProgress({
     steps,
     currentStep,
@@ -47,14 +57,12 @@ export default function WizardProgress({
                             onClick={() =>
                                 !isLocked && onStepClick?.(index)
                             }
-                            className={`flex items-center gap-2 rounded-full px-2 py-1.5 text-xs font-medium transition-all sm:px-3 ${
+                            className={`flex items-center gap-2 rounded-full px-2 py-1.5 text-xs font-medium shadow-xs backdrop-blur-sm transition-all sm:px-3 ${
                                 isCurrent
                                     ? 'bg-lime-brand text-navy-900'
-                                    : isVisited
-                                      ? 'bg-white/5 text-foreground hover:bg-white/10'
-                                      : isReachable
-                                        ? 'bg-white/5 text-muted-foreground hover:bg-white/10'
-                                        : 'cursor-not-allowed bg-white/5 text-muted-foreground opacity-50'
+                                    : isLocked
+                                      ? 'cursor-not-allowed bg-card/50 text-muted-foreground opacity-60'
+                                      : 'bg-card/80 text-foreground hover:bg-card'
                             }`}
                             aria-current={isCurrent ? 'step' : undefined}
                         >
@@ -64,7 +72,7 @@ export default function WizardProgress({
                                         ? 'bg-navy-900 text-lime-brand'
                                         : isVisited
                                           ? 'bg-lime-brand text-navy-900'
-                                          : 'bg-white/10 text-muted-foreground'
+                                          : 'bg-secondary text-muted-foreground'
                                 }`}
                             >
                                 {isVisited ? (
