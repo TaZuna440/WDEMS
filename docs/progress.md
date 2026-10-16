@@ -3104,3 +3104,177 @@ the criteria storage is settled.
   in the running-event side that the Discipleship attendance
   mirrors in spirit but not in structure (no code lookup, no
   verified_at, no live/deferred encoding)
+
+---
+
+## 2026-10-16 — Phase 5E: Discipleship attendance (M5, sub-phase E)
+
+Fifth sub-phase of the Discipleship module. Session attendance is
+the last data layer before progress reporting (5F). One row per
+enrollment per session; the matrix renders on the batch detail
+page built in 5D.
+
+### Design decisions
+
+**Attendance is keyed on the enrollment, not the participant.**
+enrollment_id + session_id, not participant_id + session_id. The
+enrollment is the record of "this participant is pursuing this
+program" -- attendance is a fact about that enrollment's
+progress. A participant enrolled in two programs has two
+independent attendance trails. Cascade on both parents: an
+enrollment's deletion removes its attendance; a session's
+deletion removes the marks for that session.
+
+**Recorded_by is `nullOnDelete`, not `RESTRICT`.** Every other
+user-attribution FK in the codebase (events, batches, sessions,
+enrollments) uses RESTRICT so a deleted user cannot silently
+orphan historical records. Attendance is the exception:
+attendance is factual data, and the fact outlives the recorder's
+account. Losing the attribution is acceptable; losing the
+attendance is not.
+
+**Bulk upsert, not per-cell PUT.** The matrix can hold 20
+participants x 20 sessions = 400 cells. Per-cell writes would be
+hundreds of requests on a full re-edit. One POST with an array of
+changed cells, one transaction, one redirect. The frontend
+tracks dirty cells in local state and sends only the changes.
+
+**Cross-batch guard is strict, not permissive.** Every
+enrollment_id in the payload must belong to the batch's program.
+Every session_id must belong to the batch. A single foreign id
+aborts the whole request with a 404 rather than silently
+skipping. Rationale: a mixed payload indicates a UI bug or a
+tampered request; partial success would hide the problem.
+
+**Program-level enrollments with a null batch pointer are
+accepted.** A participant can be enrolled in a program before
+being assigned to a specific batch. If they show up to a session
+of a batch, the operator can mark them. This is the reason the
+enrollment schema has a nullable batch_id.
+
+### What shipped
+
+Backend:
+
+- Migration `discipleship_attendances` -- enrollment_id (FK
+  CASCADE), session_id (FK CASCADE), status (16 chars),
+  recorded_by (FK SET NULL), recorded_at, notes. UNIQUE on
+  (enrollment_id, session_id). Index on session_id.
+- `DiscipleshipAttendanceStatus` enum (present, absent, excused)
+  with `values()` and `label()`.
+- `DiscipleshipAttendance` model -- enrollment, session, and
+  recorder relations.
+- `DiscipleshipSession::attendances()` and
+  `DiscipleshipEnrollment::attendances()` relations added.
+- `DiscipleshipAttendanceController` -- bulkUpsert, destroy.
+  bulkUpsert validates cross-batch guards via two count queries
+  and upserts each cell inside a DB::transaction.
+- `DiscipleshipBatchController::show()` payload extended with
+  `enrollments` (with participant data) and `attendances` (the
+  sparse set of marked cells).
+- 1 FormRequest under `Http/Requests/Discipleship/` -- max:500
+  on the cells array.
+
+Routes:
+
+- `POST /discipleship/batches/{batch}/attendances/bulk`
+- `DELETE /discipleship/attendances/{attendance}`
+
+Frontend:
+
+- `discipleship/batch-show.tsx` extended with the attendance
+  matrix. Rows = enrollments, columns = sessions, one status
+  dropdown per cell. Local state holds pending edits; the Save
+  button appears only when dirty cells exist. Dirty cells get a
+  lime ring. Clearing a cell back to "—" is filtered out of the
+  bulk payload (the DELETE endpoint handles that path
+  separately, though the frontend does not yet call it).
+  Sticky first column for horizontal scroll.
+
+### Verification
+
+    php artisan test tests/Feature/Discipleship/
+    68 passed (218 assertions)
+
+    php artisan test
+    3 skipped, 763 passed (2900 assertions)
+
+    npx tsc --noEmit
+    silent
+
+### Commits
+
+    935ba21  feat(discipleship): Phase 5E — attendance matrix
+             11 files, 1053 insertions, 29 deletions
+
+### What comes next
+
+Phase 5F -- progress and completion. Two decisions still open,
+both recorded here so 5F-1 does not re-litigate.
+
+**Completion criteria storage.** Where do "required sessions"
+and any "extra requirements" live?
+
+Recommendation: **columns on `discipleship_programs`**
+(`required_sessions int` + `extra_requirements json`). The
+mockup shows one count plus a small extras list -- a two-column
+shape. A whole requirements table for two values is
+over-engineering. Migrate to a table if the client later needs
+per-requirement tracking per participant.
+
+**Excused status in the progress percentage.** Does "excused"
+count as attended or not?
+
+Recommendation: **excused counts as attended**. Pre-arranged
+absence treated as a soft-present matches how most church
+discipleship programs work. The service computes it either way
+from the same data; changing the policy is a one-line edit.
+
+The progress *service* is separable from the criteria storage.
+`attended / applicable / percentage` computes from attendance
+data alone. Applicable means "sessions in the batch between the
+enrollment's enrolled_at date and today." If the client wants a
+different definition, that is a policy edit inside the service,
+not a schema change.
+
+### Process note
+
+One defect landed and was fixed in this sub-phase. The
+`DiscipleshipAttendanceController` use-statement fix block
+attempted to reorder alphabetically, but the anchor variables
+resolved empty (`grep -Fn` returned nothing on the pattern for
+reasons that were not investigated). The subsequent `head -n
+$((BATCH - 1))` evaluated to `head -n -1`, which is a valid
+invocation with surprising "all but last line" semantics; the
+file was written back to itself minus the last line, then
+duplicated. PHP parse error at line 367.
+
+Recovery: `git checkout routes/web.php` reverted to the 5D
+end state (362 lines). The 5E-2 insertions were re-applied with
+proper empty-anchor guards. Clean.
+
+Root cause: the fix block skipped the mandatory
+`if [ -z "$VAR" ]; then ... fi` guard on both anchor variables.
+The guard was present on every earlier block this session; it
+was omitted here because the block was written as a
+one-off correction. Standing rule restated in the
+dev-workflow: every head/tail split must have empty-anchor
+guards on every anchor variable, no exceptions.
+
+A second process issue from the same session: an earlier
+recovery block included a bare `exit 1` inside an anchor check.
+In an interactive bash session, `exit` terminates the shell, not
+just the script. Standing rule: no `exit` inside any block. If
+an anchor fails, print and continue.
+
+### Cross-references
+
+- `docs/church-events/07-scope-and-task-division.md` §3.6 —
+  Phase 5 task breakdown (5E.1 through 5E.5)
+- `docs/progress.md` 2026-10-16 Phase 5D entry -- the sessions
+  sub-phase the matrix is built on
+- `docs/progress.md` 2026-10-16 Phase 5C entry -- the enrollment
+  model the attendance is keyed to
+- `docs/attendance-code.md` -- the running-event attendance
+  model (different shape: participant_id, verified_at, code
+  lookup; not mirrored in Discipleship)
