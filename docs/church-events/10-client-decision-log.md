@@ -1,0 +1,388 @@
+# WDEMS -- Church Events -- Client Decision Log
+
+**Status:** Open. Tracking questions 1-20 from
+`docs/church-events/09-mockup-scope-inventory.md`.
+
+**Audience:** The developer and the client. One entry per
+question, updated as answers arrive.
+
+**Purpose:** A single place where the client's answers to the
+twenty scope questions are recorded, dated, and cross-referenced
+to the code and docs that depend on them. When a question is
+answered, the entry gains an **Answer** section and a **Date**
+line. The question text stays as written -- per P7, the log is
+append-only at the entry level.
+
+**Related:**
+- `docs/church-events/09-mockup-scope-inventory.md` -- the full
+  inventory of what the mockups show vs what exists. This file
+  is the answer-tracking companion.
+- `docs/church-events/TASKS.md` -- the task board. Blocked
+  items reference the questions here.
+- `docs/progress.md` -- chronological record.
+
+---
+
+## How to use this file
+
+Each question has three parts:
+
+- **Question** -- the text as sent to the client.
+- **Context** -- why the developer cannot answer this alone.
+- **Answer** -- a placeholder until the client responds. When
+  the client answers, replace `_Pending._` with the response and
+  add a **Date** line.
+
+Do not edit the question text. If the question was unclear and
+the answer reveals a better phrasing, append a **Clarification**
+block below the Answer.
+
+---
+
+## Status at a glance
+
+| # | Theme | Blocks | Status |
+|---|---|---|---|
+| Q1  | Services in the new sidebar | Services doc, sidebar rework | Pending |
+| Q2  | Flat vs expandable sidebar | Navigation rework | Pending |
+| Q3  | Timothy Class nav placement | Youth module | Pending |
+| Q4  | Young Adult module contents | Young Adult module | Pending |
+| Q5  | Worship & Prayer module contents | Worship & Prayer module | Pending |
+| Q6  | Special Occasions Documents tab | Special Occasions module | Pending |
+| Q7  | Church Planning Timeline tab | Church Administration module | Pending |
+| Q8  | Outreaches location entity | Kids Ministry module | Pending |
+| Q9  | Ministry list (fixed vs editable) | Church Administration module | Pending |
+| Q10 | Payment tracking real vs bookkeeping | Youth Camp, Kids Ministry, Special Occasions | Pending |
+| Q11 | Payment gateway choice | Same as Q10 | Pending |
+| Q12 | Budget approval chain | Special Occasions module | Pending |
+| Q13 | Task assignment scope | Special Occasions, Church Planning | Pending |
+| Q14 | Progress calculation rule | Discipleship confirmation, Timothy Class, Campus Ministry | Pending |
+| Q15 | Discipleship "Not Started" status | Discipleship enum | Pending |
+| Q16 | Grade/Year level scope | Youth Camp, Kids Ministry, Campus Ministry, Timothy Class | Pending |
+| Q17 | Members / First-Timers pages | Navigation and first-timers promotion | Pending |
+| Q18 | Cell Group vs Services overlap | Cell Group module | Pending |
+| Q19 | Design system replacement | Every shipped page | Pending |
+| Q20 | Multi-tab URL semantics | Special Occasions, Ministry Meeting, VBS | Pending |
+
+**Coverage:** 20 questions, 0 answered.
+
+---
+
+## Navigation and structure
+
+### Q1 -- Services in the new sidebar
+
+**Question.** The mockup sidebar drops Services, Registration,
+and Attendance as top-level items. Are those modules being
+removed, renamed, or folded into another section? If folded,
+into which?
+
+**Context.** Services shipped in Phase 3 and is currently
+top-level. Removing or folding it changes route prefixes,
+breadcrumbs, and the eventual Services subsystem doc. If
+Services is being removed, writing `docs/services.md` is wasted
+effort.
+
+**Answer.** _Pending._
+
+---
+
+### Q2 -- Flat vs expandable sidebar
+
+**Question.** The shipped sidebar has seven items. The mockup
+has fourteen, with six expandable groups. Is the flat sidebar
+replaced entirely by the mockup version, or is the mockup
+sidebar one possible view among several?
+
+**Context.** An expandable sidebar is a different UX pattern
+from the current flat list. It changes how every route's
+breadcrumb is computed and how the active state is tracked.
+Affects the navigation rework effort — significant if the answer
+is "replaced entirely."
+
+**Answer.** _Pending._
+
+---
+
+### Q3 -- Timothy Class nav placement
+
+**Question.** The Youth hub shows five sub-module cards (Youth
+Camp, Youth Service, Huddle, Campus Ministry, Timothy Class),
+but the expanded sidebar in the same mockup only lists four —
+Timothy Class is missing. Which is correct?
+
+**Context.** The sidebar and hub need to agree on what's inside
+the Youth module. If Timothy Class is a fifth sub-module, the
+sidebar expands to include it. If not, the hub card is wrong.
+
+**Answer.** _Pending._
+
+---
+
+## Module scope
+
+### Q4 -- Young Adult module contents
+
+**Question.** Young Adult — listed in the sidebar, but no detail
+page shown in any mockup. What are its sub-modules and their
+contents?
+
+**Context.** Without knowing what the module contains, no
+scoping or estimation is possible.
+
+**Answer.** _Pending._
+
+---
+
+### Q5 -- Worship & Prayer module contents
+
+**Question.** Worship & Prayer — listed in the sidebar, but no
+detail page shown. Same as Q4: what are its sub-modules and
+contents?
+
+**Context.** Same as Q4.
+
+**Answer.** _Pending._
+
+---
+
+### Q6 -- Special Occasions Documents tab
+
+**Question.** Special Occasions → Documents tab — what does this
+tab store? File uploads (PDFs, images)? Auto-generated
+documents? Links to external files (Google Drive, etc.)?
+
+**Context.** "Documents" could mean three different
+implementations: file storage, generated PDFs, or external
+links. The choice determines whether a new storage disk is
+needed, whether generation logic exists, or whether a simple URL
+column suffices.
+
+**Answer.** _Pending._
+
+---
+
+### Q7 -- Church Planning Timeline tab
+
+**Question.** Church Planning → Timeline tab — what does it
+show? Gantt-style bars with dependencies? Milestones only?
+Free-form chronological list?
+
+**Context.** A Gantt chart is a significant frontend component.
+A milestone list is a simple table. The two are very different
+effort-wise.
+
+**Answer.** _Pending._
+
+---
+
+### Q8 -- Outreaches location entity
+
+**Question.** Kids Ministry → Outreaches — are the four location
+cards (Wawang Pulo, Pasolo, Balubaran, Coloong) a fixed list, or
+created by staff as new outreaches happen? Are more expected in
+the future?
+
+**Context.** A fixed list is a hardcoded enum. A dynamic list is
+a new table with CRUD, plus the frontend to manage it.
+
+**Answer.** _Pending._
+
+---
+
+### Q9 -- Ministry list (fixed vs editable)
+
+**Question.** Church Administration → Ministry Meeting — the
+seven ministries shown (Worship, Technical, Multimedia, Social
+Media, Finance Team, Light Kids, Young-adult) are fixed or
+editable? Who manages the list — admins only, or any staff?
+
+**Context.** Fixed is a hardcoded list. Editable is a table
+plus a management page. Permissions on the edit action depend on
+the answer to "who manages."
+
+**Answer.** _Pending._
+
+---
+
+## Cross-cutting features
+
+### Q10 -- Payment tracking real vs bookkeeping
+
+**Question.** Payment tracking — is this real payment processing
+(Stripe, GCash, Maya, PayPal) or internal bookkeeping only? The
+mockup shows "Paid / Partial / For Payment" badges but no
+checkout screen. Does a participant pay online, or does staff
+mark payment received?
+
+**Context.** Real online payment means integration with a
+payment gateway, handling refunds, webhooks, and compliance.
+Bookkeeping means a status column and a manual toggle. Very
+different scope. This is the single largest gating question for
+the mockup expansion.
+
+**Answer.** _Pending._
+
+---
+
+### Q11 -- Payment gateway choice
+
+**Question.** If real payments: which gateway? The Philippine
+market typically implies GCash, Maya, or a card processor. No
+gateway is currently configured in WDEMS.
+
+**Context.** The gateway choice affects payment flow, refunds,
+fees, testing, and compliance. Applies only if Q10 = "real".
+
+**Answer.** _Pending._
+
+---
+
+### Q12 -- Budget approval chain
+
+**Question.** Budget Approval status ("For Approval") — who
+approves? Is there a role that must approve expenses, or is
+"For Approval" just a state the organizer sets for themselves?
+
+**Context.** An approval chain is a workflow with roles and
+notifications. A self-set status is a dropdown. The two are
+different feature scopes.
+
+**Answer.** _Pending._
+
+---
+
+### Q13 -- Task assignment scope
+
+**Question.** Tasks — can a task be assigned to any user, or
+only to users with a specific role? The mockup shows a name in
+the "Assigned To" column.
+
+**Context.** Any-user assignment needs a user picker and
+per-user notifications. Role-only assignment is simpler.
+
+**Answer.** _Pending._
+
+---
+
+### Q14 -- Progress calculation rule
+
+**Question.** Progress calculation — what makes a session
+"applicable"? Total sessions in the batch? Sessions the
+participant was enrolled for? Do present + excused + absent all
+count, or only present?
+
+**Context.** Discipleship already implements a default:
+applicable = sessions between enrolled_at and today; attended =
+present + excused. The client should confirm this or override.
+If the wider product needs a different rule, the change is a
+one-line edit inside `DiscipleshipProgressService::progress()`.
+
+**Answer.** _Pending._
+
+---
+
+### Q15 -- Discipleship "Not Started" status
+
+**Question.** Discipleship status "Not Started" — is this a
+sixth status value, or a UI label for the initial state before a
+participant has been marked as started? The current
+implementation has five values: Enrolled, In Progress,
+Completed, Withdrawn, On Hold.
+
+**Context.** A sixth enum value changes the schema and status
+transition rules. A UI label is a rendering choice.
+
+**Answer.** _Pending._
+
+---
+
+## Data and structure
+
+### Q16 -- Grade/Year level scope
+
+**Question.** Grade/Year level — does this apply to participants
+globally (add a column to the participants table), or only per
+event (Youth Camp participants have grades, but adult
+community-run participants don't)?
+
+**Context.** A global grade column touches every existing
+participant. A per-event approach keeps it scoped to the modules
+that need it. Affects migration shape and future reporting.
+
+**Answer.** _Pending._
+
+---
+
+### Q17 -- Members / First-Timers pages
+
+**Question.** Should the existing Members and First-Timers
+tables (built in an earlier phase, currently backend-only) get
+top-level pages matching the mockup sidebar?
+
+**Context.** The data exists but has no UI. Adding pages is
+straightforward once confirmed. Also unblocks the deferred
+first-timer promotion feature.
+
+**Answer.** _Pending._
+
+---
+
+### Q18 -- Cell Group vs Services overlap
+
+**Question.** Cell Group — listed in the mockup sidebar, no
+detail page shown. Is this the same concept as the existing
+church Services module (which already has a "Youth" service
+type), or is it a distinct concept that needs its own domain
+model?
+
+**Context.** Reusing Services is cheap. A new domain model is a
+full module's worth of work. Note that this overlaps with Q4
+from the original doc-06 question set (Cell Group placement).
+
+**Answer.** _Pending._
+
+---
+
+## Visual and interaction
+
+### Q19 -- Design system replacement
+
+**Question.** The mockups use a different visual style — flat
+cards, lighter palette, different iconography — from the shipped
+WDEMS design (glass-panel surfaces, lime accent, current icon
+set). Is the design system being replaced, or is the mockup
+style just a prototype artifact?
+
+**Context.** Replacing the design system means restyling every
+shipped page. Keeping the current system means applying it to
+the new pages. Very different amounts of work. Affects every
+existing page's `resources/css/app.css` and every `.tsx` color
+class.
+
+**Answer.** _Pending._
+
+---
+
+### Q20 -- Multi-tab URL semantics
+
+**Question.** Multi-tab detail pages — several mockups (Special
+Occasions, Ministry Meeting, Vacation Bible School) show
+multi-tab detail pages. Any preference for how tabs work —
+URL-persisted (each tab is a bookmarkable URL) or local state
+(tabs are just a UI convenience and the URL doesn't change)?
+
+**Context.** URL-persisted tabs are bookmarkable and shareable.
+Local-state tabs are simpler but a refresh always returns to the
+first tab. A new UX pattern either way — no existing page in
+the codebase uses tabs.
+
+**Answer.** _Pending._
+
+---
+
+## Changelog
+
+- **2026-10-16** -- File created. Twenty questions from
+  `docs/church-events/09-mockup-scope-inventory.md` transcribed
+  with context and status tracking. All answers pending.
