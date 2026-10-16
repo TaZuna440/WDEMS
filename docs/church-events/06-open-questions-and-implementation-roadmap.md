@@ -2719,3 +2719,209 @@ reports "17 passed (65 assertions)" at commit a0b27ae.
 No code change is required. Recorded per P9: commit messages
 must match the diff.
 
+
+---
+
+## Phase 3 closure -- Services module (2026-10-16)
+
+Append-only. Phase 3 shipped its core: schema, backend,
+routes, tests, and three frontend pages.
+
+### Commits
+
+    d1b18c3  feat(church-events): add Services module schema, models,
+             controller (blocks 1-4)
+    147dabe  fix(church-events): add missing service table migrations
+             (glob shortfall in d1b18c3 -- three migrations were
+             left untracked)
+    e65427a  feat(church-events): add Services attendance controller,
+             routes, limiter (blocks 5-7)
+    ff3b398  feat(church-events): add Services sidebar entry and
+             landing page (blocks 8 + 9a)
+    d1ad4d5  feat(church-events): add per-type service occurrence
+             list (block 9b)
+    f621357  test(church-events): add ServiceController tests
+             (block 10a)
+    a0b27ae  test(church-events): add ServiceAttendanceController
+             tests (block 10b)
+    a4f3faa  docs(church-events): correct a0b27ae test count 18 -> 17
+    eaaaad5  feat(church-events): add Services attendance page with
+             two tracks (block 9c)
+
+Nine commits. All pushed to main.
+
+### What shipped
+
+**Schema (four migrations):**
+
+- `participants.birthday` -- nullable date, after `age`
+- `service_occurrences` -- type, date, times, leader, notes,
+  created_by, indexed on (type, date)
+- `service_attendance_members` -- one row per member per occurrence,
+  UNIQUE on (occurrence_id, participant_id), cascade on occurrence
+  and participant delete
+- `service_attendance_first_timers` -- one row per first-timer per
+  occurrence, plus `invited_by`, same constraints
+
+**Models:**
+
+- `ServiceType` enum: Morning, Midweek, Youth, Other
+- `ServiceOccurrence` -- parent for both attendance tracks
+- `ServiceAttendanceMember` -- members track
+- `ServiceAttendanceFirstTimer` -- first-timers track
+- `Participant` gains `serviceAttendanceMembers()` and
+  `serviceAttendanceFirstTimers()` relations; `birthday` fillable
+  and cast
+
+**Controllers:**
+
+- `ServiceController` -- landing (index), per-type view (show),
+  manual occurrence creation, recurring batch generation with
+  day-of-week adjustment and duplicate-skip, occurrence deletion
+- `ServiceAttendanceController` -- attendance page (show), add
+  participant to either track with cross-track rejection, mark
+  status, delete row from either track
+
+**FormRequests:**
+
+- `StoreServiceOccurrenceRequest`, `StoreRecurringServiceRequest`
+- `AddServiceAttendanceRequest`, `MarkServiceAttendanceRequest`
+
+**Routes (11):**
+
+All inside the main authenticated group, ordered specific-to-
+generic with `whereIn` constraints on the {type} segment.
+
+**Frontend (three pages):**
+
+- `resources/js/pages/services/index.tsx` -- landing with four
+  service type cards
+- `resources/js/pages/services/show.tsx` -- 554-line per-type view
+  with add and recurring dialogs
+- `resources/js/pages/services/attendance.tsx` -- 627-line two-tab
+  attendance page
+
+**Sidebar:**
+
+- Services entry between Dashboard and Events
+
+**Rate limiter:**
+
+- `service-recurring-batch` -- 5/min per user
+
+### Test delta
+
+    Before Phase 3:  3 skipped, 617 passed (2346 assertions)
+    After Phase 3:   3 skipped, 650 passed (2492 assertions)
+
++33 tests (+146 assertions). Zero regressions.
+
+- `tests/Feature/Services/ServiceControllerTest.php` -- 16 tests
+- `tests/Feature/Services/ServiceAttendanceControllerTest.php` -- 17 tests
+
+### What is NOT in Phase 3
+
+**First-timer promotion UI and endpoint.** The schema supports
+promotion (`first_timers.promoted_at`, `promoted_to_member_id`),
+but no controller action or button was added to trigger the
+promotion. Per doc 06 decision D2, promotion is manual only --
+the mechanism is deferred. Two options:
+
+1. Small follow-up commit before Phase 4: a
+   `POST /services/first-timers/{firstTimer}/promote` endpoint
+   plus a "Promote to Member" button on the attendance page's
+   First-Timers tab.
+2. Defer to Phase 4 (Fellowship), where the same promote pattern
+   will be needed for shared members.
+
+Recommendation: option 2. The mockup doesn't show a promote
+button, and the same pattern will be built for Fellowship
+anyway, so building it once is cheaper than building it twice.
+
+**Phase 2 frontend items not revisited.** The general-church-event
+frontend (from Phase 2) is complete and unchanged.
+
+### Deviations from plan
+
+1. **The `services/attendance` Inertia component assertion was
+   temporarily disabled** during Block 10b, with the second
+   argument set to `false` to skip the page-existence check.
+   Re-enabled in Block 9c when the page landed.
+
+2. **No dedicated "promote first-timer" endpoint** was built, as
+   described above.
+
+### Verification
+
+    php artisan test
+    -> 3 skipped, 650 passed (2492 assertions), ~25s
+
+    npx tsc --noEmit
+    -> silent
+
+    ./scripts/audit-design.sh
+    -> Clean. Design system rules are satisfied.
+
+    php -l on every modified PHP file
+    -> No syntax errors
+
+    Route list
+    -> 11 new routes under /services
+
+Diff reviews confirmed on every block: additions or expected
+modifications only, no unintended changes.
+
+### Effect on later phases
+
+Phase 4 (Fellowship) is unblocked. It will reuse:
+
+- The `Participant` model and `member()` / `firstTimers()` /
+  `serviceAttendance*()` relations
+- The `Member` and `FirstTimer` models
+- The rate-limiter pattern from `AppServiceProvider`
+- The Services landing / show / attendance page structure as a
+  reference for Fellowship's event-based UI
+
+Phase 4 will need to add:
+
+- `fellowship_types`, `fellowship_events`, `fellowship_groups`,
+  `fellowship_attendance` tables
+- Fellowship controllers and routes
+- Fellowship frontend pages
+- First-timer promotion logic (recommended to land here)
+
+### Files touched across Phase 3
+
+New:
+
+    app/Enums/ServiceType.php
+    app/Models/ServiceOccurrence.php
+    app/Models/ServiceAttendanceMember.php
+    app/Models/ServiceAttendanceFirstTimer.php
+    app/Http/Controllers/ServiceController.php
+    app/Http/Controllers/ServiceAttendanceController.php
+    app/Http/Requests/Services/StoreServiceOccurrenceRequest.php
+    app/Http/Requests/Services/StoreRecurringServiceRequest.php
+    app/Http/Requests/Services/AddServiceAttendanceRequest.php
+    app/Http/Requests/Services/MarkServiceAttendanceRequest.php
+    database/migrations/2026_10_16_130000_add_birthday_to_participants_table.php
+    database/migrations/2026_10_16_130100_create_service_occurrences_table.php
+    database/migrations/2026_10_16_130200_create_service_attendance_members_table.php
+    database/migrations/2026_10_16_130300_create_service_attendance_first_timers_table.php
+    resources/js/pages/services/index.tsx
+    resources/js/pages/services/show.tsx
+    resources/js/pages/services/attendance.tsx
+    tests/Feature/Services/ServiceControllerTest.php
+    tests/Feature/Services/ServiceAttendanceControllerTest.php
+
+Modified:
+
+    app/Models/Participant.php          (birthday + two relations)
+    routes/web.php                       (11 Services routes)
+    app/Providers/AppServiceProvider.php (service-recurring-batch limiter)
+    resources/js/components/app-sidebar.tsx (Services entry)
+
+### Next phase
+
+Phase 4 (Fellowship module). See doc 07 section 3.5.
+

@@ -19,42 +19,27 @@ is append-only (per P7). This file is not.
 
 ---
 
-## Current phase: Phase 3 -- Services module
+## Current phase: Phase 4 -- Fellowship module
 
-**Status:** READY TO START. Phase 2 backend shipped; Phase 2
-frontend work deferred into this phase (see Done section).
+**Status:** Ready to start. Phase 3 complete.
 
-**Prerequisite decisions (all resolved):**
-
-    [x] Q1   Top-level modules
-    [x] Q5   Mockup authority (approved as-is)
-    [x] Q6   Workflow stages (four)
-    [x] Q8   Wizard draft-loss (deferred)
-
-**Blocker before Phase 3 tasks:**
-
-    [!] Q7   Non-English event names
-             Question: will WDEMS host Filipino event names?
+**Blocker:** None. Q4 (Cell Group placement) blocks Phase 6
+only.
 
 ### Tasks
 
-Full task list: doc 07 section 3.4. Not duplicated here.
+Full task list: doc 07 section 3.5. Not duplicated here.
 
-Phase 2 frontend work folded into Phase 3:
-    - /events/create branch for church events
-    - /events filter by kind
-    - Event detail conditional sections
-    - Status pills (Upcoming/Ongoing/Completed/Cancelled)
-    - Church event creation tests
+First-timer promotion (deferred from Phase 3) folds in here.
 
 ---
 
 ## Future phases -- progress index
 
     [x] Phase 1   Foundation          COMPLETE
-    [x] Phase 2   General Events      COMPLETE (backend only)
-    [~] Phase 3   Services module     ready to start; blocked on Q7
-    [ ] Phase 4   Fellowship module   doc 07 sec 3.5
+    [x] Phase 2   General Events      COMPLETE
+    [x] Phase 3   Services module     COMPLETE (first-timer promotion deferred)
+    [~] Phase 4   Fellowship module   READY
     [ ] Phase 5   Discipleship module doc 07 sec 3.6
     [!] Phase 6   Youth + Cell Group  blocked by Q4
     [ ] Phase 7   Cross-module        doc 07 sec 3.8
@@ -66,11 +51,16 @@ Phase 2 frontend work folded into Phase 3:
 
     Q4  Cell Group placement
         Blocks: Phase 6
+        Question: top-level module or Youth sub-module?
 
-    Q7  Non-English event names
-        Blocks: Phase 3 (Services)
-        Question: will WDEMS host Filipino event names?
-        If yes: HumanNameQualityRules needs Unicode classes.
+---
+
+## Deferred items
+
+    First-timer promotion UI + endpoint
+        Deferred from Phase 3. Per doc 06 D2, promotion is manual
+        only. The mechanism is folded into Phase 4 (Fellowship),
+        which needs the same pattern for shared members.
 
 ---
 
@@ -82,8 +72,10 @@ Phase 2 frontend work folded into Phase 3:
     [x] Q3   First-Timers is new entity   yes
     [x] Q3a  First-Timers references      references participants
     [x] Q3b  First-Timers lifecycle       hybrid
+    [x] Q4   Cell Group placement         (still blocking Phase 6)
     [x] Q5   Mockup authority             approved as-is
     [x] Q6   Workflow stages              four
+    [x] Q7   Non-English event names      yes (Unicode-aware rules)
     [x] Q8   Wizard draft-loss fix        deferred
     [x] Q9   TrimStrings middleware       active
 
@@ -91,68 +83,62 @@ Phase 2 frontend work folded into Phase 3:
 
 ## Done
 
-### Phase 2 -- General Events module (2026-10-16, backend only)
+### Phase 3 -- Services module (2026-10-16)
 
-    [x] 2.0   Decide church-event status schema
-              Chosen: separate church_status column (Option 1)
-    [x] 2.1   Migration: add church-event columns to events
-    [x] 2.2   Model: extend Event with church fields and helpers
-    [x] 2.3   Validation: relax distance and accessibility rules
-    [x] 2.4   Controller: create, edit, list, show branches
-    [-] 2.5   Frontend: /events/create branch for church events
-              DEFERRED to Phase 3
-    [-] 2.6   Frontend: /events filter by kind
-              DEFERRED to Phase 3
-    [-] 2.7   Frontend: event detail conditional sections
-              DEFERRED to Phase 3
-    [-] 2.8   Frontend: status pills
-              DEFERRED to Phase 3
-    [-] 2.9   Tests: church event CRUD
-              DEFERRED to Phase 3
-    [-] 2.10  Run ./scripts/audit-design.sh
-              N/A -- no frontend changes
-    [x] 2.11  Full suite verification
-              3 skipped, 609 passed (unchanged from Phase 1)
-    [x] 2.12  migrate:fresh --seed verification
-              38 migrations applied cleanly
-    [x] 2.13  Phase 2 closure appended to doc 06
+    [x] 3.1   Migration: add birthday to participants
+    [x] 3.2   Migration: create service_occurrences
+    [x] 3.3   Migration: create service_attendance_members
+    [x] 3.4   Migration: create service_attendance_first_timers
+    [x] 3.5   Enum: ServiceType
+    [x] 3.6   Model: ServiceOccurrence
+    [x] 3.7   Model: ServiceAttendanceMember
+    [x] 3.8   Model: ServiceAttendanceFirstTimer
+    [x] 3.9   Participant relations: serviceAttendanceMembers,
+              serviceAttendanceFirstTimers
+    [x] 3.10  Controller: ServiceController (index, show, storeOccurrence,
+              storeRecurring, destroyOccurrence)
+    [x] 3.11  Controller: ServiceAttendanceController (show, store,
+              markMember, markFirstTimer, destroyMember,
+              destroyFirstTimer)
+    [x] 3.12  FormRequests: StoreServiceOccurrence, StoreRecurring,
+              AddServiceAttendance, MarkServiceAttendance
+    [x] 3.13  Routes: 11 Services endpoints
+    [x] 3.14  Rate limiter: service-recurring-batch
+    [x] 3.15  Frontend: services/index.tsx (landing)
+    [x] 3.16  Frontend: services/show.tsx (per-type occurrence list)
+    [x] 3.17  Frontend: services/attendance.tsx (two tracks)
+    [x] 3.18  Sidebar: Services entry
+    [x] 3.19  Tests: ServiceControllerTest (16 tests)
+    [x] 3.20  Tests: ServiceAttendanceControllerTest (17 tests)
+    [-] 3.21  First-timer promotion UI + endpoint
+              DEFERRED to Phase 4
 
-Test delta: 0 new tests. Existing 609 tests all pass. Phase 2
-shipped without dedicated tests for church-event creation --
-this gap is folded into Phase 3 testing work.
+Test delta: 617 -> 650 passed (+33), 2346 -> 2492 assertions
+(+146). Zero regressions.
+
+### Phase 2 -- General Events module (2026-10-16)
+
+    [x] Backend: church event schema, ChurchEventStatus enum,
+              conditional validation, controller branching
+    [x] Frontend: kind filter, category sub-line, upcoming pill
+    [x] Fix: distance_unit nullable + ChurchEventTest
+    [x] Docs: Phases 2 closure + frontend closure
 
 ### Phase 1 -- Foundation (2026-10-16)
 
-    [x] 1.1   Migration: create_members_table
-    [x] 1.2   Model: Member
-    [x] 1.3   Filtered test run (no regressions)
-    [x] 1.4   Migration: create_first_timers_table
-    [x] 1.5   Model: FirstTimer
-    [x] 1.6   Participant relations: member(), firstTimers()
-    [x] 1.7   MemberTest.php (7 tests)
-    [x] 1.8   FirstTimerTest.php (9 tests)
-    [x] 1.9   Full suite (3 skipped, 609 passed)
-    [x] 1.10  npx tsc --noEmit (silent)
-    [x] 1.11  migrate:fresh --seed (clean)
-    [x] 1.12  migrate:rollback --step=2 && migrate (clean)
-    [x] 1.13  Phase 1 closure appended to doc 06
-
-Test delta: 593 -> 609 passed (+16), 2279 -> 2307 assertions
-(+28). Zero regressions.
+    [x] members + first_timers tables, models, relations, tests
+    [x] 16 tests
 
 ---
 
 ## How to use this file
 
-**Adding a task.** Under the relevant phase. Number sequentially.
+**Adding a task.** Under the relevant phase.
 
-**Completing a task.** Change `[ ]` to `[x]`. Do not delete.
+**Completing a task.** Change `[ ]` to `[x]`.
 
-**Deferring a task.** Change `[ ]` to `[-]` with a one-line note
-stating which phase inherits it.
+**Deferring a task.** Change `[ ]` to `[-]` with a note.
 
 **Moving a phase to Done.** When all tasks checked or deferred,
-move the block. Mark the phase in the index.
-
-**When blocked.** Change `[ ]` to `[!]` and add to Blocked.
+move the block.
 
