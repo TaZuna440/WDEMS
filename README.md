@@ -1,12 +1,14 @@
 # WDEMS — Workflow-Driven Event Management System
 
-A Laravel + React web application for managing running events, built
-around the **Community Run** workflow. WDEMS handles event setup,
-registration, attendance, and post-run monitoring in one place, with a
-role-based access model (admin / staff) and email-based two-factor
-authentication.
+A Laravel + React web application for managing community runs and
+church events in one place. Two workstreams share the same core:
+the original **Community Run** workflow (event setup, registration,
+attendance, post-run monitoring) and a **church events** extension
+that adds Services, Fellowship, and Discipleship modules alongside
+the running-event system. Role-based access model (admin / staff)
+with email-based two-factor authentication.
 
-**Last updated:** 2026-10-02.
+**Last updated:** 2026-10-16.
 
 ---
 
@@ -15,6 +17,10 @@ authentication.
 The core workflow is running end-to-end — events, registration form
 builder, three-phase submission (submit → verify → finalize), and the
 identity model that powers deduplication and returning-participant flags.
+Three of the five church-events workstreams from `docs/church-events/07`
+have shipped on top of that foundation.
+
+### Running events
 
 | Feature | Status |
 |---|---|
@@ -40,10 +46,24 @@ identity model that powers deduplication and returning-participant flags.
 | Post-run monitoring (returning participants, live submission rates) | ✅ |
 | Registration — contact verification (email OTP + Firebase phone auth) | ✅ |
 | Registration — deletion with OTP | ✅ |
+| Attendance code, workspace lookup, `verified_at`, live/deferred encoding | ✅ |
+| Event finalize action | ✅ |
+| End-of-event report | ✅ |
 
-**Test suite:** run `php artisan test` for the current count. Auth,
-event deletion, and registration have broad coverage. Attendance and
-monitoring are not yet tested because they are not yet complete.
+### Church events
+
+| Feature | Status |
+|---|---|
+| Foundation — members + first_timers tables, models, relations | ✅ |
+| General Events — church event schema, category sub-line, kind filter | ✅ |
+| Services module — Morning/Midweek/Youth/Other, recurring schedule generator | ✅ Phase 3 |
+| Fellowship module — six types, groups, attendance roster | ✅ Phase 4 |
+| Discipleship module — programs, batches, enrollment, sessions, attendance matrix, progress, filter, CSV | ✅ Phase 5 |
+| Youth module | 📋 blocked — see Roadmap |
+| Cell Group module | 📋 blocked — see Roadmap |
+
+**Test suite:** 791 passed, 3 skipped, 3,080 assertions across the full
+suite. Run `php artisan test` for the current count.
 
 ---
 
@@ -107,6 +127,11 @@ Edit `.env`:
 
     mysql -u root -p -e "CREATE DATABASE wdems CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
     php artisan migrate
+    php artisan db:seed --class=DiscipleshipProgramSeeder
+
+The `DiscipleshipProgramSeeder` seeds the six Discipleship programs
+(Life Class, Encounter God Retreat, School of Leaders 1-3, Cell
+Convergence). It is idempotent — safe to re-run.
 
 ### Run
 
@@ -147,6 +172,7 @@ MySQL test database is needed.
     php artisan test                          # full suite
     php artisan test --compact                # terse output
     php artisan test tests/Feature/Auth       # specific directory
+    php artisan test tests/Feature/Discipleship   # single module
 
 Static analysis:
 
@@ -171,18 +197,47 @@ that subsystem.
 an AI session, paste `docs/AI-CONTEXT.md` at the top of your first
 message.
 
+### Core platform
+
 | Doc | Covers |
 |---|---|
 | `docs/architecture.md` | Whole-system overview: layers, data model, foreign keys, event workflow |
 | `docs/authentication.md` | Login, email 2FA, trusted devices, password management |
+| `docs/design-system.md` | Visual contract: layer model, glass tiers, semantic colors |
+| `docs/implementation-notes.md` | Non-obvious behaviors that cross subsystem boundaries |
+
+### Running events
+
+| Doc | Covers |
+|---|---|
 | `docs/event-creation.md` | Code reference for event creation and workflow |
 | `docs/event-creation-wizard.md` | The wizard as a feature: steps, checkpoint, field components |
 | `docs/event-deletion.md` | The two delete paths (admin direct, staff OTP) and the deletion algorithm |
 | `docs/registration.md` | Registration feature — spec + Status: Implemented block |
 | `docs/registration-development-plan.md` | Phase plan and close for the registration build |
+| `docs/registration-contact-verification.md` | Contact OTPs, Firebase phone auth, three-phase intake |
 | `docs/participant-identity.md` | Identity model — email + normalized phone |
 | `docs/registration-monitoring.md` | Live monitoring during the registration window |
 | `docs/participant-identity-and-monitoring-plan.md` | Ten-phase plan for identity + monitoring |
+| `docs/attendance-redesign.md` | Three-mode attendance workspace (Mark / Confirm / Batch) |
+| `docs/attendance-code.md` | Attendance code, workspace lookup, `verified_at`, live/deferred encoding |
+| `docs/attendance-encoding-and-reporting.md` | Finalize event + end-of-event report (spec + shipped pointers) |
+
+### Church events
+
+| Doc | Covers |
+|---|---|
+| `docs/church-events/01-current-system-audit.md` through `08-phase-0-handoff.md` | The scope-shift record: audit, product scope, domain model, task division |
+| `docs/church-events/09-mockup-scope-inventory.md` | Reconciliation: what the client mockups show vs what exists |
+| `docs/church-events/10-client-decision-log.md` | Q1-Q20 tracking for the mockup expansion |
+| `docs/church-events/TASKS.md` | Live task board — Phases 1-5 done, Phase 6 blocked |
+| `docs/fellowship.md` | Fellowship module reference (Phase 4) |
+| `docs/discipleship.md` | Discipleship module reference (Phase 5) |
+
+### Process
+
+| Doc | Covers |
+|---|---|
 | `docs/dev-workflow/README.md` | Workflow rules, protocols, failure modes |
 | `docs/AI-CONTEXT.md` | Paste-me-at-chat-start file for AI sessions |
 | `docs/fixes.md` | Fixed problems reference — FIX-NNN |
@@ -200,6 +255,13 @@ message.
 These describe an integration that was designed and built, then
 removed. They are kept for historical context only.
 
+**Missing, deferred:**
+
+- `docs/services.md` — the Services subsystem doc (Phase 3) is
+  deferred pending client answer to Q1 in
+  `docs/church-events/09-mockup-scope-inventory.md`. If Services is
+  removed from the sidebar, the doc is wasted effort.
+
 ---
 
 ## Project Structure
@@ -208,58 +270,102 @@ removed. They are kept for historical context only.
     ├── Actions/Fortify/       ResetUserPassword.php
     ├── Concerns/              PasswordValidationRules, ProfileValidationRules,
     │                          HumanNameQualityRules, EventValidationRules,
-    │                          RegistrationFieldValidationRules
-    ├── Enums/                 EventStatus, EventType, RegistrationStatus,
-    │                          AttendanceStatus
+    │                          RegistrationFieldValidationRules,
+    │                          ContactAndAddressQualityRules,
+    │                          WalkInFieldValidationRules
+    ├── Enums/                 AttendanceStatus, ChurchEventStatus,
+    │                          DiscipleshipAttendanceStatus,
+    │                          DiscipleshipEnrollmentStatus,
+    │                          EventStatus, EventType, FellowshipType,
+    │                          RegistrationStatus, ServiceType
     ├── Http/
     │   ├── Controllers/
     │   │   ├── Auth/          DeviceVerificationController
     │   │   ├── Settings/      ProfileController, SecurityController
     │   │   ├── AttendanceController.php
     │   │   ├── DashboardController.php
+    │   │   ├── DiscipleshipAttendanceController.php
+    │   │   ├── DiscipleshipBatchController.php
+    │   │   ├── DiscipleshipController.php
+    │   │   ├── DiscipleshipEnrollmentController.php
+    │   │   ├── DiscipleshipSessionController.php
     │   │   ├── EventController.php
     │   │   ├── EventDeletionController.php
+    │   │   ├── FellowshipAttendanceController.php
+    │   │   ├── FellowshipController.php
+    │   │   ├── FellowshipGroupController.php
     │   │   ├── PublicRegistrationController.php
     │   │   ├── RegistrationController.php
-    │   │   └── RegistrationFormController.php
-    │   ├── Middleware/        AdminMiddleware, EnsureDeviceIsTrusted,
+    │   │   ├── RegistrationDeletionController.php
+    │   │   ├── RegistrationFormController.php
+    │   │   ├── RegistrationMonitorController.php
+    │   │   ├── RegistrationVerificationController.php
+    │   │   ├── ReportController.php
+    │   │   ├── ServiceAttendanceController.php
+    │   │   └── ServiceController.php
+    │   ├── Middleware/        AdminMiddleware, AdvanceEventStatus,
+    │   │                      EnsureDeviceIsTrusted,
     │   │                      EnsureEmailIsVerifiedOrAdmin,
     │   │                      EnsureRegistrationIsOpen,
-    │   │                      HandleAppearance, HandleInertiaRequests
+    │   │                      HandleAppearance, HandleInertiaRequests,
+    │   │                      ProtectRegistrationVerification
     │   └── Requests/          EventRequest, PublicRegistrationRequest,
-    │                          RegistrationFieldRequest, Settings/*
-    ├── Mail/                  EventDeletionOtpMail, LoginVerificationCodeMail
-    ├── Models/                Attendance, Event, Participant, Registration,
-    │                          RegistrationField, RegistrationFieldResponse, User
+    │                          RegistrationFieldRequest, WalkInRegistrationRequest,
+    │                          Discipleship/*, Fellowship/*, Services/*, Settings/*
+    ├── Mail/                  EventDeletionOtpMail, LoginVerificationCodeMail,
+    │                          RegistrationConfirmationMail,
+    │                          RegistrationDeletionOtpMail,
+    │                          RegistrationVerificationOtpMail
+    ├── Models/                Attendance, DiscipleshipAttendance,
+    │                          DiscipleshipBatch, DiscipleshipEnrollment,
+    │                          DiscipleshipProgram, DiscipleshipSession,
+    │                          Event, FellowshipAttendance, FellowshipEvent,
+    │                          FellowshipGroup, FirstTimer, Member,
+    │                          Participant, Registration, RegistrationField,
+    │                          RegistrationFieldResponse,
+    │                          RegistrationVerificationChallenge,
+    │                          ServiceAttendanceFirstTimer,
+    │                          ServiceAttendanceMember, ServiceOccurrence, User
     ├── Providers/             AppServiceProvider, FortifyServiceProvider
     └── Services/
+        ├── Discipleship/                     progress calculator
         ├── EventWorkflow.php                 lifecycle state machine
         ├── EventDeletion/                    ordered deletion + OTP verification
         ├── Otp/                              shared OTP helper
+        ├── RegistrationVerification/         contact verification + attendance code
+        ├── Reporting/                        report payload builder
         └── TwoFactor/                        email 2FA + trusted devices
 
     resources/js/
     ├── components/            wizard, date-picker, time-picker, distance-picker,
     │                          map-picker, partner-editor, accessibility-grid,
     │                          registration-field-editor, sortable-field-list,
-    │                          event-deletion-otp-dialog, password-input, …
+    │                          event-deletion-otp-dialog, walk-in-dialog,
+    │                          bulk-walk-in-table, bulk-mark-toolbar,
+    │                          registration-deletion-otp-dialog, …
     │   └── ui/                shadcn-style primitives
     ├── hooks/                 use-confirm-dialog, use-wizard-persistence,
-    │                          use-appearance, use-clipboard, …
+    │                          use-appearance, use-clipboard, use-polling, …
     ├── layouts/               app/, app-layout, auth/, auth-layout,
     │                          public/, settings/
     ├── lib/                   event-validation, registration-field-types,
     │                          registration-field-validation,
     │                          public-registration-validation,
-    │                          demo-legal-content, utils
+    │                          attendance-bulk-validation,
+    │                          demo-legal-content, firebase, utils
     ├── pages/
     │   ├── admin/             dashboard.tsx (stub — see Known gaps)
+    │   ├── attendance/        index.tsx (running-event attendance workspace)
     │   ├── auth/              login, verify-device, forgot/reset/confirm,
     │   │                      verify-email
-    │   ├── events/            index, create, edit, show, attendance,
+    │   ├── discipleship/      index, show, batch-show
+    │   ├── events/            index, create, edit, show, attendance, report,
     │   │   │                  registration-form
     │   │   └── step/          BasicsStep, ScheduleStep, VenueStep, ExtrasStep
-    │   ├── registrations/     index, public, closed
+    │   ├── fellowship/        index, show, attendance
+    │   ├── registrations/     index, public, verify, confirmed, closed,
+    │   │   └── monitor/       index, show
+    │   ├── services/          index, show, attendance
     │   ├── settings/          profile, security, appearance
     │   ├── dashboard.tsx
     │   └── welcome.tsx
@@ -269,14 +375,22 @@ removed. They are kept for historical context only.
     database/migrations/       full schema
     docs/                      subsystem guides (see above)
     routes/
-    ├── web.php                public registration, events, deletion, admin
+    ├── web.php                public registration, events, deletion, admin,
+    │                          services, fellowship, discipleship
     └── settings.php           profile, security, appearance
 
     tests/
     ├── Feature/Auth/          login, device verification, password reset, logout
-    ├── Feature/Events/        CRUD rules, deletion, workflow, registration form
-    ├── Feature/Public/        anonymous registration submission
+    ├── Feature/Discipleship/  programs, batches, enrollment, sessions,
+    │                          attendance, progress, filter/CSV
+    ├── Feature/Events/        CRUD rules, deletion, workflow, registration form,
+    │                          attendance
+    ├── Feature/Fellowship/    events, groups, attendance
+    ├── Feature/Participants/  identity constraints, resolver, FirstTimer, Member
+    ├── Feature/Public/        anonymous registration submission, verification
+    ├── Feature/Services/      occurrences, two-track attendance
     ├── Feature/Settings/      profile update, security
+    ├── Integration/           concurrency tests
     ├── Unit/Services/         EmailTwoFactorService, EventDeletionOtpService
     └── Pest.php               shared test helpers
 
@@ -310,10 +424,20 @@ removed. They are kept for historical context only.
 6. **The wizard's checkpoint lacks a "resume draft" prompt, a discard
    button, and cross-tab coordination.** See
    `docs/event-creation-wizard.md` §11.1.
+7. **`docs/services.md` subsystem doc missing.** Deferred pending
+   Q1 (mockup sidebar may remove Services).
+8. **Discipleship `required_sessions` not backfilled.** All six
+   seeded programs have null. The client decides per-program thresholds.
+9. **Discipleship cell-clearing on the attendance matrix.** The DELETE
+   endpoint supports it; the frontend does not call it.
+10. **Four `creator()`/`recorder()` relations uncovered in tests.**
+    Cosmetic — not called by any controller or service.
 
 ---
 
 ## Roadmap
+
+### Running events — complete
 
 | Phase | Deliverable | Status |
 |---|---|---|
@@ -329,12 +453,48 @@ removed. They are kept for historical context only.
 | **Registration monitoring** | Live submission feed during the registration window | ✅ |
 | **Compliance (Phase 3.5)** | Per-event legal content, consent recording, guardian fields | 📋 planned |
 | **Attendance** | Attendance recording UI, wired to real registrations | ✅ |
-| **Walk-in registration** | On-site registration for latecomers | ✅ |
+| **Attendance code + encoding modes** | Per-registration code, live/deferred, `verified_at` | ✅ |
+| **Walk-in registration** | On-site registration for latecomers, single + bulk | ✅ |
+| **Event finalize + report** | Password-gated close, end-of-event report, CSV export | ✅ |
 | **Post-run monitoring** | Recurring participants, attendance rates | ✅ |
 
 The phased build plan for **Participant identity** and **Registration
 monitoring** lives in
 `docs/participant-identity-and-monitoring-plan.md`.
+
+### Church events — in progress
+
+| Phase | Deliverable | Status |
+|---|---|---|
+| **Phase 1 — Foundation** | members + first_timers tables, models, relations | ✅ |
+| **Phase 2 — General Events** | church event schema, `ChurchEventStatus`, category sub-line | ✅ |
+| **Phase 3 — Services module** | Morning/Midweek/Youth/Other, recurring schedule generator | ✅ |
+| **Phase 4 — Fellowship module** | Six types, groups, attendance roster | ✅ |
+| **Phase 5 — Discipleship module** | Programs, batches, enrollment, sessions, attendance matrix, progress, dashboard | ✅ |
+| **Phase 6 — Youth + Cell Group** | — | 📋 blocked — see below |
+| **Phase 7 — Cross-module** | doc 07 sec 3.8 | 📋 pending |
+| **Phase 8 — Cross-cutting** | doc 07 sec 3.9 | 📋 pending |
+
+The scope, phases, and task breakdown live in
+`docs/church-events/07-scope-and-task-division.md` and the live task
+board at `docs/church-events/TASKS.md`.
+
+### Mockup expansion — blocked on client
+
+The client mockups (`docs/church-events/09-mockup-scope-inventory.md`)
+propose five additional modules and eleven cross-cutting features
+beyond the doc-07 roadmap:
+
+- **Modules:** Youth, Kids Ministry, Young Adult, Worship & Prayer,
+  Church Administration
+- **Features:** Payments, Budgets, Tasks, Roles & Ministries,
+  Documents, Multi-tab detail pages, Grade/Year level, Locations,
+  Ministries, Church plans, Meeting minutes
+
+No work on the expansion starts until the client answers Q1–Q20 in
+`docs/church-events/10-client-decision-log.md`. Twenty questions,
+zero answered. Any one of Q10, Q11, Q16, or Q19 unblocks a
+multi-session workstream.
 
 ---
 
