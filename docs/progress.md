@@ -3407,3 +3407,132 @@ reload). CSV export follows `RegistrationMonitorController::exportCsv`.
   attendance sub-phase the progress service reads
 - `docs/progress.md` 2026-10-16 Phase 5C entry -- the
   enrollment model the progress attaches to
+
+---
+
+## 2026-10-16 — Phase 5G: Discipleship dashboard, filter, CSV (M5, sub-phase G)
+
+Seventh sub-phase of the Discipleship module. The G sub-phase is
+UI plumbing on data the F sub-phase already computed — no new
+schema, no new models, no new service methods. The program show
+page becomes a working dashboard with search, filter, and export.
+
+### What shipped
+
+Backend:
+
+- `DiscipleshipController::show()` accepts `?q`, `?status`,
+  `?batch` query params. Three private helpers keep the query
+  logic centralized:
+  - `buildFilteredQuery()` — q and batch, no status.
+  - `buildEnrollmentsQuery()` — q, status, batch.
+  - `buildCounts()` — per-status counts under the q + batch
+    scope, ignoring the current status filter.
+- `DiscipleshipController::exportCsv()` streams a CSV of the
+  filtered enrollment list. Same query builder as show();
+  respects q, status, and batch. Columns: Participant,
+  Contact, Batch, Status, Enrolled At, Attended, Applicable,
+  Percentage. Content-Type is `text/csv; charset=utf-8` —
+  Symfony appends the charset.
+- Route `GET /discipleship/programs/{program:slug}/enrollments/export`
+  (`discipleship.enrollments.export`).
+
+Frontend:
+
+- `discipleship/show.tsx` gains:
+  - Debounced search input (300ms, matching the running-event
+    attendance page).
+  - Status filter chips with counts per status.
+  - Batch dropdown filter with "All batches" and "Unassigned"
+    options.
+  - "Clear filters" link when any filter is active.
+  - A result count next to the batch filter.
+  - Export CSV button that carries the current filter query
+    via a plain `<a href>` (browser downloads directly, no
+    Inertia visit).
+  - Quick Actions panel: View program details, Manage batches
+    (anchor scroll), Add enrollment.
+  - `ProgramDetailsDialog` — read-only summary of description,
+    counts, and completion criteria placeholder text.
+
+### Design decisions
+
+**Counts ignore the status filter.** The filter chips show how
+many of each status match the current q and batch scope. This
+gives the operator "I searched for X, here's how they break
+down by status." Including the status filter would make the
+active chip always show its own total, which is useless.
+
+**CSV is a direct anchor, not an Inertia visit.** The export
+route returns `streamDownload`, which sets
+`Content-Disposition: attachment`. An Inertia visit would
+intercept the response and try to render it as a page. A plain
+`<a href>` lets the browser handle the download natively. Same
+pattern as `RegistrationMonitorController::exportCsv`.
+
+**Program details dialog is informational only.** The program
+payload does not yet carry `required_sessions` and
+`extra_requirements` at the top level — those arrive per
+enrollment via the progress sub-object. The dialog shows a
+placeholder text describing criteria as "configured per
+enrollment." A future small block can extend the program
+payload and make the dialog editable; the shape is deliberate
+for now.
+
+### Verification
+
+    php artisan test tests/Feature/Discipleship/
+    96 passed (398 assertions)
+
+    php artisan test
+    3 skipped, 791 passed (3080 assertions)
+
+    npx tsc --noEmit
+    silent
+
+### Commits
+
+    <hash>  feat(discipleship): Phase 5G — search, filter, CSV export
+
+### Correction — Phase 5F commits section
+
+The Phase 5F progress entry above was appended with literal
+placeholder tokens in its Commits section:
+
+    ### Commits
+
+        <hash>  feat(discipleship): Phase 5F — progress and completion
+                <N> files, <N> insertions, <N> deletions
+
+Per P7 (append-only corrections), the original entry stays as
+written. The correct values for that section:
+
+    9b107a4  feat(discipleship): Phase 5F — progress and completion
+             8 files, 946 insertions, 55 deletions
+
+### What comes next
+
+Phase 5H — tests and preservation. The final sub-phase is a
+verification pass, not new code. Scope:
+
+- Confirm the Discipleship suite is comprehensive: every model,
+  controller action, and service method has at least one test.
+- Run the full suite once more at closure.
+- Update the Discipleship entry in the church-events task board
+  if one exists.
+- Optional: `docs/discipleship.md` subsystem doc — Phase 5 has
+  no dedicated doc, only the progress entries. Model on
+  `docs/attendance-redesign.md`.
+
+The subsystem doc is the natural close. It is not required for
+5H to complete; the task-list definition of "done" is coverage
+plus preservation, both of which are already green.
+
+### Cross-references
+
+- `docs/church-events/07-scope-and-task-division.md` §3.6 —
+  Phase 5 task breakdown (5G.1 through 5G.8)
+- `docs/progress.md` 2026-10-16 Phase 5F entry -- the progress
+  service and overview card this sub-phase reuses
+- `docs/progress.md` 2026-10-16 Phase 5C entry -- the
+  enrollment list the filter and search operate over
