@@ -508,7 +508,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
                 <Link
                     href="/registrations/monitor"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-on-image-muted transition-colors hover:text-on-image"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     All monitors
@@ -517,7 +517,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                 {/* Header */}
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-2xl font-semibold text-foreground">
+                        <h1 className="text-on-image text-2xl font-semibold">
                             {event.event_name}
                         </h1>
                         <span
