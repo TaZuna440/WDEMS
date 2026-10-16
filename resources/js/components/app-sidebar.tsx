@@ -19,6 +19,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
@@ -38,12 +39,13 @@ export function AppSidebar() {
         <Sidebar collapsible="icon" variant="sidebar">
             <SidebarHeader>
                 <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
+                    <SidebarMenuItem className="flex items-center justify-between gap-1">
+                        <SidebarMenuButton size="lg" asChild className="min-w-0 flex-1">
                             <Link href={dashboard()} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
+                        <SidebarTrigger className="shrink-0" />
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
