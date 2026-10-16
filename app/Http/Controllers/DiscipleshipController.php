@@ -2,19 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\DiscipleshipEnrollmentStatus;
 use App\Models\DiscipleshipBatch;
 use App\Models\DiscipleshipEnrollment;
 use App\Models\DiscipleshipProgram;
 use App\Models\Participant;
 use App\Services\Discipleship\DiscipleshipProgressService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Discipleship module -- landing, per-program view, and the
- * participant search endpoint used by the enrollment dialog.
+ * Discipleship module -- landing, per-program view (with search,
+ * filter, and CSV export), and the participant search endpoint
+ * used by the enrollment dialog.
  *
  * Programs are seeded, not created through the UI. There is no
  * create, update, or destroy path for programs. If the client
@@ -22,10 +26,10 @@ use Inertia\Response;
  * DiscipleshipProgramSeeder.
  *
  * Phase 5A. 5B added batches. 5C added enrollments to show() and
- * the participantSearch() endpoint. 5D added sessions on the
- * batch detail page (separate controller). 5E added attendance
- * (separate controller). 5F adds progress and the program
- * overview card.
+ * the participantSearch() endpoint. 5D added sessions (separate
+ * controller). 5E added attendance (separate controller). 5F
+ * added progress and the overview card. 5G adds search, filter,
+ * and CSV export.
  */
 class DiscipleshipController extends Controller
 {
@@ -51,22 +55,24 @@ class DiscipleshipController extends Controller
     }
 
     /**
-     * Per-program view: header, batches, enrollments, and the
-     * program overview card.
+     * Per-program view: header, batches, enrollments, overview.
      *
-     * Batches ordered by start_date ascending (chronological).
-     * Enrollments ordered by created_at descending.
+     * Query params:
+     *   q       search across participant name/email/contact
+     *   status  filter by enrollment status (or 'all')
+     *   batch   filter by batch_id (or 'all'/'unassigned')
      *
-     * Each enrollment row carries a `progress` sub-object from
-     * DiscipleshipProgressService. The program payload carries
-     * `overview` -- status counts plus completion rate.
-     *
-     * Phase 5G adds search, filter, and pagination on the
-     * enrollment list. At 5F the whole list is loaded.
+     * The `counts` payload reflects the current q + batch scope,
+     * not the status filter -- so the operator sees "how many of
+     * each status match my current search."
      */
-    public function show(DiscipleshipProgram $program): Response
+    public function show(Request $request, DiscipleshipProgram $program): Response
     {
         $progressService = app(DiscipleshipProgressService::class);
+
+        $q = trim((string) $request->query('q', ''));
+        $statusFilter = (string) $request->query('status', '');
+        $batchFilter = (string) $request->query('batch', '');
 
         $batches = $program->batches()
             ->orderBy('start_date')
@@ -78,7 +84,13 @@ class DiscipleshipController extends Controller
                 'start_date' => $b->start_date->toDateString(),
             ]);
 
-        $enrollments = $program->enrollments()
+        // Counts: apply q and batch, ignore status. Gives the
+        // filter chips meaningful counts under the current search.
+        $counts = $this->buildCounts($program, $q, $batchFilter);
+
+        // Enrollments: apply q, status, batch.
+        $enrollmentsQuery = $this->buildEnrollmentsQuery($program, $q, $statusFilter, $batchFilter);
+        $enrollments = $enrollmentsQuery
             ->with([
                 'participant:id,first_name,last_name,email,contact_number',
                 'batch:id,name',
@@ -114,7 +126,71 @@ class DiscipleshipController extends Controller
             'enrollments' => $enrollments,
             'enrollments_count' => $enrollments->count(),
             'overview' => $progressService->programOverview($program),
+            'counts' => $counts,
+            'filters' => [
+                'q' => $q,
+                'status' => $statusFilter === '' ? 'all' : $statusFilter,
+                'batch' => $batchFilter === '' ? 'all' : $batchFilter,
+            ],
         ]);
+    }
+
+    /**
+     * CSV export of the filtered enrollment list.
+     *
+     * Same q/status/batch filters as show(). Streamed so a large
+     * program does not load the entire CSV into memory.
+     */
+    public function exportCsv(Request $request, DiscipleshipProgram $program): StreamedResponse
+    {
+        $progressService = app(DiscipleshipProgressService::class);
+
+        $q = trim((string) $request->query('q', ''));
+        $statusFilter = (string) $request->query('status', '');
+        $batchFilter = (string) $request->query('batch', '');
+
+        $enrollments = $this->buildEnrollmentsQuery($program, $q, $statusFilter, $batchFilter)
+            ->with([
+                'participant:id,first_name,last_name,email,contact_number',
+                'batch:id,name',
+                'program',
+            ])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
+
+        $filename = 'discipleship-'.$program->slug.'-'.now()->format('Y-m-d').'.csv';
+
+        return response()->streamDownload(function () use ($enrollments, $progressService): void {
+            $out = fopen('php://output', 'w');
+
+            fputcsv($out, [
+                'Participant',
+                'Contact',
+                'Batch',
+                'Status',
+                'Enrolled At',
+                'Attended',
+                'Applicable',
+                'Percentage',
+            ]);
+
+            foreach ($enrollments as $e) {
+                $progress = $progressService->progress($e);
+                fputcsv($out, [
+                    $e->participant?->fullName() ?? '',
+                    $e->participant?->email ?? $e->participant?->contact_number ?? '',
+                    $e->batch?->name ?? '',
+                    $e->status->label(),
+                    $e->enrolled_at?->toDateString() ?? '',
+                    (string) $progress['attended'],
+                    (string) $progress['applicable'],
+                    $progress['percentage'] !== null ? $progress['percentage'].'%' : '',
+                ]);
+            }
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 
     /**
@@ -169,5 +245,77 @@ class DiscipleshipController extends Controller
         return response()->json([
             'participants' => $participants,
         ]);
+    }
+
+    /**
+     * Base query with q and batch filters. No status filter --
+     * used by buildCounts() so statuses remain separate.
+     */
+    private function buildFilteredQuery(
+        DiscipleshipProgram $program,
+        string $q,
+        string $batchFilter,
+    ): Builder {
+        $query = DiscipleshipEnrollment::query()
+            ->where('program_id', $program->id);
+
+        if ($q !== '') {
+            $like = '%'.$q.'%';
+            $query->whereHas('participant', function ($inner) use ($like): void {
+                $inner->where('first_name', 'like', $like)
+                    ->orWhere('last_name', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhere('contact_number', 'like', $like);
+            });
+        }
+
+        if ($batchFilter !== '' && $batchFilter !== 'all') {
+            if ($batchFilter === 'unassigned') {
+                $query->whereNull('batch_id');
+            } else {
+                $query->where('batch_id', (int) $batchFilter);
+            }
+        }
+
+        return $query;
+    }
+
+    /**
+     * Enrollment query with q, status, and batch applied.
+     */
+    private function buildEnrollmentsQuery(
+        DiscipleshipProgram $program,
+        string $q,
+        string $statusFilter,
+        string $batchFilter,
+    ): Builder {
+        $query = $this->buildFilteredQuery($program, $q, $batchFilter);
+
+        if ($statusFilter !== '' && $statusFilter !== 'all') {
+            $query->where('status', $statusFilter);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Per-status counts under the current q and batch scope.
+     *
+     * @return array<string, int>
+     */
+    private function buildCounts(
+        DiscipleshipProgram $program,
+        string $q,
+        string $batchFilter,
+    ): array {
+        $base = $this->buildFilteredQuery($program, $q, $batchFilter);
+
+        $counts = ['all' => (clone $base)->count()];
+
+        foreach (DiscipleshipEnrollmentStatus::cases() as $status) {
+            $counts[$status->value] = (clone $base)->where('status', $status->value)->count();
+        }
+
+        return $counts;
     }
 }

@@ -302,6 +302,11 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
 
     Route::prefix('discipleship')->name('discipleship.')->group(function () {
 
+        // CSV export of the program's enrollment list (Phase 5G).
+        // Mirrors the same q/status/batch filters as the show page.
+        Route::get('programs/{program:slug}/enrollments/export', [DiscipleshipController::class, 'exportCsv'])
+            ->name('enrollments.export');
+
         // Attendance (Phase 5E). Bulk upsert for the batch matrix;
         // single destroy for a cell the operator clears.
         Route::post('batches/{batch}/attendances/bulk', [DiscipleshipAttendanceController::class, 'bulkUpsert'])

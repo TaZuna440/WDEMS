@@ -2,7 +2,8 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
     CalendarDays,
-    CheckCircle2,
+    Download,
+    Info,
     Pencil,
     Plus,
     Search,
@@ -10,6 +11,7 @@ import {
     UserMinus,
     UserPlus,
     Users,
+    X,
 } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import DatePicker from '@/components/date-picker';
@@ -80,6 +82,12 @@ type OverviewRow = {
     completion_rate: number | null;
 };
 
+type Filters = {
+    q: string;
+    status: string;
+    batch: string;
+};
+
 type Props = {
     program: ProgramData;
     batches: BatchRow[];
@@ -87,6 +95,8 @@ type Props = {
     enrollments: EnrollmentRow[];
     enrollments_count: number;
     overview: OverviewRow;
+    counts: Record<string, number>;
+    filters: Filters;
 };
 
 const STATUS_STYLES: Record<string, string> = {
@@ -100,6 +110,15 @@ const STATUS_STYLES: Record<string, string> = {
     on_hold:
         'bg-[#13253B]/10 text-[#13253B] border-[#13253B]/30 dark:bg-yellow-500/10 dark:text-yellow-500 dark:border-yellow-500/30',
 };
+
+const STATUS_FILTERS: { value: string; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'enrolled', label: 'Enrolled' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'on_hold', label: 'On Hold' },
+    { value: 'withdrawn', label: 'Withdrawn' },
+];
 
 const NO_BATCH = '__none__';
 
@@ -187,13 +206,95 @@ export default function DiscipleshipShow({
     enrollments,
     enrollments_count,
     overview,
+    counts,
+    filters,
 }: Props) {
+    const [localSearch, setLocalSearch] = useState(filters.q);
     const [createBatchOpen, setCreateBatchOpen] = useState(false);
     const [editBatchTarget, setEditBatchTarget] = useState<BatchRow | null>(null);
     const [addEnrollOpen, setAddEnrollOpen] = useState(false);
     const [editEnrollTarget, setEditEnrollTarget] = useState<EnrollmentRow | null>(null);
     const [withdrawTarget, setWithdrawTarget] = useState<EnrollmentRow | null>(null);
+    const [detailsOpen, setDetailsOpen] = useState(false);
     const { dialog, openConfirm } = useConfirmDialog();
+
+    const baseUrl = `/discipleship/programs/${program.slug}`;
+
+    /**
+     * Build the query string for a partial reload. Preserves the
+     * filters that are not being overridden.
+     */
+    const buildQuery = (overrides: Record<string, string> = {}) => ({
+        ...(filters.q !== '' ? { q: filters.q } : {}),
+        ...(filters.status !== 'all' ? { status: filters.status } : {}),
+        ...(filters.batch !== 'all' ? { batch: filters.batch } : {}),
+        ...overrides,
+    });
+
+    // Debounced search — 300ms, matches the running-event
+    // attendance page.
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            if (localSearch === filters.q) return;
+
+            router.get(
+                baseUrl,
+                buildQuery({
+                    q: localSearch,
+                    status: filters.status,
+                    batch: filters.batch,
+                }),
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    replace: true,
+                    only: ['enrollments', 'enrollments_count', 'counts', 'filters'],
+                },
+            );
+        }, 300);
+
+        return () => window.clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [localSearch]);
+
+    const applyFilter = (key: 'status' | 'batch', value: string) => {
+        router.get(
+            baseUrl,
+            buildQuery({
+                q: filters.q,
+                status: key === 'status' ? value : filters.status,
+                batch: key === 'batch' ? value : filters.batch,
+            }),
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+                only: ['enrollments', 'enrollments_count', 'counts', 'filters'],
+            },
+        );
+    };
+
+    const clearFilters = () => {
+        setLocalSearch('');
+        router.get(
+            baseUrl,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+                only: ['enrollments', 'enrollments_count', 'counts', 'filters'],
+            },
+        );
+    };
+
+    const hasActiveFilters =
+        filters.q !== '' || filters.status !== 'all' || filters.batch !== 'all';
+
+    // The CSV export route accepts the same q/status/batch filters
+    // as show(). Build the href once so the anchor and any future
+    // "download" button share the same URL.
+    const csvHref = `/discipleship/programs/${program.slug}/enrollments/export${buildQueryString(filters)}`;
 
     const deleteBatch = (batch: BatchRow) => {
         openConfirm({
@@ -225,7 +326,7 @@ export default function DiscipleshipShow({
                     All Discipleship
                 </Link>
 
-                {/* Program header + overview */}
+                {/* Program header + overview + quick actions */}
                 <div className="grid gap-4 lg:grid-cols-3">
                     <div className="glass-panel rounded-xl p-6 lg:col-span-2">
                         <div className="pl-10">
@@ -249,52 +350,86 @@ export default function DiscipleshipShow({
                         </div>
                     </div>
 
-                    <div className="glass-panel rounded-xl p-5">
-                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                            Program Overview
-                        </p>
-                        <div className="mt-3 flex items-center gap-4">
-                            <CompletionDonut rate={overview.completion_rate} />
-                            <div className="flex flex-1 flex-col gap-1 text-xs">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">
-                                        Total
-                                    </span>
-                                    <span className="tabular-nums text-foreground">
-                                        {overview.total}
-                                    </span>
+                    <div className="flex flex-col gap-4">
+                        <div className="glass-panel rounded-xl p-5">
+                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                Program Overview
+                            </p>
+                            <div className="mt-3 flex items-center gap-4">
+                                <CompletionDonut rate={overview.completion_rate} />
+                                <div className="flex flex-1 flex-col gap-1 text-xs">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-muted-foreground">
+                                            Total
+                                        </span>
+                                        <span className="tabular-nums text-foreground">
+                                            {overview.total}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-muted-foreground">
+                                            Completed
+                                        </span>
+                                        <span className="tabular-nums text-foreground">
+                                            {overview.completed}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-muted-foreground">
+                                            In Progress
+                                        </span>
+                                        <span className="tabular-nums text-foreground">
+                                            {overview.in_progress}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-muted-foreground">
+                                            Not Started
+                                        </span>
+                                        <span className="tabular-nums text-foreground">
+                                            {overview.not_started}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">
-                                        Completed
-                                    </span>
-                                    <span className="tabular-nums text-foreground">
-                                        {overview.completed}
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">
-                                        In Progress
-                                    </span>
-                                    <span className="tabular-nums text-foreground">
-                                        {overview.in_progress}
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">
-                                        Not Started
-                                    </span>
-                                    <span className="tabular-nums text-foreground">
-                                        {overview.not_started}
-                                    </span>
-                                </div>
+                            </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="glass-panel rounded-xl p-5">
+                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                Quick Actions
+                            </p>
+                            <div className="mt-3 flex flex-col gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setDetailsOpen(true)}
+                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-white/[0.03]"
+                                >
+                                    <Info className="h-4 w-4 text-muted-foreground" />
+                                    View program details
+                                </button>
+                                <a
+                                    href="#batches"
+                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-white/[0.03]"
+                                >
+                                    <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                                    Manage batches
+                                </a>
+                                <button
+                                    type="button"
+                                    onClick={() => setAddEnrollOpen(true)}
+                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-white/[0.03]"
+                                >
+                                    <UserPlus className="h-4 w-4 text-muted-foreground" />
+                                    Add enrollment
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Batches */}
-                <section className="flex flex-col gap-3">
+                <section id="batches" className="flex flex-col gap-3 scroll-mt-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                             Batches
@@ -364,15 +499,99 @@ export default function DiscipleshipShow({
                         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                             Enrollments
                         </h2>
-                        <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => setAddEnrollOpen(true)}
-                            className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
+                        <div className="flex items-center gap-2">
+                            <a
+                                href={csvHref}
+                                className="inline-flex h-8 items-center rounded-md border border-white/10 px-3 text-xs font-medium text-foreground transition-colors hover:bg-white/5"
+                            >
+                                <Download className="mr-1.5 h-3.5 w-3.5" />
+                                Export CSV
+                            </a>
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => setAddEnrollOpen(true)}
+                                className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
+                            >
+                                <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+                                Add Enrollment
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Filter bar */}
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="relative w-full lg:max-w-sm">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={localSearch}
+                                onChange={(e) => setLocalSearch(e.target.value)}
+                                placeholder="Search name, email, or phone…"
+                                className="pl-9"
+                            />
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            {STATUS_FILTERS.map((f) => (
+                                <button
+                                    key={f.value}
+                                    type="button"
+                                    onClick={() => applyFilter('status', f.value)}
+                                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                                        filters.status === f.value
+                                            ? 'border-lime-brand/40 bg-lime-brand/15 text-lime-brand'
+                                            : 'border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground'
+                                    }`}
+                                >
+                                    {f.label}
+                                    <span
+                                        className={
+                                            filters.status === f.value
+                                                ? 'text-lime-brand'
+                                                : 'text-muted-foreground/60'
+                                        }
+                                    >
+                                        ({counts[f.value] ?? 0})
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                        <Select
+                            value={filters.batch}
+                            onValueChange={(v) => applyFilter('batch', v)}
                         >
-                            <UserPlus className="mr-1.5 h-3.5 w-3.5" />
-                            Add Enrollment
-                        </Button>
+                            <SelectTrigger className="h-8 w-48 text-xs">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All batches</SelectItem>
+                                <SelectItem value="unassigned">Unassigned</SelectItem>
+                                {batches.map((b) => (
+                                    <SelectItem key={b.id} value={String(b.id)}>
+                                        {b.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        {hasActiveFilters && (
+                            <button
+                                type="button"
+                                onClick={clearFilters}
+                                className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                                <X className="h-3 w-3" />
+                                Clear filters
+                            </button>
+                        )}
+
+                        <span className="text-xs text-muted-foreground">
+                            {enrollments_count}{' '}
+                            {enrollments_count === 1 ? 'result' : 'results'}
+                        </span>
                     </div>
 
                     {enrollments.length === 0 ? (
@@ -381,20 +600,25 @@ export default function DiscipleshipShow({
                                 <Users className="h-7 w-7 text-lime-brand" />
                             </div>
                             <p className="mb-1 text-sm font-medium text-foreground">
-                                No one is enrolled yet
+                                {hasActiveFilters
+                                    ? 'No matches'
+                                    : 'No one is enrolled yet'}
                             </p>
                             <p className="mb-6 max-w-sm text-xs text-muted-foreground">
-                                Enroll the first participant to begin tracking
-                                their progress through this program.
+                                {hasActiveFilters
+                                    ? 'Try a different search or filter.'
+                                    : 'Enroll the first participant to begin tracking their progress through this program.'}
                             </p>
-                            <Button
-                                type="button"
-                                onClick={() => setAddEnrollOpen(true)}
-                                className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
-                            >
-                                <UserPlus className="mr-2 h-4 w-4" />
-                                Add Enrollment
-                            </Button>
+                            {!hasActiveFilters && (
+                                <Button
+                                    type="button"
+                                    onClick={() => setAddEnrollOpen(true)}
+                                    className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
+                                >
+                                    <UserPlus className="mr-2 h-4 w-4" />
+                                    Add Enrollment
+                                </Button>
+                            )}
                         </div>
                     ) : (
                         <div className="glass-panel overflow-hidden rounded-xl">
@@ -481,6 +705,14 @@ export default function DiscipleshipShow({
 
             {dialog}
 
+            <ProgramDetailsDialog
+                program={program}
+                batches={batches}
+                overview={overview}
+                open={detailsOpen}
+                onOpenChange={setDetailsOpen}
+            />
+
             {createBatchOpen && (
                 <BatchFormDialog
                     mode="create"
@@ -533,6 +765,134 @@ export default function DiscipleshipShow({
             )}
         </>
     );
+}
+
+/**
+ * Build the CSV export query string from a Filters object. Only
+ * includes non-default values so the URL stays clean.
+ */
+function buildQueryString(filters: Filters): string {
+    const parts: string[] = [];
+
+    if (filters.q !== '') {
+        parts.push(`q=${encodeURIComponent(filters.q)}`);
+    }
+    if (filters.status !== 'all') {
+        parts.push(`status=${encodeURIComponent(filters.status)}`);
+    }
+    if (filters.batch !== 'all') {
+        parts.push(`batch=${encodeURIComponent(filters.batch)}`);
+    }
+
+    return parts.length > 0 ? `?${parts.join('&')}` : '';
+}
+
+// -----------------------------------------------------------------
+// Program Details dialog
+// -----------------------------------------------------------------
+
+type DetailsProps = {
+    program: ProgramData;
+    batches: BatchRow[];
+    overview: OverviewRow;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+};
+
+function ProgramDetailsDialog({
+    program,
+    batches,
+    overview,
+    open,
+    onOpenChange,
+}: DetailsProps) {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>{program.name}</DialogTitle>
+                    <DialogDescription>
+                        Program details and completion criteria.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid gap-4">
+                    {program.description && (
+                        <div className="grid gap-1">
+                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                Description
+                            </p>
+                            <p className="text-sm text-foreground">
+                                {program.description}
+                            </p>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-1">
+                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                Batches
+                            </p>
+                            <p className="text-sm text-foreground">
+                                {batches.length}
+                            </p>
+                        </div>
+                        <div className="grid gap-1">
+                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                Enrollments
+                            </p>
+                            <p className="text-sm text-foreground">
+                                {overview.total}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="rounded-md border border-white/10 bg-white/[0.02] p-3">
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            Completion criteria
+                        </p>
+                        <p className="mt-2 text-sm text-foreground">
+                            Required sessions:{' '}
+                            <span className="font-medium">
+                                {overview.total > 0
+                                    ? (enrollmentRequiredText(overview))
+                                    : 'Not configured'}
+                            </span>
+                        </p>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                            Completion criteria are configured by the
+                            organizer. Required session count and any
+                            additional checklist are recorded on the
+                            program record.
+                        </p>
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                    >
+                        Close
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+/**
+ * Placeholder for the completion criteria display. Returns a
+ * reasonable default text based on whether any required sessions
+ * are configured at the program level. The current payload does
+ * not carry required_sessions directly on the program (it is
+ * per-enrollment in the progress rows), so this reads as
+ * informative until the program payload is extended.
+ */
+function enrollmentRequiredText(overview: OverviewRow): string {
+    if (overview.completion_rate === null) return 'Not configured';
+    return 'Configured per enrollment';
 }
 
 // -----------------------------------------------------------------
