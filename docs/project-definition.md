@@ -47,13 +47,20 @@ No other tool is required.
 
 ## 2. Who uses WDEMS
 
-### 2.1 Current roles
+### 2.1 Roles
 
-WDEMS currently has two roles.
+WDEMS has two roles.
 
-**Admin** — full access to the system. Can create, edit, and delete
-anything. Bypasses two-factor authentication because they control the
-server itself and already have equivalent access through other means.
+An expanded four-role model was considered on 2026-10-16 (System
+Administrator, Church Leadership, Event Organizer, Attendance
+Encoder) and rejected. The two-role structure stands.
+
+No approval workflow is required. Events move to Registration Open
+when the organizer is ready, with no separate sign-off step.
+
+**Admin** — full system access. Can create, edit, and delete anything.
+Bypasses two-factor authentication because they control the server
+itself and already have equivalent access through other means.
 
 **Staff** — the day-to-day operator. Creates events, opens and closes
 registration, records attendance, exports reports. Must verify with an
@@ -65,35 +72,11 @@ in. They receive a public registration link, submit a form, verify
 their contact details, and receive a registration code. That code is
 what they present at the door.
 
-### 2.2 Proposed roles (pending client confirmation)
-
-An expanded role model has been proposed with four roles:
-
-| # | Role | Responsibility |
-|---|---|---|
-| 1 | **System Administrator** | Full system access |
-| 2 | **Church Leadership** | Oversight and approval |
-| 3 | **Event Organizer** | Event planning and management |
-| 4 | **Attendance Encoder** | Attendance and participant records |
-
-This model is **under discussion**. Twelve questions (Q21–Q32 in the
-decision log) remain to be answered before implementation. Key
-uncertainties include whether the model replaces or supplements the
-current two-role system, whether Church Leadership's approval is
-required or advisory, and whether Attendance Encoders are scoped to
-specific events.
-
-See `docs/church-events/10-client-decision-log.md` for the full
-question set once it is added.
-
-### 2.3 Account creation
+### 2.2 Account creation
 
 There is **no public self-service sign-up**. Accounts are created by
 admins. This is deliberate — the system is designed for a known set
 of organizers, not open registration.
-
----
-
 ## 3. The two event worlds
 
 ### 3.1 Running events
@@ -751,18 +734,12 @@ systems are independent.
 
 ## 11. Open questions
 
-Three items from the client decision log remain unresolved and should
+Two items from the client decision log remain unresolved and should
 be confirmed before their modules are built.
 
 **1. Registration's placement in the new sidebar.** Services stays
 top-level with Attendance nested beneath it. Registration's exact
 nesting is pending.
-
-**2. Expanded role model.** Twelve questions (Q21–Q32) about the
-proposed four-role structure remain unanswered. These cover whether
-Church Leadership's approval is required or advisory, whether
-Attendance Encoders are scoped to specific events, and how existing
-Staff users are migrated.
 
 **3. Discipleship progress calculation change.** The client has
 requested three behavioral changes:
