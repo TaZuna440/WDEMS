@@ -1,7 +1,7 @@
 # WDEMS — UI Restructure Plan
 
 **Status:** Active plan. Approved by client direction on 2026-10-17.
-**Last updated:** 2026-10-17 (Phases 1-3 shipped)
+**Last updated:** 2026-10-17 (Phases 1-3 shipped; Youth in progress)
 **Audience:** Developers working on the sidebar/events/dashboard
 restructure. Also useful to AI sessions picking up this work.
 
@@ -22,7 +22,7 @@ Corrections 2026-10-17).
 | 2 — Events page + category cards | Complete | `dfecbad` | Church tab shows the nine category cards |
 | 3 — Create Event branching | Complete | `fd0be9e` | Entry page splits by event kind |
 | — | Fix: card links, back nav | Complete | `5373ec5` | Phase 1 sweep missed template literals |
-| 4 — Six new church modules | Not started | — | 6 sessions, one per module |
+| 4 — Six new church modules | In progress | `676d725` | Youth hub + Youth Service shipped; 5 more categories |
 | 5 — Dashboard rebuild | Not started | — | 2 sessions |
 
 **Phases 1-3** shipped the coherent visual arc the client
@@ -38,6 +38,52 @@ routes. A user who abandons a Community Run draft and starts a
 Church draft gets the Community Run data restored into the
 Church wizard. Fix is small (unique storage keys per route)
 but is not blocking.
+
+**Resolved.** The storage-key gap was fixed in commit
+`41766ba`. Each create route now writes to its own key
+(`wdems-wizard-create-community-run`,
+`wdems-wizard-create-church-{category}`). The edit flow was
+already isolated with `wdems-wizard-edit-{id}`.
+
+---
+
+## 0.1 Youth sub-module status
+
+Youth is five sub-modules, not one. Each is its own domain.
+Only Youth Service is unblocked.
+
+| Sub-module | Status | Blocked by |
+|---|---|---|
+| Youth Service | Complete | — |
+| Youth Camp | Blocked | Payments removed by client Q10; needs a redesign decision |
+| Huddle | Blocked | Groups concept (Phase B) not built |
+| Campus Ministry | Blocked | Global grade column on `participants` (Q16 answer, not built) |
+| Timothy Class | Blocked | Discipleship 5D (sessions) + 5E (attendance) not built |
+
+**Phase 4 revised estimate.** The original "6 sessions, one per
+module" assumed each of the six church categories was one
+module. The mockup detail shows otherwise:
+
+- **Youth** = 5 sub-modules (1 shipped)
+- **Kids Ministry** = 2 sub-modules (VBS, Outreaches with dynamic locations)
+- **Young Adult** = 3 sub-modules (Service, Seminar, Partner → GRC → Care Group + Fellowship)
+- **Worship & Prayer** = 3 sub-modules
+- **Special Occasions** = 1 hub with 6 tabs (Details, Program, Roles, Budget, Tasks, Documents)
+- **Church Administration** = 2 sub-modules with 6-tab detail pages
+
+Realistic estimate: **15–25 sessions** for full Phase 4.
+
+**Two strategic options for Phase 4:**
+
+1. **Build unblocked sub-modules first.** Worship & Prayer sub-module
+   1 (Outdoor Prayer Meeting) is closest to what shipped. Young Adult
+   sub-modules may also be unblocked depending on their shape.
+2. **Build Phase B first.** The shared cross-cutting features
+   (groups, grade levels, sessions, payments-equivalent) unblock
+   multiple sub-modules at once.
+
+Option 2 has higher leverage but is larger. Option 1 keeps shipping
+visible progress.
 
 ---
 
