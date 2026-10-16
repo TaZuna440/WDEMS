@@ -700,7 +700,7 @@ export default function ReportShow({
                     <div className="flex items-center gap-2">
                         <a
                             href={`/events/${event.id}/report/export`}
-                            className="inline-flex h-8 items-center rounded-md border border-white/10 bg-transparent px-3 text-xs font-medium text-foreground transition-colors hover:bg-white/5"
+                            className="inline-flex h-8 items-center rounded-md border border-border bg-card/80 px-3 text-xs font-medium text-foreground shadow-xs backdrop-blur-sm transition-colors hover:bg-card"
                         >
                             <Download className="mr-2 h-3.5 w-3.5" />
                             Download CSV

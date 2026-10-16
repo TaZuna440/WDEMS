@@ -320,7 +320,7 @@ export default function DiscipleshipShow({
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
                 <Link
                     href="/discipleship"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-on-image-muted transition-colors hover:text-on-image"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     All Discipleship
@@ -431,7 +431,7 @@ export default function DiscipleshipShow({
                 {/* Batches */}
                 <section id="batches" className="flex flex-col gap-3 scroll-mt-6">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
                             Batches
                         </h2>
                         <Button
@@ -496,13 +496,13 @@ export default function DiscipleshipShow({
                 {/* Enrollments */}
                 <section className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
                             Enrollments
                         </h2>
                         <div className="flex items-center gap-2">
                             <a
                                 href={csvHref}
-                                className="inline-flex h-8 items-center rounded-md border border-white/10 px-3 text-xs font-medium text-foreground transition-colors hover:bg-white/5"
+                                className="inline-flex h-8 items-center rounded-md border border-border bg-card/80 px-3 text-xs font-medium text-foreground shadow-xs backdrop-blur-sm transition-colors hover:bg-card"
                             >
                                 <Download className="mr-1.5 h-3.5 w-3.5" />
                                 Export CSV
@@ -539,8 +539,8 @@ export default function DiscipleshipShow({
                                     onClick={() => applyFilter('status', f.value)}
                                     className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                                         filters.status === f.value
-                                            ? 'border-lime-brand/40 bg-lime-brand/15 text-lime-brand'
-                                            : 'border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground'
+                                            ? 'border-lime-brand/40 bg-lime-brand/25 text-lime-700 dark:bg-lime-brand/20 dark:text-lime-brand'
+                                            : 'border-border bg-card/70 text-foreground hover:bg-card'
                                     }`}
                                 >
                                     {f.label}
@@ -588,7 +588,7 @@ export default function DiscipleshipShow({
                             </button>
                         )}
 
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-on-image-muted">
                             {enrollments_count}{' '}
                             {enrollments_count === 1 ? 'result' : 'results'}
                         </span>
