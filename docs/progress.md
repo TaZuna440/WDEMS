@@ -3278,3 +3278,132 @@ an anchor fails, print and continue.
 - `docs/attendance-code.md` -- the running-event attendance
   model (different shape: participant_id, verified_at, code
   lookup; not mirrored in Discipleship)
+
+---
+
+## 2026-10-16 — Phase 5F: Discipleship progress and completion (M5, sub-phase F)
+
+Sixth sub-phase of the Discipleship module. Progress is a pure
+calculator over data that already exists: enrollment, sessions,
+attendance. This phase ships the calculator, the criteria
+storage, and the two frontend surfaces that read them.
+
+### Design decisions
+
+**Completion criteria live as columns on the program.**
+`required_sessions` (nullable int) and `extra_requirements`
+(nullable json). Two values per program — a whole requirements
+table for that shape would be over-engineering. Migrating to a
+table later if the client needs per-requirement tracking is an
+additive step, not a rewrite.
+
+**Null required_sessions means "no fixed requirement."**
+Completion falls back to `attended == applicable` — 100% of
+sessions that happened after enrollment. This is the state the
+six seeded programs are in today: no backfill, no guesses.
+
+**Excused counts as attended.** Pre-arranged absence treated as
+a soft-present for progress purposes. The service computes the
+percentage either way from the same data; changing policy is a
+one-line edit in `DiscipleshipProgressService::progress()`.
+
+**Applicable window is enrolled_at..today.** A session that
+happened before the participant enrolled does not count against
+them. A session in the future is not yet due. Both boundaries
+are inclusive.
+
+**The service is stateless and pure.** No writes, no side
+effects, no container binding. `app(DiscipleshipProgressService::class)`
+resolves it per call site. `progress()`, `batchSummary()`,
+`programOverview()` are independent entry points.
+
+**No status transition policy.** Considered adding a policy
+class to constrain enrollment status changes (e.g. can't go
+from withdrawn straight to completed). Dropped — nothing has
+asked for it, all five statuses are currently legal from any
+state, and a policy that logs "everything is legal" logs
+nothing. The right time to build it is when a specific rule is
+requested.
+
+### What shipped
+
+Backend:
+
+- Migration `add_completion_criteria_to_discipleship_programs_table`
+  — adds `required_sessions` and `extra_requirements`. Both
+  nullable. No backfill.
+- `DiscipleshipProgram` gains the two columns in the fillable
+  list and in `casts()`.
+- `App\Services\Discipleship\DiscipleshipProgressService` with
+  three methods:
+  - `progress(DiscipleshipEnrollment): array` — attended,
+    applicable, percentage, required_sessions, is_complete for
+    one enrollment.
+  - `batchSummary(DiscipleshipBatch): array` — one row per
+    enrollment visible on the batch detail page.
+  - `programOverview(DiscipleshipProgram): array` — total,
+    completed, in_progress, not_started, withdrawn, on_hold,
+    completion_rate. Counts statuses; does not compute
+    per-enrollment progress.
+- `DiscipleshipController::show()` payload extended with
+  `overview` (from `programOverview`) and a `progress` object
+  on each enrollment row.
+- `DiscipleshipBatchController::show()` payload extended with a
+  `progress` map keyed by enrollment_id.
+
+Frontend:
+
+- `discipleship/show.tsx` gains a Program Overview card (four
+  counters + SVG completion-rate donut) and a Progress column
+  in the enrollment table. The Progress column renders a small
+  bar, attended/applicable, and a percentage.
+- `discipleship/batch-show.tsx` gains a Progress column at the
+  end of the attendance matrix, keyed off the new `progress`
+  prop.
+
+### Verification
+
+    php artisan test tests/Feature/Discipleship/
+    81 passed (271 assertions)
+
+    php artisan test
+    3 skipped, 776 passed (2953 assertions)
+
+    npx tsc --noEmit
+    silent
+
+### Commits
+
+    <hash>  feat(discipleship): Phase 5F — progress and completion
+            <N> files, <N> insertions, <N> deletions
+
+### What comes next
+
+Phase 5G — dashboard, reports, CSV. Task breakdown (5G.1 through
+5G.8):
+
+- Program overview stats (already at 5F — reuse)
+- Batch summary (already at 5F — reuse)
+- Completion rate donut (already at 5F — the show page has it)
+- Participant list with search, batch filter, status filter
+  (**new** — the show page currently renders the full list)
+- Export CSV (**new**)
+- Full dashboard layout (**new** — the show page becomes the
+  dashboard, with filter bar)
+- Quick Actions panel (**new** — view details, generate report,
+  manage batches)
+- Sidebar entry for Discipleship (already exists — from 5A)
+
+The G sub-phase is therefore more frontend polish than new data
+layer. Search and filter can follow the running-event attendance
+page's pattern (query string, server-side filter, partial
+reload). CSV export follows `RegistrationMonitorController::exportCsv`.
+
+### Cross-references
+
+- `docs/church-events/07-scope-and-task-division.md` §3.6 —
+  Phase 5 task breakdown (5F.1 through 5F.6)
+- `docs/progress.md` 2026-10-16 Phase 5E entry -- the
+  attendance sub-phase the progress service reads
+- `docs/progress.md` 2026-10-16 Phase 5C entry -- the
+  enrollment model the progress attaches to
