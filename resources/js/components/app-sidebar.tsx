@@ -4,6 +4,7 @@ import {
     Church,
     ClipboardCheck,
     ClipboardList,
+    GraduationCap,
     HeartHandshake,
     LayoutGrid,
 } from 'lucide-react';
@@ -26,6 +27,7 @@ const mainNavItems: NavItem[] = [
     { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
     { title: 'Services', href: '/services', icon: Church },
     { title: 'Fellowship', href: '/fellowship', icon: HeartHandshake },
+    { title: 'Discipleship', href: '/discipleship', icon: GraduationCap },
     { title: 'Events', href: '/events', icon: CalendarDays },
     { title: 'Registration', href: '/registrations', icon: ClipboardList },
     { title: 'Attendance', href: '/attendance', icon: ClipboardCheck },

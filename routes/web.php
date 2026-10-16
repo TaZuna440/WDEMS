@@ -3,6 +3,7 @@
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Auth\DeviceVerificationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DiscipleshipController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventDeletionController;
 use App\Http\Controllers\FellowshipAttendanceController;
@@ -280,6 +281,26 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
         Route::get('{type}', [FellowshipController::class, 'show'])
             ->whereIn('type', ['family', 'church', 'pastors', 'leaders', 'womens', 'mens'])
             ->name('show');
+    });
+
+    // ============================================================
+    // Discipleship module (M5) -- Phase 5A.
+    //
+    // Two routes at 5A. Later sub-phases extend this block:
+    // 5B adds /programs/{program}/batches, 5C adds enrollment,
+    // 5D adds sessions, 5E adds session attendance.
+    //
+    // {program:slug} binds by slug, not ID. The slug is the
+    // stable public identifier (life-class, school-of-leaders-1).
+    // Reuse the same {program:slug} binding in 5B+ routes for
+    // consistency.
+    // ============================================================
+
+    Route::prefix('discipleship')->name('discipleship.')->group(function () {
+        Route::get('/', [DiscipleshipController::class, 'index'])
+            ->name('index');
+        Route::get('programs/{program:slug}', [DiscipleshipController::class, 'show'])
+            ->name('programs.show');
     });
     // Admin-only routes — same trusted-device pipeline, admin gate layered on top.
     Route::middleware('admin')->group(function () {
