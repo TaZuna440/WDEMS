@@ -1,7 +1,7 @@
 # WDEMS — UI Restructure Plan
 
 **Status:** Active plan. Approved by client direction on 2026-10-17.
-**Last updated:** 2026-10-17
+**Last updated:** 2026-10-17 (Phases 1-3 shipped)
 **Audience:** Developers working on the sidebar/events/dashboard
 restructure. Also useful to AI sessions picking up this work.
 
@@ -11,6 +11,33 @@ category-card front door, and rebuilding the dashboard as a
 reports summary. This is separate from the visual design work
 that removed the shell image (see `docs/design-system.md`
 Corrections 2026-10-17).
+
+---
+
+## 0. Progress
+
+| Phase | Status | Commit | Notes |
+|---|---|---|---|
+| 1 — Sidebar restructure | Complete | `42e9930` | 7 items → 5; church modules under `/events/church/*` |
+| 2 — Events page + category cards | Complete | `dfecbad` | Church tab shows the nine category cards |
+| 3 — Create Event branching | Complete | `fd0be9e` | Entry page splits by event kind |
+| — | Fix: card links, back nav | Complete | `5373ec5` | Phase 1 sweep missed template literals |
+| 4 — Six new church modules | Not started | — | 6 sessions, one per module |
+| 5 — Dashboard rebuild | Not started | — | 2 sessions |
+
+**Phases 1-3** shipped the coherent visual arc the client
+asked for: sidebar → Events → Church cards → category landing
+→ create flow → back.
+
+**Phase 4** and **Phase 5** remain. Phase 4 is the long tail —
+six separate module builds, one session per module.
+
+**Known gap.** The wizard's localStorage checkpoint uses a
+shared key (`wdems-wizard-create`) across all three create
+routes. A user who abandons a Community Run draft and starts a
+Church draft gets the Community Run data restored into the
+Church wizard. Fix is small (unique storage keys per route)
+but is not blocking.
 
 ---
 
