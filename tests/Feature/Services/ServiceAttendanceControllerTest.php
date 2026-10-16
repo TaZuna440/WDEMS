@@ -45,7 +45,7 @@ test('the attendance page renders with both tracks empty', function () {
         ->get(route('services.attendance.show', ['occurrence' => $this->occurrence->id]))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('services/attendance', false)
+            ->component('services/attendance')
             ->where('occurrence.id', $this->occurrence->id)
             ->has('members', 0)
             ->has('first_timers', 0)
