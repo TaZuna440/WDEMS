@@ -801,3 +801,62 @@ The window gate (`canRecordAttendanceNow()`), the search and filter
 semantics, the six filter chips, the page layout, and the bulk
 marking behavior are unchanged by this work. Only the encoding
 mode axis is new.
+
+## Correction — supersession claim by attendance-encoding-and-reporting.md (2026-10-16)
+
+The file `docs/attendance-encoding-and-reporting.md` opens with
+this line in its `**Related:**` block:
+
+> `docs/attendance-redesign.md` — the three-mode attendance
+> workspace this supersedes for day-of operations
+
+That is a claim of supersession over this file. It is not
+accurate as of 2026-10-16.
+
+The encoding-and-reporting doc is a **spec**, not a description
+of shipped code. Its own status block says so:
+
+> **Status:** Spec. No code exists yet for any of the three
+> features.
+
+The two-tab workspace it describes — Attendance and Walk-ins,
+replacing the three-mode (Mark / Confirm / Batch) toggle — was
+never built. The attendance page in the codebase today is
+still the three-mode workspace this file describes.
+
+**What did ship from the encoding-and-reporting doc's scope:**
+
+- **The attendance code** (`KM4X-P2N7`), the workspace lookup,
+  the `verified_at` column, and the live / deferred encoding
+  modes — shipped 2026-10-14 in commit `d05c7e7`. See this
+  file's own `## Correction: live / deferred encoding and the
+  attendance code (2026-10-14)` block below.
+- **The finalize-event action** — shipped 2026-10-14. See the
+  encoding doc's `## Pointer: finalize event shipped` section.
+- **The end-of-event report** — shipped 2026-10-15. Same
+  pointer section.
+
+**What did NOT ship from that doc's scope:**
+
+- The two-tab encoding workspace — the redesign that removes
+  the three-mode toggle and replaces it with Attendance and
+  Walk-ins tabs
+- Any part of Feature A beyond the attendance-code addition
+  noted above
+
+**Current authority split:**
+
+| Concern | Authoritative doc |
+|---|---|
+| The shipped attendance page (Mark / Confirm / Batch) | This file |
+| The attendance code + `verified_at` + live / deferred encoding | `attendance-code.md` |
+| The finalize-event action and end-of-event report | `attendance-encoding-and-reporting.md` (its pointer sections) |
+| A future two-tab encoding workspace | `attendance-encoding-and-reporting.md` — spec only, unbuilt |
+
+**Do not delete this file.** The encoding-and-reporting doc's
+supersedes line is stale. If a future session reads that line
+and deletes this file, it will have deleted the only
+description of the attendance page that actually exists in
+the codebase.
+
+The redesign work is done. The encoding workspace is not.
