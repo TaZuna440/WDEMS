@@ -158,7 +158,7 @@ function ContactVerification({
     };
 
     return (
-        <section className="grid gap-4 rounded-xl border border-white/10 p-6">
+        <section className="grid gap-4 rounded-xl border border-border p-6">
             <h2 className="text-lg font-semibold">{label} verification</h2>
             {state.status === 'verified' ? (
                 <p role="status" className="text-lime-brand">
@@ -362,7 +362,7 @@ export default function VerifyRegistration({
                             <section
                                 className={
                                     phoneStage === 'idle' || !phoneNeedsWork
-                                        ? 'grid gap-3 rounded-xl border border-white/10 p-6'
+                                        ? 'grid gap-3 rounded-xl border border-border p-6'
                                         : 'hidden'
                                 }
                             >

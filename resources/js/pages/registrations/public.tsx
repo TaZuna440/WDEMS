@@ -565,7 +565,7 @@ export default function PublicRegistration({
                         consent is not yet recorded server-side. See
                         ISSUE-010. */}
                     <div className="grid gap-1.5">
-                        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm">
+                        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card/40 p-4 text-sm">
                             <input
                                 type="checkbox"
                                 checked={consentAccepted}
