@@ -7,6 +7,7 @@ use App\Http\Controllers\DiscipleshipBatchController;
 use App\Http\Controllers\DiscipleshipController;
 use App\Http\Controllers\DiscipleshipEnrollmentController;
 use App\Http\Controllers\DiscipleshipSessionController;
+use App\Http\Controllers\ChurchCategoryPlaceholderController;
 use App\Http\Controllers\DiscipleshipAttendanceController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventDeletionController;
@@ -375,6 +376,18 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
         Route::get('programs/{program:slug}', [DiscipleshipController::class, 'show'])
             ->name('programs.show');
     });
+        // Placeholder landing for the six unbuilt church categories.
+        // Phase 4 replaces each with a real module page.
+        Route::get('{category}', ChurchCategoryPlaceholderController::class)
+            ->whereIn('category', [
+                'youth',
+                'kids',
+                'young-adult',
+                'worship-prayer',
+                'special-occasions',
+                'church-administration',
+            ])
+            ->name('events.church.placeholder');
     }); // close /events/church prefix group
     // Admin-only routes — same trusted-device pipeline, admin gate layered on top.
     Route::middleware('admin')->group(function () {

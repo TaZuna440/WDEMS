@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Calendar, MapPin, User, CalendarDays } from 'lucide-react';
+import ChurchCategoryCards from '@/components/church-category-cards';
 import { Button } from '@/components/ui/button';
 
 type EventRow = {
@@ -27,16 +28,11 @@ type Props = {
 };
 
 const statusStyles: Record<string, string> = {
-    // Running-event statuses
     draft: 'bg-secondary text-foreground',
     registration_open: 'bg-lime-brand/20 text-lime-700 dark:text-lime-brand',
     registration_closed:
         'bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500',
-    // Church-event statuses. 'ongoing', 'completed', 'cancelled' are
-    // shared with the running-event vocabulary and already have
-    // entries below.
     upcoming: 'bg-lime-brand/20 text-lime-700 dark:text-lime-brand',
-    // Shared
     ongoing: 'bg-accent/20 text-teal-700 dark:text-accent',
     completed: 'bg-green-500/15 text-green-700 dark:text-green-500',
     cancelled: 'bg-destructive/15 text-destructive',
@@ -63,6 +59,8 @@ export default function EventsIndex({ events, filters }: Props) {
         });
     };
 
+    const isChurchTab = filters.kind === 'church';
+
     return (
         <>
             <Head title="Events" />
@@ -75,7 +73,9 @@ export default function EventsIndex({ events, filters }: Props) {
                             Events
                         </h1>
                         <p className="text-muted-foreground mt-1 text-sm">
-                            All events across the WDEMS workflow
+                            {isChurchTab
+                                ? 'Pick a church event category to see its events'
+                                : 'All events across the WDEMS workflow'}
                         </p>
                     </div>
 
@@ -111,11 +111,14 @@ export default function EventsIndex({ events, filters }: Props) {
                     })}
                 </div>
 
-                {/* Empty state */}
-                {events.length === 0 ? (
+                {/* Church tab: category cards */}
+                {isChurchTab && <ChurchCategoryCards />}
+
+                {/* All / Running tabs: table (unchanged) */}
+                {!isChurchTab && events.length === 0 && (
                     <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-16 text-center">
                         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-lime-brand/15">
-                            <CalendarDays className="h-8 w-8 text-lime-brand" />
+                            <CalendarDays className="h-8 w-8 text-lime-700 dark:text-lime-brand" />
                         </div>
                         <h2 className="mb-2 text-lg font-semibold text-foreground">
                             No events yet
@@ -137,8 +140,9 @@ export default function EventsIndex({ events, filters }: Props) {
                             </Button>
                         )}
                     </div>
-                ) : (
-                    /* Table */
+                )}
+
+                {!isChurchTab && events.length > 0 && (
                     <div className="glass-panel overflow-hidden rounded-xl">
                         <div className="overflow-x-auto">
                             <table className="w-full">
