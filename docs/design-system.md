@@ -355,7 +355,170 @@ system. Each gets its own doc if the project grows to need it.
 
 ---
 
-## 11. Cross-references
+## 11. Interactive element surfaces
+
+§6 covers text placed directly on the image. This section covers
+the *other* elements that sit on the image or on light glass and
+need explicit mode-aware surfaces: chips, anchor buttons, inputs,
+checkboxes, status badges, and icon glyphs.
+
+The root cause every rule below addresses: `body` is transparent
+(Stage 2C), and the `body::before` pseudo-element paints the scene
+image at `z-index: -1`. Any element that assumes a solid
+`--background` behind it — or that uses a hardcoded white/black
+utility — will either show the raw image through itself or
+disappear when the mode flips.
+
+### 11.1 Floating filter chips
+
+Chips that sit on the raw image (not inside a glass card) need
+their own surface. The pre-fix pattern — `border-white/10` plus
+`text-muted-foreground` — is invisible in light mode because
+neither token describes the image context.
+
+**Active chip:**
+
+    border-lime-brand/40 bg-lime-brand/25 text-lime-700
+    dark:bg-lime-brand/20 dark:text-lime-brand
+
+**Inactive chip:**
+
+    border-border bg-card/70 text-foreground hover:bg-card
+
+Lime-on-lime needed a light-mode pair: `text-lime-700` is the
+readable dark-lime on the pale lime pill; `dark:text-lime-brand`
+restores the bright lime for the dark mode pill.
+
+**Where it applies:** `events/index.tsx`, `discipleship/show.tsx`,
+`services/attendance.tsx`, `services/show.tsx`,
+`attendance-filter-chips.tsx`, `registrations/monitor/show.tsx`.
+Chips inside glass panels (e.g. the running-event attendance
+filter chips) use the same classes — the pattern is safe both on
+and off the image.
+
+### 11.2 Raw anchor buttons
+
+The `Button` component carries a mode-aware surface via the
+outline variant. A raw `<a>` styled to look like a button does not
+inherit it — it needs the surface written by hand.
+
+**Rule:**
+
+    inline-flex h-8 items-center rounded-md border border-border
+    bg-card/80 px-3 text-xs font-medium text-foreground shadow-xs
+    backdrop-blur-sm transition-colors hover:bg-card
+
+`bg-card/80` gives the anchor the same translucent-white surface
+as the outline Button; `backdrop-blur-sm` softens the image behind
+it; `border-border` flips with the mode.
+
+**Where it applies:** Export CSV buttons on `discipleship/show.tsx`
+and `events/report.tsx`; the Refresh and Export buttons on
+`registrations/monitor/show.tsx`; the Copy public link button in
+the same file (with `border-lime-brand/40` instead of
+`border-border`).
+
+### 11.3 Form primitives
+
+`Input`, `SelectTrigger`, and `Textarea` ship from shadcn with
+`bg-transparent`. On a transparent body that means the raw image
+shows through the field.
+
+**Rule:** `bg-card` on the base class of every form input
+primitive. `bg-transparent` is not used anywhere on `Input`,
+`SelectTrigger`, or `Textarea` except for `file:bg-transparent`
+on the file input's button, which is correct.
+
+**Checkbox** uses `border-border bg-card` for the unchecked state.
+The shadcn default (`border-input`, where `--input` is near-white
+in light mode) renders nearly invisible on a light card.
+
+**Where it applies:** `resources/js/components/ui/input.tsx`,
+`select.tsx`, `textarea.tsx`, `checkbox.tsx`.
+
+### 11.4 Outline Button variant
+
+The `outline` variant uses `bg-card/80 backdrop-blur-sm` — not
+`bg-background`. `--background` is transparent in this design
+system; using it produces an invisible button on the image. The
+current primitive recipe gives every outline Button a visible
+surface without per-page overrides.
+
+### 11.5 Status badges — bright colors need a light-mode pair
+
+Bright `-400` Tailwind colors (`text-green-400`, `text-blue-400`,
+and the like) read on dark surfaces but disappear on pale glass.
+
+**Rule:** pair every bright status color with a dark-`-700` light
+mode value:
+
+    text-green-700 dark:text-green-400
+    text-blue-700  dark:text-blue-400
+
+The `bg-*-500/15` tint and `border-*-500/30` remain the same in
+both modes — only the text color flips.
+
+**Where it applies:** `STATUS_STYLES` maps in
+`events/attendance.tsx` and `events/report.tsx`, the
+`ACTIVE_STYLES` map in `attendance-filter-chips.tsx`, and
+individual icon colors such as `CheckCircle2` in
+`settings/security.tsx`.
+
+**Note:** `text-destructive` is already mode-aware in this
+codebase (it resolves to a red that works in both modes) and does
+not need a pair.
+
+### 11.6 Lime glyphs on lime-tinted circles
+
+`text-lime-brand` on `bg-lime-brand/15` is bright lime on pale
+lime — low contrast in light mode.
+
+**Rule:**
+
+    text-lime-700 dark:text-lime-brand
+
+The circle background stays `bg-lime-brand/15`.
+
+**Where it applies:** card icon circles on `services/index.tsx`,
+`fellowship/index.tsx`, `discipleship/index.tsx`; empty-state
+icon circles on the same pages and on `discipleship/batch-show.tsx`
+and `discipleship/show.tsx`; the accessibility checkmark on
+`events/show.tsx` (where the circle is `bg-lime-brand/20` but the
+text rule is identical); the `Latest:` metadata accent on
+`services/index.tsx`.
+
+### 11.7 Empty-state icon circles
+
+`bg-white/5` is a dark-mode-only tint. On a light card it produces
+a nearly invisible circle.
+
+**Rule:** `bg-secondary` for the circle. `--secondary` resolves to
+`oklch(0.95 0.005 250)` in light mode and `oklch(0.269 0 0)` in
+dark — a visible disc in both.
+
+**Where it applies:** any empty state that renders a circular icon
+holder on a glass-panel surface.
+
+### 11.8 The common shape
+
+Every rule above traces back to one of two failures:
+
+1. **Token that assumes a solid `--background`.** `bg-transparent`,
+   `bg-background`, `border-input` — these presume the element is
+   over an opaque surface. In a design system whose body is
+   transparent, they must be replaced with `bg-card`,
+   `border-border`, or `bg-secondary`.
+
+2. **Hardcoded white utility without a dark: pair.** `bg-white/5`,
+   `border-white/10`, `border-white/5`, `hover:bg-white/10` — these
+   read on the dark image in dark mode but vanish on the light
+   glass surface in light mode. Replace with the semantic token
+   (`bg-card`, `border-border`, `bg-secondary`) or add a light-mode
+   counterpart.
+
+Both classes are enforced by `scripts/audit-design.sh` Rules 4-6
+plus the existing Rules 1-3. See §9.1.
+## 12. Cross-references
 
 | Document | Purpose |
 |---|---|
@@ -373,3 +536,10 @@ system. Each gets its own doc if the project grows to need it.
   rule, text-on-image usage, tier assignments, anti-patterns, and
   enforcement.
 
+
+- **2026-10-16** — §11 added. Documents the interactive-element
+  surface rules discovered during the light/dark sweep: chips,
+  anchor buttons, form primitives, outline Button variant, status
+  badges, lime glyphs, and empty-state circles. §11 "Cross-
+  references" renumbered to §12. The audit's Rules 4-6 enforce the
+  new rules.
