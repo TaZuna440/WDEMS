@@ -145,14 +145,14 @@ function StatsStrip({
     return (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span>
-                <span className="font-semibold text-foreground">
+                <span className="font-semibold text-on-image">
                     {stats.total}
                 </span>{' '}
-                <span className="text-muted-foreground">registered</span>
+                <span className="text-on-image-muted">registered</span>
             </span>
             {showHour && (
                 <>
-                    <span className="text-muted-foreground">·</span>
+                    <span className="text-on-image-muted">·</span>
                     <span className="text-lime-brand">
                         +{stats.last_hour} in the last hour
                     </span>
@@ -160,7 +160,7 @@ function StatsStrip({
             )}
             {show15 && (
                 <>
-                    <span className="text-muted-foreground">·</span>
+                    <span className="text-on-image-muted">·</span>
                     <span className="text-lime-brand">
                         +{stats.last_15min} in the last 15 min
                     </span>
@@ -192,7 +192,7 @@ function Chip({
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                 active
                     ? 'border-lime-brand/40 bg-lime-brand/15 text-lime-brand'
-                    : 'border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground'
+                    : 'border-border bg-card/70 text-foreground hover:bg-card'
             }`}
         >
             {label}
@@ -530,7 +530,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                             {event.is_open ? 'OPEN' : 'CLOSED'}
                         </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-on-image-muted">
                         {event.event_date ?? '—'}
                         {event.venue !== null && ` · ${event.venue}`}
                     </p>
@@ -540,11 +540,11 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <StatsStrip stats={stats} isOpen={event.is_open} />
 
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-3 text-xs">
                         {event.is_open && event.registration_slug !== null && (
                             <PublicLinkButton slug={event.registration_slug} />
                         )}
-                        <span>Updated {relativeSeconds(secondsAgo)}</span>
+                        <span className="text-on-image-muted">Updated {relativeSeconds(secondsAgo)}</span>
                         <button
                             type="button"
                             onClick={refresh}
