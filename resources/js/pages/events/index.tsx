@@ -102,8 +102,8 @@ export default function EventsIndex({ events, filters }: Props) {
                                 onClick={() => applyKind(filter.value)}
                                 className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                                     active
-                                        ? 'border-lime-brand/40 bg-lime-brand/15 text-lime-brand'
-                                        : 'border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground'
+                                        ? 'border-lime-brand/40 bg-lime-brand/25 text-lime-700 dark:bg-lime-brand/20 dark:text-lime-brand'
+                                        : 'border-border bg-card/70 text-foreground hover:bg-card'
                                 }`}
                             >
                                 {filter.label}
