@@ -5,7 +5,6 @@ namespace App\Enums;
 enum EventType: string
 {
     case CommunityRun = 'community_run';
-    case FunRun = 'fun_run';
     case Church = 'church';
 
     /**
@@ -19,15 +18,15 @@ enum EventType: string
     /**
      * Running-event types only.
      *
-     * Used by the running-event creation wizard, which must not
-     * offer Church as an option. Church events are created
-     * through a separate flow (Phase 2 onwards).
+     * After the Fun Run removal (2026-10-16), Community Run is the
+     * only running-event type. Church is a separate kind, gated by
+     * the event_kind discriminator column, and is not returned here.
      *
      * @return array<int, self>
      */
     public static function runningTypes(): array
     {
-        return [self::CommunityRun, self::FunRun];
+        return [self::CommunityRun];
     }
 
     /**
@@ -37,7 +36,6 @@ enum EventType: string
     {
         return match ($this) {
             self::CommunityRun => 'Community Run',
-            self::FunRun => 'Fun Run',
             self::Church => 'Church Event',
         };
     }

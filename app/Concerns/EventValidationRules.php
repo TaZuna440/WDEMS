@@ -2,6 +2,7 @@
 
 namespace App\Concerns;
 
+use App\Enums\ChurchCategory;
 use App\Enums\ChurchEventStatus;
 use App\Enums\EventStatus;
 use App\Enums\EventType;
@@ -72,7 +73,7 @@ trait EventValidationRules
      *
      * Rules are conditional on the event_kind field:
      *
-     *   running  -- event_type must be CommunityRun or FunRun;
+     *   running  -- event_type must be CommunityRun;
      *               distance_value and distance_unit are required;
      *               church_category and church_status are nullable.
      *
@@ -92,15 +93,14 @@ trait EventValidationRules
         $kindRules = $isChurch
             ? [
                 'event_type' => ['required', Rule::in([EventType::Church->value])],
-                'church_category' => ['required', 'string', 'max:64'],
+                'church_category' => ['required', Rule::enum(ChurchCategory::class)],
                 'church_status' => ['required', Rule::enum(ChurchEventStatus::class)],
             ]
             : [
                 'event_type' => ['required', Rule::in([
                     EventType::CommunityRun->value,
-                    EventType::FunRun->value,
                 ])],
-                'church_category' => ['nullable', 'string', 'max:64'],
+                'church_category' => ['nullable', Rule::enum(ChurchCategory::class)],
                 'church_status' => ['nullable', Rule::enum(ChurchEventStatus::class)],
             ];
 
@@ -440,6 +440,7 @@ trait EventValidationRules
             'event_kind.in' => 'Event kind must be running or church.',
             'event_type.in' => 'The selected event type does not match the event kind.',
             'church_category.required' => 'Church category is required.',
+            'church_category.enum' => 'The selected church category is not valid.',
             'church_status.required' => 'Church status is required.',
         ];
     }

@@ -9,7 +9,7 @@
  * object means the step is valid.
  */
 
-const EVENT_TYPES = ['community_run', 'fun_run'] as const;
+const EVENT_TYPES = ['community_run', 'church'] as const;
 const DISTANCE_UNITS = ['km', 'mi'] as const;
 const PARTNER_TYPES = [
     'host',

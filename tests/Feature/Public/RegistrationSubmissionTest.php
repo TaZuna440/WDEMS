@@ -50,7 +50,7 @@ test('the public form renders for an open event', function () {
 
 test('the public form exposes the existing event details before personal fields', function () {
     $event = public_event([
-        'event_type' => 'fun_run',
+        'event_type' => 'community_run',
         'start_time' => '06:30:00',
         'end_time' => '09:00:00',
         'distance_value' => 5,
@@ -66,7 +66,7 @@ test('the public form exposes the existing event details before personal fields'
     $this->get("/r/{$event->registration_slug}")->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('event.event_name', 'Public Test Run')
-            ->where('event.event_type', 'Fun Run')
+            ->where('event.event_type', 'Community Run')
             ->where('event.event_date', $event->fresh()->event_date?->toDateString())
             ->where('event.start_time', '06:30')
             ->where('event.end_time', '09:00')

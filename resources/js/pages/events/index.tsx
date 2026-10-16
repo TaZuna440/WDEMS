@@ -44,7 +44,6 @@ const statusStyles: Record<string, string> = {
 
 const typeStyles: Record<string, string> = {
     community_run: 'bg-accent/15 text-teal-700 dark:text-accent',
-    fun_run: 'bg-secondary text-foreground',
     church: 'bg-lime-brand/15 text-lime-700 dark:text-lime-brand',
 };
 
@@ -191,7 +190,7 @@ export default function EventsIndex({ events, filters }: Props) {
                                                 <span
                                                     className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
                                                         typeStyles[event.event_type] ??
-                                                        typeStyles.fun_run
+                                                        'bg-secondary text-foreground'
                                                     }`}
                                                 >
                                                     {event.event_type_label}

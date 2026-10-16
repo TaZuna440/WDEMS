@@ -409,11 +409,6 @@ class Event extends Model
         return $this->event_type === EventType::CommunityRun;
     }
 
-    public function isFunRun(): bool
-    {
-        return $this->event_type === EventType::FunRun;
-    }
-
     /**
      * Human-readable distance label — e.g. "5.00 KM" or "3.11 Miles".
      * Returns null if no distance is set.

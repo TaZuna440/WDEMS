@@ -224,13 +224,13 @@ it('excludes walk-ins from the status breakdown', function () {
 
 it('scopes cross-event rows to the current event type', function () {
     $community = rpt_event(['event_type' => 'community_run']);
-    $funRun = rpt_event(['event_type' => 'fun_run']);
+    $church = rpt_event(['event_type' => 'church', 'event_kind' => 'church', 'church_category' => 'Services', 'church_status' => 'upcoming']);
 
     $crossEvent = rpt_service()->build($community)['cross_event'];
     $ids = array_column($crossEvent['rows'], 'id');
 
     expect($ids)->toContain($community->id)
-        ->and($ids)->not->toContain($funRun->id);
+        ->and($ids)->not->toContain($church->id);
 });
 
 it('excludes non-reportable events from cross-event', function () {
@@ -326,8 +326,11 @@ it('scopes participant history to the current event type', function () {
         'event_type' => 'community_run',
         'event_date' => today()->subMonth()->toDateString(),
     ]);
-    $funRunPrior = rpt_event([
-        'event_type' => 'fun_run',
+    $churchPrior = rpt_event([
+        'event_type' => 'church',
+        'event_kind' => 'church',
+        'church_category' => 'Services',
+        'church_status' => 'upcoming',
         'event_date' => today()->subWeek()->toDateString(),
     ]);
 
@@ -336,8 +339,8 @@ it('scopes participant history to the current event type', function () {
     $priorReg = rpt_registration($communityPrior, $participant);
     rpt_attend($priorReg, 'present', now()->toIso8601String());
 
-    $funReg = rpt_registration($funRunPrior, $participant);
-    rpt_attend($funReg, 'present', now()->toIso8601String());
+    $churchReg = rpt_registration($churchPrior, $participant);
+    rpt_attend($churchReg, 'present', now()->toIso8601String());
 
     $participants = rpt_service()->build($communityCurrent)['participants'];
 
