@@ -82,7 +82,7 @@ function EventCard({ event }: { event: EventRow }) {
 function EmptyState() {
     return (
         <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-12 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/5">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
                 <ClipboardCheck className="h-6 w-6 text-muted-foreground" />
             </div>
             <h2 className="text-base font-semibold text-foreground">
@@ -105,10 +105,10 @@ export default function AttendanceIndex({ today, recent }: Props) {
 
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
                 <div>
-                    <h1 className="text-2xl font-semibold text-foreground">
+                    <h1 className="text-on-image text-2xl font-semibold">
                         Attendance
                     </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="text-on-image-muted mt-1 text-sm">
                         Events scheduled for today or recently, ready for
                         attendance recording.
                     </p>
