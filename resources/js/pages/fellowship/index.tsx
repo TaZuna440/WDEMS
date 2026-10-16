@@ -58,7 +58,7 @@ export default function FellowshipIndex({ fellowship_types }: Props) {
                             <Link
                                 key={type.value}
                                 href={`/fellowship/${type.value}`}
-                                className="glass-panel group flex flex-col gap-3 rounded-xl p-5 transition-colors hover:border-lime-brand/40"
+                                className="glass-panel glass-panel-hover group flex flex-col gap-3 rounded-xl p-5"
                             >
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-lime-brand/15 text-lime-brand">
                                     <Icon className="h-5 w-5" />

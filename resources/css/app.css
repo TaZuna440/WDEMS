@@ -198,9 +198,9 @@
     --app-bg-texture-opacity: 0.035;
 
     /* Glass tint strengths — light mode needs higher opacity for contrast */
-    --glass-card-tint: 42%;
-    --glass-sidebar-tint: 45%;
-    --glass-header-tint: 42%;
+    --glass-card-tint: 75%;
+    --glass-sidebar-tint: 65%;
+    --glass-header-tint: 70%;
     --glass-border-strength: 65%;
 }
 
@@ -454,4 +454,28 @@ body::before {
     );
     backdrop-filter: blur(16px) saturate(140%);
     -webkit-backdrop-filter: blur(16px) saturate(140%);
+}
+
+/* Brightening hover variant for interactive glass panels (cards that
+   link somewhere). Adds a lighter tint and a lime-tinted border on
+   hover. Applied in addition to .glass-panel. Reads --glass-card-tint
+   from the current mode, so the brightening amount tracks the mode. */
+@layer utilities {
+    .glass-panel-hover {
+        transition:
+            background-color 150ms ease-out,
+            border-color 150ms ease-out;
+    }
+    .glass-panel-hover:hover {
+        background-color: color-mix(
+            in oklch,
+            var(--card) calc(var(--glass-card-tint) + 12%),
+            transparent
+        );
+        border-color: color-mix(
+            in oklch,
+            var(--lime-brand) 45%,
+            transparent
+        );
+    }
 }
