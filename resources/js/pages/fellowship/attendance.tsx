@@ -272,7 +272,7 @@ export default function FellowshipAttendance({
                             {groups.map((g) => (
                                 <div
                                     key={g.id}
-                                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] py-1 pl-3 pr-1.5 text-xs"
+                                    className="inline-flex items-center gap-2 rounded-full border border-border bg-card/40 py-1 pl-3 pr-1.5 text-xs"
                                 >
                                     <span className="font-medium text-foreground">
                                         {g.name}
@@ -288,7 +288,7 @@ export default function FellowshipAttendance({
                                                 group: g,
                                             })
                                         }
-                                        className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground"
+                                        className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                                         aria-label={`Edit group ${g.name}`}
                                     >
                                         <Pencil className="h-3 w-3" />
@@ -351,7 +351,7 @@ export default function FellowshipAttendance({
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-white/10 text-left">
+                                    <tr className="border-b border-border text-left">
                                         <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                             Status
                                         </th>
@@ -376,7 +376,7 @@ export default function FellowshipAttendance({
                                     {visibleRows.map((row) => (
                                         <tr
                                             key={row.id}
-                                            className="border-b border-white/5 transition-colors last:border-b-0 hover:bg-white/[0.02]"
+                                            className="border-b border-border transition-colors last:border-b-0 hover:bg-card/40"
                                         >
                                             <td className="px-3 py-3">
                                                 <select

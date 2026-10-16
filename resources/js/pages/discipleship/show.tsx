@@ -144,7 +144,7 @@ function ProgressCell({ progress }: { progress: ProgressRow }) {
 
     return (
         <div className="flex items-center gap-2">
-            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/5">
+            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
                 <div
                     className="h-full rounded-full bg-lime-brand"
                     style={{ width: `${pct}%` }}
@@ -403,14 +403,14 @@ export default function DiscipleshipShow({
                                 <button
                                     type="button"
                                     onClick={() => setDetailsOpen(true)}
-                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-white/[0.03]"
+                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-secondary/60"
                                 >
                                     <Info className="h-4 w-4 text-muted-foreground" />
                                     View program details
                                 </button>
                                 <a
                                     href="#batches"
-                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-white/[0.03]"
+                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-secondary/60"
                                 >
                                     <CalendarDays className="h-4 w-4 text-muted-foreground" />
                                     Manage batches
@@ -418,7 +418,7 @@ export default function DiscipleshipShow({
                                 <button
                                     type="button"
                                     onClick={() => setAddEnrollOpen(true)}
-                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-white/[0.03]"
+                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-secondary/60"
                                 >
                                     <UserPlus className="h-4 w-4 text-muted-foreground" />
                                     Add enrollment
@@ -625,7 +625,7 @@ export default function DiscipleshipShow({
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="border-b border-white/5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                        <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                                             <th className="px-4 py-3">Participant</th>
                                             <th className="px-4 py-3">Contact</th>
                                             <th className="px-4 py-3">Batch</th>
@@ -639,7 +639,7 @@ export default function DiscipleshipShow({
                                         {enrollments.map((row) => (
                                             <tr
                                                 key={row.id}
-                                                className="border-b border-white/5 last:border-b-0 hover:bg-white/[0.02]"
+                                                className="border-b border-border last:border-b-0 hover:bg-white/[0.02]"
                                             >
                                                 <td className="px-4 py-3 font-medium text-foreground">
                                                     {row.full_name ?? '—'}
@@ -847,7 +847,7 @@ function ProgramDetailsDialog({
                         </div>
                     </div>
 
-                    <div className="rounded-md border border-white/10 bg-white/[0.02] p-3">
+                    <div className="rounded-md border border-border bg-card/40 p-3">
                         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                             Completion criteria
                         </p>
@@ -1174,7 +1174,7 @@ function AddEnrollmentDialog({
                                     />
                                 </div>
 
-                                <div className="max-h-56 overflow-y-auto rounded-md border border-white/10">
+                                <div className="max-h-56 overflow-y-auto rounded-md border border-border">
                                     {loading ? (
                                         <p className="px-3 py-2 text-xs text-muted-foreground">
                                             Searching…
@@ -1193,10 +1193,10 @@ function AddEnrollmentDialog({
                                                     type="button"
                                                     onClick={() => !p.already_enrolled && pick(p)}
                                                     disabled={p.already_enrolled}
-                                                    className={`flex items-center justify-between gap-3 border-b border-white/5 px-3 py-2 text-left text-sm last:border-b-0 ${
+                                                    className={`flex items-center justify-between gap-3 border-b border-border px-3 py-2 text-left text-sm last:border-b-0 ${
                                                         p.already_enrolled
                                                             ? 'cursor-not-allowed opacity-50'
-                                                            : 'hover:bg-white/[0.03]'
+                                                            : 'hover:bg-secondary/60'
                                                     }`}
                                                 >
                                                     <div className="flex flex-col">

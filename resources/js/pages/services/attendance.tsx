@@ -292,7 +292,7 @@ export default function ServiceAttendance({
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-white/10 text-left">
+                                    <tr className="border-b border-border text-left">
                                         <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                             Status
                                         </th>
@@ -325,7 +325,7 @@ export default function ServiceAttendance({
                                     {visibleRows.map((row) => (
                                         <tr
                                             key={row.id}
-                                            className="border-b border-white/5 transition-colors last:border-b-0 hover:bg-white/[0.02]"
+                                            className="border-b border-border transition-colors last:border-b-0 hover:bg-card/40"
                                         >
                                             <td className="px-3 py-3">
                                                 <select
