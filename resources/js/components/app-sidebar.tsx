@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import {
     CalendarDays,
+    Church,
     ClipboardCheck,
     ClipboardList,
     LayoutGrid,
@@ -22,6 +23,7 @@ import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
     { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
+    { title: 'Services', href: '/services', icon: Church },
     { title: 'Events', href: '/events', icon: CalendarDays },
     { title: 'Registration', href: '/registrations', icon: ClipboardList },
     { title: 'Attendance', href: '/attendance', icon: ClipboardCheck },
