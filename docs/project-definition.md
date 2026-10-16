@@ -645,7 +645,6 @@ Modules confirmed in scope but not yet built:
 | **Members / First-Timers pages** | Dedicated top-level pages for existing backend models |
 | **Services sidebar restructure** | Services becomes a parent; Attendance nests beneath it |
 | **Participant grade tracking** | Global column on the participant record, plus edit/delete actions |
-| **Expanded role model** | Four-role structure, pending Q21–Q32 answers |
 
 ---
 
