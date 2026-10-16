@@ -59,6 +59,22 @@ const MAX_EVENT_YEARS_AHEAD = 2;
 const GOOGLE_MAPS_URL_PATTERN =
     /^https?:\/\/(?:(?:www\.|maps\.)?google\.[a-z]{2,}(?:\.[a-z]{2})?\/maps(?:\/|\?|#)|maps\.app\.goo\.gl\/|goo\.gl\/maps\/)\S+$/i;
 
+/**
+ * Name-quality regexes. Mirrors
+ * HumanNameQualityRules::humanNameQualityRules() on the server.
+ * Keep both in sync.
+ *
+ * Unicode-aware (2026-10-16, per client decision Q7): the start check
+ * uses \p{L} and \p{N}; the vowel and consonant checks accept either an
+ * ASCII character from the class OR any non-ASCII character. Pure-ASCII
+ * input is still checked strictly.
+ */
+const NAME_START_PATTERN = /^[\p{L}\p{N}]/u;
+const NAME_VOWEL_OR_NON_ASCII_PATTERN = /([aeiouyAEIOUY]|[^\x00-\x7F])/u;
+const NAME_CONSONANT_OR_NON_ASCII_PATTERN =
+    /([bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]|[^\x00-\x7F])/u;
+const NAME_TRIPLE_CHAR_PATTERN = /(.)\1\1/u;
+
 function asString(value: unknown): string {
     return typeof value === 'string' ? value : String(value ?? '');
 }
@@ -117,6 +133,9 @@ function combineDateTime(iso: string, hhmm: string): Date | null {
  * names). Mirrors EventValidationRules::humanNameQualityRules() on the
  * server. Keep both in sync.
  *
+ * Accepts non-English event names per client decision Q7 (2026-10-16).
+ * See the regex declarations above for the exact rules.
+ *
  * @param value  trimmed, non-empty string to check
  * @param label  human-readable field label used in error messages,
  *               e.g. "Event name" or "Partner name"
@@ -125,16 +144,16 @@ export function humanNameQualityError(
     value: string,
     label: string,
 ): string | null {
-    if (!/^[A-Za-z0-9]/.test(value)) {
+    if (!NAME_START_PATTERN.test(value)) {
         return `${label} must start with a letter or number.`;
     }
-    if (!/[aeiouyAEIOUY]/.test(value)) {
+    if (!NAME_VOWEL_OR_NON_ASCII_PATTERN.test(value)) {
         return `Please enter a valid ${label.toLowerCase()}.`;
     }
-    if (!/[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]/.test(value)) {
+    if (!NAME_CONSONANT_OR_NON_ASCII_PATTERN.test(value)) {
         return `Please enter a valid ${label.toLowerCase()}.`;
     }
-    if (/(.)\1\1/.test(value)) {
+    if (NAME_TRIPLE_CHAR_PATTERN.test(value)) {
         return `Please enter a valid ${label.toLowerCase()}.`;
     }
     return null;
