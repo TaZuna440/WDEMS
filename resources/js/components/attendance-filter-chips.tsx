@@ -36,12 +36,12 @@ const LABELS: Record<AttendanceFilter, string> = {
 };
 
 const ACTIVE_STYLES: Record<AttendanceFilter, string> = {
-    all: 'bg-white/10 text-foreground border-white/20',
-    unmarked: 'bg-secondary text-foreground border-white/20',
-    present: 'bg-green-500/15 text-green-400 border-green-500/30',
+    all: 'bg-secondary text-foreground border-border',
+    unmarked: 'bg-secondary text-foreground border-border',
+    present: 'bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400',
     absent: 'bg-destructive/15 text-destructive border-destructive/30',
     late: 'bg-[#13253B] text-white border border-[#13253B] dark:bg-yellow-500/15 dark:text-yellow-500 dark:border-yellow-500/30',
-    excused: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    excused: 'bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-400',
 };
 
 export default function AttendanceFilterChips({

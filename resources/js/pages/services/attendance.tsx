@@ -198,8 +198,8 @@ export default function ServiceAttendance({
                         }}
                         className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
                             isMembersTab
-                                ? 'border-lime-brand/40 bg-lime-brand/15 text-lime-brand'
-                                : 'border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground'
+                                ? 'border-lime-brand/40 bg-lime-brand/25 text-lime-700 dark:bg-lime-brand/20 dark:text-lime-brand'
+                                : 'border-border bg-card/70 text-foreground hover:bg-card'
                         }`}
                     >
                         Members
@@ -221,8 +221,8 @@ export default function ServiceAttendance({
                         }}
                         className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
                             !isMembersTab
-                                ? 'border-lime-brand/40 bg-lime-brand/15 text-lime-brand'
-                                : 'border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground'
+                                ? 'border-lime-brand/40 bg-lime-brand/25 text-lime-700 dark:bg-lime-brand/20 dark:text-lime-brand'
+                                : 'border-border bg-card/70 text-foreground hover:bg-card'
                         }`}
                     >
                         First-Timers

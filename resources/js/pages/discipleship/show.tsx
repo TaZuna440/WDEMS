@@ -639,7 +639,7 @@ export default function DiscipleshipShow({
                                         {enrollments.map((row) => (
                                             <tr
                                                 key={row.id}
-                                                className="border-b border-border last:border-b-0 hover:bg-white/[0.02]"
+                                                className="border-b border-border last:border-b-0 hover:bg-card/40"
                                             >
                                                 <td className="px-4 py-3 font-medium text-foreground">
                                                     {row.full_name ?? '—'}

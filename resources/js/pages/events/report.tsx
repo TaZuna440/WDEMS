@@ -85,9 +85,9 @@ type Props = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-    present: 'bg-green-500/15 text-green-400 border-green-500/30',
+    present: 'bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400',
     late: 'bg-[#13253B] text-white border border-[#13253B] dark:bg-yellow-500/15 dark:text-yellow-500 dark:border-yellow-500/30',
-    excused: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    excused: 'bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-400',
     absent: 'bg-destructive/15 text-destructive border-destructive/30',
 };
 
@@ -399,7 +399,7 @@ function CrossEventSection({ crossEvent }: { crossEvent: CrossEvent }) {
                                                 row.delta === null
                                                     ? 'text-muted-foreground'
                                                     : row.delta >= 0
-                                                      ? 'text-green-400'
+                                                      ? 'text-green-700 dark:text-green-400'
                                                       : 'text-destructive'
                                             }`}
                                         >

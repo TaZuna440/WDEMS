@@ -181,7 +181,7 @@ export default function Security({
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex flex-1 items-start gap-3">
                                 {emailTwoFactorEnabled ? (
-                                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
+                                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-700 dark:text-green-400" />
                                 ) : (
                                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                                 )}

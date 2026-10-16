@@ -58,7 +58,7 @@ export default function DiscipleshipIndex({ programs }: Props) {
                                 href={`/discipleship/programs/${program.slug}`}
                                 className="glass-panel group flex gap-4 rounded-xl p-5 transition-colors hover:border-lime-brand/40"
                             >
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-lime-brand/15 text-lime-brand">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-lime-brand/15 text-lime-700 dark:text-lime-brand">
                                     <Icon className="h-5 w-5" />
                                 </div>
                                 <div className="flex flex-1 flex-col gap-1">
