@@ -30,6 +30,8 @@ type EventData = {
     event_name: string;
     event_type: string;
     event_type_label: string;
+    event_kind: string;
+    church_category: string | null;
     description: string | null;
     event_date: string | null;
     start_time: string | null;
@@ -80,6 +82,7 @@ const statusStyles: Record<string, string> = {
     draft: 'bg-secondary text-foreground',
     registration_open: 'bg-lime-brand/20 text-lime-brand',
     registration_closed: 'bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500',
+    upcoming: 'bg-lime-brand/20 text-lime-brand',
     ongoing: 'bg-accent/20 text-accent',
     completed: 'bg-green-500/15 text-green-500',
     cancelled: 'bg-destructive/15 text-destructive',
@@ -313,7 +316,7 @@ export default function EventsShow({
                             <DetailRow
                                 icon={Tag}
                                 label="Event Type"
-                                value={event.event_type_label}
+                                value={event.church_category ?? event.event_type_label}
                             />
                             <DetailRow
                                 icon={Calendar}
