@@ -91,7 +91,7 @@ const CELL_STYLES: Record<AttendanceStatus, string> = {
     absent: 'bg-destructive/10 text-destructive border-destructive/30',
     excused:
         'bg-[#13253B]/10 text-[#13253B] border-[#13253B]/30 dark:bg-yellow-500/10 dark:text-yellow-500 dark:border-yellow-500/30',
-    '': 'bg-transparent text-muted-foreground border-white/10',
+    '': 'bg-transparent text-muted-foreground border-border',
 };
 
 function formatDate(iso: string): string {
@@ -119,7 +119,7 @@ function ProgressCell({ progress }: { progress: ProgressRow | undefined }) {
 
     return (
         <div className="flex items-center gap-2">
-            <div className="h-1.5 w-14 overflow-hidden rounded-full bg-white/5">
+            <div className="h-1.5 w-14 overflow-hidden rounded-full bg-secondary">
                 <div
                     className="h-full rounded-full bg-lime-brand"
                     style={{ width: `${pct}%` }}
@@ -264,7 +264,7 @@ export default function DiscipleshipBatchShow({
                 </div>
 
                 <section className="flex flex-col gap-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                    <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
                         Sessions
                     </h2>
 
@@ -337,7 +337,7 @@ export default function DiscipleshipBatchShow({
 
                 <section className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
                             Attendance
                         </h2>
                         {hasDirty && (
@@ -384,7 +384,7 @@ export default function DiscipleshipBatchShow({
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="border-b border-white/10">
+                                        <tr className="border-b border-border">
                                             <th className="sticky left-0 z-10 bg-background/80 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground backdrop-blur">
                                                 Participant
                                             </th>
@@ -406,7 +406,7 @@ export default function DiscipleshipBatchShow({
                                         {enrollments.map((enrollment) => (
                                             <tr
                                                 key={enrollment.id}
-                                                className="border-b border-white/5 last:border-b-0"
+                                                className="border-b border-border last:border-b-0"
                                             >
                                                 <td className="sticky left-0 z-10 bg-background/80 px-4 py-3 font-medium text-foreground backdrop-blur">
                                                     {enrollment.full_name ?? '—'}

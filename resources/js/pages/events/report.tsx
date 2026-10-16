@@ -319,7 +319,7 @@ function CrossEventSection({ crossEvent }: { crossEvent: CrossEvent }) {
 
     return (
         <section className="flex flex-col gap-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
                 Cross-event by type
             </h2>
 
@@ -523,7 +523,7 @@ function ParticipantsSection({
 
     return (
         <section className="flex flex-col gap-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
                 Participants
             </h2>
 
