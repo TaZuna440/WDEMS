@@ -734,3 +734,43 @@ wizard doc's side.
 
 Unchanged. The attendance page exists in the tree but was not verified
 end to end when this file was written.
+
+### §7.1 — Event Options flow no longer exists
+
+§7.1 of this file describes an **Event Options** flow with its
+own route prefix (`/events/{event}/options`), controller
+(`EventOptionController`), and page (`events/options.tsx`). That
+flow does not exist in the codebase.
+
+The `EventOptionController` class is not in the tree. No
+`options` routes appear in `php artisan route:list`. The
+`events/options.tsx` page does not exist. The `event_options`
+and `registration_options` tables were dropped by migrations
+during the registration-form rebuild.
+
+**The concept was replaced by Registration Fields.** The
+organizer's configurable choices — shirt size, distance
+preference, add-ons — are now defined as custom fields on the
+event's registration form, not as "options" on the event.
+The flow lives in:
+
+- `RegistrationFormController` — the form builder
+- `resources/js/pages/events/registration-form.tsx` — the page
+- `RegistrationFieldRequest`, `RegistrationFieldValidationRules`
+  — validation
+
+The `canConfigure()` guard described in §7.1 still exists on the
+Event model and is still used to lock the registration form
+after `openRegistration()`. The guard moved; the shape it
+protects changed from options to registration fields.
+
+**Do not attempt to build the §7.1 Event Options flow.** If you
+are reading §7.1 and about to propose an `EventOptionController`,
+stop. The correct path is a registration field. See
+`docs/registration.md` and `docs/event-creation-wizard.md` §5
+for the current shape.
+
+For historical context only: `docs/church-events/07-scope-and-
+task-division.md` §7.1 was the source of the original claim.
+That doc was written before the registration-form rebuild and
+has not been updated.
