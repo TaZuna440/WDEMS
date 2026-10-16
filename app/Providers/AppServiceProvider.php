@@ -107,6 +107,14 @@ class AppServiceProvider extends ServiceProvider
                 $request->user()?->id.'|'.$request->route('registration')
             );
         });
+
+        // Recurring service occurrence batch. A single POST creates
+        // up to 52 occurrence rows. Five per minute is generous for
+        // an organizer defining a new recurring schedule; tight
+        // enough that a script cannot flood the table.
+        RateLimiter::for('service-recurring-batch', function (Request $request) {
+            return Limit::perMinute(5)->by($request->user()?->id);
+        });
     }
 
     protected function configureRegistrationVerificationLimits(): void

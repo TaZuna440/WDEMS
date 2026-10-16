@@ -11,6 +11,8 @@ use App\Http\Controllers\RegistrationDeletionController;
 use App\Http\Controllers\RegistrationFormController;
 use App\Http\Controllers\RegistrationMonitorController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ServiceAttendanceController;
+use App\Http\Controllers\ServiceController;
 use App\Http\Middleware\EnsureRegistrationIsOpen;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
@@ -172,6 +174,56 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     Route::post('events/{event}/attendance/bulk-walk-in', [AttendanceController::class, 'bulkWalkIn'])
         ->middleware('throttle:walk-in-batch')->name('events.attendance.bulk-walk-in');
     Route::post('events/{event}/attendance/{registration}/mark', [AttendanceController::class, 'mark'])->name('events.attendance.mark');
+
+    // ============================================================
+    // Services (church) — Phase 3 of the church-events plan.
+    //
+    // Route ordering: literal segments appear before parameterized
+    // ones at the same position so `services/occurrences/...` routes
+    // resolve before `services/{type}` can match. The {type} route
+    // also constrains the segment to the four ServiceType values, so
+    // a URL like `services/occurrences` cannot match `show()`.
+    // ============================================================
+
+    // Attendance actions on one occurrence (5-6 segments) — most specific.
+    Route::delete('services/occurrences/{occurrence}/attendance/members/{attendance}', [ServiceAttendanceController::class, 'destroyMember'])
+        ->name('services.attendance.destroy-member');
+    Route::delete('services/occurrences/{occurrence}/attendance/first-timers/{attendance}', [ServiceAttendanceController::class, 'destroyFirstTimer'])
+        ->name('services.attendance.destroy-first-timer');
+    Route::put('services/occurrences/{occurrence}/attendance/members/{attendance}', [ServiceAttendanceController::class, 'markMember'])
+        ->name('services.attendance.mark-member');
+    Route::put('services/occurrences/{occurrence}/attendance/first-timers/{attendance}', [ServiceAttendanceController::class, 'markFirstTimer'])
+        ->name('services.attendance.mark-first-timer');
+
+    // Attendance show/store on one occurrence (4 segments).
+    Route::get('services/occurrences/{occurrence}/attendance', [ServiceAttendanceController::class, 'show'])
+        ->name('services.attendance.show');
+    Route::post('services/occurrences/{occurrence}/attendance', [ServiceAttendanceController::class, 'store'])
+        ->name('services.attendance.store');
+
+    // Occurrence deletion (3 segments).
+    Route::delete('services/occurrences/{occurrence}', [ServiceController::class, 'destroyOccurrence'])
+        ->name('services.occurrences.destroy');
+
+    // Recurring batch creation (4 segments, but the literal
+    // 'occurrences' + 'recurring' segments disambiguate from
+    // anything above).
+    Route::post('services/{type}/occurrences/recurring', [ServiceController::class, 'storeRecurring'])
+        ->whereIn('type', ['morning', 'midweek', 'youth', 'other'])
+        ->middleware('throttle:service-recurring-batch')
+        ->name('services.occurrences.store-recurring');
+
+    // Single manual occurrence creation (3 segments).
+    Route::post('services/{type}/occurrences', [ServiceController::class, 'storeOccurrence'])
+        ->whereIn('type', ['morning', 'midweek', 'youth', 'other'])
+        ->name('services.occurrences.store');
+
+    // Landing and per-type view (1-2 segments) — least specific.
+    Route::get('services', [ServiceController::class, 'index'])
+        ->name('services.index');
+    Route::get('services/{type}', [ServiceController::class, 'show'])
+        ->whereIn('type', ['morning', 'midweek', 'youth', 'other'])
+        ->name('services.show');
 
     // Admin-only routes — same trusted-device pipeline, admin gate layered on top.
     Route::middleware('admin')->group(function () {
