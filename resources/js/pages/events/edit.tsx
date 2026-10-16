@@ -14,6 +14,9 @@ import VenueStep from './step/VenueStep';
 
 type EventData = {
     id: number;
+    event_kind: string;
+    church_category: string | null;
+    church_status: string | null;
     event_type: string;
     event_type_label: string;
     event_name: string;
@@ -41,11 +44,22 @@ type EventData = {
     status_label: string;
 };
 
-type Props = {
-    event: EventData;
+type ChurchCategoryOption = {
+    value: string;
+    label: string;
 };
 
-const STEPS: WizardStepConfig[] = [
+type Props = {
+    event: EventData;
+    church_categories: ChurchCategoryOption[];
+};
+
+/**
+ * Steps for running events (Community Run). Four steps with the
+ * running-only fields (distance on Schedule, partners on Extras,
+ * accessibility on Basics).
+ */
+const RUNNING_STEPS: WizardStepConfig[] = [
     {
         id: 'basics',
         label: 'Details',
@@ -98,6 +112,43 @@ const STEPS: WizardStepConfig[] = [
     },
 ];
 
+/**
+ * Steps for church events. Three steps — no Extras. Distance and
+ * accessibility are hidden inside their respective step components.
+ */
+const CHURCH_STEPS: WizardStepConfig[] = [
+    {
+        id: 'basics',
+        label: 'Details',
+        fields: [
+            'event_type',
+            'church_category',
+            'event_name',
+            'description',
+        ],
+        requiredFields: ['church_category', 'event_name'],
+        validate: validateBasics,
+    },
+    {
+        id: 'schedule',
+        label: 'Schedule',
+        fields: [
+            'event_date',
+            'start_time',
+            'end_time',
+        ],
+        requiredFields: ['event_date', 'start_time'],
+        validate: validateSchedule,
+    },
+    {
+        id: 'venue',
+        label: 'Venue',
+        fields: ['venue', 'venue_address', 'venue_map_url'],
+        requiredFields: ['venue', 'venue_address'],
+        validate: validateVenue,
+    },
+];
+
 function normalizeDistance(value: number | string | null): number | null {
     if (value === null || value === undefined || value === '') return null;
     const num = typeof value === 'string' ? parseFloat(value) : value;
@@ -122,7 +173,7 @@ function normalizeCoordinate(
     return isNaN(num) ? null : num;
 }
 
-export default function EventsEdit({ event }: Props) {
+export default function EventsEdit({ event, church_categories }: Props) {
     const {
         data,
         setData: inertiaSetData,
@@ -133,6 +184,7 @@ export default function EventsEdit({ event }: Props) {
     } = useForm({
         // Step 1 — Details
         event_type: event.event_type,
+        church_category: event.church_category ?? '',
         event_name: event.event_name,
         description: event.description ?? '',
 
@@ -150,7 +202,7 @@ export default function EventsEdit({ event }: Props) {
         venue_latitude: normalizeCoordinate(event.venue_latitude),
         venue_longitude: normalizeCoordinate(event.venue_longitude),
 
-        // Step 4 — Extras
+        // Step 4 — Extras (running-only)
         partners: event.partners ?? [],
         walkers_welcome: event.walkers_welcome,
         all_paces_welcome: event.all_paces_welcome,
@@ -161,6 +213,9 @@ export default function EventsEdit({ event }: Props) {
         service_animals_allowed: event.service_animals_allowed,
         leashed_pets_allowed: event.leashed_pets_allowed,
     });
+
+    const isChurch = data.event_type === 'church';
+    const steps = isChurch ? CHURCH_STEPS : RUNNING_STEPS;
 
     /**
      * Wrap Inertia's setData so that editing a field also clears any
@@ -217,7 +272,7 @@ export default function EventsEdit({ event }: Props) {
                 </div>
 
                 <Wizard
-                    steps={STEPS}
+                    steps={steps}
                     storageKey={`wdems-wizard-edit-${event.id}`}
                     data={data}
                     setData={setData}
@@ -240,6 +295,7 @@ export default function EventsEdit({ event }: Props) {
                                                 label: event.event_type_label,
                                             },
                                         ]}
+                                        churchCategories={church_categories}
                                         isEdit
                                     />
                                 );

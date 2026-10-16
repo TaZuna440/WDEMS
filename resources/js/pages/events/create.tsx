@@ -17,11 +17,22 @@ type EventTypeOption = {
     label: string;
 };
 
-type Props = {
-    event_types: EventTypeOption[];
+type ChurchCategoryOption = {
+    value: string;
+    label: string;
 };
 
-const STEPS: WizardStepConfig[] = [
+type Props = {
+    event_types: EventTypeOption[];
+    church_categories: ChurchCategoryOption[];
+};
+
+/**
+ * Steps for running events (Community Run). Four steps with the
+ * running-only fields (distance on Schedule, partners and
+ * accessibility on Extras and Basics respectively).
+ */
+const RUNNING_STEPS: WizardStepConfig[] = [
     {
         id: 'basics',
         label: 'Details',
@@ -74,7 +85,49 @@ const STEPS: WizardStepConfig[] = [
     },
 ];
 
-export default function EventsCreate({ event_types }: Props) {
+/**
+ * Steps for church events. Three steps — no Extras, because church
+ * events do not have partners. Distance on Schedule is hidden in the
+ * step component when the event is a church event. Accessibility
+ * flags in Basics are hidden for church events too.
+ */
+const CHURCH_STEPS: WizardStepConfig[] = [
+    {
+        id: 'basics',
+        label: 'Details',
+        fields: [
+            'event_type',
+            'church_category',
+            'event_name',
+            'description',
+        ],
+        requiredFields: ['event_type', 'church_category', 'event_name'],
+        validate: validateBasics,
+    },
+    {
+        id: 'schedule',
+        label: 'Schedule',
+        fields: [
+            'event_date',
+            'start_time',
+            'end_time',
+        ],
+        requiredFields: ['event_date', 'start_time'],
+        validate: validateSchedule,
+    },
+    {
+        id: 'venue',
+        label: 'Venue',
+        fields: ['venue', 'venue_address', 'venue_map_url'],
+        requiredFields: ['venue', 'venue_address'],
+        validate: validateVenue,
+    },
+];
+
+export default function EventsCreate({
+    event_types,
+    church_categories,
+}: Props) {
     const {
         data,
         setData: inertiaSetData,
@@ -85,6 +138,7 @@ export default function EventsCreate({ event_types }: Props) {
     } = useForm({
         // Step 1 — Details
         event_type: '',
+        church_category: '',
         event_name: '',
         description: '',
 
@@ -102,7 +156,7 @@ export default function EventsCreate({ event_types }: Props) {
         venue_latitude: null as number | null,
         venue_longitude: null as number | null,
 
-        // Step 4 — Extras
+        // Step 4 — Extras (running-only)
         partners: [] as { name: string; type: string }[],
         walkers_welcome: true,
         all_paces_welcome: true,
@@ -113,6 +167,9 @@ export default function EventsCreate({ event_types }: Props) {
         service_animals_allowed: true,
         leashed_pets_allowed: true,
     });
+
+    const isChurch = data.event_type === 'church';
+    const steps = isChurch ? CHURCH_STEPS : RUNNING_STEPS;
 
     /**
      * Wrap Inertia's setData so that editing a field also clears any
@@ -159,13 +216,13 @@ export default function EventsCreate({ event_types }: Props) {
                         Create Event
                     </h1>
                     <p className="text-on-image-muted mt-1 text-sm">
-                        Set up a new running event. Your progress is saved
+                        Set up a new event. Your progress is saved
                         automatically — you can leave and come back.
                     </p>
                 </div>
 
                 <Wizard
-                    steps={STEPS}
+                    steps={steps}
                     storageKey="wdems-wizard-create"
                     data={data}
                     setData={setData}
@@ -183,6 +240,7 @@ export default function EventsCreate({ event_types }: Props) {
                                         setData={setData}
                                         errors={stepErrors}
                                         eventTypes={event_types}
+                                        churchCategories={church_categories}
                                     />
                                 );
                             case 'schedule':

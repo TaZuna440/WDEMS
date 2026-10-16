@@ -74,20 +74,34 @@ export default function Wizard<T extends Record<string, unknown>>({
 }: Props<T>) {
     const { snapshot, save, clear } = useWizardPersistence<T>(storageKey);
 
-    // The furthest step the user has reached (used as the checkpoint)
-    const [maxStep, setMaxStep] = useState(snapshot?.currentStep ?? 0);
-    // The step the user is currently viewing
-    const [currentStep, setCurrentStep] = useState(snapshot?.currentStep ?? 0);
+    // The furthest step the user has reached (used as the checkpoint).
+    // Clamped against the current steps.length in case the step list
+    // shrank (e.g. a running-event draft restored as a church event,
+    // which has one fewer step).
+    const [maxStep, setMaxStep] = useState(() =>
+        Math.min(snapshot?.currentStep ?? 0, Math.max(0, steps.length - 1)),
+    );
+    // The step the user is currently viewing.
+    const [currentStep, setCurrentStep] = useState(() =>
+        Math.min(snapshot?.currentStep ?? 0, Math.max(0, steps.length - 1)),
+    );
     const [stepErrors, setStepErrors] = useState<Record<string, string>>({});
     const [isReady, setIsReady] = useState(false);
 
-    // A ref mirror of `currentStep`. The error-jump effect reads this
-    // instead of `currentStep` so its dependency array can omit the
+    // Derived, render-time-safe indices. If state ever exceeds the
+    // current step list's bounds — because the step list just shrank —
+    // these guard every read until the sync effect writes the clamped
+    // value back to state.
+    const safeCurrentStep = Math.min(currentStep, steps.length - 1);
+    const safeMaxStep = Math.min(maxStep, steps.length - 1);
+
+    // A ref mirror of the safe current step. The error-jump effect reads
+    // this instead of the state so its dependency array can omit the
     // step. Without this, the effect re-fires on every Next click,
     // finds the same stale server error, and bounces the user back to
     // the step that owns the error.
-    const currentStepRef = useRef(currentStep);
-    currentStepRef.current = currentStep;
+    const currentStepRef = useRef(safeCurrentStep);
+    currentStepRef.current = safeCurrentStep;
 
     // Apply snapshot once on mount, then enable saving.
     // The guard prevents the initial save effect from clobbering the
@@ -108,8 +122,23 @@ export default function Wizard<T extends Record<string, unknown>>({
     // reduce the checkpoint.
     useEffect(() => {
         if (!isReady) return;
-        save(maxStep, data);
-    }, [maxStep, data, save, isReady]);
+        save(safeMaxStep, data);
+    }, [safeMaxStep, data, save, isReady]);
+
+    // Sync raw state back when the step list shrinks.
+    //
+    // The render-time clamp above keeps the UI from crashing during the
+    // one frame where state still exceeds bounds. This effect writes
+    // the clamped value into state so subsequent renders, persistence,
+    // and the progress bar all read a consistent value.
+    useEffect(() => {
+        if (maxStep > steps.length - 1) {
+            setMaxStep(Math.max(0, steps.length - 1));
+        }
+        if (currentStep > steps.length - 1) {
+            setCurrentStep(Math.max(0, steps.length - 1));
+        }
+    }, [steps.length, maxStep, currentStep]);
 
     // Jump to the first step containing a server error.
     // Uses prefix matching so `partners.0.name` routes to the step
@@ -136,7 +165,7 @@ export default function Wizard<T extends Record<string, unknown>>({
     }, [errors, steps]);
 
     const validateCurrentStep = useCallback((): boolean => {
-        const step = steps[currentStep];
+        const step = steps[safeCurrentStep];
         const next: Record<string, string> = {};
 
         if (step.validate) {
@@ -164,7 +193,7 @@ export default function Wizard<T extends Record<string, unknown>>({
 
         setStepErrors(next);
         return Object.keys(next).length === 0;
-    }, [steps, currentStep, data]);
+    }, [steps, safeCurrentStep, data]);
 
     // Live re-validation — clears errors as the user fixes the fields.
     //
@@ -175,33 +204,33 @@ export default function Wizard<T extends Record<string, unknown>>({
     //
     // `stepErrors` and `validateCurrentStep` are intentionally not in
     // the dependency list — we want this effect to fire on `data` or
-    // `currentStep` changes only, not on every render that touches
+    // `safeCurrentStep` changes only, not on every render that touches
     // those references. The guard below handles the "no visible
     // errors" case.
     useEffect(() => {
         if (Object.keys(stepErrors).length === 0) return;
         validateCurrentStep();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data, currentStep]);
+    }, [data, safeCurrentStep]);
 
     const handleNext = useCallback(() => {
         if (!validateCurrentStep()) return;
-        if (currentStep < steps.length - 1) {
-            const next = currentStep + 1;
+        if (safeCurrentStep < steps.length - 1) {
+            const next = safeCurrentStep + 1;
             setCurrentStep(next);
             // Advance the checkpoint if we've gone further than before
             if (next > maxStep) {
                 setMaxStep(next);
             }
         }
-    }, [validateCurrentStep, currentStep, steps.length, maxStep]);
+    }, [validateCurrentStep, safeCurrentStep, steps.length, maxStep]);
 
     const handleBack = useCallback(() => {
-        if (currentStep > 0) {
-            setCurrentStep(currentStep - 1);
+        if (safeCurrentStep > 0) {
+            setCurrentStep(safeCurrentStep - 1);
             setStepErrors({});
         }
-    }, [currentStep]);
+    }, [safeCurrentStep]);
 
     const handleStepJump = useCallback((index: number) => {
         setCurrentStep(index);
@@ -219,15 +248,15 @@ export default function Wizard<T extends Record<string, unknown>>({
         [stepErrors, errors],
     );
 
-    const isLast = currentStep === steps.length - 1;
+    const isLast = safeCurrentStep === steps.length - 1;
     const hasErrors = Object.keys(mergedErrors).length > 0;
 
     return (
         <div className="flex flex-col gap-6">
             <WizardProgress
                 steps={steps}
-                currentStep={currentStep}
-                maxReachedStep={maxStep}
+                currentStep={safeCurrentStep}
+                maxReachedStep={safeMaxStep}
                 onStepClick={handleStepJump}
             />
 
@@ -244,7 +273,7 @@ export default function Wizard<T extends Record<string, unknown>>({
             )}
 
             <div className="glass-panel rounded-xl p-8">
-                {children(steps[currentStep].id, mergedErrors)}
+                {children(steps[safeCurrentStep].id, mergedErrors)}
             </div>
 
             <div className="flex items-center justify-between">
@@ -252,7 +281,7 @@ export default function Wizard<T extends Record<string, unknown>>({
                     type="button"
                     variant="outline"
                     onClick={handleBack}
-                    disabled={currentStep === 0 || processing}
+                    disabled={safeCurrentStep === 0 || processing}
                 >
                     Back
                 </Button>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ChurchCategory;
 use App\Enums\EventStatus;
 use App\Enums\EventType;
 use App\Http\Requests\EventRequest;
@@ -140,19 +141,34 @@ class EventController extends Controller
     /**
      * Show the create wizard.
      *
-     * Only running types are offered here. Church events are created
-     * through a separate flow (Phase 3 onwards, per the modular
-     * sidebar design confirmed in doc 06 Q1). Until that flow exists,
-     * church events can be created via direct POST with the right
-     * payload, but the UI does not expose the option.
+     * Both running and church event types are offered. The frontend
+     * wizard switches its step list based on event_type: running
+     * events use four steps (Details, Schedule, Venue, Extras);
+     * church events use three (Details, Schedule, Venue). The
+     * running-only fields (distance, partners, accessibility) are
+     * hidden for church events.
+     *
+     * event_kind is derived from event_type in EventRequest, so the
+     * wizard does not need to send it directly.
+     *
+     * church_categories is a fixed nine-item list from the
+     * ChurchCategory enum (client-confirmed CAT-01, doc 02). If the
+     * list ever becomes administrator-managed, this prop becomes a
+     * table read.
      */
     public function create(): Response
     {
         return Inertia::render('events/create', [
-            'event_types' => collect(EventType::runningTypes())
+            'event_types' => collect(EventType::cases())
                 ->map(fn (EventType $type) => [
                     'value' => $type->value,
                     'label' => $type->label(),
+                ])
+                ->values(),
+            'church_categories' => collect(ChurchCategory::cases())
+                ->map(fn (ChurchCategory $category) => [
+                    'value' => $category->value,
+                    'label' => $category->label(),
                 ])
                 ->values(),
         ]);
@@ -242,6 +258,12 @@ class EventController extends Controller
                     : $event->status->value,
                 'status_label' => $event->statusLabel(),
             ],
+            'church_categories' => collect(ChurchCategory::cases())
+                ->map(fn (ChurchCategory $category) => [
+                    'value' => $category->value,
+                    'label' => $category->label(),
+                ])
+                ->values(),
         ]);
     }
 

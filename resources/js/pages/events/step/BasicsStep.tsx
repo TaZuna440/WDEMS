@@ -17,8 +17,14 @@ type EventTypeOption = {
     label: string;
 };
 
+type ChurchCategoryOption = {
+    value: string;
+    label: string;
+};
+
 type FormData = {
     event_type: string;
+    church_category: string;
     event_name: string;
     description: string;
 } & Partial<Record<AccessibilityField, boolean>>;
@@ -28,6 +34,7 @@ type Props = {
     setData: (key: string, value: unknown) => void;
     errors: Record<string, string>;
     eventTypes: EventTypeOption[];
+    churchCategories: ChurchCategoryOption[];
     isEdit?: boolean;
 };
 
@@ -47,8 +54,11 @@ export default function BasicsStep({
     setData,
     errors,
     eventTypes,
+    churchCategories,
     isEdit = false,
 }: Props) {
+    const isChurch = data.event_type === 'church';
+
     const accessibilityValue: Partial<Record<AccessibilityField, boolean>> = {};
     for (const field of ACCESSIBILITY_FIELDS) {
         accessibilityValue[field] = data[field] === true;
@@ -71,7 +81,15 @@ export default function BasicsStep({
                 </Label>
                 <Select
                     value={data.event_type}
-                    onValueChange={(value) => setData('event_type', value)}
+                    onValueChange={(value) => {
+                        setData('event_type', value);
+                        // Clear the church category when switching
+                        // away from Church Event, so a stale value
+                        // does not fail validation on submit.
+                        if (value !== 'church') {
+                            setData('church_category', '');
+                        }
+                    }}
                     disabled={isEdit}
                 >
                     <SelectTrigger id="event_type">
@@ -90,6 +108,36 @@ export default function BasicsStep({
                     Event type cannot be changed after creation.
                 </p>
             </div>
+
+            {isChurch && (
+                <div className="grid gap-2">
+                    <Label htmlFor="church_category">
+                        Church Event Type{' '}
+                        <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                        value={data.church_category}
+                        onValueChange={(value) =>
+                            setData('church_category', value)
+                        }
+                    >
+                        <SelectTrigger id="church_category">
+                            <SelectValue placeholder="Select a church event type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {churchCategories.map((category) => (
+                                <SelectItem
+                                    key={category.value}
+                                    value={category.value}
+                                >
+                                    {category.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <InputError message={errors.church_category} />
+                </div>
+            )}
 
             <div className="grid gap-2">
                 <Label htmlFor="event_name">
@@ -117,27 +165,30 @@ export default function BasicsStep({
                 <InputError message={errors.description} />
             </div>
 
-            {/* Accessibility — participant-facing qualifications. Not
-                "extras": participants use these to decide whether the
-                event suits them. See event-creation-wizard.md. */}
-            <section className="flex flex-col gap-3 border-t border-white/5 pt-6">
-                <div>
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                        Accessibility
-                    </h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                        Everything is on by default. Uncheck any that do not
-                        apply. These appear on the event page so participants
-                        know what to expect and can decide if the event suits
-                        them.
-                    </p>
-                </div>
+            {/* Accessibility — participant-facing qualifications.
+                Running events only. Church events do not set these
+                flags; the section is hidden when event_type is church.
+                See event-creation-wizard.md. */}
+            {!isChurch && (
+                <section className="flex flex-col gap-3 border-t border-white/5 pt-6">
+                    <div>
+                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                            Accessibility
+                        </h3>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            Everything is on by default. Uncheck any that do
+                            not apply. These appear on the event page so
+                            participants know what to expect and can decide
+                            if the event suits them.
+                        </p>
+                    </div>
 
-                <AccessibilityGrid
-                    value={accessibilityValue}
-                    onChange={(field, checked) => setData(field, checked)}
-                />
-            </section>
+                    <AccessibilityGrid
+                        value={accessibilityValue}
+                        onChange={(field, checked) => setData(field, checked)}
+                    />
+                </section>
+            )}
         </div>
     );
 }
