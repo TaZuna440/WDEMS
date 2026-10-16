@@ -56,3 +56,7 @@ yarn-error.log
 /public/brand/wdems_stage.png
 /public/brand/wdems_tall_building.png
 /public/brand/wdems_tall_building.webp
+
+# Session docs-dump artifacts (regenerate as needed)
+docs-dump.txt
+structure.txt

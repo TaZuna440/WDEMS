@@ -91,6 +91,21 @@ class Participant extends Model
         return $this->hasMany(ServiceAttendanceFirstTimer::class);
     }
 
+    /**
+     * Attendance records for this participant at Fellowship events.
+     *
+     * One row per Fellowship event the participant was marked on.
+     * Unlike Services, Fellowship has a single unified attendance
+     * track; the optional group assignment lives on the row itself
+     * (fellowship_group_id) rather than as a separate relation.
+     *
+     * Phase 4.
+     */
+    public function fellowshipAttendances(): HasMany
+    {
+        return $this->hasMany(FellowshipAttendance::class);
+    }
+
     public function fullName(): string
     {
         return trim("{$this->first_name} {$this->last_name}");

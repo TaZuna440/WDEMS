@@ -5,6 +5,9 @@ use App\Http\Controllers\Auth\DeviceVerificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventDeletionController;
+use App\Http\Controllers\FellowshipAttendanceController;
+use App\Http\Controllers\FellowshipController;
+use App\Http\Controllers\FellowshipGroupController;
 use App\Http\Controllers\PublicRegistrationController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationDeletionController;
@@ -225,6 +228,59 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
         ->whereIn('type', ['morning', 'midweek', 'youth', 'other'])
         ->name('services.show');
 
+
+    // ============================================================
+    // Fellowship module (M4) -- Phase 4.
+    //
+    // Route registration order matters: most specific first, least
+    // specific last. Laravel matches in declaration order, so
+    // `fellowship/events/{event}/groups` must be registered before
+    // `fellowship/{type}` can match the "events" segment. The {type}
+    // route also constrains the segment to the six FellowshipType
+    // values, so a URL like `fellowship/events` cannot match show().
+    //
+    // {event} binds to FellowshipEvent via controller type-hint.
+    // {attendance} binds to FellowshipAttendance.
+    // {group} binds to FellowshipGroup.
+    // ============================================================
+
+    Route::prefix('fellowship')->name('fellowship.')->group(function () {
+        // Group CRUD -- 4 segments, literal 'events' + 'groups'.
+        Route::post('events/{event}/groups', [FellowshipGroupController::class, 'store'])
+            ->name('groups.store');
+        Route::put('events/{event}/groups/{group}', [FellowshipGroupController::class, 'update'])
+            ->name('groups.update');
+        Route::delete('events/{event}/groups/{group}', [FellowshipGroupController::class, 'destroy'])
+            ->name('groups.destroy');
+
+        // Attendance actions -- 4 segments, literal 'events' + 'attendance'.
+        Route::get('events/{event}/attendance', [FellowshipAttendanceController::class, 'show'])
+            ->name('attendance.show');
+        Route::post('events/{event}/attendance', [FellowshipAttendanceController::class, 'store'])
+            ->name('attendance.store');
+        Route::put('events/{event}/attendance/{attendance}', [FellowshipAttendanceController::class, 'mark'])
+            ->name('attendance.mark');
+        Route::delete('events/{event}/attendance/{attendance}', [FellowshipAttendanceController::class, 'destroy'])
+            ->name('attendance.destroy');
+
+        // Event update/delete -- 3 segments, literal 'events'.
+        Route::put('events/{event}', [FellowshipController::class, 'update'])
+            ->name('events.update');
+        Route::delete('events/{event}', [FellowshipController::class, 'destroy'])
+            ->name('events.destroy');
+
+        // Event creation under a type -- 3 segments, {type} constrained.
+        Route::post('{type}/events', [FellowshipController::class, 'store'])
+            ->whereIn('type', ['family', 'church', 'pastors', 'leaders', 'womens', 'mens'])
+            ->name('events.store');
+
+        // Landing and per-type view -- least specific, last.
+        Route::get('/', [FellowshipController::class, 'index'])
+            ->name('index');
+        Route::get('{type}', [FellowshipController::class, 'show'])
+            ->whereIn('type', ['family', 'church', 'pastors', 'leaders', 'womens', 'mens'])
+            ->name('show');
+    });
     // Admin-only routes — same trusted-device pipeline, admin gate layered on top.
     Route::middleware('admin')->group(function () {
         Route::get('admin/dashboard', DashboardController::class)->name('admin.dashboard');
