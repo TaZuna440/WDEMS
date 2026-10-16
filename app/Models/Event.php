@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ChurchEventStatus;
 use App\Enums\EventStatus;
 use App\Enums\EventType;
 use Carbon\CarbonInterface;
@@ -12,6 +13,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'created_by',
+    'event_kind',
+    'church_category',
+    'church_status',
     'event_type',
     'event_name',
     'description',
@@ -80,6 +84,18 @@ class Event extends Model
      */
     public const ATTENDANCE_WINDOW_MINUTES_BEFORE = 60;
 
+    /**
+     * Event kind discriminator values.
+     *
+     * 'running' -- uses EventStatus (Draft, RegistrationOpen, etc.)
+     * 'church'  -- uses ChurchEventStatus (Upcoming, Ongoing, etc.)
+     *
+     * Per docs/church-events/06 sub-decisions Q5, Q6 (2026-10-16).
+     */
+    public const KIND_RUNNING = 'running';
+
+    public const KIND_CHURCH = 'church';
+
     protected function casts(): array
     {
         return [
@@ -93,6 +109,7 @@ class Event extends Model
             'registration_form_saved_at' => 'datetime',
             'registration_common_field_requirements' => 'array',
             'status' => EventStatus::class,
+            'church_status' => ChurchEventStatus::class,
 
             'venue_latitude' => 'decimal:7',
             'venue_longitude' => 'decimal:7',
@@ -109,6 +126,40 @@ class Event extends Model
             'leashed_pets_allowed' => 'boolean',
             'quiet_space_available' => 'boolean',
         ];
+    }
+
+    /**
+     * Is this a church event?
+     *
+     * Per the discriminator column added in the Phase 2 migration.
+     * Existing rows default to 'running'.
+     */
+    public function isChurchEvent(): bool
+    {
+        return $this->event_kind === self::KIND_CHURCH;
+    }
+
+    /**
+     * Is this a running event (Community Run or Fun Run)?
+     */
+    public function isRunningEvent(): bool
+    {
+        return $this->event_kind === self::KIND_RUNNING;
+    }
+
+    /**
+     * Human-readable status label for this event.
+     *
+     * Dispatches to EventStatus or ChurchEventStatus depending on
+     * the event kind. Frontend uses this for status pills.
+     */
+    public function statusLabel(): string
+    {
+        if ($this->isChurchEvent() && $this->church_status !== null) {
+            return $this->church_status->label();
+        }
+
+        return $this->status?->label() ?? '';
     }
 
     /**

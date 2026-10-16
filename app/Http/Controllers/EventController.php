@@ -17,8 +17,8 @@ use RuntimeException;
 class EventController extends Controller
 {
     /**
-     * Slug alphabet. Lowercase letters a–z except i, l, o, plus digits
-     * 2–9. Excludes the confusables I, L, O, 0, 1 to keep slugs
+     * Slug alphabet. Lowercase letters a-z except i, l, o, plus digits
+     * 2-9. Excludes the confusables I, L, O, 0, 1 to keep slugs
      * readable over the phone and paste-able in chat. 31 characters.
      */
     private const SLUG_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -27,28 +27,56 @@ class EventController extends Controller
 
     private const SLUG_MAX_ATTEMPTS = 3;
 
-    public function index(): Response
+    /**
+     * List all events, optionally filtered by kind.
+     *
+     * The `kind` query parameter accepts 'running' or 'church'. Absent
+     * or invalid values return all events, preserving the previous
+     * behavior for callers that do not filter.
+     *
+     * `status_label` is dispatched through Event::statusLabel() so
+     * church events display their ChurchEventStatus value and running
+     * events display their EventStatus value.
+     */
+    public function index(Request $request): Response
     {
-        $events = Event::query()
-            ->with('creator:id,name')
+        $kindFilter = $request->input('kind');
+        $validKinds = [Event::KIND_RUNNING, Event::KIND_CHURCH];
+
+        $query = Event::query()->with('creator:id,name');
+
+        if (is_string($kindFilter) && in_array($kindFilter, $validKinds, true)) {
+            $query->where('event_kind', $kindFilter);
+        }
+
+        $events = $query
             ->orderByDesc('event_date')
             ->orderByDesc('id')
             ->get()
             ->map(fn (Event $event) => [
                 'id' => $event->id,
+                'event_kind' => $event->event_kind,
                 'event_name' => $event->event_name,
                 'event_type' => $event->event_type->value,
                 'event_type_label' => $event->event_type->label(),
+                'church_category' => $event->church_category,
                 'event_date' => $event->event_date?->toDateString(),
                 'venue' => $event->venue,
                 'distance_label' => $event->distanceLabel(),
-                'status' => $event->status->value,
-                'status_label' => $event->status->label(),
+                'status' => $event->isChurchEvent()
+                    ? $event->church_status?->value
+                    : $event->status->value,
+                'status_label' => $event->statusLabel(),
                 'creator' => $event->creator?->name,
             ]);
 
         return Inertia::render('events/index', [
             'events' => $events,
+            'filters' => [
+                'kind' => is_string($kindFilter) && in_array($kindFilter, $validKinds, true)
+                    ? $kindFilter
+                    : null,
+            ],
         ]);
     }
 
@@ -60,9 +88,12 @@ class EventController extends Controller
         return Inertia::render('events/show', [
             'event' => [
                 'id' => $event->id,
-                'event_name' => $event->event_name,
+                'event_kind' => $event->event_kind,
+                'church_category' => $event->church_category,
+                'church_status' => $event->church_status?->value,
                 'event_type' => $event->event_type->value,
                 'event_type_label' => $event->event_type->label(),
+                'event_name' => $event->event_name,
                 'description' => $event->description,
                 'event_date' => $event->event_date?->toDateString(),
                 'start_time' => $event->start_time?->format('H:i'),
@@ -84,8 +115,10 @@ class EventController extends Controller
                 'sweeper_present' => $event->sweeper_present,
                 'service_animals_allowed' => $event->service_animals_allowed,
                 'leashed_pets_allowed' => $event->leashed_pets_allowed,
-                'status' => $event->status->value,
-                'status_label' => $event->status->label(),
+                'status' => $event->isChurchEvent()
+                    ? $event->church_status?->value
+                    : $event->status->value,
+                'status_label' => $event->statusLabel(),
                 'registration_start' => $event->registration_start?->toDateTimeString(),
                 'registration_end' => $event->registration_end?->toDateTimeString(),
                 'registration_form_saved_at' => $event->registration_form_saved_at?->toDateTimeString(),
@@ -104,10 +137,19 @@ class EventController extends Controller
         ]);
     }
 
+    /**
+     * Show the create wizard.
+     *
+     * Only running types are offered here. Church events are created
+     * through a separate flow (Phase 3 onwards, per the modular
+     * sidebar design confirmed in doc 06 Q1). Until that flow exists,
+     * church events can be created via direct POST with the right
+     * payload, but the UI does not expose the option.
+     */
     public function create(): Response
     {
         return Inertia::render('events/create', [
-            'event_types' => collect(EventType::cases())
+            'event_types' => collect(EventType::runningTypes())
                 ->map(fn (EventType $type) => [
                     'value' => $type->value,
                     'label' => $type->label(),
@@ -120,30 +162,40 @@ class EventController extends Controller
     {
         $validated = $request->validated();
 
+        $kind = $validated['event_kind'] ?? Event::KIND_RUNNING;
+        $isChurch = $kind === Event::KIND_CHURCH;
+
         Event::create([
             'created_by' => $request->user()->id,
+            'event_kind' => $kind,
+            'church_category' => $isChurch ? ($validated['church_category'] ?? null) : null,
+            'church_status' => $isChurch ? ($validated['church_status'] ?? null) : null,
             'event_type' => $validated['event_type'],
             'event_name' => $validated['event_name'],
             'description' => $validated['description'] ?? null,
             'event_date' => $validated['event_date'],
             'start_time' => $validated['start_time'] ?? null,
             'end_time' => $validated['end_time'] ?? null,
-            'distance_value' => $validated['distance_value'],
-            'distance_unit' => $validated['distance_unit'],
+            'distance_value' => $isChurch ? null : ($validated['distance_value'] ?? null),
+            'distance_unit' => $isChurch ? null : ($validated['distance_unit'] ?? null),
             'venue' => $validated['venue'],
             'venue_address' => $validated['venue_address'],
             'venue_map_url' => $validated['venue_map_url'] ?? null,
             'venue_latitude' => $validated['venue_latitude'] ?? null,
             'venue_longitude' => $validated['venue_longitude'] ?? null,
-            'partners' => $validated['partners'] ?? null,
-            'walkers_welcome' => $validated['walkers_welcome'] ?? false,
-            'all_paces_welcome' => $validated['all_paces_welcome'] ?? false,
-            'all_ages_welcome' => $validated['all_ages_welcome'] ?? false,
-            'stroller_friendly' => $validated['stroller_friendly'] ?? false,
-            'wheelchair_accessible' => $validated['wheelchair_accessible'] ?? false,
-            'sweeper_present' => $validated['sweeper_present'] ?? false,
-            'service_animals_allowed' => $validated['service_animals_allowed'] ?? false,
-            'leashed_pets_allowed' => $validated['leashed_pets_allowed'] ?? false,
+            'partners' => $isChurch ? null : ($validated['partners'] ?? null),
+            'walkers_welcome' => $isChurch ? false : ($validated['walkers_welcome'] ?? false),
+            'all_paces_welcome' => $isChurch ? false : ($validated['all_paces_welcome'] ?? false),
+            'all_ages_welcome' => $isChurch ? false : ($validated['all_ages_welcome'] ?? false),
+            'stroller_friendly' => $isChurch ? false : ($validated['stroller_friendly'] ?? false),
+            'wheelchair_accessible' => $isChurch ? false : ($validated['wheelchair_accessible'] ?? false),
+            'sweeper_present' => $isChurch ? false : ($validated['sweeper_present'] ?? false),
+            'service_animals_allowed' => $isChurch ? false : ($validated['service_animals_allowed'] ?? false),
+            'leashed_pets_allowed' => $isChurch ? false : ($validated['leashed_pets_allowed'] ?? false),
+            // Running events start in Draft. Church events do not use
+            // the running status machine, but the `status` column is
+            // not nullable, so they also default to Draft. The UI reads
+            // church_status for church events, not status.
             'status' => EventStatus::Draft,
         ]);
 
@@ -159,6 +211,9 @@ class EventController extends Controller
         return Inertia::render('events/edit', [
             'event' => [
                 'id' => $event->id,
+                'event_kind' => $event->event_kind,
+                'church_category' => $event->church_category,
+                'church_status' => $event->church_status?->value,
                 'event_type' => $event->event_type->value,
                 'event_type_label' => $event->event_type->label(),
                 'event_name' => $event->event_name,
@@ -182,12 +237,22 @@ class EventController extends Controller
                 'sweeper_present' => $event->sweeper_present,
                 'service_animals_allowed' => $event->service_animals_allowed,
                 'leashed_pets_allowed' => $event->leashed_pets_allowed,
-                'status' => $event->status->value,
-                'status_label' => $event->status->label(),
+                'status' => $event->isChurchEvent()
+                    ? $event->church_status?->value
+                    : $event->status->value,
+                'status_label' => $event->statusLabel(),
             ],
         ]);
     }
 
+    /**
+     * Update an existing event.
+     *
+     * event_kind and event_type are locked after creation (see
+     * event-creation.md Trap #2 for the running-event rationale,
+     * applied identically here). Church-specific fields are updatable
+     * only for church events.
+     */
     public function update(EventRequest $request, Event $event): RedirectResponse
     {
         if (! $event->canEdit()) {
@@ -195,29 +260,58 @@ class EventController extends Controller
         }
 
         $validated = $request->validated();
+        $isChurch = $event->isChurchEvent();
 
         $event->update([
+            'church_category' => $isChurch
+                ? ($validated['church_category'] ?? $event->church_category)
+                : $event->church_category,
+            'church_status' => $isChurch
+                ? ($validated['church_status'] ?? $event->church_status?->value)
+                : $event->church_status,
             'event_name' => $validated['event_name'],
             'description' => $validated['description'] ?? null,
             'event_date' => $validated['event_date'],
             'start_time' => $validated['start_time'] ?? null,
             'end_time' => $validated['end_time'] ?? null,
-            'distance_value' => $validated['distance_value'],
-            'distance_unit' => $validated['distance_unit'],
+            'distance_value' => $isChurch
+                ? $event->distance_value
+                : ($validated['distance_value'] ?? null),
+            'distance_unit' => $isChurch
+                ? $event->distance_unit
+                : ($validated['distance_unit'] ?? null),
             'venue' => $validated['venue'],
             'venue_address' => $validated['venue_address'],
             'venue_map_url' => $validated['venue_map_url'] ?? null,
             'venue_latitude' => $validated['venue_latitude'] ?? null,
             'venue_longitude' => $validated['venue_longitude'] ?? null,
-            'partners' => $validated['partners'] ?? null,
-            'walkers_welcome' => $validated['walkers_welcome'] ?? false,
-            'all_paces_welcome' => $validated['all_paces_welcome'] ?? false,
-            'all_ages_welcome' => $validated['all_ages_welcome'] ?? false,
-            'stroller_friendly' => $validated['stroller_friendly'] ?? false,
-            'wheelchair_accessible' => $validated['wheelchair_accessible'] ?? false,
-            'sweeper_present' => $validated['sweeper_present'] ?? false,
-            'service_animals_allowed' => $validated['service_animals_allowed'] ?? false,
-            'leashed_pets_allowed' => $validated['leashed_pets_allowed'] ?? false,
+            'partners' => $isChurch
+                ? $event->partners
+                : ($validated['partners'] ?? null),
+            'walkers_welcome' => $isChurch
+                ? $event->walkers_welcome
+                : ($validated['walkers_welcome'] ?? false),
+            'all_paces_welcome' => $isChurch
+                ? $event->all_paces_welcome
+                : ($validated['all_paces_welcome'] ?? false),
+            'all_ages_welcome' => $isChurch
+                ? $event->all_ages_welcome
+                : ($validated['all_ages_welcome'] ?? false),
+            'stroller_friendly' => $isChurch
+                ? $event->stroller_friendly
+                : ($validated['stroller_friendly'] ?? false),
+            'wheelchair_accessible' => $isChurch
+                ? $event->wheelchair_accessible
+                : ($validated['wheelchair_accessible'] ?? false),
+            'sweeper_present' => $isChurch
+                ? $event->sweeper_present
+                : ($validated['sweeper_present'] ?? false),
+            'service_animals_allowed' => $isChurch
+                ? $event->service_animals_allowed
+                : ($validated['service_animals_allowed'] ?? false),
+            'leashed_pets_allowed' => $isChurch
+                ? $event->leashed_pets_allowed
+                : ($validated['leashed_pets_allowed'] ?? false),
         ]);
 
         return redirect()->route('events.show', $event);

@@ -2,6 +2,7 @@
 
 namespace App\Concerns;
 
+use App\Enums\ChurchEventStatus;
 use App\Enums\EventStatus;
 use App\Enums\EventType;
 use App\Models\Event;
@@ -51,19 +52,80 @@ trait EventValidationRules
     }
 
     /**
+     * Resolve the event kind for the current request.
+     *
+     * Defaults to 'running' when the input is absent, preserving
+     * running-event behavior for callers that predate the
+     * discriminator column.
+     */
+    protected function currentEventKind(): string
+    {
+        $kind = $this->input('event_kind');
+
+        return is_string($kind) && $kind !== ''
+            ? $kind
+            : Event::KIND_RUNNING;
+    }
+
+    /**
      * Get the validation rules used to validate events.
+     *
+     * Rules are conditional on the event_kind field:
+     *
+     *   running  -- event_type must be CommunityRun or FunRun;
+     *               distance_value and distance_unit are required;
+     *               church_category and church_status are nullable.
+     *
+     *   church   -- event_type must be Church; distance fields are
+     *               nullable; church_category and church_status are
+     *               required.
+     *
+     * event_kind itself is nullable so existing callers that omit
+     * it continue to behave as running events.
      *
      * @return array<string, array<int, ValidationRule|array<mixed>|string>>
      */
     protected function eventRules(): array
     {
+        $isChurch = $this->currentEventKind() === Event::KIND_CHURCH;
+
+        $kindRules = $isChurch
+            ? [
+                'event_type' => ['required', Rule::in([EventType::Church->value])],
+                'church_category' => ['required', 'string', 'max:64'],
+                'church_status' => ['required', Rule::enum(ChurchEventStatus::class)],
+            ]
+            : [
+                'event_type' => ['required', Rule::in([
+                    EventType::CommunityRun->value,
+                    EventType::FunRun->value,
+                ])],
+                'church_category' => ['nullable', 'string', 'max:64'],
+                'church_status' => ['nullable', Rule::enum(ChurchEventStatus::class)],
+            ];
+
+        $distanceRules = $isChurch
+            ? [
+                'distance_value' => ['nullable', 'numeric', 'min:0.01', 'max:9999.99'],
+                'distance_unit' => ['nullable', Rule::in(['km', 'mi'])],
+            ]
+            : [
+                'distance_value' => ['required', 'numeric', 'min:0.01', 'max:9999.99'],
+                'distance_unit' => ['required', Rule::in(['km', 'mi'])],
+            ];
+
         return [
-            // Step 1 — Basics
-            'event_type' => ['required', Rule::enum(EventType::class)],
+            'event_kind' => [
+                'nullable',
+                Rule::in([Event::KIND_RUNNING, Event::KIND_CHURCH]),
+            ],
+
+            // Step 1 -- Basics (kind-dependent)
+            ...$kindRules,
             'event_name' => $this->eventNameRules(),
             'description' => ['nullable', 'string', 'max:2000'],
 
-            // Step 2 — Schedule
+            // Step 2 -- Schedule
             'event_date' => [
                 'required',
                 'date',
@@ -72,10 +134,9 @@ trait EventValidationRules
             ],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
-            'distance_value' => ['required', 'numeric', 'min:0.01', 'max:9999.99'],
-            'distance_unit' => ['required', Rule::in(['km', 'mi'])],
+            ...$distanceRules,
 
-            // Step 3 — Venue
+            // Step 3 -- Venue
             'venue' => ['required', 'string', 'min:3', 'max:255'],
             'venue_address' => ['required', 'string', 'min:5', 'max:500'],
             'venue_map_url' => [
@@ -87,7 +148,7 @@ trait EventValidationRules
             'venue_latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'venue_longitude' => ['nullable', 'numeric', 'between:-180,180'],
 
-            // Step 4 — Extras
+            // Step 4 -- Extras
             'partners' => ['nullable', 'array', 'max:20'],
             'partners.*.name' => [
                 'required_with:partners',
@@ -287,13 +348,16 @@ trait EventValidationRules
     /**
      * Reject duplicate event names for the same creator.
      *
-     * Two events created by the same user cannot share a name while
-     * either is still active (not completed, not cancelled). This
-     * prevents the "same event created twice" duplicate that produced
-     * two Orca Community Run rows on 2026-09-26.
+     * Two events of the same kind created by the same user cannot
+     * share a name while either is still active.
      *
-     * Scoped to created_by, not global: two organizers may legitimately
-     * run a "Saturday Morning Run" in the same season.
+     * Scoped by event_kind: a running event and a church event can
+     * share a name (they are different namespaces). Within a single
+     * kind, the active name must be unique per creator.
+     *
+     * Running events use EventStatus for the "still active" check;
+     * church events use ChurchEventStatus. The two enums have
+     * different terminal states, so the check branches.
      *
      * Excluded on update when the current event is the one being
      * edited — editing an existing event must not reject against its
@@ -324,14 +388,24 @@ trait EventValidationRules
             }
 
             $normalized = strtolower($trimmed);
+            $kind = $this->currentEventKind();
 
             $query = Event::query()
                 ->where('created_by', $userId)
-                ->whereNotIn('status', [
+                ->where('event_kind', $kind)
+                ->whereRaw('LOWER(TRIM(event_name)) = ?', [$normalized]);
+
+            if ($kind === Event::KIND_CHURCH) {
+                $query->whereNotIn('church_status', [
+                    ChurchEventStatus::Completed->value,
+                    ChurchEventStatus::Cancelled->value,
+                ]);
+            } else {
+                $query->whereNotIn('status', [
                     EventStatus::Completed->value,
                     EventStatus::Cancelled->value,
-                ])
-                ->whereRaw('LOWER(TRIM(event_name)) = ?', [$normalized]);
+                ]);
+            }
 
             // On update, exclude the event being edited.
             $routeEvent = request()->route('event');
@@ -363,6 +437,10 @@ trait EventValidationRules
             'event_date.after_or_equal' => 'Event date cannot be in the past.',
             'event_date.before' => 'Event date cannot be more than 2 years from today.',
             'venue_map_url.regex' => 'Map link must be a Google Maps URL, like https://www.google.com/maps/place/... or https://maps.app.goo.gl/...',
+            'event_kind.in' => 'Event kind must be running or church.',
+            'event_type.in' => 'The selected event type does not match the event kind.',
+            'church_category.required' => 'Church category is required.',
+            'church_status.required' => 'Church status is required.',
         ];
     }
 

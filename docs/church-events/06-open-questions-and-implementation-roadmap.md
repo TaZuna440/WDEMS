@@ -2270,3 +2270,340 @@ verification. Per P4, one block per message.
 This block records three sub-decision answers. No production
 code was touched.
 
+
+---
+
+## Client answers -- Q5, Q6, Q8 (2026-10-16)
+
+Append-only. Three more product decisions resolved. This block
+records the answers, updates the resolution status, and states
+which phases unblock.
+
+### Q5 -- Mockup authority: APPROVED AS-IS
+
+The client confirms that the mockups (Services, Fellowship,
+Discipleship, Youth, dashboard) are approved designs. The
+frontend work builds to match them.
+
+**Status:** RESOLVED.
+
+**Effect:** the developer has no flexibility to adjust layout,
+component structure, or visual hierarchy beyond what the
+mockups show. Any deviation requires client approval.
+
+**Effect on Phase 2:** the General Events module UI must match
+the dashboard mockup's event list layout.
+
+**Effect on Phases 3-6:** Services, Fellowship, Discipleship,
+and Youth UIs build to their respective mockups without
+redesign.
+
+**Design system implication:** the mockups follow the existing
+WDEMS design system (glass tiers, warning color rule, sidebar
+structure). `scripts/audit-design.sh` must pass on every UI
+commit in these phases.
+
+### Q6 -- Workflow stages: FOUR
+
+The client confirms that the ten-stage workflow from the
+original Church Event Management specification is not the
+target. The four statuses from the dashboard mockup are:
+
+    Upcoming
+    Ongoing
+    Completed
+    Cancelled
+
+**Status:** RESOLVED.
+
+**Effect:** supersedes the ten-stage chain described in
+`docs/church-events/02-product-scope-and-requirements.md`
+PND-02 and the Church Event Management workflow specification
+Stages 1-5.
+
+**Effect on Decision 2 (doc 03 section 3):** the A1/A2/A3/A4
+alternatives are all resolved to "A4-like": church event status
+is a simple four-value machine, not a ten-stage state machine
+and not a parallel church status enum.
+
+**Effect on Phase 2:** the `events` table needs to distinguish
+running-event statuses from church-event statuses. Because
+running events use six statuses (`Draft`, `RegistrationOpen`,
+`RegistrationClosed`, `Ongoing`, `Completed`, `Cancelled`) and
+church events use four (`Upcoming`, `Ongoing`, `Completed`,
+`Cancelled`), the simplest design is a separate column on
+`events` for church status, or a new table. The choice is a
+Phase 2 design decision, not a new client question.
+
+**Not resolved by this answer:**
+
+- Whether the four statuses are automatic (derived from dates
+  and completion) or manually set by the organizer.
+- Whether `Cancelled` requires a reason.
+- Whether `Completed` triggers any side effects (e.g., locking
+  the event from further edits, similar to the running-event
+  `finalize` flow).
+
+These are implementation details to be decided during Phase 2,
+not client questions.
+
+### Q8 -- Wizard draft-loss fix: DEFERRED
+
+The client accepts that the wizard's draft-loss bug (EC-08)
+stays in place. Services, Fellowship, and Discipleship flows
+that reuse the wizard pattern will inherit the same behavior.
+
+**Status:** RESOLVED as deferred.
+
+**Effect:** no fix to `wizard.tsx` before Phase 2. The bug stays
+documented in `docs/event-creation-issues.md` EC-08.
+
+**Risk accepted:** a rejected submission on a church-event
+creation flow will lose the draft. The user must re-enter data.
+This is a known annoyance, not a blocker.
+
+### Q9 -- TrimStrings middleware: verification pending
+
+The grep returned no matches in `bootstrap/app.php`. This is
+inconclusive -- Laravel 11+ defines `TrimStrings` in the default
+global middleware stack, not in the app's `web` group.
+
+**Status:** OPEN pending one command (see the closure block for
+Q9 when it lands).
+
+**Verification command:**
+
+    php artisan tinker --execute="
+    \$kernel = app(\Illuminate\Contracts\Http\Kernel::class);
+    \$r = new ReflectionClass(\$kernel);
+    \$p = \$r->getProperty('middleware');
+    \$p->setAccessible(true);
+    foreach (\$p->getValue(\$kernel) as \$m) {
+        echo (is_string(\$m) ? \$m : get_class(\$m)) . PHP_EOL;
+    }
+    "
+
+If `Illuminate\Foundation\Http\Middleware\TrimStrings` appears
+in the output, the middleware is active and EC-07 is already
+solved. If not, Phase 2 adds it.
+
+### Updated resolution status
+
+| Question | Status |
+|---|---|
+| Q1 -- Top-level modules | RESOLVED |
+| Q2, Q2a -- Members entity | RESOLVED |
+| Q3, Q3a, Q3b -- First-Timers | RESOLVED |
+| Q4 -- Cell Group placement | OPEN (blocks Phase 6) |
+| Q5 -- Mockup authority | RESOLVED (approved as-is) |
+| Q6 -- Workflow stages | RESOLVED (four stages) |
+| Q7 -- Non-English event names | OPEN (blocks Phase 3) |
+| Q8 -- Wizard draft-loss fix | RESOLVED (deferred) |
+| Q9 -- TrimStrings middleware | OPEN (verification pending) |
+
+### Phase status after these answers
+
+| Phase | Status | Blocker |
+|---|---|---|
+| Phase 2 -- General Events | UNBLOCKED | none |
+| Phase 3 -- Services | Blocked by Q7 | non-ASCII names |
+| Phase 4 -- Fellowship | UNBLOCKED | none |
+| Phase 5 -- Discipleship | UNBLOCKED | none |
+| Phase 6 -- Youth + Cell Group | Blocked by Q4 | Cell Group placement |
+| Phase 7 -- Cross-module | UNBLOCKED | none |
+| Phase 8 -- Cross-cutting | UNBLOCKED | none |
+
+**Phase 2 can begin immediately.** Phase 3 is the next
+sequential blocker, via Q7.
+
+### No code, migration, enum, test, or configuration was changed
+
+This block records three client answers. No production code was
+touched.
+
+
+---
+
+## Q9 closure -- TrimStrings is active (2026-10-16)
+
+Append-only. The Q9 verification command returned the full global
+middleware stack. Result:
+
+    Illuminate\Foundation\Http\Middleware\TrimStrings
+    Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull
+
+**Status:** RESOLVED.
+
+**Finding:** `TrimStrings` is active on all routes by default in
+Laravel 11+. Text inputs are already trimmed before validation
+runs. EC-07 (documented in `docs/event-creation-issues.md`) is
+not a live bug -- it was only ever a hypothesis.
+
+**Effect on Church Events:** every new text field in Services,
+Fellowship, Discipleship, and Youth automatically inherits
+trimming. No per-field work needed.
+
+**Effect on the earlier audits:** the audit's F-8 finding (from
+the Phase 0.6 documentation reads) was conditional -- "if
+TrimStrings is active, the issue is moot." It is active. F-8 is
+resolved as a non-issue.
+
+**Side note.** `ConvertEmptyStringsToNull` is also active. This
+means an empty form field arrives as `null` on the server, not
+`''`. The existing validation rules already account for this
+(they use `nullable` and `required` interchangeably as needed).
+No action required.
+
+### Updated resolution status
+
+| Question | Status |
+|---|---|
+| Q1 -- Top-level modules | RESOLVED |
+| Q2, Q2a -- Members entity | RESOLVED |
+| Q3, Q3a, Q3b -- First-Timers | RESOLVED |
+| Q4 -- Cell Group placement | OPEN (blocks Phase 6) |
+| Q5 -- Mockup authority | RESOLVED |
+| Q6 -- Workflow stages | RESOLVED (four) |
+| Q7 -- Non-English event names | OPEN (blocks Phase 3) |
+| Q8 -- Wizard draft-loss fix | RESOLVED (deferred) |
+| Q9 -- TrimStrings middleware | RESOLVED (active) |
+
+**Seven of nine decisions resolved.** Q4 and Q7 remain.
+
+### Phase status
+
+| Phase | Status | Blocker |
+|---|---|---|
+| Phase 2 -- General Events | UNBLOCKED | none |
+| Phase 3 -- Services | Blocked by Q7 | non-ASCII names |
+| Phase 4 -- Fellowship | UNBLOCKED | none |
+| Phase 5 -- Discipleship | UNBLOCKED | none |
+| Phase 6 -- Youth + Cell Group | Blocked by Q4 | Cell Group placement |
+| Phase 7 -- Cross-module | UNBLOCKED | none |
+| Phase 8 -- Cross-cutting | UNBLOCKED | none |
+
+
+---
+
+## Phase 2 closure -- General Events backend (2026-10-16)
+
+Append-only. Phase 2 landed as a backend-only unit. This block
+records what shipped, what was deferred, and the effect on later
+phases.
+
+### What shipped
+
+One new enum:
+
+    app/Enums/ChurchEventStatus.php
+
+One extended enum:
+
+    app/Enums/EventType.php    (added Church case + runningTypes())
+
+One migration:
+
+    database/migrations/2026_10_16_110000_add_church_event_fields_to_events_table.php
+
+Adds three columns to events: event_kind (discriminator,
+indexed), church_category, church_status. Defaults existing
+rows to event_kind = 'running'.
+
+One extended model:
+
+    app/Models/Event.php
+      + event_kind, church_category, church_status fillable entries
+      + church_status cast to ChurchEventStatus
+      + KIND_RUNNING, KIND_CHURCH constants
+      + isChurchEvent(), isRunningEvent(), statusLabel()
+
+One extended validation trait:
+
+    app/Concerns/EventValidationRules.php
+      + currentEventKind() resolver
+      + eventRules() conditionally branches on event_kind
+      + validateEventNameUnique() scopes by event_kind and
+        branches on church_status vs status
+      + four new validation messages
+
+One extended controller:
+
+    app/Http/Controllers/EventController.php
+      + index(Request) accepts ?kind= filter
+      + index/show/edit payloads include event_kind,
+        church_category, church_status
+      + status/status_label dispatch through isChurchEvent()
+      + create() offers EventType::runningTypes() only
+      + store() branches on event_kind (church fields null for
+        running events, running fields null for church events)
+      + update() mirrors store() branching; event_kind and
+        event_type remain locked after creation
+
+### What was deferred
+
+Frontend work. The four tasks below moved to Phase 3:
+
+    /events/create branch for church events
+    /events?kind= filter on the events index
+    Event detail conditional sections
+    Status pills for the four church statuses
+
+Rationale, per the session discussion: no dedicated mockup for
+the General Events create or detail pages exists. Building them
+now would risk throwaway work when the Services module lands
+and its frontend establishes the church-event UI patterns.
+
+Church event creation is available via direct POST with the
+right payload. The UI does not yet expose the option.
+
+### Test delta
+
+    0 new tests written for Phase 2.
+    609 existing tests continue to pass (3 skipped).
+    2279 assertions unchanged.
+
+This is an honest gap. Phase 2 shipped backend capabilities
+without test coverage. The eventual Phase 3 tests must cover
+church-event creation, the kind filter on the index, and the
+status label dispatch. Recorded so it is not silently inherited.
+
+### Verification
+
+    php artisan test
+    -> 3 skipped, 609 passed (2307 assertions)
+
+    php artisan migrate
+    -> all migrations applied, including the new one
+    -> full migrate:fresh --seed took ~30 seconds post-config-change
+
+    php -l on every modified file
+    -> clean
+
+Diff reviews confirmed:
+    Event.php            -- additions only
+    EventValidationRules.php -- additions + two methods rewritten
+    EventController.php  -- additions + three methods rewritten
+
+### Effect on later phases
+
+Phase 3 (Services) is unblocked on Phase 2 completion and
+inherits the frontend work. Q7 (non-English event names) remains
+the Phase 3 blocker.
+
+Phases 4 through 6 depend on Phase 2's schema (event_kind,
+church_category, church_status) being stable. It is.
+
+### No code, enum, or configuration was changed outside this scope
+
+Files touched:
+
+    app/Enums/ChurchEventStatus.php            (new)
+    app/Enums/EventType.php                    (extended)
+    app/Models/Event.php                       (extended)
+    app/Concerns/EventValidationRules.php      (extended)
+    app/Http/Controllers/EventController.php   (extended)
+    database/migrations/2026_10_16_110000_*.php (new)
+
+Nothing else in app/, bootstrap/, config/, routes/, resources/,
+or tests/ was modified.
+
