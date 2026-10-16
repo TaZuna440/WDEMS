@@ -8,6 +8,15 @@ echo "════════════════════════�
 echo " WDEMS design system audit"
 echo "════════════════════════════════════════════════════"
 
+# Note on rule numbering. Rule 2 (page heroes must use
+# text-on-image on the app layout) was retired on 2026-10-17 when
+# the background image was removed from the app shell. The rule's
+# premise — that page heroes need white text with a shadow to read
+# over the shell image — no longer applies. Pages use
+# text-foreground via the ordinary semantic tokens. Rule numbers
+# are not renumbered; they are referenced by number in
+# docs/design-system.md §9.1.
+
 # ─── Rule 1: yellow / amber must have a light-mode override ───
 echo ""
 echo "▸ Rule 1: yellow / amber must have a light-mode override"
@@ -26,36 +35,6 @@ if [ -n "$RULE1" ]; then
   VIOLATIONS=$((VIOLATIONS + 1))
 else
   echo "  ✓ All yellow / amber usages are paired with a dark: variant."
-fi
-
-# ─── Rule 2: page heroes must use text-on-image, not text-foreground ───
-echo ""
-echo "▸ Rule 2: page heroes use text-on-image on the app layout"
-echo ""
-echo "  Whitelisted (correct as-is): auth/*, welcome, public"
-echo "  registration pages, settings sub-pages, admin, and the two"
-echo "  discipleship h1s that sit inside a glass-panel."
-echo ""
-RULE2=$(grep -rn '<h1 className="[^"]*text-foreground' resources/js/pages/ \
-  | grep -v "pages/auth/" \
-  | grep -v "pages/welcome.tsx" \
-  | grep -v "pages/registrations/public.tsx" \
-  | grep -v "pages/registrations/confirmed.tsx" \
-  | grep -v "pages/registrations/closed.tsx" \
-  | grep -v "pages/registrations/verify.tsx" \
-  | grep -v "pages/settings/" \
-  | grep -v "pages/admin/" \
-  | grep -v "pages/discipleship/batch-show.tsx" \
-  | grep -v "pages/discipleship/show.tsx" \
-  | grep -v "pages/fellowship/attendance.tsx" \
-  || true)
-
-if [ -n "$RULE2" ]; then
-  echo "  ✗ Hero h1 still using text-foreground on the app layout:"
-  echo "$RULE2" | sed 's/^/    /'
-  VIOLATIONS=$((VIOLATIONS + 1))
-else
-  echo "  ✓ All page heroes use text-on-image (or are whitelisted)."
 fi
 
 # ─── Rule 3: glass tint variables only in app.css ───
@@ -103,7 +82,7 @@ fi
 # ─── Rule 5: raw white utilities in pages / layouts (informational) ───
 echo ""
 echo "▸ Rule 5: raw white utilities in pages / layouts (informational)"
-echo "  In-glass usage is fine. On-image usage is a bug. Review each file."
+echo "  In-glass usage is fine. Review each file."
 echo ""
 RULE5=$(grep -rln "border-white/\|bg-white/" \
   resources/js/pages/ \

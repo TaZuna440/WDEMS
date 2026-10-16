@@ -543,3 +543,53 @@ plus the existing Rules 1-3. See §9.1.
   badges, lime glyphs, and empty-state circles. §11 "Cross-
   references" renumbered to §12. The audit's Rules 4-6 enforce the
   new rules.
+
+---
+
+## Corrections (2026-10-17)
+
+### The background image is removed from the app shell
+
+§1 described a four-layer model: base gradient, image + overlay,
+glass surfaces, content. The image layer was global — every page
+rendered a photographic scene behind the glass.
+
+On 2026-10-17 the image was removed from the app shell. The
+default `body::before` stack is now three layers: two radial
+glows over a linear gradient. Both the gradient colors and the
+glow opacity flip between light and dark mode, so the mode
+toggle is now visibly distinct on every page.
+
+The login page is the one exception. Its layout (`auth-login-layout.tsx`)
+adds the `wdems-with-bg` class to `<body>`, which re-applies the
+image layer for that page only. The login page also has its own
+`login-background.png` inside the brand panel, independent of the
+shell.
+
+### §6 (text on the image) is now login-page-only
+
+The `.text-on-image` and `.text-on-image-muted` utilities remain
+defined in `app.css`. As of 2026-10-17 they have **zero usages**
+anywhere in `resources/js/`. They are kept for the login page and
+any future hero section that reintroduces a photographic background.
+
+Regular pages use `text-foreground` (headings, back links) and
+`text-muted-foreground` (subtitles, section labels) — the same
+semantic tokens they use inside glass surfaces.
+
+### §9.1's Rule 2 is retired
+
+The audit script previously enforced Rule 2: page heroes on the
+app layout must use `.text-on-image`. That rule's premise — heroes
+sit on the shell image — is false. Rule 2 was removed from
+`scripts/audit-design.sh` on 2026-10-17.
+
+Rule numbers are not renumbered. The header comment in the audit
+script explains the gap. Rules 1, 3, 4, 5, and 6 are unchanged.
+
+### §11 is unaffected
+
+The interactive-element surface rules (chips, anchor buttons, form
+primitives, outline Button variant, status badges, lime glyphs,
+empty-state circles) were already expressed via semantic tokens.
+They continue to apply unchanged.
