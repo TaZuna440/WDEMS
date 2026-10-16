@@ -2576,3 +2576,124 @@ for structure. Not written this session.
 - `docs/AI-CONTEXT.md` §13 — the concurrent-artisan warning
   observed during the migration rollback (queue:listen active,
   migration ran 5× slower than baseline)
+
+---
+
+## 2026-10-16 — Phase 5A: Discipleship programs (M5, sub-phase A)
+
+First sub-phase of the Discipleship module (M5), the largest
+single workstream in the church-events scope. Phase 5 splits into
+eight sub-phases (5A–5H); this session ships 5A.
+
+Programs are seeded data, not created through the UI. Six rows:
+Life Class, Encounter God Retreat, School of Leaders 1–3, Cell
+Convergence. If the client later adds a seventh, the seeder is
+the change point — no new migration.
+
+### What shipped
+
+Backend:
+
+- Migration `discipleship_programs` — name, slug (unique),
+  description, display_order.
+- `DiscipleshipProgram` model.
+- `DiscipleshipProgramSeeder` — idempotent via `firstOrCreate` on
+  slug.
+- `DiscipleshipController` — `index`, `show`. `{program:slug}`
+  route binding so URLs are human-readable
+  (`/discipleship/programs/life-class`, not `/1`).
+
+Routes:
+
+- 2 routes under `/discipleship`, main authenticated group.
+- Route block structured so 5B–5E extend it in place:
+  5B adds `/programs/{program:slug}/batches`,
+  5C adds enrollment endpoints,
+  5D adds `/batches/{batch}/sessions`,
+  5E adds session attendance endpoints.
+
+Frontend:
+
+- Sidebar entry (`GraduationCap`, between Fellowship and Events).
+- 2 pages under `resources/js/pages/discipleship/`:
+  - `index.tsx` — six program cards.
+  - `show.tsx` — program header with an empty batches state.
+    The empty state is honest: no batches exist yet because
+    batches are 5B.
+
+### Seeder decision
+
+Six programs seeded via `DiscipleshipProgramSeeder`, not
+in-migration. Matches Laravel convention (schema separate from
+data) and makes the six rows re-seedable after a `db:seed`.
+
+Idempotency is `firstOrCreate(['slug' => ...], [...])`. Re-running
+does not duplicate and does not overwrite an existing row's name.
+A future rename needs its own dedicated migration.
+
+### Table-name derivation check
+
+Applied the Phase 4 carry-forward rule before running any write:
+`Str::plural(Str::snake(class_basename(DiscipleshipProgram)))` =
+`discipleship_programs`, matching the string in
+`Schema::create(...)`. Verified at Block 5A-1 step 4 via
+`(new DiscipleshipProgram)->getTable()`. Passed. This is the check
+that would have caught the Phase 4 `fellowship_attendance` vs
+`fellowship_attendances` defect and did not need to catch anything
+here.
+
+### Process defect this session
+
+One, mine. The `tests/Feature/Discipleship/` directory did not
+exist when the test-file heredoc ran; the write failed silently
+inside bash. Same class of failure as Phase 4 Block 4a
+(`app/Http/Requests/Fellowship/`). Fixed by adding `mkdir -p` as
+the first command in the repaired block.
+
+**Standing rule, restated with stricter trigger:** any heredoc
+targeting a path under a directory that may not exist is preceded
+by `mkdir -p <dirname> && ls -ld <dirname>` in the same block.
+Applies to any `<Module>`-shaped path under
+`app/Http/Requests/`, `resources/js/pages/`, `tests/Feature/`, and
+equivalents.
+
+### Verification
+
+    php artisan test tests/Feature/Discipleship/
+    6 passed (45 assertions)
+
+    php artisan test
+    3 skipped, 701 passed (2727 assertions)
+
+    npx tsc --noEmit
+    silent
+
+    php -l on all new backend files
+    No syntax errors
+
+### Commits
+
+    979e0de  feat(discipleship): Phase 5A — programs module
+             9 files, 504 insertions
+
+### What comes next
+
+Phase 5B — batches. Migration `discipleship_batches` with a
+`program_id` integer FK, `name`, `start_date`. Batch list per
+program, batch creation form. The routing keeps the slug-based
+program URL and joins on the integer FK.
+
+Phase 5C will need a decision recorded before any code: enrollment
+granularity (program-level vs batch-level). Phase 5F will need a
+decision on completion criteria storage. Both flagged in the 5A
+plan and deferred.
+
+### Cross-references
+
+- `docs/church-events/07-scope-and-task-division.md` §3.6 —
+  Phase 5 task breakdown (5A.1 through 5A.4)
+- `docs/progress.md` 2026-10-16 Phase 4 entry — the pattern this
+  sub-phase follows for migration/model/controller/frontend/test
+  sequencing
+- `docs/progress.md` 2026-10-16 Phase 3 entry — the Services
+  module, structurally closest to Discipleship
