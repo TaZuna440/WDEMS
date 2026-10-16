@@ -63,8 +63,9 @@ block below the Answer.
 | Q18 | Cell Group vs Services overlap | Cell Group module | Answered |
 | Q19 | Design system replacement | Every shipped page | Answered |
 | Q20 | Multi-tab URL semantics | Special Occasions, Ministry Meeting, VBS | Answered |
+| Q21 | Final role model | Four-role proposal, approval workflow | Answered |
 
-**Coverage:** 20 questions, 20 answered, 0 pending.
+**Coverage:** 21 questions, 21 answered, 0 pending.
 
 ---
 
@@ -451,3 +452,28 @@ the codebase uses tabs.
   question was sent without A/B/C labels) and Q14 (migration path
   for existing excused rows before the code changes). Remaining
   unanswered: Q1, Q16, Q17, Q18, Q19, Q20.
+
+---
+
+### Q21 -- Final role model
+
+**Question.** Should WDEMS adopt the four-role model proposed on
+2026-10-16 (System Administrator, Church Leadership, Event
+Organizer, Attendance Encoder), or remain with the current two-role
+structure (Admin, Staff)?
+
+**Context.** The four-role model was proposed via a ChatGPT output
+shared by the client. It implies an approval workflow (Church
+Leadership approves events before they go live) and per-event
+scoping for attendance encoders. Both are significant additions to
+the current architecture: a new approval state on events, a new
+event_user pivot table, three new middleware gates, and a data
+migration for existing Staff users.
+
+**Answer.** Two roles confirmed. The four-role model is rejected.
+WDEMS stays with Admin and Staff.
+
+No approval workflow is required. Events move to Registration Open
+when the organizer is ready, with no separate sign-off step.
+
+**Date.** 2026-10-16
