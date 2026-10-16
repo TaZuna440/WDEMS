@@ -31,9 +31,9 @@ function EmptySection({
     description: string;
 }) {
     return (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-white/10 p-8 text-center">
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border p-8 text-center">
             <Icon className="mb-3 h-6 w-6 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">{title}</p>
+            <p className="text-sm text-foreground">{title}</p>
             <p className="mt-1 max-w-xs text-xs text-muted-foreground">
                 {description}
             </p>
@@ -49,7 +49,7 @@ function EventRowItem({
     showMonitor?: boolean;
 }) {
     return (
-        <div className="flex items-center justify-between gap-4 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3 transition-colors hover:bg-white/[0.04]">
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card/40 px-4 py-3 transition-colors hover:bg-card/70">
             <Link
                 href={`/events/${event.id}`}
                 className="flex min-w-0 flex-1 flex-col"
@@ -90,15 +90,17 @@ function Section({
     children: React.ReactNode;
 }) {
     return (
-        <section className="flex flex-col gap-3">
-            <div className="flex items-baseline justify-between">
+        <div className="glass-panel rounded-xl p-6">
+            <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                     {title}
                 </h2>
-                <span className="text-xs text-muted-foreground">{count}</span>
+                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    {count}
+                </span>
             </div>
             {children}
-        </section>
+        </div>
     );
 }
 
@@ -111,12 +113,12 @@ export default function RegistrationsIndex({
         <>
             <Head title="Registration" />
 
-            <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold text-foreground">
+            <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
+                <div className="pl-10">
+                    <h1 className="text-on-image text-2xl font-semibold">
                         Registration
                     </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="text-on-image-muted mt-1 text-sm">
                         Build registration forms, publish them, and manage
                         incoming submissions.
                     </p>
