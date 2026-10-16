@@ -149,14 +149,14 @@
 @layer utilities {
     /* Theme-adaptive glass panels — no photos needed */
     .glass-panel {
-        @apply backdrop-blur-md border shadow-xl;
-        background-color: color-mix(in oklch, var(--card) 60%, transparent);
+        @apply backdrop-blur-2xl border shadow-xl;
+        background-color: color-mix(in oklch, var(--card) var(--glass-card-tint), transparent);
         border-color: var(--border);
     }
 
     .glass-panel-heavy {
-        @apply backdrop-blur-lg border shadow-2xl;
-        background-color: color-mix(in oklch, var(--card) 85%, transparent);
+        @apply backdrop-blur-2xl border shadow-2xl;
+        background-color: color-mix(in oklch, var(--card) calc(var(--glass-card-tint) + 15%), transparent);
         border-color: var(--border);
     }
 
@@ -198,9 +198,9 @@
     --app-bg-texture-opacity: 0.035;
 
     /* Glass tint strengths — light mode needs higher opacity for contrast */
-    --glass-card-tint: 55%;
-    --glass-sidebar-tint: 60%;
-    --glass-header-tint: 50%;
+    --glass-card-tint: 42%;
+    --glass-sidebar-tint: 45%;
+    --glass-header-tint: 42%;
     --glass-border-strength: 65%;
 }
 
