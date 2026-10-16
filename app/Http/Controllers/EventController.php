@@ -139,27 +139,23 @@ class EventController extends Controller
     }
 
     /**
-     * Show the create wizard.
+     * Show the create-entry page.
      *
-     * Both running and church event types are offered. The frontend
-     * wizard switches its step list based on event_type: running
-     * events use four steps (Details, Schedule, Venue, Extras);
-     * church events use three (Details, Schedule, Venue). The
-     * running-only fields (distance, partners, accessibility) are
-     * hidden for church events.
-     *
-     * event_kind is derived from event_type in EventRequest, so the
-     * wizard does not need to send it directly.
-     *
-     * church_categories is a fixed nine-item list from the
-     * ChurchCategory enum (client-confirmed CAT-01, doc 02). If the
-     * list ever becomes administrator-managed, this prop becomes a
-     * table read.
+     * Two cards: Community Run and Church Event. Each routes into
+     * the appropriate wizard or category picker.
      */
     public function create(): Response
     {
+        return Inertia::render('events/create-entry');
+    }
+
+    /**
+     * Show the running-event wizard with the type locked.
+     */
+    public function createCommunityRun(): Response
+    {
         return Inertia::render('events/create', [
-            'event_types' => collect(EventType::cases())
+            'event_types' => collect([EventType::CommunityRun])
                 ->map(fn (EventType $type) => [
                     'value' => $type->value,
                     'label' => $type->label(),
@@ -171,6 +167,74 @@ class EventController extends Controller
                     'label' => $category->label(),
                 ])
                 ->values(),
+            'preset_event_type' => EventType::CommunityRun->value,
+            'preset_church_category' => null,
+            'lock_type' => true,
+        ]);
+    }
+
+    /**
+     * Show the church category cards in create mode.
+     */
+    public function createChurch(): Response
+    {
+        return Inertia::render('events/church/create-cards');
+    }
+
+    /**
+     * Show the unified church wizard with a category preset.
+     *
+     * Only the six unbuilt categories route here. The three built
+     * ones (Services, Fellowship, Discipleship) have their own
+     * landing pages and creation flows — the create cards route
+     * directly there.
+     */
+    public function createChurchCategory(string $category): Response
+    {
+        $valid = [
+            'youth',
+            'kids',
+            'young-adult',
+            'worship-prayer',
+            'special-occasions',
+            'church-administration',
+        ];
+
+        if (! in_array($category, $valid, true)) {
+            abort(404);
+        }
+
+        // The wizard restricts church_category to the six unbuilt
+        // categories so a user cannot accidentally create a plain
+        // event with a category that has its own module.
+        return Inertia::render('events/create', [
+            'event_types' => collect([EventType::Church])
+                ->map(fn (EventType $type) => [
+                    'value' => $type->value,
+                    'label' => $type->label(),
+                ])
+                ->values(),
+            'church_categories' => collect(ChurchCategory::cases())
+                ->filter(fn (ChurchCategory $c) => in_array($c->value, [
+                    'Youth', 'Kids Ministry', 'Young Adult',
+                    'Worship & Prayer', 'Special Occasions',
+                    'Church Administration',
+                ], true))
+                ->map(fn (ChurchCategory $category) => [
+                    'value' => $category->value,
+                    'label' => $category->label(),
+                ])
+                ->values(),
+            'preset_event_type' => EventType::Church->value,
+            'preset_church_category' => ChurchCategory::from(match ($category) {
+                'youth' => 'Youth',
+                'kids' => 'Kids Ministry',
+                'young-adult' => 'Young Adult',
+                'worship-prayer' => 'Worship & Prayer',
+                'special-occasions' => 'Special Occasions',
+                'church-administration' => 'Church Administration',
+            })->value,
+            'lock_type' => true,
         ]);
     }
 

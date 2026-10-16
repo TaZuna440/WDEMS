@@ -12,26 +12,20 @@ import ExtrasStep from './step/ExtrasStep';
 import ScheduleStep from './step/ScheduleStep';
 import VenueStep from './step/VenueStep';
 
-type EventTypeOption = {
-    value: string;
-    label: string;
-};
-
-type ChurchCategoryOption = {
-    value: string;
-    label: string;
-};
+type EventTypeOption = { value: string; label: string };
+type ChurchCategoryOption = { value: string; label: string };
 
 type Props = {
     event_types: EventTypeOption[];
     church_categories: ChurchCategoryOption[];
+    /** Pre-fills event_type in the create flow. */
+    preset_event_type?: string | null;
+    /** Pre-fills church_category in the create flow. */
+    preset_church_category?: string | null;
+    /** Locks the event type dropdown. */
+    lock_type?: boolean;
 };
 
-/**
- * Steps for running events (Community Run). Four steps with the
- * running-only fields (distance on Schedule, partners and
- * accessibility on Extras and Basics respectively).
- */
 const RUNNING_STEPS: WizardStepConfig[] = [
     {
         id: 'basics',
@@ -55,19 +49,8 @@ const RUNNING_STEPS: WizardStepConfig[] = [
     {
         id: 'schedule',
         label: 'Schedule',
-        fields: [
-            'event_date',
-            'start_time',
-            'end_time',
-            'distance_value',
-            'distance_unit',
-        ],
-        requiredFields: [
-            'event_date',
-            'start_time',
-            'distance_value',
-            'distance_unit',
-        ],
+        fields: ['event_date', 'start_time', 'end_time', 'distance_value', 'distance_unit'],
+        requiredFields: ['event_date', 'start_time', 'distance_value', 'distance_unit'],
         validate: validateSchedule,
     },
     {
@@ -85,33 +68,18 @@ const RUNNING_STEPS: WizardStepConfig[] = [
     },
 ];
 
-/**
- * Steps for church events. Three steps — no Extras, because church
- * events do not have partners. Distance on Schedule is hidden in the
- * step component when the event is a church event. Accessibility
- * flags in Basics are hidden for church events too.
- */
 const CHURCH_STEPS: WizardStepConfig[] = [
     {
         id: 'basics',
         label: 'Details',
-        fields: [
-            'event_type',
-            'church_category',
-            'event_name',
-            'description',
-        ],
+        fields: ['event_type', 'church_category', 'event_name', 'description'],
         requiredFields: ['event_type', 'church_category', 'event_name'],
         validate: validateBasics,
     },
     {
         id: 'schedule',
         label: 'Schedule',
-        fields: [
-            'event_date',
-            'start_time',
-            'end_time',
-        ],
+        fields: ['event_date', 'start_time', 'end_time'],
         requiredFields: ['event_date', 'start_time'],
         validate: validateSchedule,
     },
@@ -127,6 +95,9 @@ const CHURCH_STEPS: WizardStepConfig[] = [
 export default function EventsCreate({
     event_types,
     church_categories,
+    preset_event_type = null,
+    preset_church_category = null,
+    lock_type = false,
 }: Props) {
     const {
         data,
@@ -136,27 +107,20 @@ export default function EventsCreate({
         errors,
         clearErrors,
     } = useForm({
-        // Step 1 — Details
-        event_type: '',
-        church_category: '',
+        event_type: preset_event_type ?? '',
+        church_category: preset_church_category ?? '',
         event_name: '',
         description: '',
-
-        // Step 2 — Schedule
         event_date: '',
         start_time: '',
         end_time: '',
         distance_value: null as number | null,
         distance_unit: 'km' as 'km' | 'mi',
-
-        // Step 3 — Venue
         venue: '',
         venue_address: '',
         venue_map_url: '',
         venue_latitude: null as number | null,
         venue_longitude: null as number | null,
-
-        // Step 4 — Extras (running-only)
         partners: [] as { name: string; type: string }[],
         walkers_welcome: true,
         all_paces_welcome: true,
@@ -171,24 +135,11 @@ export default function EventsCreate({
     const isChurch = data.event_type === 'church';
     const steps = isChurch ? CHURCH_STEPS : RUNNING_STEPS;
 
-    /**
-     * Wrap Inertia's setData so that editing a field also clears any
-     * stale server error for that field (or its subkeys, e.g.
-     * `partners.0.name`).
-     *
-     * useForm keeps the last server error bag until the next
-     * submission. Without this, a stale error like "you already have
-     * an active event with this name" persists after the user fixes
-     * the field — and the wizard's error-jump effect keeps bouncing
-     * them back to the step that owns that field.
-     */
     const setData = (key: string, value: unknown) => {
         (inertiaSetData as unknown as (key: string, value: unknown) => void)(key, value);
-
         const matching = Object.keys(errors).filter(
             (k) => k === key || k.startsWith(`${key}.`),
         );
-
         if (matching.length > 0) {
             (clearErrors as unknown as (...fields: string[]) => void)(...matching);
         }
@@ -204,20 +155,19 @@ export default function EventsCreate({
 
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
                 <Link
-                    href="/events"
+                    href="/events/create"
                     className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                     <ArrowLeft className="h-4 w-4" />
-                    Back to Events
+                    Back
                 </Link>
 
-                <div>
+                <div className="pl-10">
                     <h1 className="text-foreground text-2xl font-semibold">
                         Create Event
                     </h1>
                     <p className="text-muted-foreground mt-1 text-sm">
-                        Set up a new event. Your progress is saved
-                        automatically — you can leave and come back.
+                        Your progress is saved automatically — you can leave and come back.
                     </p>
                 </div>
 
@@ -241,6 +191,7 @@ export default function EventsCreate({
                                         errors={stepErrors}
                                         eventTypes={event_types}
                                         churchCategories={church_categories}
+                                        lockEventType={lock_type}
                                     />
                                 );
                             case 'schedule':

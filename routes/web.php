@@ -140,6 +140,11 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
 
     Route::get('events', [EventController::class, 'index'])->name('events.index');
     Route::get('events/create', [EventController::class, 'create'])->name('events.create');
+    Route::get('events/create/community-run', [EventController::class, 'createCommunityRun'])->name('events.create.community-run');
+    Route::get('events/create/church', [EventController::class, 'createChurch'])->name('events.create.church');
+    Route::get('events/create/church/{category}', [EventController::class, 'createChurchCategory'])
+        ->whereIn('category', ['youth', 'kids', 'young-adult', 'worship-prayer', 'special-occasions', 'church-administration'])
+        ->name('events.create.church.category');
     Route::post('events', [EventController::class, 'store'])->name('events.store');
     Route::get('events/{event}', [EventController::class, 'show'])->name('events.show');
     Route::get('events/{event}/edit', [EventController::class, 'edit'])->name('events.edit');

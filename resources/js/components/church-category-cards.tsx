@@ -16,85 +16,106 @@ type Category = {
     key: string;
     label: string;
     description: string;
-    href: string;
     icon: LucideIcon;
+    /** Categories with a dedicated module and landing page. */
+    hasDedicatedPage: boolean;
 };
 
 /**
  * The nine church event categories. Confirmed by the client in
  * docs/church-events/02-product-scope-and-requirements.md CAT-01.
  *
- * Services, Fellowship, and Discipleship have dedicated landing
- * pages (shipped in earlier phases). The other six render a
- * placeholder page until Phase 4 fills them in.
+ * `hasDedicatedPage` distinguishes the three that ship with their
+ * own landing page (Services, Fellowship, Discipleship) from the
+ * six that use the unified church event wizard until Phase 4.
  */
 const CATEGORIES: Category[] = [
     {
         key: 'services',
         label: 'Services',
         description: 'Recurring worship services',
-        href: '/events/church/services',
         icon: Church,
+        hasDedicatedPage: true,
     },
     {
         key: 'fellowship',
         label: 'Fellowship',
         description: 'Gatherings by group type',
-        href: '/events/church/fellowship',
         icon: HeartHandshake,
+        hasDedicatedPage: true,
     },
     {
         key: 'discipleship',
         label: 'Discipleship',
         description: 'Structured formation programs',
-        href: '/events/church/discipleship',
         icon: GraduationCap,
+        hasDedicatedPage: true,
     },
     {
         key: 'youth',
         label: 'Youth',
         description: 'Youth camps, services, ministry',
-        href: '/events/church/youth',
         icon: Users,
+        hasDedicatedPage: false,
     },
     {
         key: 'kids',
         label: 'Kids Ministry',
         description: 'Kids activities and outreaches',
-        href: '/events/church/kids',
         icon: Baby,
+        hasDedicatedPage: false,
     },
     {
         key: 'young-adult',
         label: 'Young Adult',
         description: 'Young adult services and seminars',
-        href: '/events/church/young-adult',
         icon: UserRound,
+        hasDedicatedPage: false,
     },
     {
         key: 'worship-prayer',
         label: 'Worship & Prayer',
         description: 'Prayer meetings and worship nights',
-        href: '/events/church/worship-prayer',
         icon: Music,
+        hasDedicatedPage: false,
     },
     {
         key: 'special-occasions',
         label: 'Special Occasions',
         description: 'Church celebrations and events',
-        href: '/events/church/special-occasions',
         icon: PartyPopper,
+        hasDedicatedPage: false,
     },
     {
         key: 'church-administration',
         label: 'Church Administration',
         description: 'Ministry meetings and planning',
-        href: '/events/church/church-administration',
         icon: Briefcase,
+        hasDedicatedPage: false,
     },
 ];
 
-export default function ChurchCategoryCards() {
+type Props = {
+    /**
+     * `browse` — every card routes to the category's browse page
+     * (dedicated landing for the three built modules, placeholder
+     * for the six unbuilt ones).
+     *
+     * `create` — the three built modules route to their landing
+     * page (where the user creates from the module's own UI), and
+     * the six unbuilt route to the wizard with the category preset.
+     */
+    mode?: 'browse' | 'create';
+};
+
+function hrefFor(category: Category, mode: 'browse' | 'create'): string {
+    if (mode === 'create' && !category.hasDedicatedPage) {
+        return `/events/create/church/${category.key}`;
+    }
+    return `/events/church/${category.key}`;
+}
+
+export default function ChurchCategoryCards({ mode = 'browse' }: Props) {
     return (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {CATEGORIES.map((category) => {
@@ -102,7 +123,7 @@ export default function ChurchCategoryCards() {
                 return (
                     <Link
                         key={category.key}
-                        href={category.href}
+                        href={hrefFor(category, mode)}
                         className="glass-panel glass-panel-hover flex items-start gap-4 rounded-xl p-5"
                     >
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-lime-brand/15">

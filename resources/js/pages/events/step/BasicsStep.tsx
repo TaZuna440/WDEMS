@@ -36,6 +36,7 @@ type Props = {
     eventTypes: EventTypeOption[];
     churchCategories: ChurchCategoryOption[];
     isEdit?: boolean;
+    lockEventType?: boolean;
 };
 
 const ACCESSIBILITY_FIELDS: AccessibilityField[] = [
@@ -56,6 +57,7 @@ export default function BasicsStep({
     eventTypes,
     churchCategories,
     isEdit = false,
+    lockEventType = false,
 }: Props) {
     const isChurch = data.event_type === 'church';
 
@@ -90,7 +92,7 @@ export default function BasicsStep({
                             setData('church_category', '');
                         }
                     }}
-                    disabled={isEdit}
+                    disabled={isEdit || lockEventType}
                 >
                     <SelectTrigger id="event_type">
                         <SelectValue placeholder="Select event type" />
