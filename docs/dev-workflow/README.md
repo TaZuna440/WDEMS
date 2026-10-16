@@ -633,3 +633,305 @@ Add it to `~/.bashrc` and always run tests via `wtest`.
   loop.
 - **Docker / Sail on WSL** — adds filesystem overhead that makes
   local dev slower, not faster.
+
+---
+
+## 11. Process rules from Phases 4 and 5 (2026-10-16)
+
+Four rules emerged during the Fellowship (Phase 4) and
+Discipleship (Phase 5) build sessions. Each was learned by
+breaking it first. They are additive to the protocols in §3 and
+the additions in §9 and §10.
+
+### 11.1 — `mkdir -p` first when the target directory may not exist
+
+Every heredoc that writes into a directory the block itself may
+need to create is preceded by:
+
+    mkdir -p <dirname>
+    ls -ld <dirname>
+
+at the top of the block. The `ls -ld` is a sanity check — it
+should succeed after the mkdir.
+
+**What this prevents.** A block that writes three files into
+`app/Http/Requests/Fellowship/` for the first time. Without the
+`mkdir -p`, the first two writes fail with
+`bash: <path>: No such file or directory` and the block reports
+those failures in-line. The controller write succeeds because
+`app/Http/Controllers/` already exists. The operator has to
+notice the two failed writes and reissue the block.
+
+**What it cost to learn.** Phase 4 Block 4a wrote three files
+into `app/Http/Requests/Fellowship/` before the directory
+existed. The two FormRequest writes failed; the controller
+write landed. Recovery: one extra block to create the dir and
+re-write the two files. Phase 5A-4 repeated the same mistake
+with `tests/Feature/Discipleship/`.
+
+**Where it applies.** Any new `<Module>`-shaped path under
+`app/Http/Requests/`, `app/Http/Controllers/`, `app/Services/`,
+`resources/js/pages/`, `tests/Feature/`, and equivalents.
+
+### 11.2 — Empty-anchor guards on every head/tail split
+
+Every `head -n $((VAR - 1))` or `tail -n +$VAR` computation in
+a head/tail split block is preceded by:
+
+    if [ -z "$VAR" ]; then
+        echo "STOP. Anchor empty."
+        <handling>
+    fi
+
+on the same line or immediately above.
+
+**What this prevents.** `head -n -1` is a valid GNU `head`
+invocation with "all but last line" semantics. If a `grep` that
+was supposed to resolve an anchor returns nothing, the shell
+variable is empty, and `$((BATCH - 1))` evaluates to `-1`.
+The block proceeds with surprising semantics — writing the file
+back to itself minus the last line, then duplicating content.
+
+**What it cost to learn.** Phase 5's use-statement reorder block
+in `routes/web.php` skipped the guard. The anchor grep returned
+empty (root cause not investigated), `head -n -1` fired, and
+`routes/web.php` ended up with duplicate use statements and a
+PHP parse error at line 367. Recovery: `git checkout
+routes/web.php`, re-apply the 5E-2 insertions with the guard in
+place.
+
+**The guard is not optional.** Even for one-off correction
+blocks. Especially for one-off correction blocks.
+
+### 11.3 — No `exit` in blocks delivered for interactive execution
+
+Bash's `exit` in an interactive shell terminates the shell, not
+just the current block. A block that reaches an `exit 1` mid-run
+closes the developer's terminal, losing context and possibly
+in-flight state.
+
+**What this prevents.** Losing session context on an error the
+operator would have preferred to inspect.
+
+**What it cost to learn.** A Phase 5 recovery block included
+`exit 1` inside an anchor check. The anchor failed. The
+terminal closed. The developer lost the paste history for that
+turn.
+
+**The correct pattern.** Print the failure and continue:
+
+    if [ -z "$VAR" ]; then
+        echo "STOP. Anchor empty."
+    fi
+
+The block still short-circuits — subsequent commands fail or
+produce nothing — but the shell stays open. The operator
+decides whether to proceed, retry, or rollback.
+
+### 11.4 — No placeholder tokens in heredoc bodies
+
+When a heredoc body needs to contain a value that varies per
+invocation (a commit hash, a line count, a file count), do not
+leave an angle-bracket token like `<hash>` or `<N>`. Either:
+
+- **Compute it in the shell before the heredoc**, using command
+  substitution:
+
+        HASH=$(git rev-parse --short HEAD)
+        cat >> docs/progress.md <<EOF
+        Commit: ${HASH}
+        EOF
+
+  Note: unquoted heredoc delimiter (`<<EOF` not `<<'EOF'`) so
+  variables expand.
+
+- **Or leave an explicit `<!-- FILL IN -->` comment** so the gap
+  is visible to the operator.
+
+Angle-bracket tokens read like real content to future readers
+and can survive to a commit unnoticed.
+
+**What it cost to learn.** Two progress entries shipped with
+`<hash>` and `<N>` placeholders intact — Phase 5F's Commits
+section and Phase 5G's Commits section. Both went to
+`origin/main`. Both were corrected in the Phase 5H closure
+entry per P7, but the originals remain in `docs/progress.md`
+as-is.
+
+### Why these are one section and not four
+
+All four rules share a shape: a block that is safe in isolation
+but fails at the boundary between blocks. 11.1 fails at the
+filesystem boundary; 11.2 and 11.3 fail at the shell-state
+boundary; 11.4 fails at the doc-reader boundary.
+
+The common practice: any block that writes files, splits files,
+runs recovery logic, or produces a doc artifact should be
+audited against all four before delivery. A single checklist.
+
+### Checklist for future blocks
+
+Before delivering any bash block that writes files:
+
+    [ ] mkdir -p for any new target directory
+    [ ] empty-anchor guard on every head/tail anchor
+    [ ] no `exit` — print and continue on failure
+    [ ] no `<placeholder>` tokens in heredoc bodies
+
+If any box is unchecked, the block is not ready.
+
+## Changelog addendum
+
+- **2026-10-16** — §11 added. Four process rules from Phases 4
+  and 5, each learned by breaking it. Checklist appended.
+
+---
+
+## 11. Process rules from Phases 4 and 5 (2026-10-16)
+
+Four rules emerged during the Fellowship (Phase 4) and
+Discipleship (Phase 5) build sessions. Each was learned by
+breaking it first. They are additive to the protocols in §3 and
+the additions in §9 and §10.
+
+### 11.1 — `mkdir -p` first when the target directory may not exist
+
+Every heredoc that writes into a directory the block itself may
+need to create is preceded by:
+
+    mkdir -p <dirname>
+    ls -ld <dirname>
+
+at the top of the block. The `ls -ld` is a sanity check — it
+should succeed after the mkdir.
+
+**What this prevents.** A block that writes three files into
+`app/Http/Requests/Fellowship/` for the first time. Without the
+`mkdir -p`, the first two writes fail with
+`bash: <path>: No such file or directory` and the block reports
+those failures in-line. The controller write succeeds because
+`app/Http/Controllers/` already exists. The operator has to
+notice the two failed writes and reissue the block.
+
+**What it cost to learn.** Phase 4 Block 4a wrote three files
+into `app/Http/Requests/Fellowship/` before the directory
+existed. The two FormRequest writes failed; the controller
+write landed. Recovery: one extra block to create the dir and
+re-write the two files. Phase 5A-4 repeated the same mistake
+with `tests/Feature/Discipleship/`.
+
+**Where it applies.** Any new `<Module>`-shaped path under
+`app/Http/Requests/`, `app/Http/Controllers/`, `app/Services/`,
+`resources/js/pages/`, `tests/Feature/`, and equivalents.
+
+### 11.2 — Empty-anchor guards on every head/tail split
+
+Every `head -n $((VAR - 1))` or `tail -n +$VAR` computation in
+a head/tail split block is preceded by:
+
+    if [ -z "$VAR" ]; then
+        echo "STOP. Anchor empty."
+        <handling>
+    fi
+
+on the same line or immediately above.
+
+**What this prevents.** `head -n -1` is a valid GNU `head`
+invocation with "all but last line" semantics. If a `grep` that
+was supposed to resolve an anchor returns nothing, the shell
+variable is empty, and `$((BATCH - 1))` evaluates to `-1`.
+The block proceeds with surprising semantics — writing the file
+back to itself minus the last line, then duplicating content.
+
+**What it cost to learn.** Phase 5's use-statement reorder block
+in `routes/web.php` skipped the guard. The anchor grep returned
+empty (root cause not investigated), `head -n -1` fired, and
+`routes/web.php` ended up with duplicate use statements and a
+PHP parse error at line 367. Recovery: `git checkout
+routes/web.php`, re-apply the 5E-2 insertions with the guard in
+place.
+
+**The guard is not optional.** Even for one-off correction
+blocks. Especially for one-off correction blocks.
+
+### 11.3 — No `exit` in blocks delivered for interactive execution
+
+Bash's `exit` in an interactive shell terminates the shell, not
+just the current block. A block that reaches an `exit 1` mid-run
+closes the developer's terminal, losing context and possibly
+in-flight state.
+
+**What this prevents.** Losing session context on an error the
+operator would have preferred to inspect.
+
+**What it cost to learn.** A Phase 5 recovery block included
+`exit 1` inside an anchor check. The anchor failed. The
+terminal closed. The developer lost the paste history for that
+turn.
+
+**The correct pattern.** Print the failure and continue:
+
+    if [ -z "$VAR" ]; then
+        echo "STOP. Anchor empty."
+    fi
+
+The block still short-circuits — subsequent commands fail or
+produce nothing — but the shell stays open. The operator
+decides whether to proceed, retry, or rollback.
+
+### 11.4 — No placeholder tokens in heredoc bodies
+
+When a heredoc body needs to contain a value that varies per
+invocation (a commit hash, a line count, a file count), do not
+leave an angle-bracket token like `<hash>` or `<N>`. Either:
+
+- **Compute it in the shell before the heredoc**, using command
+  substitution:
+
+        HASH=$(git rev-parse --short HEAD)
+        cat >> docs/progress.md <<EOF
+        Commit: ${HASH}
+        EOF
+
+  Note: unquoted heredoc delimiter (`<<EOF` not `<<'EOF'`) so
+  variables expand.
+
+- **Or leave an explicit `<!-- FILL IN -->` comment** so the gap
+  is visible to the operator.
+
+Angle-bracket tokens read like real content to future readers
+and can survive to a commit unnoticed.
+
+**What it cost to learn.** Two progress entries shipped with
+`<hash>` and `<N>` placeholders intact — Phase 5F's Commits
+section and Phase 5G's Commits section. Both went to
+`origin/main`. Both were corrected in the Phase 5H closure
+entry per P7, but the originals remain in `docs/progress.md`
+as-is.
+
+### Why these are one section and not four
+
+All four rules share a shape: a block that is safe in isolation
+but fails at the boundary between blocks. 11.1 fails at the
+filesystem boundary; 11.2 and 11.3 fail at the shell-state
+boundary; 11.4 fails at the doc-reader boundary.
+
+The common practice: any block that writes files, splits files,
+runs recovery logic, or produces a doc artifact should be
+audited against all four before delivery. A single checklist.
+
+### Checklist for future blocks
+
+Before delivering any bash block that writes files:
+
+    [ ] mkdir -p for any new target directory
+    [ ] empty-anchor guard on every head/tail anchor
+    [ ] no `exit` — print and continue on failure
+    [ ] no `<placeholder>` tokens in heredoc bodies
+
+If any box is unchecked, the block is not ready.
+
+## Changelog addendum
+
+- **2026-10-16** — §11 added. Four process rules from Phases 4
+  and 5, each learned by breaking it. Checklist appended.
