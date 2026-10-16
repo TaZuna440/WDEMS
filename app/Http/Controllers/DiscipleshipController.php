@@ -6,6 +6,7 @@ use App\Models\DiscipleshipBatch;
 use App\Models\DiscipleshipEnrollment;
 use App\Models\DiscipleshipProgram;
 use App\Models\Participant;
+use App\Services\Discipleship\DiscipleshipProgressService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,9 +22,10 @@ use Inertia\Response;
  * DiscipleshipProgramSeeder.
  *
  * Phase 5A. 5B added batches. 5C added enrollments to show() and
- * the participantSearch() endpoint. Sessions (5D), session
- * attendance (5E), and progress (5F) extend this in later
- * sub-phases.
+ * the participantSearch() endpoint. 5D added sessions on the
+ * batch detail page (separate controller). 5E added attendance
+ * (separate controller). 5F adds progress and the program
+ * overview card.
  */
 class DiscipleshipController extends Controller
 {
@@ -49,17 +51,23 @@ class DiscipleshipController extends Controller
     }
 
     /**
-     * Per-program view: header, batches, and enrollments.
+     * Per-program view: header, batches, enrollments, and the
+     * program overview card.
      *
      * Batches ordered by start_date ascending (chronological).
-     * Enrollments ordered by created_at descending (most recent
-     * first).
+     * Enrollments ordered by created_at descending.
+     *
+     * Each enrollment row carries a `progress` sub-object from
+     * DiscipleshipProgressService. The program payload carries
+     * `overview` -- status counts plus completion rate.
      *
      * Phase 5G adds search, filter, and pagination on the
-     * enrollment list. At 5C the whole list is loaded.
+     * enrollment list. At 5F the whole list is loaded.
      */
     public function show(DiscipleshipProgram $program): Response
     {
+        $progressService = app(DiscipleshipProgressService::class);
+
         $batches = $program->batches()
             ->orderBy('start_date')
             ->orderBy('id')
@@ -74,6 +82,7 @@ class DiscipleshipController extends Controller
             ->with([
                 'participant:id,first_name,last_name,email,contact_number',
                 'batch:id,name',
+                'program',
             ])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -90,6 +99,7 @@ class DiscipleshipController extends Controller
                 'status_label' => $e->status->label(),
                 'enrolled_at' => $e->enrolled_at?->toDateString(),
                 'notes' => $e->notes,
+                'progress' => $progressService->progress($e),
             ]);
 
         return Inertia::render('discipleship/show', [
@@ -103,6 +113,7 @@ class DiscipleshipController extends Controller
             'batches_count' => $batches->count(),
             'enrollments' => $enrollments,
             'enrollments_count' => $enrollments->count(),
+            'overview' => $progressService->programOverview($program),
         ]);
     }
 
@@ -111,12 +122,10 @@ class DiscipleshipController extends Controller
      *
      * Returns up to 20 participants matching the query. Matches
      * on first name, last name, email, or contact number. Empty
-     * query returns the first 20 by last name -- so the picker has
-     * something to render on open without a keystroke.
+     * query returns the first 20 by last name.
      *
      * Each result carries `already_enrolled: true|false` so the
-     * UI can grey out participants already in this program without
-     * a second round trip.
+     * UI can grey out participants already in this program.
      *
      * JSON response, not Inertia. The picker is a debounced
      * type-ahead; it cannot use the partial-reload pattern.

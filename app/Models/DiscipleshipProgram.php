@@ -18,13 +18,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * known programs are defined in DiscipleshipProgramSeeder. If the
  * client later adds a seventh, the seeder is the change point.
  *
+ * required_sessions and extra_requirements are completion
+ * criteria added in 5F. Null required_sessions means "no fixed
+ * requirement" -- the progress service falls back to 100% of
+ * applicable sessions. Null extra_requirements means no
+ * additional checklist beyond session count.
+ *
  * Phase 5A. batches() added in 5B. enrollments() added in 5C.
+ * Criteria columns added in 5F.
  */
 #[Fillable([
     'name',
     'slug',
     'description',
     'display_order',
+    'required_sessions',
+    'extra_requirements',
 ])]
 class DiscipleshipProgram extends Model
 {
@@ -32,6 +41,8 @@ class DiscipleshipProgram extends Model
     {
         return [
             'display_order' => 'integer',
+            'required_sessions' => 'integer',
+            'extra_requirements' => 'array',
         ];
     }
 

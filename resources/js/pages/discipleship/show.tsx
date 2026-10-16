@@ -2,6 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
     CalendarDays,
+    CheckCircle2,
     Pencil,
     Plus,
     Search,
@@ -10,7 +11,7 @@ import {
     UserPlus,
     Users,
 } from 'lucide-react';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import DatePicker from '@/components/date-picker';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,14 @@ type BatchRow = {
     start_date: string;
 };
 
+type ProgressRow = {
+    attended: number;
+    applicable: number;
+    percentage: number | null;
+    required_sessions: number | null;
+    is_complete: boolean;
+};
+
 type EnrollmentRow = {
     id: number;
     participant_id: number;
@@ -58,6 +67,17 @@ type EnrollmentRow = {
     status_label: string;
     enrolled_at: string | null;
     notes: string | null;
+    progress: ProgressRow;
+};
+
+type OverviewRow = {
+    total: number;
+    completed: number;
+    in_progress: number;
+    not_started: number;
+    withdrawn: number;
+    on_hold: number;
+    completion_rate: number | null;
 };
 
 type Props = {
@@ -66,13 +86,16 @@ type Props = {
     batches_count: number;
     enrollments: EnrollmentRow[];
     enrollments_count: number;
+    overview: OverviewRow;
 };
 
 const STATUS_STYLES: Record<string, string> = {
-    enrolled: 'bg-lime-brand/15 text-lime-700 border-lime-brand/30 dark:text-lime-brand',
+    enrolled:
+        'bg-lime-brand/15 text-lime-700 border-lime-brand/30 dark:text-lime-brand',
     in_progress:
         'bg-accent/15 text-teal-700 border-accent/30 dark:text-accent',
-    completed: 'bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400',
+    completed:
+        'bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400',
     withdrawn: 'bg-destructive/10 text-destructive border-destructive/30',
     on_hold:
         'bg-[#13253B]/10 text-[#13253B] border-[#13253B]/30 dark:bg-yellow-500/10 dark:text-yellow-500 dark:border-yellow-500/30',
@@ -89,12 +112,81 @@ function formatDate(iso: string): string {
     });
 }
 
+function ProgressCell({ progress }: { progress: ProgressRow }) {
+    if (progress.applicable === 0) {
+        return (
+            <span className="text-xs italic text-muted-foreground/60">
+                No sessions yet
+            </span>
+        );
+    }
+
+    const pct = progress.percentage ?? 0;
+
+    return (
+        <div className="flex items-center gap-2">
+            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/5">
+                <div
+                    className="h-full rounded-full bg-lime-brand"
+                    style={{ width: `${pct}%` }}
+                />
+            </div>
+            <span className="text-xs tabular-nums text-muted-foreground">
+                {progress.attended}/{progress.applicable}
+            </span>
+            <span className="text-xs tabular-nums text-muted-foreground">
+                {pct.toFixed(0)}%
+            </span>
+        </div>
+    );
+}
+
+function CompletionDonut({ rate }: { rate: number | null }) {
+    const pct = rate ?? 0;
+    const radius = 28;
+    const circumference = 2 * Math.PI * radius;
+    const dash = (pct / 100) * circumference;
+
+    return (
+        <div className="relative h-20 w-20">
+            <svg viewBox="0 0 64 64" className="h-full w-full -rotate-90">
+                <circle
+                    cx="32"
+                    cy="32"
+                    r={radius}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="6"
+                    className="text-white/5"
+                />
+                <circle
+                    cx="32"
+                    cy="32"
+                    r={radius}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={`${dash} ${circumference}`}
+                    className="text-lime-brand"
+                />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-sm font-semibold text-foreground">
+                    {pct.toFixed(0)}%
+                </span>
+            </div>
+        </div>
+    );
+}
+
 export default function DiscipleshipShow({
     program,
     batches,
     batches_count,
     enrollments,
     enrollments_count,
+    overview,
 }: Props) {
     const [createBatchOpen, setCreateBatchOpen] = useState(false);
     const [editBatchTarget, setEditBatchTarget] = useState<BatchRow | null>(null);
@@ -124,7 +216,7 @@ export default function DiscipleshipShow({
         <>
             <Head title={`${program.name} — Discipleship`} />
 
-            <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
                 <Link
                     href="/discipleship"
                     className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -133,9 +225,9 @@ export default function DiscipleshipShow({
                     All Discipleship
                 </Link>
 
-                {/* Program header */}
-                <div className="glass-panel rounded-xl p-6">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                {/* Program header + overview */}
+                <div className="grid gap-4 lg:grid-cols-3">
+                    <div className="glass-panel rounded-xl p-6 lg:col-span-2">
                         <div className="pl-10">
                             <h1 className="text-xl font-semibold text-foreground">
                                 {program.name}
@@ -154,6 +246,49 @@ export default function DiscipleshipShow({
                                     ? 'enrollment'
                                     : 'enrollments'}
                             </p>
+                        </div>
+                    </div>
+
+                    <div className="glass-panel rounded-xl p-5">
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            Program Overview
+                        </p>
+                        <div className="mt-3 flex items-center gap-4">
+                            <CompletionDonut rate={overview.completion_rate} />
+                            <div className="flex flex-1 flex-col gap-1 text-xs">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">
+                                        Total
+                                    </span>
+                                    <span className="tabular-nums text-foreground">
+                                        {overview.total}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">
+                                        Completed
+                                    </span>
+                                    <span className="tabular-nums text-foreground">
+                                        {overview.completed}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">
+                                        In Progress
+                                    </span>
+                                    <span className="tabular-nums text-foreground">
+                                        {overview.in_progress}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">
+                                        Not Started
+                                    </span>
+                                    <span className="tabular-nums text-foreground">
+                                        {overview.not_started}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -271,6 +406,7 @@ export default function DiscipleshipShow({
                                             <th className="px-4 py-3">Contact</th>
                                             <th className="px-4 py-3">Batch</th>
                                             <th className="px-4 py-3">Status</th>
+                                            <th className="px-4 py-3">Progress</th>
                                             <th className="px-4 py-3">Enrolled</th>
                                             <th className="px-4 py-3 text-right">Actions</th>
                                         </tr>
@@ -298,6 +434,9 @@ export default function DiscipleshipShow({
                                                     >
                                                         {row.status_label}
                                                     </span>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <ProgressCell progress={row.progress} />
                                                 </td>
                                                 <td className="px-4 py-3 text-muted-foreground">
                                                     {row.enrolled_at
@@ -397,7 +536,7 @@ export default function DiscipleshipShow({
 }
 
 // -----------------------------------------------------------------
-// Batch dialog -- unchanged from 5B
+// Batch dialog
 // -----------------------------------------------------------------
 
 type FormMode = 'create' | 'edit';
@@ -530,7 +669,7 @@ type ParticipantMatch = {
 };
 
 // -----------------------------------------------------------------
-// Add Enrollment dialog -- live participant search + batch + date
+// Add Enrollment dialog
 // -----------------------------------------------------------------
 
 type AddEnrollProps = {
@@ -558,9 +697,6 @@ function AddEnrollmentDialog({
         notes: '',
     });
 
-    // Debounced participant search. Cancels the in-flight effect on
-    // each keystroke. Empty query returns the first 20 participants
-    // by last name -- useful as an initial list for the picker.
     useEffect(() => {
         if (!open || selected !== null) return;
 
@@ -589,7 +725,6 @@ function AddEnrollmentDialog({
         return () => window.clearTimeout(timer);
     }, [query, open, programSlug, selected]);
 
-    // Reset state when the dialog closes
     useEffect(() => {
         if (!open) {
             setQuery('');
@@ -646,7 +781,10 @@ function AddEnrollmentDialog({
 
                 <form onSubmit={onSubmit} className="grid gap-4">
                     <div className="grid gap-2">
-                        <Label>Participant <span className="text-destructive">*</span></Label>
+                        <Label>
+                            Participant{' '}
+                            <span className="text-destructive">*</span>
+                        </Label>
 
                         {selected !== null ? (
                             <div className="flex items-center justify-between rounded-md border border-lime-brand/30 bg-lime-brand/5 px-3 py-2 text-sm">
@@ -796,7 +934,7 @@ function AddEnrollmentDialog({
 }
 
 // -----------------------------------------------------------------
-// Edit Enrollment dialog -- status + batch + notes
+// Edit Enrollment dialog
 // -----------------------------------------------------------------
 
 type EditEnrollProps = {
@@ -931,7 +1069,7 @@ function EditEnrollmentDialog({
 }
 
 // -----------------------------------------------------------------
-// Withdraw confirm dialog -- explains row-survives semantics
+// Withdraw confirm dialog
 // -----------------------------------------------------------------
 
 type WithdrawProps = {

@@ -8,7 +8,7 @@ import {
     Trash2,
     Users,
 } from 'lucide-react';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import DatePicker from '@/components/date-picker';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -57,6 +57,14 @@ type AttendanceRow = {
     status: string;
 };
 
+type ProgressRow = {
+    attended: number;
+    applicable: number;
+    percentage: number | null;
+    required_sessions: number | null;
+    is_complete: boolean;
+};
+
 type Props = {
     batch: BatchData;
     program: ProgramData;
@@ -65,6 +73,7 @@ type Props = {
     enrollments: EnrollmentRow[];
     enrollments_count: number;
     attendances: AttendanceRow[];
+    progress: Record<number, ProgressRow>;
 };
 
 type AttendanceStatus = 'present' | 'absent' | 'excused' | '';
@@ -97,6 +106,32 @@ function cellKey(enrollmentId: number, sessionId: number): string {
     return `${enrollmentId}:${sessionId}`;
 }
 
+function ProgressCell({ progress }: { progress: ProgressRow | undefined }) {
+    if (!progress || progress.applicable === 0) {
+        return (
+            <span className="text-xs italic text-muted-foreground/60">
+                —
+            </span>
+        );
+    }
+
+    const pct = progress.percentage ?? 0;
+
+    return (
+        <div className="flex items-center gap-2">
+            <div className="h-1.5 w-14 overflow-hidden rounded-full bg-white/5">
+                <div
+                    className="h-full rounded-full bg-lime-brand"
+                    style={{ width: `${pct}%` }}
+                />
+            </div>
+            <span className="text-xs tabular-nums text-muted-foreground">
+                {progress.attended}/{progress.applicable}
+            </span>
+        </div>
+    );
+}
+
 export default function DiscipleshipBatchShow({
     batch,
     program,
@@ -105,13 +140,12 @@ export default function DiscipleshipBatchShow({
     enrollments,
     enrollments_count,
     attendances,
+    progress,
 }: Props) {
     const [createOpen, setCreateOpen] = useState(false);
     const [editTarget, setEditTarget] = useState<SessionRow | null>(null);
     const { dialog, openConfirm } = useConfirmDialog();
 
-    // The matrix state. Seed from the server payload: one entry per
-    // saved attendance cell. Key is "enrollmentId:sessionId".
     const [cells, setCells] = useState<Record<string, AttendanceStatus>>(() => {
         const initial: Record<string, AttendanceStatus> = {};
         for (const a of attendances) {
@@ -120,14 +154,9 @@ export default function DiscipleshipBatchShow({
         return initial;
     });
 
-    // Track which cells have been modified since load. Used both for
-    // the Save button's enabled state and to send only the dirty
-    // cells to the server.
     const [dirty, setDirty] = useState<Set<string>>(new Set());
     const [saving, setSaving] = useState(false);
 
-    // Reset local state if the server payload changes (e.g. after a
-    // save round-trip).
     useEffect(() => {
         const initial: Record<string, AttendanceStatus> = {};
         for (const a of attendances) {
@@ -158,9 +187,6 @@ export default function DiscipleshipBatchShow({
                 .map((key) => {
                     const [eidStr, sidStr] = key.split(':');
                     const status = cells[key];
-                    // Skip cells that were cleared back to "—". Clearing
-                    // is handled separately via the destroy endpoint so
-                    // the server removes the row.
                     if (status === '') return null;
                     return {
                         enrollment_id: Number(eidStr),
@@ -208,7 +234,6 @@ export default function DiscipleshipBatchShow({
                     {program.name}
                 </Link>
 
-                {/* Header */}
                 <div className="glass-panel rounded-xl p-6">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="pl-10">
@@ -238,7 +263,6 @@ export default function DiscipleshipBatchShow({
                     </div>
                 </div>
 
-                {/* Sessions */}
                 <section className="flex flex-col gap-3">
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                         Sessions
@@ -311,7 +335,6 @@ export default function DiscipleshipBatchShow({
                     )}
                 </section>
 
-                {/* Attendance matrix */}
                 <section className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -374,6 +397,9 @@ export default function DiscipleshipBatchShow({
                                                     {formatDate(s.session_date)}
                                                 </th>
                                             ))}
+                                            <th className="min-w-[120px] px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                                Progress
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -421,6 +447,9 @@ export default function DiscipleshipBatchShow({
                                                         </td>
                                                     );
                                                 })}
+                                                <td className="px-3 py-3">
+                                                    <ProgressCell progress={progress[enrollment.id]} />
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>

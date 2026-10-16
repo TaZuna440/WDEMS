@@ -9,6 +9,7 @@ use App\Models\DiscipleshipBatch;
 use App\Models\DiscipleshipEnrollment;
 use App\Models\DiscipleshipProgram;
 use App\Models\DiscipleshipSession;
+use App\Services\Discipleship\DiscipleshipProgressService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,12 +18,9 @@ use Inertia\Response;
  * CRUD for Discipleship batches, plus the batch detail page that
  * hosts the session list and the attendance matrix.
  *
- * The store, update, and destroy actions redirect back to the
- * program show page. The show action is the batch detail page
- * itself.
- *
  * Phase 5B -- store, update, destroy. 5D adds show(). 5E adds
- * enrollments and attendances to show().
+ * enrollments and attendances to show(). 5F adds per-enrollment
+ * progress to show().
  */
 class DiscipleshipBatchController extends Controller
 {
@@ -30,20 +28,19 @@ class DiscipleshipBatchController extends Controller
      * Batch detail page: header, session list, and the attendance
      * matrix.
      *
-     * Enrollments in the payload are those whose batch_id points
-     * at this batch, plus program-level enrollments with a null
-     * batch pointer. Why both: a batch is a cohort of a program;
-     * enrollments are program-scoped with an optional batch
-     * pointer. An operator may want to mark a not-yet-batched
-     * enrollee who shows up. The matrix tolerates both.
+     * Enrollments are those whose batch_id points at this batch,
+     * plus program-level enrollments with a null batch pointer.
+     * The matrix tolerates both.
      *
-     * Attendances are the sparse set of marked cells. The frontend
-     * renders an empty dropdown for any (enrollment, session) pair
-     * not present in the payload.
+     * `progress` is keyed by enrollment_id and carries the same
+     * shape the program show page uses per-row. The frontend
+     * indexes it when rendering the progress column.
      */
     public function show(DiscipleshipBatch $batch): Response
     {
         $batch->load(['program:id,name,slug']);
+
+        $progressService = app(DiscipleshipProgressService::class);
 
         $sessions = $batch->sessions()
             ->orderBy('session_date')
@@ -83,6 +80,12 @@ class DiscipleshipBatchController extends Controller
                 'status' => $a->status->value,
             ]);
 
+        // Progress keyed by enrollment_id, so the frontend can
+        // look up the value it needs without another fetch.
+        $progress = collect($progressService->batchSummary($batch))
+            ->keyBy('enrollment_id')
+            ->all();
+
         return Inertia::render('discipleship/batch-show', [
             'batch' => [
                 'id' => $batch->id,
@@ -99,6 +102,7 @@ class DiscipleshipBatchController extends Controller
             'enrollments' => $enrollments,
             'enrollments_count' => $enrollments->count(),
             'attendances' => $attendances,
+            'progress' => $progress,
         ]);
     }
 
