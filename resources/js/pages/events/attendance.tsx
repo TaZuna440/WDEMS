@@ -474,7 +474,7 @@ export default function EventsAttendance({
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
                 <Link
                     href={`/events/${event.id}`}
-                    className="inline-flex w-fit items-center gap-2 text-sm text-on-image-muted transition-colors hover:text-on-image"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Event
@@ -482,10 +482,10 @@ export default function EventsAttendance({
 
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-on-image text-2xl font-semibold">
+                        <h1 className="text-foreground text-2xl font-semibold">
                             Attendance
                         </h1>
-                        <p className="text-on-image-muted mt-1 text-sm">
+                        <p className="text-muted-foreground mt-1 text-sm">
                             {event.event_name}
                             {event.event_date && ` · ${event.event_date}`}
                             {event.venue && ` · ${event.venue}`}

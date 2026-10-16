@@ -251,14 +251,14 @@ export default function EventsEdit({ event, church_categories }: Props) {
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
                 <Link
                     href={`/events/${event.id}`}
-                    className="inline-flex w-fit items-center gap-2 text-sm text-on-image-muted transition-colors hover:text-on-image"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Event
                 </Link>
 
                 <div>
-                    <h1 className="text-on-image text-2xl font-semibold">
+                    <h1 className="text-foreground text-2xl font-semibold">
                         Edit Event
                     </h1>
                     <div className="mt-2 flex items-center gap-3">

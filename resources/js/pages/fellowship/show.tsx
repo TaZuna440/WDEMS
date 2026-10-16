@@ -85,7 +85,7 @@ export default function FellowshipShow({ fellowship_type, events }: Props) {
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
                 <Link
                     href="/fellowship"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-on-image-muted transition-colors hover:text-on-image"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     All Fellowship
@@ -93,10 +93,10 @@ export default function FellowshipShow({ fellowship_type, events }: Props) {
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="pl-10">
-                        <h1 className="text-on-image text-2xl font-semibold">
+                        <h1 className="text-foreground text-2xl font-semibold">
                             {fellowship_type.label}
                         </h1>
-                        <p className="text-on-image-muted mt-1 text-sm">
+                        <p className="text-muted-foreground mt-1 text-sm">
                             {events.length === 0
                                 ? 'No gatherings yet.'
                                 : `${events.length} ${

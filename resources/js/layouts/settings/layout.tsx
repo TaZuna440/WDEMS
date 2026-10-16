@@ -33,10 +33,10 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
     return (
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
             <div className="pl-10">
-                <h1 className="text-on-image text-2xl font-semibold">
+                <h1 className="text-foreground text-2xl font-semibold">
                     Settings
                 </h1>
-                <p className="text-on-image-muted mt-1 text-sm">
+                <p className="text-muted-foreground mt-1 text-sm">
                     Manage your profile and account settings
                 </p>
             </div>

@@ -340,8 +340,6 @@
         z-index: -1;
         pointer-events: none;
         background:
-            linear-gradient(var(--app-bg-overlay), var(--app-bg-overlay)),
-            var(--wdems-bg-image) center center / cover no-repeat,
             radial-gradient(60% 50% at 15% 10%, var(--app-bg-glow), transparent 70%),
             radial-gradient(50% 60% at 85% 80%, var(--app-bg-glow), transparent 70%),
             linear-gradient(135deg, var(--app-bg-1) 0%, var(--app-bg-2) 55%, var(--app-bg-3) 100%);
@@ -477,5 +475,27 @@ body::before {
             var(--lime-brand) 45%,
             transparent
         );
+    }
+}
+
+/* =====================================================
+   UI REDESIGN — 2026-10-17: login-only background image
+   The image is removed from the default body::before
+   stack. It is re-applied only when the login page's
+   layout adds the .wdems-with-bg class to <body>.
+   ===================================================== */
+
+body.wdems-with-bg::before {
+    background:
+        linear-gradient(var(--app-bg-overlay), var(--app-bg-overlay)),
+        var(--app-bg-image) center center / cover no-repeat,
+        radial-gradient(60% 50% at 15% 10%, var(--app-bg-glow), transparent 70%),
+        radial-gradient(50% 60% at 85% 80%, var(--app-bg-glow), transparent 70%),
+        linear-gradient(135deg, var(--app-bg-1) 0%, var(--app-bg-2) 55%, var(--app-bg-3) 100%);
+}
+
+@media (max-width: 768px) {
+    body.wdems-with-bg::before {
+        background-position: center top, center top, center, center, center;
     }
 }

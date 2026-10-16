@@ -145,14 +145,14 @@ function StatsStrip({
     return (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span>
-                <span className="font-semibold text-on-image">
+                <span className="font-semibold text-foreground">
                     {stats.total}
                 </span>{' '}
-                <span className="text-on-image-muted">registered</span>
+                <span className="text-muted-foreground">registered</span>
             </span>
             {showHour && (
                 <>
-                    <span className="text-on-image-muted">·</span>
+                    <span className="text-muted-foreground">·</span>
                     <span className="text-lime-brand">
                         +{stats.last_hour} in the last hour
                     </span>
@@ -160,7 +160,7 @@ function StatsStrip({
             )}
             {show15 && (
                 <>
-                    <span className="text-on-image-muted">·</span>
+                    <span className="text-muted-foreground">·</span>
                     <span className="text-lime-brand">
                         +{stats.last_15min} in the last 15 min
                     </span>
@@ -508,7 +508,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
                 <Link
                     href="/registrations/monitor"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-on-image-muted transition-colors hover:text-on-image"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     All monitors
@@ -517,7 +517,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                 {/* Header */}
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-on-image text-2xl font-semibold">
+                        <h1 className="text-foreground text-2xl font-semibold">
                             {event.event_name}
                         </h1>
                         <span
@@ -530,7 +530,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                             {event.is_open ? 'OPEN' : 'CLOSED'}
                         </span>
                     </div>
-                    <p className="text-sm text-on-image-muted">
+                    <p className="text-sm text-muted-foreground">
                         {event.event_date ?? '—'}
                         {event.venue !== null && ` · ${event.venue}`}
                     </p>
@@ -544,7 +544,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                         {event.is_open && event.registration_slug !== null && (
                             <PublicLinkButton slug={event.registration_slug} />
                         )}
-                        <span className="text-on-image-muted">Updated {relativeSeconds(secondsAgo)}</span>
+                        <span className="text-muted-foreground">Updated {relativeSeconds(secondsAgo)}</span>
                         <button
                             type="button"
                             onClick={refresh}

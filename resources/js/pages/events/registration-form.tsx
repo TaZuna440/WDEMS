@@ -236,14 +236,14 @@ export default function RegistrationForm({
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
                 <Link
                     href={`/events/${event.id}`}
-                    className="inline-flex w-fit items-center gap-2 text-sm text-on-image-muted transition-colors hover:text-on-image"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Event
                 </Link>
 
                 <div>
-                    <h1 className="text-on-image text-2xl font-semibold">
+                    <h1 className="text-foreground text-2xl font-semibold">
                         Create Registration Form
                     </h1>
                     <div className="mt-2 flex items-center gap-3">
@@ -279,16 +279,16 @@ export default function RegistrationForm({
 
                 <section className="flex flex-col gap-3">
                     <div className="flex items-baseline justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                             Common Fields
                         </h2>
-                        <span className="text-xs text-on-image-muted">
+                        <span className="text-xs text-muted-foreground">
                             {canEdit
                                 ? 'Toggle required per field'
                                 : 'Automatic · locked'}
                         </span>
                     </div>
-                    <p className="text-xs text-on-image-muted">
+                    <p className="text-xs text-muted-foreground">
                         Every registration includes these fields. First
                         name, last name, and age are always required.
                         Email, contact number, and address can be made
@@ -355,14 +355,14 @@ export default function RegistrationForm({
 
                 <section className="flex flex-col gap-3">
                     <div className="flex items-baseline justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                             Custom Fields
                         </h2>
-                        <span className="text-xs text-on-image-muted">
+                        <span className="text-xs text-muted-foreground">
                             {form.data.fields.length} / {MAX_FIELDS}
                         </span>
                     </div>
-                    <p className="text-xs text-on-image-muted">
+                    <p className="text-xs text-muted-foreground">
                         Drag the handle to reorder. Changes are not saved
                         until you click Save.
                     </p>

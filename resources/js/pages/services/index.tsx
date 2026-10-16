@@ -26,10 +26,10 @@ export default function ServicesIndex({ service_types }: Props) {
 
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
                 <div className="pl-10">
-                    <h1 className="text-on-image text-2xl font-semibold">
+                    <h1 className="text-foreground text-2xl font-semibold">
                         Services
                     </h1>
-                    <p className="text-on-image-muted mt-1 text-sm">
+                    <p className="text-muted-foreground mt-1 text-sm">
                         Recurring services and their attendance records.
                     </p>
                 </div>

@@ -205,17 +205,17 @@ export default function EventsCreate({
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
                 <Link
                     href="/events"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-on-image-muted transition-colors hover:text-on-image"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Events
                 </Link>
 
                 <div>
-                    <h1 className="text-on-image text-2xl font-semibold">
+                    <h1 className="text-foreground text-2xl font-semibold">
                         Create Event
                     </h1>
-                    <p className="text-on-image-muted mt-1 text-sm">
+                    <p className="text-muted-foreground mt-1 text-sm">
                         Set up a new event. Your progress is saved
                         automatically — you can leave and come back.
                     </p>

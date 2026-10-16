@@ -105,10 +105,10 @@ export default function AttendanceIndex({ today, recent }: Props) {
 
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
                 <div>
-                    <h1 className="text-on-image text-2xl font-semibold">
+                    <h1 className="text-foreground text-2xl font-semibold">
                         Attendance
                     </h1>
-                    <p className="text-on-image-muted mt-1 text-sm">
+                    <p className="text-muted-foreground mt-1 text-sm">
                         Events scheduled for today or recently, ready for
                         attendance recording.
                     </p>
@@ -120,7 +120,7 @@ export default function AttendanceIndex({ today, recent }: Props) {
                     <>
                         {today.length > 0 && (
                             <section className="flex flex-col gap-3">
-                                <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
+                                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                                     Today
                                 </h2>
                                 <div className="flex flex-col gap-2">
@@ -133,7 +133,7 @@ export default function AttendanceIndex({ today, recent }: Props) {
 
                         {recent.length > 0 && (
                             <section className="flex flex-col gap-3">
-                                <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
+                                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                                     Recent
                                 </h2>
                                 <div className="flex flex-col gap-2">

@@ -71,10 +71,10 @@ export default function EventsIndex({ events, filters }: Props) {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="pl-10">
-                        <h1 className="text-on-image text-2xl font-semibold">
+                        <h1 className="text-foreground text-2xl font-semibold">
                             Events
                         </h1>
-                        <p className="text-on-image-muted mt-1 text-sm">
+                        <p className="text-muted-foreground mt-1 text-sm">
                             All events across the WDEMS workflow
                         </p>
                     </div>

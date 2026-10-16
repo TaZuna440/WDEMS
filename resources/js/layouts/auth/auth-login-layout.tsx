@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { useEffect } from 'react';
 import type { AuthLayoutProps } from '@/types';
 import { home } from '@/routes';
 import WdemsLogo from '@/components/wdems-logo';
@@ -8,6 +9,18 @@ export default function AuthLoginLayout({
     title,
     description,
 }: AuthLayoutProps) {
+    // Opt this page into the photographic background. The image is
+    // removed from the default body::before stack — see app.css
+    // "login-only background image". Adding the class on mount and
+    // removing it on unmount keeps every other page on the plain
+    // gradient backdrop.
+    useEffect(() => {
+        document.body.classList.add('wdems-with-bg');
+        return () => {
+            document.body.classList.remove('wdems-with-bg');
+        };
+    }, []);
+
     return (
         <div className="grid min-h-svh bg-background lg:grid-cols-2">
             {/* Left: Brand panel with background image (hidden on mobile) */}

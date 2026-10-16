@@ -320,7 +320,7 @@ export default function DiscipleshipShow({
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
                 <Link
                     href="/discipleship"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-on-image-muted transition-colors hover:text-on-image"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     All Discipleship
@@ -431,7 +431,7 @@ export default function DiscipleshipShow({
                 {/* Batches */}
                 <section id="batches" className="flex flex-col gap-3 scroll-mt-6">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                             Batches
                         </h2>
                         <Button
@@ -496,7 +496,7 @@ export default function DiscipleshipShow({
                 {/* Enrollments */}
                 <section className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                             Enrollments
                         </h2>
                         <div className="flex items-center gap-2">
@@ -588,7 +588,7 @@ export default function DiscipleshipShow({
                             </button>
                         )}
 
-                        <span className="text-xs text-on-image-muted">
+                        <span className="text-xs text-muted-foreground">
                             {enrollments_count}{' '}
                             {enrollments_count === 1 ? 'result' : 'results'}
                         </span>
