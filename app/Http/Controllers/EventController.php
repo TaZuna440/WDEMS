@@ -170,6 +170,7 @@ class EventController extends Controller
             'preset_event_type' => EventType::CommunityRun->value,
             'preset_church_category' => null,
             'lock_type' => true,
+            'storage_key' => 'wdems-wizard-create-community-run',
         ]);
     }
 
@@ -235,6 +236,7 @@ class EventController extends Controller
                 'church-administration' => 'Church Administration',
             })->value,
             'lock_type' => true,
+            'storage_key' => "wdems-wizard-create-church-{$category}",
         ]);
     }
 

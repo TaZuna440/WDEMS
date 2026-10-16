@@ -24,6 +24,8 @@ type Props = {
     preset_church_category?: string | null;
     /** Locks the event type dropdown. */
     lock_type?: boolean;
+    /** Unique localStorage key for this create route. */
+    storage_key?: string | null;
 };
 
 const RUNNING_STEPS: WizardStepConfig[] = [
@@ -98,6 +100,7 @@ export default function EventsCreate({
     preset_event_type = null,
     preset_church_category = null,
     lock_type = false,
+    storage_key = null,
 }: Props) {
     const {
         data,
@@ -173,7 +176,7 @@ export default function EventsCreate({
 
                 <Wizard
                     steps={steps}
-                    storageKey="wdems-wizard-create"
+                    storageKey={storage_key ?? 'wdems-wizard-create'}
                     data={data}
                     setData={setData}
                     errors={errors as Record<string, string>}
