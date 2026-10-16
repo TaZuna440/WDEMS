@@ -15,6 +15,7 @@ use App\Http\Controllers\FellowshipController;
 use App\Http\Controllers\FellowshipGroupController;
 use App\Http\Controllers\PublicRegistrationController;
 use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\ReportIndexController;
 use App\Http\Controllers\RegistrationDeletionController;
 use App\Http\Controllers\RegistrationFormController;
 use App\Http\Controllers\RegistrationMonitorController;
@@ -26,6 +27,21 @@ use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
+
+// ============================================================
+// Legacy URLs — 301 redirects to the /events/church prefix.
+// See docs/restructure/phase-1-navigation.md §4.
+// ============================================================
+
+Route::permanentRedirect('/services', '/events/church/services');
+Route::permanentRedirect('/services/{type}', '/events/church/services/{type}')
+    ->whereIn('type', ['morning', 'midweek', 'youth', 'other']);
+
+Route::permanentRedirect('/fellowship', '/events/church/fellowship');
+Route::permanentRedirect('/fellowship/{type}', '/events/church/fellowship/{type}')
+    ->whereIn('type', ['family', 'church', 'pastors', 'leaders', 'womens', 'mens']);
+
+Route::permanentRedirect('/discipleship', '/events/church/discipleship');
 
 // Public registration — anonymous submission surface.
 // No auth, no device trust, no email verification. The middleware
@@ -78,6 +94,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // status. See app/Http/Middleware/AdvanceEventStatus.php.
 Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('reports', ReportIndexController::class)->name('reports.index');
 
     // Registration queue — the organizer's daily workflow entry point.
     Route::get('registrations', [RegistrationController::class, 'index'])
@@ -184,6 +201,8 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     Route::post('events/{event}/attendance/{registration}/mark', [AttendanceController::class, 'mark'])->name('events.attendance.mark');
 
     // ============================================================
+    // Church modules nested under /events/church. Names unchanged.
+    Route::prefix('events/church')->group(function () {
     // Services (church) — Phase 3 of the church-events plan.
     //
     // Route ordering: literal segments appear before parameterized
@@ -356,6 +375,7 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
         Route::get('programs/{program:slug}', [DiscipleshipController::class, 'show'])
             ->name('programs.show');
     });
+    }); // close /events/church prefix group
     // Admin-only routes — same trusted-device pipeline, admin gate layered on top.
     Route::middleware('admin')->group(function () {
         Route::get('admin/dashboard', DashboardController::class)->name('admin.dashboard');

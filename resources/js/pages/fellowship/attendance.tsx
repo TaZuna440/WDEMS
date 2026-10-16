@@ -842,7 +842,7 @@ function GroupFormDialog({
 
 FellowshipAttendance.layout = {
     breadcrumbs: [
-        { title: 'Fellowship', href: '/fellowship' },
+        { title: 'Fellowship', href: '/events/church/fellowship' },
         { title: 'Attendance', href: '#' },
     ],
 };

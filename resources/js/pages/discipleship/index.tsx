@@ -90,5 +90,5 @@ export default function DiscipleshipIndex({ programs }: Props) {
 }
 
 DiscipleshipIndex.layout = {
-    breadcrumbs: [{ title: 'Discipleship', href: '/discipleship' }],
+    breadcrumbs: [{ title: 'Discipleship', href: '/events/church/discipleship' }],
 };

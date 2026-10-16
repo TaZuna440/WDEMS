@@ -1,11 +1,9 @@
 import { Link } from '@inertiajs/react';
 import {
+    BarChart3,
     CalendarDays,
-    Church,
     ClipboardCheck,
     ClipboardList,
-    GraduationCap,
-    HeartHandshake,
     LayoutGrid,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -24,14 +22,19 @@ import {
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
+/**
+ * Top-level navigation.
+ *
+ * Five items. The church modules (Services, Fellowship,
+ * Discipleship) are reachable via Events -> Church, not from here.
+ * See docs/restructure/phase-1-navigation.md.
+ */
 const mainNavItems: NavItem[] = [
     { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
-    { title: 'Services', href: '/services', icon: Church },
-    { title: 'Fellowship', href: '/fellowship', icon: HeartHandshake },
-    { title: 'Discipleship', href: '/discipleship', icon: GraduationCap },
     { title: 'Events', href: '/events', icon: CalendarDays },
     { title: 'Registration', href: '/registrations', icon: ClipboardList },
     { title: 'Attendance', href: '/attendance', icon: ClipboardCheck },
+    { title: 'Reports', href: '/reports', icon: BarChart3 },
 ];
 
 export function AppSidebar() {

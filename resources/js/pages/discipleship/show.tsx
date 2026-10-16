@@ -319,7 +319,7 @@ export default function DiscipleshipShow({
 
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
                 <Link
-                    href="/discipleship"
+                    href="/events/church/discipleship"
                     className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                     <ArrowLeft className="h-4 w-4" />
@@ -1491,7 +1491,7 @@ function WithdrawDialog({ enrollment, open, onOpenChange }: WithdrawProps) {
 
 DiscipleshipShow.layout = {
     breadcrumbs: [
-        { title: 'Discipleship', href: '/discipleship' },
+        { title: 'Discipleship', href: '/events/church/discipleship' },
         { title: 'Program', href: '#' },
     ],
 };

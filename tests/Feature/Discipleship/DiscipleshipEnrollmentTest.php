@@ -403,7 +403,7 @@ test('deleting a batch nulls the batch pointer on its enrollments', function () 
 
 test('participant search returns matching participants as JSON', function () {
     $response = $this->actingAs($this->staff)
-        ->getJson('/discipleship/programs/'.$this->program->slug.'/participant-search?q=Juan');
+        ->getJson('/events/church/discipleship/programs/'.$this->program->slug.'/participant-search?q=Juan');
 
     $response->assertOk();
     $response->assertJsonPath('participants.0.id', $this->participant->id);
@@ -419,7 +419,7 @@ test('participant search marks already-enrolled participants', function () {
     ]);
 
     $response = $this->actingAs($this->staff)
-        ->getJson('/discipleship/programs/'.$this->program->slug.'/participant-search?q=Juan');
+        ->getJson('/events/church/discipleship/programs/'.$this->program->slug.'/participant-search?q=Juan');
 
     $response->assertOk();
     $response->assertJsonPath('participants.0.already_enrolled', true);
@@ -435,7 +435,7 @@ test('participant search with an empty query returns up to 20 results', function
     }
 
     $response = $this->actingAs($this->staff)
-        ->getJson('/discipleship/programs/'.$this->program->slug.'/participant-search');
+        ->getJson('/events/church/discipleship/programs/'.$this->program->slug.'/participant-search');
 
     $response->assertOk();
     $response->assertJsonCount(20, 'participants');

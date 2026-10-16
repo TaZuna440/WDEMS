@@ -84,7 +84,7 @@ export default function FellowshipShow({ fellowship_type, events }: Props) {
 
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
                 <Link
-                    href="/fellowship"
+                    href="/events/church/fellowship"
                     className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                     <ArrowLeft className="h-4 w-4" />
@@ -454,7 +454,7 @@ function EventFormDialog({
 
 FellowshipShow.layout = {
     breadcrumbs: [
-        { title: 'Fellowship', href: '/fellowship' },
+        { title: 'Fellowship', href: '/events/church/fellowship' },
         { title: 'Gathering', href: '#' },
     ],
 };

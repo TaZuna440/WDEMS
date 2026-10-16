@@ -92,5 +92,5 @@ export default function FellowshipIndex({ fellowship_types }: Props) {
 }
 
 FellowshipIndex.layout = {
-    breadcrumbs: [{ title: 'Fellowship', href: '/fellowship' }],
+    breadcrumbs: [{ title: 'Fellowship', href: '/events/church/fellowship' }],
 };

@@ -76,5 +76,5 @@ export default function ServicesIndex({ service_types }: Props) {
 }
 
 ServicesIndex.layout = {
-    breadcrumbs: [{ title: 'Services', href: '/services' }],
+    breadcrumbs: [{ title: 'Services', href: '/events/church/services' }],
 };
