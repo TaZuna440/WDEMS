@@ -1,12 +1,14 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Calendar, MapPin, User, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type EventRow = {
     id: number;
+    event_kind: string;
     event_name: string;
     event_type: string;
     event_type_label: string;
+    church_category: string | null;
     event_date: string | null;
     venue: string | null;
     distance_label: string | null;
@@ -15,14 +17,26 @@ type EventRow = {
     creator: string | null;
 };
 
+type Filters = {
+    kind: string | null;
+};
+
 type Props = {
     events: EventRow[];
+    filters: Filters;
 };
 
 const statusStyles: Record<string, string> = {
+    // Running-event statuses
     draft: 'bg-secondary text-foreground',
     registration_open: 'bg-lime-brand/20 text-lime-700 dark:text-lime-brand',
-    registration_closed: 'bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500',
+    registration_closed:
+        'bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500',
+    // Church-event statuses. 'ongoing', 'completed', 'cancelled' are
+    // shared with the running-event vocabulary and already have
+    // entries below.
+    upcoming: 'bg-lime-brand/20 text-lime-700 dark:text-lime-brand',
+    // Shared
     ongoing: 'bg-accent/20 text-teal-700 dark:text-accent',
     completed: 'bg-green-500/15 text-green-700 dark:text-green-500',
     cancelled: 'bg-destructive/15 text-destructive',
@@ -31,9 +45,25 @@ const statusStyles: Record<string, string> = {
 const typeStyles: Record<string, string> = {
     community_run: 'bg-accent/15 text-teal-700 dark:text-accent',
     fun_run: 'bg-secondary text-foreground',
+    church: 'bg-lime-brand/15 text-lime-700 dark:text-lime-brand',
 };
 
-export default function EventsIndex({ events }: Props) {
+const KIND_FILTERS = [
+    { value: null, label: 'All' },
+    { value: 'running', label: 'Running' },
+    { value: 'church', label: 'Church' },
+] as const;
+
+export default function EventsIndex({ events, filters }: Props) {
+    const applyKind = (kind: string | null) => {
+        const query = kind ? { kind } : {};
+        router.get('/events', query, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
     return (
         <>
             <Head title="Events" />
@@ -61,6 +91,27 @@ export default function EventsIndex({ events }: Props) {
                     </Button>
                 </div>
 
+                {/* Kind filter */}
+                <div className="flex flex-wrap items-center gap-2">
+                    {KIND_FILTERS.map((filter) => {
+                        const active = filters.kind === filter.value;
+                        return (
+                            <button
+                                key={filter.label}
+                                type="button"
+                                onClick={() => applyKind(filter.value)}
+                                className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                                    active
+                                        ? 'border-lime-brand/40 bg-lime-brand/15 text-lime-brand'
+                                        : 'border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground'
+                                }`}
+                            >
+                                {filter.label}
+                            </button>
+                        );
+                    })}
+                </div>
+
                 {/* Empty state */}
                 {events.length === 0 ? (
                     <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-16 text-center">
@@ -71,18 +122,21 @@ export default function EventsIndex({ events }: Props) {
                             No events yet
                         </h2>
                         <p className="mb-6 max-w-sm text-sm text-muted-foreground">
-                            Create your first running or community event to
-                            begin configuring registration and attendance.
+                            {filters.kind
+                                ? 'No events match this filter.'
+                                : 'Create your first running or community event to begin configuring registration and attendance.'}
                         </p>
-                        <Button
-                            asChild
-                            className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
-                        >
-                            <Link href="/events/create">
-                                <Plus className="mr-2 h-4 w-4" />
-                                Create First Event
-                            </Link>
-                        </Button>
+                        {!filters.kind && (
+                            <Button
+                                asChild
+                                className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
+                            >
+                                <Link href="/events/create">
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Create First Event
+                                </Link>
+                            </Button>
+                        )}
                     </div>
                 ) : (
                     /* Table */
@@ -127,6 +181,11 @@ export default function EventsIndex({ events }: Props) {
                                                 >
                                                     {event.event_name}
                                                 </Link>
+                                                {event.church_category && (
+                                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                                        {event.church_category}
+                                                    </p>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span
