@@ -2704,3 +2704,18 @@ context to see church events without opening them.
 
 Nothing else in resources/, app/, or tests/ was modified.
 
+
+---
+
+## Commit message correction -- a0b27ae (2026-10-16)
+
+The commit message for a0b27ae states "18 tests covering" the
+ServiceAttendanceController. The actual count is 17.
+
+The discrepancy is a miscount in the commit message, not a
+missing test. `php artisan test tests/Feature/Services/ServiceAttendanceControllerTest.php`
+reports "17 passed (65 assertions)" at commit a0b27ae.
+
+No code change is required. Recorded per P9: commit messages
+must match the diff.
+
