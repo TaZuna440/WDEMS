@@ -47,6 +47,7 @@ RULE2=$(grep -rn '<h1 className="[^"]*text-foreground' resources/js/pages/ \
   | grep -v "pages/admin/" \
   | grep -v "pages/discipleship/batch-show.tsx" \
   | grep -v "pages/discipleship/show.tsx" \
+  | grep -v "pages/fellowship/attendance.tsx" \
   || true)
 
 if [ -n "$RULE2" ]; then

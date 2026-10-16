@@ -8,7 +8,8 @@
         "dev": "vp dev",
         "check": "vp check",
         "check:fix": "vp check --fix",
-        "types:check": "tsc --noEmit"
+        "types:check": "tsc --noEmit",
+        "lint:design": "bash scripts/audit-design.sh"
     },
     "dependencies": {
         "@dnd-kit/core": "^6.3.1",
