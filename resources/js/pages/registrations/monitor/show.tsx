@@ -115,7 +115,7 @@ function PublicLinkButton({ slug }: { slug: string }) {
             type="button"
             onClick={() => copy(url)}
             title={url}
-            className="inline-flex items-center gap-1.5 rounded-md border border-lime-brand/40 bg-lime-brand/10 px-2.5 py-1 text-xs font-medium text-lime-brand transition-colors hover:bg-lime-brand/20"
+            className="inline-flex items-center gap-1.5 rounded-md border border-lime-brand/40 bg-card/80 px-2.5 py-1 text-xs font-medium text-lime-700 shadow-xs backdrop-blur-sm dark:bg-lime-brand/10 dark:text-lime-brand transition-colors hover:bg-lime-brand/20"
         >
             {isCopied ? (
                 <>
@@ -549,7 +549,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                             type="button"
                             onClick={refresh}
                             disabled={!event.is_open || isRefreshing}
-                            className="inline-flex items-center gap-1.5 rounded-md border border-white/10 px-2 py-1 text-xs transition-colors hover:border-white/20 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card/80 px-2 py-1 text-xs shadow-xs backdrop-blur-sm transition-colors hover:bg-card disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <RefreshCw
                                 className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`}
@@ -558,7 +558,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                         </button>
                         <a
                             href={`/registrations/monitor/${event.id}/export`}
-                            className="inline-flex items-center gap-1.5 rounded-md border border-white/10 px-2 py-1 text-xs transition-colors hover:border-white/20 hover:text-foreground"
+                            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card/80 px-2 py-1 text-xs shadow-xs backdrop-blur-sm transition-colors hover:bg-card"
                         >
                             <Download className="h-3 w-3" />
                             Export CSV
