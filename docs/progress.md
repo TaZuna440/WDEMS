@@ -2978,3 +2978,129 @@ criteria storage is settled — the two are separable.
   sub-phase
 - `docs/participant-identity.md` — the Participant identity
   model this enrollment references
+
+---
+
+## 2026-10-16 — Phase 5D: Discipleship sessions (M5, sub-phase D)
+
+Fourth sub-phase of the Discipleship module. Sessions are the
+meetings of a batch. One batch has many sessions; each session
+is one row. Session attendance (5E) records one row per
+enrollment per session against this table.
+
+### Design decisions
+
+**No `session_number` column.** Session order is derivable from
+`session_date`, with `id` as a stable tiebreak when two sessions
+share a date. An explicit ordinal would be a second source of
+truth that has to be kept in sync with reality. Same reasoning
+as batches -- no artificial ordinal.
+
+**No unique on (batch_id, session_date).** Two sessions can
+legitimately happen on the same day (a morning and an evening
+gathering, a make-up session, a review). If duplicate-day
+enforcement becomes a data-quality need, add it then.
+
+**`notes` added to the migration.** Task list 5D.1 named only
+`batch_id`, `date`, `topic`. Notes is included for parity with
+every other record type in the codebase (batches, enrollments,
+events, occurrences all carry a free-form `notes` field).
+
+**Batch detail page owns the session list.** The program show
+page is ~1000 lines as of 5C. Adding a session list per batch
+inline would push it past the point where a dedicated page
+helps. Instead: `/discipleship/batches/{batch}` is the batch
+detail page. It shows the batch header, session count, and the
+session list. The program show page links each batch name to
+it.
+
+### What shipped
+
+Backend:
+
+- Migration `discipleship_sessions` -- batch_id (FK CASCADE),
+  session_date, topic, notes, created_by (FK RESTRICT). Index
+  on (batch_id, session_date) for the chronological list.
+- `DiscipleshipSession` model -- batch and creator relations.
+  `attendances()` relation lands in 5E.
+- `DiscipleshipBatch::sessions()` relation added.
+- `DiscipleshipSessionController` -- store, update, destroy.
+  No index: sessions render on the batch detail page.
+- `DiscipleshipBatchController::show()` -- new method. The
+  batch detail page controller.
+- 2 FormRequests under `Http/Requests/Discipleship/`.
+
+Routes:
+
+- 4 new routes under the discipleship prefix.
+- `GET /discipleship/batches/{batch}` (`batches.show`)
+- `POST /discipleship/batches/{batch}/sessions`
+- `PUT /discipleship/sessions/{session}`
+- `DELETE /discipleship/sessions/{session}`
+- `{batch}` binds by id -- batches have no slug, and `name` is
+  not unique within a program.
+
+Frontend:
+
+- `discipleship/batch-show.tsx` -- new page. Batch header with
+  start date, session count, and enrollment count. Session
+  list ordered chronologically. Add Session dialog, edit
+  dialog, delete confirm.
+- `discipleship/show.tsx` -- batch names now render as links
+  to the batch detail page. The span-to-Link replacement is a
+  surgical edit (5 insertions, 2 deletions).
+
+### Verification
+
+    php artisan test tests/Feature/Discipleship/
+    55 passed (184 assertions)
+
+    php artisan test
+    3 skipped, 750 passed (2866 assertions)
+
+    npx tsc --noEmit
+    silent
+
+### Commits
+
+    79e98d9  feat(discipleship): Phase 5D — sessions module
+             11 files, 983 insertions, 12 deletions
+
+### What comes next
+
+Phase 5E -- session attendance. The matrix: one row per
+enrollment per session. New table `discipleship_attendance`
+(enrollment_id FK CASCADE, session_id FK CASCADE, status,
+recorded_by, recorded_at, notes) with a UNIQUE on
+(enrollment_id, session_id). Three status values (present,
+absent, excused) mirroring the Services module's pattern.
+
+Frontend shape to decide at 5E-1: does the session attendance
+matrix live on the batch detail page (rows = enrollments,
+columns = sessions) or on a per-session detail page (rows =
+enrollments, one column)? The mockup's Discipleship attendance
+view shows a per-batch X/Y column, which implies the matrix
+lives at the batch level -- a participant's attendance across
+all sessions of the batch. A batch-level matrix on the batch
+detail page is the natural fit.
+
+Phase 5F (progress) will then compute attended / applicable /
+percentage from this attendance data. 5F still needs a decision
+on completion criteria storage: columns on the program
+(required_sessions int + extra_requirements json), a
+requirements table, or per-program code. The service that
+computes the percentage is separable and can be built before
+the criteria storage is settled.
+
+### Cross-references
+
+- `docs/church-events/07-scope-and-task-division.md` §3.6 —
+  Phase 5 task breakdown (5D.1 through 5D.4)
+- `docs/progress.md` 2026-10-16 Phase 5C entry -- the
+  enrollment sub-phase this one builds on
+- `docs/progress.md` 2026-10-16 Phase 5B entry -- the batch
+  sub-phase that the batch detail page belongs to
+- `docs/attendance-code.md` -- the existing attendance model
+  in the running-event side that the Discipleship attendance
+  mirrors in spirit but not in structure (no code lookup, no
+  verified_at, no live/deferred encoding)
