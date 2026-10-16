@@ -29,6 +29,7 @@ class StoreServiceOccurrenceRequest extends FormRequest
             'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
             'service_leader' => ['nullable', 'string', 'max:255'],
+            'topic' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ];
     }

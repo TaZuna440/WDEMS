@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'start_time',
     'end_time',
     'service_leader',
+    'topic',
     'notes',
     'created_by',
 ])]

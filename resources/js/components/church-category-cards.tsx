@@ -56,7 +56,7 @@ const CATEGORIES: Category[] = [
         label: 'Youth',
         description: 'Youth camps, services, ministry',
         icon: Users,
-        hasDedicatedPage: false,
+        hasDedicatedPage: true,
     },
     {
         key: 'kids',

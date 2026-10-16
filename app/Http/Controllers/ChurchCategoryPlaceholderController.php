@@ -18,7 +18,6 @@ class ChurchCategoryPlaceholderController extends Controller
     public function __invoke(string $category): Response
     {
         $labels = [
-            'youth' => 'Youth',
             'kids' => 'Kids Ministry',
             'young-adult' => 'Young Adult',
             'worship-prayer' => 'Worship & Prayer',

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Auth\DeviceVerificationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\YouthController;
 use App\Http\Controllers\DiscipleshipBatchController;
 use App\Http\Controllers\DiscipleshipController;
 use App\Http\Controllers\DiscipleshipEnrollmentController;
@@ -143,7 +144,7 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     Route::get('events/create/community-run', [EventController::class, 'createCommunityRun'])->name('events.create.community-run');
     Route::get('events/create/church', [EventController::class, 'createChurch'])->name('events.create.church');
     Route::get('events/create/church/{category}', [EventController::class, 'createChurchCategory'])
-        ->whereIn('category', ['youth', 'kids', 'young-adult', 'worship-prayer', 'special-occasions', 'church-administration'])
+        ->whereIn('category', ['kids', 'young-adult', 'worship-prayer', 'special-occasions', 'church-administration'])
         ->name('events.create.church.category');
     Route::post('events', [EventController::class, 'store'])->name('events.store');
     Route::get('events/{event}', [EventController::class, 'show'])->name('events.show');
@@ -383,9 +384,15 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     });
         // Placeholder landing for the six unbuilt church categories.
         // Phase 4 replaces each with a real module page.
+
+        // Youth hub and sub-module placeholders.
+        Route::get('youth', [YouthController::class, 'index'])
+            ->name('events.church.youth');
+        Route::get('youth/{sub}', [YouthController::class, 'placeholder'])
+            ->whereIn('sub', ['camp', 'huddle', 'campus-ministry', 'timothy-class'])
+            ->name('events.church.youth.sub');
         Route::get('{category}', ChurchCategoryPlaceholderController::class)
             ->whereIn('category', [
-                'youth',
                 'kids',
                 'young-adult',
                 'worship-prayer',

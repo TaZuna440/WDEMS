@@ -74,6 +74,7 @@ class ServiceController extends Controller
                 'start_time' => $o->start_time?->format('H:i'),
                 'end_time' => $o->end_time?->format('H:i'),
                 'service_leader' => $o->service_leader,
+                'topic' => $o->topic,
                 'notes' => $o->notes,
                 'member_count' => $o->member_attendances_count,
                 'first_timer_count' => $o->first_timer_attendances_count,
@@ -112,6 +113,7 @@ class ServiceController extends Controller
             'start_time' => $validated['start_time'] ?? null,
             'end_time' => $validated['end_time'] ?? null,
             'service_leader' => $validated['service_leader'] ?? null,
+            'topic' => $validated['topic'] ?? null,
             'notes' => $validated['notes'] ?? null,
             'created_by' => $request->user()->id,
         ]);

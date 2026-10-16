@@ -193,7 +193,6 @@ class EventController extends Controller
     public function createChurchCategory(string $category): Response
     {
         $valid = [
-            'youth',
             'kids',
             'young-adult',
             'worship-prayer',
@@ -217,7 +216,7 @@ class EventController extends Controller
                 ->values(),
             'church_categories' => collect(ChurchCategory::cases())
                 ->filter(fn (ChurchCategory $c) => in_array($c->value, [
-                    'Youth', 'Kids Ministry', 'Young Adult',
+                    'Kids Ministry', 'Young Adult',
                     'Worship & Prayer', 'Special Occasions',
                     'Church Administration',
                 ], true))
@@ -228,7 +227,6 @@ class EventController extends Controller
                 ->values(),
             'preset_event_type' => EventType::Church->value,
             'preset_church_category' => ChurchCategory::from(match ($category) {
-                'youth' => 'Youth',
                 'kids' => 'Kids Ministry',
                 'young-adult' => 'Young Adult',
                 'worship-prayer' => 'Worship & Prayer',

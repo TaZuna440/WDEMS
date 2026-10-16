@@ -38,6 +38,7 @@ type Occurrence = {
     start_time: string | null;
     end_time: string | null;
     service_leader: string | null;
+    topic: string | null;
     notes: string | null;
     member_count: number;
     first_timer_count: number;
@@ -73,6 +74,7 @@ function formatDate(iso: string): string {
 }
 
 export default function ServicesShow({ service_type, occurrences }: Props) {
+    const isYouth = service_type.value === 'youth';
     const [addOpen, setAddOpen] = useState(false);
     const [recurringOpen, setRecurringOpen] = useState(false);
     const { dialog, openConfirm } = useConfirmDialog();
@@ -82,6 +84,7 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
         start_time: '',
         end_time: '',
         service_leader: '',
+        topic: '',
         notes: '',
     });
 
@@ -97,7 +100,7 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
 
     const submitAdd = (e: React.FormEvent) => {
         e.preventDefault();
-        addForm.post(`/services/${service_type.value}/occurrences`, {
+        addForm.post(`/events/church/services/${service_type.value}/occurrences`, {
             onSuccess: () => {
                 setAddOpen(false);
                 addForm.reset();
@@ -109,7 +112,7 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
     const submitRecurring = (e: React.FormEvent) => {
         e.preventDefault();
         recurringForm.post(
-            `/services/${service_type.value}/occurrences/recurring`,
+            `/events/church/services/${service_type.value}/occurrences/recurring`,
             {
                 onSuccess: () => {
                     setRecurringOpen(false);
@@ -127,7 +130,7 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
             description: `The service on ${formatDate(occurrence.occurrence_date)} and its attendance records will be permanently removed.`,
             confirmLabel: 'Delete',
             onConfirm: () =>
-                router.delete(`/services/occurrences/${occurrence.id}`, {
+                router.delete(`/events/church/services/occurrences/${occurrence.id}`, {
                     preserveScroll: true,
                 }),
         });
@@ -207,16 +210,21 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
                                 className="glass-panel flex flex-col gap-3 rounded-xl p-5 sm:flex-row sm:items-center sm:justify-between"
                             >
                                 <Link
-                                    href={`/services/occurrences/${occurrence.id}/attendance`}
+                                    href={`/events/church/services/occurrences/${occurrence.id}/attendance`}
                                     className="flex flex-1 flex-col gap-2"
                                 >
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-wrap items-center gap-2">
                                         <CalendarDays className="h-4 w-4 text-muted-foreground" />
                                         <span className="text-sm font-semibold text-foreground">
                                             {formatDate(
                                                 occurrence.occurrence_date,
                                             )}
                                         </span>
+                                        {occurrence.topic && (
+                                            <span className="text-sm text-muted-foreground">
+                                                · {occurrence.topic}
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                                         {occurrence.start_time &&
@@ -341,6 +349,26 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
                                 message={addForm.errors.service_leader}
                             />
                         </div>
+
+                        {isYouth && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="add_topic">Topic</Label>
+                                <Input
+                                    id="add_topic"
+                                    value={addForm.data.topic}
+                                    onChange={(e) =>
+                                        addForm.setData(
+                                            'topic',
+                                            e.target.value,
+                                        )
+                                    }
+                                    placeholder="e.g. Faith in Action"
+                                />
+                                <InputError
+                                    message={addForm.errors.topic}
+                                />
+                            </div>
+                        )}
 
                         <div className="grid gap-2">
                             <Label htmlFor="add_notes">Notes</Label>
