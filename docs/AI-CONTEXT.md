@@ -489,3 +489,51 @@ The three most common traps, all documented in full in that file:
 
 Run `./scripts/audit-design.sh` before committing any UI change.
 It checks Rule 1 hard and warns on the other two.
+
+---
+
+## 21. Reading-order additions — third pass (2026-10-16)
+
+Section §7's reading-order table was written before the
+church-events workstreams shipped. §17 (2026-10-13) added two
+entries. §19 (2026-10-14) added four more. Two remain missing.
+When working on these tasks, ask for the corresponding doc:
+
+| Task touches | Ask for |
+|---|---|
+| Fellowship module — types, events, groups, attendance roster | `docs/fellowship.md` |
+| Discipleship module — programs, batches, enrollment, sessions, attendance matrix, progress | `docs/discipleship.md` |
+
+### Why each matters
+
+`docs/fellowship.md` is the consolidated reference for the
+Fellowship module, shipped as Phase 4. Covers the six-type
+enum, event lifecycle, group management, and attendance. The
+module has no enrollment layer and no progress tracking —
+Fellowship attendance is a per-event fact, not a course.
+
+`docs/discipleship.md` is the consolidated reference for the
+Discipleship module, shipped as Phase 5 across eight sub-phases
+(5A–5H). It is the largest single workstream in the
+church-events scope: programs, batches, enrollment with a
+nullable batch pointer, sessions, a session attendance matrix,
+and a progress/completion service.
+
+### Note on Services
+
+`docs/services.md` does not exist. Phase 3 shipped with progress
+entries only. The scope inventory
+(`docs/church-events/09-mockup-scope-inventory.md` Q1) asks
+whether Services remains a top-level module after the mockup
+sidebar is applied. Until that question is answered, do not
+write a Services subsystem doc — it may become wasted effort.
+
+### Cross-references
+
+- Section §7 — the original reading-order table
+- Section §17 — first reading-order addition (2026-10-13)
+- Section §19 — second reading-order addition (2026-10-14)
+- `docs/church-events/09-mockup-scope-inventory.md` — Q1
+  through Q20 awaiting client answers
+- `docs/progress.md` 2026-10-16 entries — Phase 4 and Phase 5
+  closure records
