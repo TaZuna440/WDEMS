@@ -2607,3 +2607,28 @@ Files touched:
 Nothing else in app/, bootstrap/, config/, routes/, resources/,
 or tests/ was modified.
 
+
+---
+
+## Phase 2 fix -- distance_unit nullable (2026-10-16)
+
+Append-only. The Phase 2 commit (`c2f45af`) shipped a defect:
+the controller passed explicit `null` for `distance_unit` on
+church events, but the column was `NOT NULL DEFAULT 'km'` from
+the original schema. Explicit null bypasses the default.
+
+**Fixed in commit `e3c5319`.** Migration
+`2026_10_16_120000_make_distance_columns_nullable_on_events_table`
+makes the column nullable while preserving the `'km'` default.
+
+**Tests added:**
+`tests/Feature/Events/ChurchEventTest.php` -- 2 tests, 27 assertions.
+
+- A church event can be created via POST with the correct fields.
+- The events index can filter by kind in both directions.
+
+This closes the "0 new tests" gap noted in the Phase 2 closure
+block above.
+
+**Updated test count:** 3 skipped, 611 passed.
+
