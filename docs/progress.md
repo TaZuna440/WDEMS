@@ -2697,3 +2697,116 @@ plan and deferred.
   sequencing
 - `docs/progress.md` 2026-10-16 Phase 3 entry — the Services
   module, structurally closest to Discipleship
+
+---
+
+## 2026-10-16 — Phase 5B: Discipleship batches (M5, sub-phase B)
+
+Second sub-phase of the Discipleship module. Batches are the
+cohort unit — one program contains many batches, and a batch is
+where enrollment, sessions, and progress will live (5C–5F). This
+session ships batch CRUD only.
+
+### What shipped
+
+Backend:
+
+- Migration `discipleship_batches` — `program_id` (FK CASCADE),
+  name, start_date, `created_by` (FK RESTRICT). Index on
+  (program_id, start_date) for the per-program chronological
+  list.
+- `DiscipleshipBatch` model — `program()` and `creator()`
+  relations. `sessions()` and `enrollments()` deliberately
+  absent; forward-referencing classes that do not yet exist
+  would break the autoloader.
+- `DiscipleshipProgram::batches()` relation added.
+- `DiscipleshipBatchController` — store, update, destroy. No
+  index: batches render on the program show page.
+- 2 FormRequests under `Http/Requests/Discipleship/`.
+
+Routes:
+
+- 3 routes under the discipleship prefix.
+- `POST /discipleship/programs/{program:slug}/batches`
+- `PUT /discipleship/batches/{batch}`
+- `DELETE /discipleship/batches/{batch}`
+- Declaration order matters: the batch routes are more specific
+  than `programs/{program:slug}`, so they sit first inside the
+  group.
+
+Frontend:
+
+- `index.tsx` gains `batches_count` under each program card.
+- `show.tsx` replaces the 5A empty state with the batch list,
+  an Add/Edit dialog, and a delete confirm. Same `useForm` +
+  single `Dialog` shape as Fellowship's show page.
+
+### Design decisions
+
+**No unique constraint on (program_id, name).** Two cohorts can
+legitimately share a name — "Spring Cohort 2026" and "Spring
+Cohort 2027" are distinct. If duplicate names become a
+data-quality problem, add the constraint then.
+
+**No `end_date`.** Task list 5B.1 does not mention one. Duration
+is derivable from the batch's sessions once 5D lands.
+
+**`created_by`.** Not in the task list, added for consistency
+with `ServiceOccurrence` and `FellowshipEvent` — every
+user-created record in the codebase carries creation
+attribution. RESTRICT on delete so a deleted user account does
+not silently orphan historical batches.
+
+**Slug URL, integer FK.** The program route keeps
+`{program:slug}`; the batch FK is an integer `program_id`.
+Same coexistence pattern Phase 4 uses for `{type}` (enum slug)
+and `{event}` (int).
+
+### Verification
+
+    php artisan test tests/Feature/Discipleship/
+    18 passed (77 assertions)
+
+    php artisan test
+    3 skipped, 713 passed (2759 assertions)
+
+    npx tsc --noEmit
+    silent
+
+### Commits
+
+    3e57104  feat(discipleship): Phase 5B — batches module
+             11 files, 822 insertions, 52 deletions
+
+### What comes next
+
+Phase 5C — enrollment. One design decision blocks all 5C code:
+is enrollment keyed on the program or the batch? The task list
+is internally ambiguous — 5C.3 says "unique (participant,
+program, active)" and 5G.2 says "enrolled per batch".
+
+The recommended shape, recorded here so 5C opens against a
+decision rather than a re-litigation: **program-level
+uniqueness with a batch pointer.**
+
+- UNIQUE on (participant_id, program_id) for active enrollments
+  enforces the 5C.3 invariant.
+- A nullable `batch_id` column records which cohort the
+  participant is currently in, enabling per-batch reports.
+- A participant can move batches without a new enrollment —
+  update `batch_id`.
+
+Same "best of both" pattern as the slug-URL/int-FK coexistence.
+
+Phase 5F will need a separate decision on completion criteria
+storage (columns on the program, a requirements table, or
+per-program code). Not yet decided.
+
+### Cross-references
+
+- `docs/church-events/07-scope-and-task-division.md` §3.6 —
+  Phase 5 task breakdown (5B.1 through 5B.4)
+- `docs/progress.md` 2026-10-16 Phase 5A entry — the sub-phase
+  this one extends
+- `docs/progress.md` 2026-10-16 Phase 4 entry — the Fellowship
+  module this sub-phase mirrors in structure
