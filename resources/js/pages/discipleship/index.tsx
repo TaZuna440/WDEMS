@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import {
+    ArrowLeft,
     BookOpen,
     GraduationCap,
     Mountain,
@@ -39,6 +40,14 @@ export default function DiscipleshipIndex({ programs }: Props) {
             <Head title="Discipleship" />
 
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
+                                <Link
+                    href="/events?kind=church"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Church Events
+                </Link>
+
                 <div className="pl-10">
                     <h1 className="text-foreground text-2xl font-semibold">
                         Discipleship
@@ -55,7 +64,7 @@ export default function DiscipleshipIndex({ programs }: Props) {
                         return (
                             <Link
                                 key={program.id}
-                                href={`/discipleship/programs/${program.slug}`}
+                                href={`/events/church/discipleship/programs/${program.slug}`}
                                 className="glass-panel group flex gap-4 rounded-xl p-5 transition-colors hover:border-lime-brand/40"
                             >
                                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-lime-brand/15 text-lime-700 dark:text-lime-brand">
@@ -90,5 +99,9 @@ export default function DiscipleshipIndex({ programs }: Props) {
 }
 
 DiscipleshipIndex.layout = {
-    breadcrumbs: [{ title: 'Discipleship', href: '/events/church/discipleship' }],
+    breadcrumbs: [
+        { title: 'Events', href: '/events' },
+        { title: 'Church', href: '/events?kind=church' },
+        { title: 'Discipleship', href: '/events/church/discipleship' },
+    ],
 };

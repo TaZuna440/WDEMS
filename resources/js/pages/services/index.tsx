@@ -1,5 +1,12 @@
 import { Head, Link } from '@inertiajs/react';
-import { BookOpen, Church, Sun, Users, type LucideIcon } from 'lucide-react';
+import {
+    ArrowLeft,
+    BookOpen,
+    Church,
+    Sun,
+    Users,
+    type LucideIcon,
+} from 'lucide-react';
 
 type ServiceTypeRow = {
     value: string;
@@ -25,6 +32,14 @@ export default function ServicesIndex({ service_types }: Props) {
             <Head title="Services" />
 
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
+                                <Link
+                    href="/events?kind=church"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Church Events
+                </Link>
+
                 <div className="pl-10">
                     <h1 className="text-foreground text-2xl font-semibold">
                         Services
@@ -41,7 +56,7 @@ export default function ServicesIndex({ service_types }: Props) {
                         return (
                             <Link
                                 key={type.value}
-                                href={`/services/${type.value}`}
+                                href={`/events/church/services/${type.value}`}
                                 className="glass-panel glass-panel-hover group flex flex-col gap-3 rounded-xl p-5"
                             >
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-lime-brand/15 text-lime-700 dark:text-lime-brand">
@@ -76,5 +91,9 @@ export default function ServicesIndex({ service_types }: Props) {
 }
 
 ServicesIndex.layout = {
-    breadcrumbs: [{ title: 'Services', href: '/events/church/services' }],
+    breadcrumbs: [
+        { title: 'Events', href: '/events' },
+        { title: 'Church', href: '/events?kind=church' },
+        { title: 'Services', href: '/events/church/services' },
+    ],
 };
