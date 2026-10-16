@@ -279,16 +279,16 @@ export default function RegistrationForm({
 
                 <section className="flex flex-col gap-3">
                     <div className="flex items-baseline justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
                             Common Fields
                         </h2>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-on-image-muted">
                             {canEdit
                                 ? 'Toggle required per field'
                                 : 'Automatic · locked'}
                         </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-on-image-muted">
                         Every registration includes these fields. First
                         name, last name, and age are always required.
                         Email, contact number, and address can be made
@@ -306,7 +306,7 @@ export default function RegistrationForm({
                             return (
                                 <div
                                     key={field.key}
-                                    className="flex items-center gap-3 rounded-md border border-white/5 bg-white/[0.02] px-3 py-2"
+                                    className="flex items-center gap-3 rounded-md border border-border bg-card/40 px-3 py-2"
                                 >
                                     <CheckCircle2 className="h-4 w-4 shrink-0 text-lime-brand/60" />
                                     <span className="text-sm text-foreground">
@@ -355,14 +355,14 @@ export default function RegistrationForm({
 
                 <section className="flex flex-col gap-3">
                     <div className="flex items-baseline justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-on-image-muted">
                             Custom Fields
                         </h2>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-on-image-muted">
                             {form.data.fields.length} / {MAX_FIELDS}
                         </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-on-image-muted">
                         Drag the handle to reorder. Changes are not saved
                         until you click Save.
                     </p>
