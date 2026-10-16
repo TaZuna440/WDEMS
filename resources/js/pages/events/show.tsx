@@ -272,7 +272,7 @@ export default function EventsShow({
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
                 <Link
                     href="/events"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-on-image-muted transition-colors hover:text-on-image"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Events
@@ -280,7 +280,7 @@ export default function EventsShow({
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-foreground">
+                        <h1 className="text-on-image text-2xl font-semibold">
                             {event.event_name}
                         </h1>
                         <div className="mt-2 flex flex-wrap items-center gap-3">

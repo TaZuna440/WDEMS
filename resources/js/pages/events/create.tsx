@@ -148,17 +148,17 @@ export default function EventsCreate({ event_types }: Props) {
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
                 <Link
                     href="/events"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="inline-flex w-fit items-center gap-2 text-sm text-on-image-muted transition-colors hover:text-on-image"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Events
                 </Link>
 
                 <div>
-                    <h1 className="text-2xl font-semibold text-foreground">
+                    <h1 className="text-on-image text-2xl font-semibold">
                         Create Event
                     </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="text-on-image-muted mt-1 text-sm">
                         Set up a new running event. Your progress is saved
                         automatically — you can leave and come back.
                     </p>
