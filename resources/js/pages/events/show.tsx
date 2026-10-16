@@ -121,7 +121,7 @@ function DetailRow({
     value: string | null;
 }) {
     return (
-        <div className="flex items-start gap-3 border-b border-white/5 py-3 last:border-b-0">
+        <div className="flex items-start gap-3 border-b border-border py-3 last:border-b-0">
             <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="flex flex-1 flex-col">
                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -425,7 +425,7 @@ export default function EventsShow({
                                     {event.partners!.map((partner, i) => (
                                         <li
                                             key={i}
-                                            className="flex items-center gap-3 border-b border-white/5 py-2.5 last:border-b-0"
+                                            className="flex items-center gap-3 border-b border-border py-2.5 last:border-b-0"
                                         >
                                             <span className="w-24 shrink-0 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                                                 {PARTNER_TYPE_LABELS[partner.type] ??
@@ -454,7 +454,7 @@ export default function EventsShow({
                                             key={key}
                                             className="flex items-center gap-2 text-sm text-foreground"
                                         >
-                                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-lime-brand/20 text-[10px] text-lime-brand">
+                                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-lime-brand/20 text-[10px] text-lime-700 dark:text-lime-brand">
                                                 ✓
                                             </span>
                                             {label}
@@ -583,7 +583,7 @@ export default function EventsShow({
                     </div>
                 </div>
 
-                <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6">
+                <div className="rounded-xl border border-destructive/40 bg-card/60 p-6 shadow-xs backdrop-blur-sm">
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-destructive">
                         Danger Zone
                     </h2>
