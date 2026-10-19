@@ -817,3 +817,121 @@ If any box is unchecked, the block is not ready.
 
 - **2026-10-16** — §11 added. Five process rules from Phases 4
   and 5, each learned by breaking it. Checklist appended.
+
+---
+
+## 12. Grep process rules (2026-10-19)
+
+Two shell-scripting rules learned the hard way during the
+2026-10-19 doc merge. Both share §11's shape: the block was safe in
+isolation but failed at a pipeline boundary — in both cases, at the
+boundary between `grep` output and the shell test that consumes it.
+
+### 12.1 — Grep counts are pattern-scoped
+
+**Rule.** Before treating the output of `grep -c "<pattern>" file`
+as a sanity check, confirm the pattern actually matches everything
+you intend it to match. `grep -c` counts matches of the given
+pattern — it is not a general line count.
+
+**What this prevents.** A file with mixed header levels, mixed key
+names, or mixed casing will return a subset of the true count. The
+check "did the append land?" then reports a false failure on a file
+that is actually complete.
+
+**What it cost to learn.** Block 5 of the 2026-10-19 doc merge
+appended 12 issues to `docs/known-issues.md`. The file used `##`
+headers for ISSUE-001..004 and `###` headers for ISSUE-005..013
+(different eras, different conventions). `grep -c "^## ISSUE-"`
+matched only the two-hash form, returning 16 (4 pre-existing + 12
+new) against an expected 25. The file was correct; the check was
+wrong. Recovery: `grep -cE "^##+ ISSUE-"` confirms 25.
+
+**Application.** When the expected count of a `grep -c` sanity
+check is known in advance, use the most permissive regex that
+matches every legitimate form of the item:
+
+    grep -cE "^##+ ISSUE-"          # one or more hashes
+    grep -cE "^#{2,} ISSUE-"        # equivalent
+    grep -cE "^##+ [0-9]+\."        # numbered headers at any depth
+
+If the pattern must be tight (e.g., to distinguish `##` from
+`###`), then the check should be accompanied by a note explaining
+what it does and does not match.
+
+### 12.2 — Nonzero exit from `grep -c` is not an error
+
+**Rule.** Never wrap `grep -c` in `|| echo 0` or `|| true` to
+"handle" the no-match case. `grep -c` writes the count to stdout
+AND exits 1 when the count is 0. The fallback fires on the no-match
+case, appending a second `0` to the string.
+
+**What this prevents.** A shell variable that receives the count
+will contain `"0\n0"` or `"0\n"` instead of `"0"`. The subsequent
+`if [ "$VAR" = "0" ]` test fails because the strings are not equal.
+The check reports a failure on a file that is actually clean.
+
+**What it cost to learn.** Block 1 of the 2026-10-19 doc merge used
+`LEAKS=$(grep -c "pattern" file || echo 0)` to detect a heredoc
+delimiter leak. The pattern did not match (correct — no leak), so
+grep wrote `"0"` and exited 1, firing the fallback which appended
+`"\n0"`. The variable held `"0\n0"`. The `if [ "$LEAKS" = "0" ]`
+test failed. Commit was blocked. The file was correct; the guard
+was wrong. Recovery: `grep -q "pattern" file` for the presence
+check, no `||` fallback needed — `if grep -q "pattern" file; then
+... fi` handles the exit code directly.
+
+**Application.** For presence checks, use `grep -q` directly in the
+conditional:
+
+    if grep -q "WDEMS_EOF" "$file"; then
+        echo "STOP. Delimiter leak."
+    else
+        echo "Delimiter clean."
+        git add "$file"
+        git commit ...
+    fi
+
+For count-into-variable cases, place the fallback on the assignment
+so it replaces the variable, not on the substitution so it becomes
+part of the value:
+
+    COUNT=$(grep -c "pattern" file) || COUNT=0   # correct
+    COUNT=$(grep -c "pattern" file || echo 0)    # wrong — "0\n0"
+
+### Why these are one section and not two
+
+Both rules share a shape with §11's five: the block was safe in
+isolation but failed at a pipeline boundary. §11's rules failed at
+the filesystem, shell-state, and doc-and-paste boundaries. These
+two fail at the boundary between `grep` output and the shell test
+that consumes it — the same class of error.
+
+The common practice: any block whose verification step consumes
+`grep` output should be audited against both rules before delivery.
+
+### Checklist additions for §12
+
+Add these two items to §11's pre-delivery checklist:
+
+    [ ] grep patterns are pattern-scoped — they match every
+        legitimate form of the item (use `-E` and `+` for mixed
+        header/key conventions)
+    [ ] grep presence checks use `-q`, not `-c` with a fallback;
+        count-into-variable uses `|| VAR=0` on the assignment,
+        never `|| echo 0` inside the substitution
+
+That extends the checklist from five items to seven.
+
+### Cross-references
+
+- Section §11 — original five process rules (2026-10-16)
+- `docs/progress.md` 2026-10-19 entry — both failures recorded in
+  the session log under "Failures during the session"
+
+## Changelog addendum
+
+- **2026-10-19** — §12 added. Two `grep` process rules learned
+  during the 2026-10-19 doc merge. Both share §11's "pipeline
+  boundary" shape. Checklist additions extend §11's checklist to
+  seven items.
