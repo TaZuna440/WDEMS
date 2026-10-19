@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ChurchCategory;
+use App\Enums\ChurchEventStatus;
 use App\Enums\EventStatus;
 use App\Enums\EventType;
 use App\Http\Requests\EventRequest;
@@ -11,6 +12,7 @@ use App\Services\EventWorkflow;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -338,6 +340,17 @@ class EventController extends Controller
      * event-creation.md Trap #2 for the running-event rationale,
      * applied identically here). Church-specific fields are updatable
      * only for church events.
+     *
+     * Church-status transitions are validated before the write:
+     * each requested church_status change must be legal per
+     * ChurchEventStatus::allowedTransitions(). See
+     * assertChurchStatusTransitionIsLegal() for the rule and
+     * docs/audit-2026-10-19.md ISSUE-014 for the reason Phase A
+     * ships this check.
+     *
+     * event_kind is not in the update payload, so a church event
+     * cannot be converted into a running event (or vice versa) via
+     * this action.
      */
     public function update(EventRequest $request, Event $event): RedirectResponse
     {
@@ -347,6 +360,13 @@ class EventController extends Controller
 
         $validated = $request->validated();
         $isChurch = $event->isChurchEvent();
+
+        if ($isChurch) {
+            $this->assertChurchStatusTransitionIsLegal(
+                $event,
+                $validated['church_status'] ?? null,
+            );
+        }
 
         $event->update([
             'church_category' => $isChurch
@@ -401,6 +421,59 @@ class EventController extends Controller
         ]);
 
         return redirect()->route('events.show', $event);
+    }
+
+    /**
+     * Validate a requested church_status change against the current
+     * one, using ChurchEventStatus::allowedTransitions() as the
+     * source of truth.
+     *
+     * No-op when:
+     *   - The request did not submit a church_status (absence means
+     *     "keep the current value" -- the update() payload already
+     *     falls back to $event->church_status).
+     *   - The submitted value equals the current value (no change,
+     *     no transition to validate).
+     *
+     * Throws ValidationException with a church_status error otherwise.
+     *
+     * The target enum value is validated by Rule::enum in
+     * EventValidationRules::eventRules(). tryFrom returns null only
+     * if a caller somehow bypassed the rule -- the throw is
+     * defense-in-depth.
+     */
+    private function assertChurchStatusTransitionIsLegal(
+        Event $event,
+        ?string $requested,
+    ): void {
+        if ($requested === null || $requested === '') {
+            return;
+        }
+
+        $current = $event->church_status;
+        $target = ChurchEventStatus::tryFrom($requested);
+
+        if ($target === null) {
+            throw ValidationException::withMessages([
+                'church_status' => 'Invalid church status value.',
+            ]);
+        }
+
+        if ($current === null) {
+            throw ValidationException::withMessages([
+                'church_status' => 'This event has no current church status to transition from.',
+            ]);
+        }
+
+        if ($current === $target) {
+            return;
+        }
+
+        if (! $current->canTransitionTo($target)) {
+            throw ValidationException::withMessages([
+                'church_status' => "Cannot transition from {$current->label()} to {$target->label()}.",
+            ]);
+        }
     }
 
     public function openRegistration(Event $event): RedirectResponse

@@ -6,15 +6,25 @@ use App\Models\User;
 /**
  * Pins the running-event lifecycle guard behavior for church events.
  *
- * Every running-lifecycle guard in Event returns false for a church
- * event, regardless of the underlying EventStatus. Church events use
- * ChurchEventStatus and their own module paths (Services, Fellowship,
- * Discipleship); the running-event edit, registration, attendance,
- * and finalize flows do not apply to them.
+ * Six of the seven can*() guards in Event are running-only and return
+ * false for a church event regardless of the underlying EventStatus:
+ *
+ *   - canEditRegistrationForm
+ *   - canOpenRegistration
+ *   - canCloseRegistration
+ *   - canFinalize
+ *   - canRecordAttendance
+ *   - canViewAttendance
+ *
+ * The seventh guard -- canEdit -- applies to both kinds with a
+ * per-kind rule. Church events are editable when church_status is
+ * Upcoming or Ongoing; not editable when Completed or Cancelled.
+ * Running events keep their original editable states (Draft,
+ * RegistrationOpen, RegistrationClosed).
  *
  * This is the model-layer half of ISSUE-014 (H1, kind leakage). The
  * controller-layer half is EventController's existing guard checks +
- * the A.3 church_status transition validation.
+ * the church_status transition validation added by A.3b.
  *
  * The mirror tests -- running events returning their expected values
  * at each status -- confirm the guards were not over-zealously
@@ -68,14 +78,35 @@ function kindguard_running_event(array $overrides = []): Event
 }
 
 // ---------------------------------------------------------------------------
-// Church events: every running-lifecycle guard returns false
+// Church events: the six running-only guards return false regardless of status
 // ---------------------------------------------------------------------------
 
-test('church event: canEdit is false at every status', function () {
-    foreach (['draft', 'registration_open', 'registration_closed'] as $status) {
-        $event = kindguard_church_event(['status' => $status]);
-        expect($event->canEdit())->toBeFalse("status={$status}");
-    }
+test('church event: canEdit follows church_status, not running status', function () {
+    // Editable states for the church lifecycle.
+    expect(kindguard_church_event(['church_status' => 'upcoming'])->canEdit())->toBeTrue();
+    expect(kindguard_church_event(['church_status' => 'ongoing'])->canEdit())->toBeTrue();
+
+    // Terminal church states -- not editable.
+    expect(kindguard_church_event(['church_status' => 'completed'])->canEdit())->toBeFalse();
+    expect(kindguard_church_event(['church_status' => 'cancelled'])->canEdit())->toBeFalse();
+});
+
+test('church event: canEdit does not fall through to the running status column', function () {
+    // Even with a running status that would normally be editable
+    // (draft), a completed church event must NOT be editable. And
+    // even with a running status that would normally be locked
+    // (completed), an upcoming church event MUST be editable.
+    $completedChurchWithRunningDraft = kindguard_church_event([
+        'church_status' => 'completed',
+        'status' => 'draft',
+    ]);
+    $upcomingChurchWithRunningCompleted = kindguard_church_event([
+        'church_status' => 'upcoming',
+        'status' => 'completed',
+    ]);
+
+    expect($completedChurchWithRunningDraft->canEdit())->toBeFalse();
+    expect($upcomingChurchWithRunningCompleted->canEdit())->toBeTrue();
 });
 
 test('church event: canEditRegistrationForm is false even in draft', function () {
@@ -143,6 +174,16 @@ test('running event: canEdit is false in terminal and ongoing statuses', functio
         $event = kindguard_running_event(['status' => $status]);
         expect($event->canEdit())->toBeFalse("status={$status}");
     }
+});
+
+test('running event: canEdit ignores church_status', function () {
+    // A running event with a populated church_status (unexpected but
+    // possible via a data import) must still follow the running rule.
+    $event = kindguard_running_event([
+        'status' => 'draft',
+        'church_status' => 'completed',
+    ]);
+    expect($event->canEdit())->toBeTrue();
 });
 
 test('running event: canOpenRegistration requires a saved form', function () {

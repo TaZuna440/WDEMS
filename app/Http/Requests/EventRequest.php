@@ -36,6 +36,20 @@ class EventRequest extends FormRequest
      *      upcoming. The value can be changed later from the event
      *      show page. Running events leave this field null; the
      *      column is null for them.
+     *
+     * CRITICAL: derivation 2 runs on create only, not on update.
+     *
+     * This request is bound to both POST /events (no {event} route
+     * parameter) and PUT /events/{event} (an {event} parameter
+     * exists). On update, if the frontend does not submit
+     * church_status, the payload's absent church_status must be
+     * preserved as absent so EventController::update reads the
+     * existing value off the model. Defaulting to Upcoming here
+     * would silently reset an Ongoing church event back to Upcoming
+     * on every edit — a state-corruption bug.
+     *
+     * The route('event') check distinguishes the two paths: null on
+     * create, Event on update.
      */
     protected function prepareForValidation(): void
     {
@@ -49,13 +63,15 @@ class EventRequest extends FormRequest
             ]);
         }
 
-        // Default church_status for church events when the wizard
-        // does not supply one.
+        // Only default church_status on create. On update, absence
+        // means "keep current value" -- EventController::update reads
+        // $event->church_status directly when the payload omits it.
         $kind = $this->input('event_kind');
         $churchStatus = $this->input('church_status');
 
         if (
-            $kind === 'church'
+            $this->route('event') === null
+            && $kind === 'church'
             && ($churchStatus === null || $churchStatus === '')
         ) {
             $this->merge([

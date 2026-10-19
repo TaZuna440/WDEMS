@@ -112,23 +112,38 @@ class Event extends Model
     /*
      * Lifecycle guard policy.
      *
-     * Every can*() method below that governs the running-event
-     * lifecycle returns false for church events. Church events use
-     * ChurchEventStatus and their own module paths (Services,
-     * Fellowship, Discipleship); the running-event edit, registration,
-     * attendance, and finalize flows do not apply to them.
+     * Church events and running events are two genuinely separate
+     * lifecycles. They share the `events` table but differ in:
      *
-     * Implemented via an isRunningEvent() early-out in each guard.
-     * isRunningEvent() was chosen over ! isChurchEvent() because it is
-     * fail-closed on any future event kind that is neither 'running'
-     * nor 'church' -- a defensive posture, even though no such kind
-     * exists today. See docs/audit-2026-10-19.md ISSUE-014 (H1).
+     *   - status source: `church_status` (church) vs `status` (running)
+     *   - editable states (see canEdit() below)
+     *   - downstream flow: church uses module paths (Services,
+     *     Fellowship, Discipleship); running uses registration,
+     *     attendance, and finalize on the running-event surface
      *
-     * canRecordAttendanceNow() and canViewAttendance() both compose
-     * canRecordAttendance()'s status check; both still need their own
-     * explicit guard because each has additional gates (a time window
-     * for the first, a date gate and a broader status set for the
-     * second) that could independently return true for a church event.
+     * Six of the can*() guards below are running-only and return
+     * false for church events:
+     *
+     *   - canEditRegistrationForm
+     *   - canOpenRegistration
+     *   - canCloseRegistration
+     *   - canFinalize
+     *   - canRecordAttendance
+     *   - canViewAttendance
+     *
+     * One guard -- canEdit -- applies to both kinds, with a
+     * per-kind rule. See its docblock.
+     *
+     * Each rule reads its own lifecycle's status column. Neither
+     * reads the other lifecycle's column. This is deliberate: a
+     * church event whose `status` column reads 'draft' (the DB
+     * default for that non-nullable column) must not be treated as
+     * a running event in Draft.
+     *
+     * isRunningEvent() and isChurchEvent() are the dispatchers.
+     * Neither is a negation of the other -- both return false if
+     * event_kind is a value not in {running, church}. Guards that
+     * dispatch on kind fail closed on unknown kinds.
      */
 
     protected function casts(): array
@@ -296,12 +311,35 @@ class Event extends Model
     /**
      * Can the event be edited via the running-event edit path?
      *
-     * Running event only. Church events have their own edit routes
-     * (or none) and do not go through EventController::edit or
-     * ::update. See the class-level lifecycle guard policy note.
+     * This is the one can*() guard that applies to BOTH event kinds,
+     * with a per-kind rule. The two lifecycles are separate systems
+     * (see the class-level lifecycle guard policy note).
+     *
+     *   Running: editable in Draft, RegistrationOpen, RegistrationClosed.
+     *            Not editable in Ongoing, Completed, or Cancelled -- the
+     *            three terminal-or-locked states for the running flow.
+     *
+     *   Church:  editable in Upcoming, Ongoing.
+     *            Not editable in Completed or Cancelled -- the two
+     *            terminal states for the church flow.
+     *
+     * Each rule reads its own lifecycle's status column. A church
+     * event whose status column reads 'draft' (the DB default for
+     * that non-nullable column) is editable based on its
+     * church_status, not on its status.
+     *
+     * Fails closed on a null church_status for a church event, and
+     * on an unknown event_kind for a non-church event.
      */
     public function canEdit(): bool
     {
+        if ($this->isChurchEvent()) {
+            return in_array($this->church_status, [
+                ChurchEventStatus::Upcoming,
+                ChurchEventStatus::Ongoing,
+            ], true);
+        }
+
         return $this->isRunningEvent() && in_array($this->status, [
             EventStatus::Draft,
             EventStatus::RegistrationOpen,
