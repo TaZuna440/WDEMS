@@ -109,6 +109,28 @@ class Event extends Model
 
     public const KIND_CHURCH = 'church';
 
+    /*
+     * Lifecycle guard policy.
+     *
+     * Every can*() method below that governs the running-event
+     * lifecycle returns false for church events. Church events use
+     * ChurchEventStatus and their own module paths (Services,
+     * Fellowship, Discipleship); the running-event edit, registration,
+     * attendance, and finalize flows do not apply to them.
+     *
+     * Implemented via an isRunningEvent() early-out in each guard.
+     * isRunningEvent() was chosen over ! isChurchEvent() because it is
+     * fail-closed on any future event kind that is neither 'running'
+     * nor 'church' -- a defensive posture, even though no such kind
+     * exists today. See docs/audit-2026-10-19.md ISSUE-014 (H1).
+     *
+     * canRecordAttendanceNow() and canViewAttendance() both compose
+     * canRecordAttendance()'s status check; both still need their own
+     * explicit guard because each has additional gates (a time window
+     * for the first, a date gate and a broader status set for the
+     * second) that could independently return true for a church event.
+     */
+
     protected function casts(): array
     {
         return [
@@ -139,6 +161,39 @@ class Event extends Model
             'leashed_pets_allowed' => 'boolean',
             'quiet_space_available' => 'boolean',
         ];
+    }
+
+    /**
+     * Default event_kind to 'running' on create.
+     *
+     * The DB column has ->default('running') (see migration
+     * 2026_10_16_110000), but the default fires at INSERT time and
+     * never re-propagates to the in-memory model. Any code that
+     * calls Event::create([...]) without setting event_kind gets a
+     * model whose event_kind is null, even though the DB row reads
+     * 'running'.
+     *
+     * That gap is invisible to route-bound controllers (the model is
+     * rebound from DB with the correct value), but visible to any
+     * direct Model access -- including test helpers that create an
+     * event and then call a can*() guard on the returned instance.
+     *
+     * This hook closes the gap by setting event_kind in the model
+     * before INSERT, so the in-memory instance and the DB row agree.
+     * Any caller that sets event_kind explicitly (e.g.
+     * EventController::store for church events) is unaffected --
+     * the hook only fires when the value is null.
+     *
+     * Any raw insert that bypasses Eloquent still hits the DB default
+     * and gets 'running' correctly.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Event $event): void {
+            if ($event->event_kind === null) {
+                $event->event_kind = self::KIND_RUNNING;
+            }
+        });
     }
 
     /**
@@ -238,9 +293,16 @@ class Event extends Model
         ];
     }
 
+    /**
+     * Can the event be edited via the running-event edit path?
+     *
+     * Running event only. Church events have their own edit routes
+     * (or none) and do not go through EventController::edit or
+     * ::update. See the class-level lifecycle guard policy note.
+     */
     public function canEdit(): bool
     {
-        return in_array($this->status, [
+        return $this->isRunningEvent() && in_array($this->status, [
             EventStatus::Draft,
             EventStatus::RegistrationOpen,
             EventStatus::RegistrationClosed,
@@ -254,10 +316,13 @@ class Event extends Model
      * The workflow no longer has a "configured" state — an event is
      * either still editable (Draft) or has been published to the public
      * registration URL (registration_open and beyond).
+     *
+     * Running event only. Church events do not have a registration
+     * form on the running-event side.
      */
     public function canEditRegistrationForm(): bool
     {
-        return $this->status === EventStatus::Draft;
+        return $this->isRunningEvent() && $this->status === EventStatus::Draft;
     }
 
     /**
@@ -278,19 +343,26 @@ class Event extends Model
      * where registration is nominally "open" but no submission surface
      * exists.
      *
+     * Running event only. A church event that passes the two status
+     * checks above (Draft + form saved) would generate a public
+     * /r/{slug} URL for a church event that has no meaningful
+     * registration flow behind it. See ISSUE-014.
+     *
      * See the migration for
      * events.registration_form_saved_at for the backfill trade-off and
      * the known risk to pre-existing Draft events.
      */
     public function canOpenRegistration(): bool
     {
-        return $this->status === EventStatus::Draft
+        return $this->isRunningEvent()
+            && $this->status === EventStatus::Draft
             && $this->registration_form_saved_at !== null;
     }
 
     public function canCloseRegistration(): bool
     {
-        return $this->status === EventStatus::RegistrationOpen;
+        return $this->isRunningEvent()
+            && $this->status === EventStatus::RegistrationOpen;
     }
 
     /**
@@ -306,15 +378,24 @@ class Event extends Model
      * Placed alongside canCloseRegistration() so the terminal state
      * machine transitions read as a unit: Draft → RegistrationOpen →
      * RegistrationClosed → Ongoing → Completed.
+     *
+     * Running event only.
      */
     public function canFinalize(): bool
     {
-        return $this->status === EventStatus::Ongoing;
+        return $this->isRunningEvent() && $this->status === EventStatus::Ongoing;
     }
 
+    /**
+     * Can attendance be recorded against this event's registrations?
+     *
+     * Running event only. Church event attendance is recorded through
+     * the Services, Fellowship, and Discipleship modules against their
+     * own tables, not against registration rows.
+     */
     public function canRecordAttendance(): bool
     {
-        return in_array($this->status, [
+        return $this->isRunningEvent() && in_array($this->status, [
             EventStatus::RegistrationOpen,
             EventStatus::RegistrationClosed,
             EventStatus::Ongoing,
@@ -337,6 +418,11 @@ class Event extends Model
      * Completed events stay viewable (canViewAttendance) but not
      * markable. An admin force-open toggle is handled at the
      * controller layer; this method returns the strict truth.
+     *
+     * Inherits the running-event kind guard through
+     * canRecordAttendance(). No explicit isRunningEvent() check is
+     * needed here -- if canRecordAttendance() returns false, the
+     * first early-return fires before the time window is evaluated.
      */
     public function canRecordAttendanceNow(): bool
     {
@@ -399,9 +485,17 @@ class Event extends Model
      * Date gate: a future event returns false. A completed event has
      * a past event_date by definition, so the gate is trivially
      * satisfied.
+     *
+     * Running event only. Church event attendance is recorded through
+     * the church module surfaces, not the running-event attendance
+     * page.
      */
     public function canViewAttendance(): bool
     {
+        if (! $this->isRunningEvent()) {
+            return false;
+        }
+
         $viewableStatuses = [
             EventStatus::RegistrationOpen,
             EventStatus::RegistrationClosed,
