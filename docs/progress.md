@@ -3722,3 +3722,310 @@ Per P7, the original entry stays as written. The correct value:
   module, structurally parallel to Discipleship
 - `docs/progress.md` 2026-10-16 Phase 3 entry — the Services
   module, the first of the church-events workstreams
+
+## 2026-10-19 — Birthdate swap closure
+
+Replaced the age number input with a bounded date-of-birth picker
+across the public form, single walk-in, and bulk walk-in. Four
+phases, expand-then-contract throughout so the suite stayed green
+at every block.
+
+**Decisions.** D1=B: store `birthday` only (`participants.birthday`,
+pre-existing nullable date column, cast to date, fillable); derive
+on read via `Participant::getAgeAttribute()`, falling back to the
+stored `age` column for legacy rows. D2: bounds tightened 1–120 to
+3–120. D3: public form + walk-in. D4: birthday required on walk-in,
+same as the public form. D5: friendly "Sep 25, 1990" display after
+typed entry. Label "Date of birth"; code name `birthday`.
+
+**Phase 1 — typed date-picker entry.** `date-picker.tsx` (482 lines):
+input at top of popover, parses MM/DD/YYYY, M/D/YYYY, dashes, ISO;
+rejects 2-digit years; enforces min/max; Enter commits.
+
+**Phase 2 — public form.** Accessor + `ParticipantAgeDerivationTest`
+(6 tests); `Event::COMMON_FIELDS_ALWAYS_REQUIRED` age→birthday;
+`PublicRegistrationRequest` accept-both with the at-least-one check
+erroring on the `birthday` key; `finalize()` prefer-birthday
+spread; `public-registration-validation.ts` rewrite
+(`validateBirthday`, `birthdayPickerBounds()`, `tracksBirthday`
+caller-shape gate); `public.tsx` DatePicker swap;
+`BirthdateSwapTest` (11 tests) + boundary test. Closed at 808
+passed, 3 pre-existing Fortify 2FA env skips.
+
+**Phase 3 — single walk-in.** `WalkInRegistrationRequest`
+accept-both + 6-pass validator; dialog DatePicker swap;
+`walkIn()` prefer-birthday spread; `WalkInBirthdateTest` (8 tests).
+Test-authoring note: Carbon 3's `now()->diffInYears(string)` returns
+a signed float — expectations use `Carbon::parse($b)->age`. Closed
+at 816 passed.
+
+**Phase 4 — bulk walk-in.** `BulkWalkInRegistrationRequest`
+(`rows.*.age` nullable, `rows.*.birthday` + bounds, no demographic
+pass — per-row rule lives in the controller like identity);
+controller loop D6 check keyed `rows.{i}.birthday` +
+prefer-birthday write; `attendance-bulk-validation.ts` passes
+`birthday` through (flips the `tracksBirthday` gate automatically);
+table DatePicker cell with once-per-mount shared bounds;
+`BulkWalkInBirthdateTest` (6 tests, incl. the D6 row-kept-others
+case). Closed at **822 passed, 3 skipped, 0 failed** (3174
+assertions); `tsc` clean; `npm run build` clean.
+
+**Deliberately not done.** Block 10 (removing `age` acceptance) —
+argued against; the transitional accept-both stays so legacy
+callers and in-flight challenges keep working. The 24h challenge
+TTL caps the mid-verification deployment window.
+
+### Cross-references
+
+- `docs/registration.md` "Correction — birthdate swap
+  (2026-10-19)" — the four superseded age statements
+- `docs/participant-identity.md` "Correction —
+  `participants.birthday` and derived age (2026-10-19)"
+- `docs/attendance-redesign.md` "Note — walk-in birthdate swap
+  (2026-10-19)"
+
+---
+
+## 2026-10-19 — Registration wizard + composite identity + audit patches
+
+### Summary
+
+Two large work streams and a documentation merge, all on the same
+calendar day as the birthdate swap (see the earlier
+`## 2026-10-19 — Birthdate swap closure` entry).
+
+**Code work** (as reported by the developer; this entry records the
+phase-level summary, not the diff):
+
+- **Goal 1 — Composite participant identity (W7).** Switched from
+  contact-only identity to name + contact composite identity. Three
+  migrations: dropped `UNIQUE` on `participants.email` and
+  `participants.contact_number_normalized`; added
+  `first_name_normalized` and `last_name_normalized`. `Participant`
+  model: `normalizeName()` helper, `setFirstNameAttribute` /
+  `setLastNameAttribute` mutators, `resolveFrom()` rewritten to
+  match on normalized name + contact.
+  `RegistrationVerificationService::assertNoDuplicateRegistration()`
+  rewritten to require both name and contact matching per event.
+  Full reference: `docs/composite-identity.md`.
+- **Goal 2 — Registration wizard redesign (W1–W6).** 5-step public
+  flow redesigned; W6 shipped a 3-step shell plus WizardProgress on
+  verify and confirmed pages. Schema additions: `middle_name`,
+  `suffix`, emergency-contact columns, device-trust table,
+  `chosen_channel` column. Consent disclaimer + privacy text with
+  server-side recording at finalize (closes audit P5). Emergency
+  contact block with same-number soft warning. Channel-choice
+  verification (stricter variant) with `chosen_channel`
+  persistence. Device trust (7-day cookie) skips OTP on trusted
+  devices. Resend cooldown bumped 60 → 100 seconds. P2 fix:
+  non-revealing begin-time duplicate message (closes audit M5).
+  Full reference: `docs/registration-wizard.md`.
+- **Blocked — W5.4 reCAPTCHA.** Server-side token verification
+  before code issue is drafted but blocked on Google v2 site and
+  secret keys.
+- **Birthdate swap.** Completed earlier same day; see the earlier
+  entry.
+- **Audit patches.** Top-5 patches (P1, P2, P3, P5, P9) drafted and
+  `git apply --check` clean. P2 (non-revealing message) and P5
+  (consent recording) superseded by W5.1 and W2. P1, P3, P9 not
+  applied — see `docs/known-issues.md` ISSUE-014, ISSUE-016,
+  ISSUE-015.
+
+**Documentation merge** (this session):
+
+- Three new docs written to consolidate the scattered progress
+  reports and audit findings:
+  `docs/composite-identity.md`, `docs/registration-wizard.md`,
+  `docs/audit-2026-10-19.md`.
+- Four append-only corrections:
+  `docs/participant-identity.md` §3, §4.1, §5, §6 reversed;
+  `docs/known-issues.md` ISSUE-014 through ISSUE-025 added;
+  this entry; `docs/AI-CONTEXT.md` §23 reading-order additions
+  (next block).
+
+### Documentation created
+
+| File | Lines | Purpose |
+|---|---|---|
+| `docs/composite-identity.md` | ~404 | Authoritative reference for the composite identity rule. Reverses `participant-identity.md` §3, §4.1, §5, §6 |
+| `docs/registration-wizard.md` | ~490 | The 5-step public wizard, per-phase status, case-coverage matrix |
+| `docs/audit-2026-10-19.md` | ~448 | Static audit at `2d19a5d` with per-finding current status |
+
+### Documentation corrected / appended
+
+| File | Change |
+|---|---|
+| `docs/participant-identity.md` | `## Corrections — Composite identity (2026-10-19)` appended. §3 (name as identifier), §4.1 (unique email dropped), §5 (name normalization), §6 (resolution rule) reversed. `resolveFrom` docblock flagged as stale. Birthdate correction's closing line flagged as superseded |
+| `docs/known-issues.md` | `## Later additions — audit 2026-10-19` appended. ISSUE-014 through ISSUE-025 added. M5 and P5 explicitly excluded as superseded |
+| `docs/progress.md` | This entry |
+| `docs/AI-CONTEXT.md` | §23 reading-order additions (next block) |
+
+### Code changes (as reported)
+
+| Area | Change | Phase |
+|---|---|---|
+| Schema | `participants.middle_name`, `participants.suffix` (nullable) | W1 |
+| Schema | `registrations.emergency_contact_name`, `.emergency_contact_relationship`, `.emergency_contact_number` (nullable at DB, required at finalize) | W1 |
+| Schema | `email_device_verifications` new table | W1 |
+| Schema | `registration_verification_challenges.chosen_channel` | W5.1 |
+| Schema | `DROP UNIQUE` on `participants.email` and `contact_number_normalized` | W7 |
+| Schema | `participants.first_name_normalized`, `participants.last_name_normalized` (nullable) | W7 |
+| Model | `Participant::normalizeName()` helper | W7 |
+| Model | `setFirstNameAttribute` / `setLastNameAttribute` mutators | W7 |
+| Model | `Participant::resolveFrom()` rewritten for composite key | W7 |
+| Service | `RegistrationVerificationService::assertNoDuplicateRegistration()` requires name + contact | W7 |
+| Service | `RESEND_COOLDOWN_SECONDS` 60 → 100 (PHP + TS) | W5.1 |
+| Service | `begin()` duplicate message made non-revealing | W5.1 |
+| Service | Consent columns written at finalize | W2 |
+| Frontend | `public.tsx` 3-step wizard shell, WizardProgress on verify/confirmed, DatePicker year drill-down, PH phone input | W3a, W6 |
+| Frontend | Emergency contact block with same-number warning | W4 |
+| Frontend | Channel-choice UI | W5.2 |
+| Frontend | Device-trust OTP skip | W5.3 |
+
+Full detail is in `docs/composite-identity.md` and
+`docs/registration-wizard.md`, not here.
+
+### Test changes (as reported)
+
+| File | Change |
+|---|---|
+| `tests/Feature/Participants/ParticipantIdentityResolverTest.php` | Rewritten for composite matching; added "name variant = different person" test |
+| `tests/Feature/Participants/ParticipantIdentityConstraintsTest.php` | Two UNIQUE-constraint tests rewritten — duplicates now allowed and verified to coexist |
+
+**Full suite at W7 close (as reported):** 833 passed, 3 skipped
+(pre-existing Fortify 2FA env skips), 0 failed.
+`npx tsc --noEmit` silent.
+
+Four test files listed in the implementation checklist but **not
+confirmed** in the W7 close: `PublicRegistrationIdentityResolutionTest`,
+`RegistrationSubmissionTest`, `EventDuplicateNameTest`,
+`RegistrationVerificationConcurrencyTest`. Verify these four are
+green against the composite rule before treating the suite as
+authoritative for the identity rule.
+
+### Database changes
+
+| Migration | Purpose |
+|---|---|
+| `2026_10_19_170000_drop_unique_email_from_participants` | Composite identity prerequisite |
+| `2026_10_19_170100_drop_unique_normalized_phone_from_participants` | Composite identity prerequisite |
+| `2026_10_19_170200_add_normalized_name_columns_to_participants` | Composite identity prerequisite; backfilled in PHP |
+| (earlier W1 migrations — same calendar day) | `middle_name`, `suffix`, emergency contact, device trust table, `chosen_channel` |
+
+All three composite-identity migrations ran clean on dev DB. The
+backfill is chunked in PHP because MySQL `LOWER()` is not reliably
+Unicode-safe.
+
+### Environment changes
+
+None.
+
+### Bugs fixed
+
+| Bug | Closed by | Known-issues |
+|---|---|---|
+| Anonymous registration-state enumeration oracle (begin-time message revealed duplicate status) | W5.1 | (recorded in `audit-2026-10-19.md` §9, not re-filed) |
+| Consent columns never written at finalize | W2 | (recorded in `audit-2026-10-19.md` §2.3, not re-filed) |
+| Global unique email blocked family registrations | W7 | (motivating bug for composite rule) |
+
+### Bugs found but not fixed
+
+The audit report (`docs/audit-2026-10-19.md`) surfaced eleven open
+findings. All are filed in `docs/known-issues.md`:
+
+- **High:** ISSUE-014 (H1, kind leakage), ISSUE-015 (H2, church
+  controller auth)
+- **Medium:** ISSUE-016 (M1, `verified_at` wipe), ISSUE-017 (M2,
+  deferred walk-in 500), ISSUE-018 (M3, OTP counter race),
+  ISSUE-019 (M4, unique-collision 500)
+- **Low:** ISSUE-020 (L1, cross-contact conflict), ISSUE-021 (L2,
+  deletion dialog under-reports), ISSUE-022 (L3, recurring
+  service race), ISSUE-023 (L4, editParticipant shared mutation),
+  ISSUE-024 (L5, design-system informational)
+
+Plus one client-decision backlog item:
+
+- ISSUE-025 — Discipleship progress rewrite (client Q14)
+
+### Failures during the session
+
+Two shell-script failures, both around `grep` exit codes and
+matching behavior. Neither affected the files; both affected the
+verification-and-commit gate.
+
+**1. `grep -c ... || echo 0` produced `"0\n0"`.** In Block 1's
+delimiter check, `LEAKS=$(grep -c "pattern" file || echo 0)`
+produced the string `"0\n0"` because `grep -c` writes the count to
+stdout AND exits 1 when the count is 0, firing the `|| echo 0`
+fallback. The subsequent `if [ "${LEAKS}" = "0" ]` test failed.
+Recovery: identified in the shell trace, re-committed manually with
+`grep -q` on subsequent blocks.
+
+**2. `grep -c "^## ISSUE-"` undercounted.** In Block 5's issue-count
+check, the pre-existing `known-issues.md` uses `##` headers for
+ISSUE-001..004 but `###` headers for ISSUE-005..013. `grep -c
+"^## ISSUE-"` matches only the two-hash form, so the count returned
+16 (4 pre-existing + 12 new) instead of the expected 25. The file
+was correct; the check was wrong. Recovery: `grep -cE "^##+ ISSUE-"`
+confirms 25.
+
+Both are recorded as process additions to
+`docs/dev-workflow/README.md` §11 (next block).
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `php artisan test` (as reported by developer) | 833 passed, 3 skipped, 0 failed |
+| `npx tsc --noEmit` (as reported by developer) | silent |
+| `php artisan migrate` (as reported by developer) | all migrations ran clean |
+| `php -l` on modified files (as reported by developer) | clean |
+| `grep -cE "^##+ ISSUE-" docs/known-issues.md` | 25 |
+| `grep -q "WDEMS.*_EOF"` on each new/amended doc | clean (no delimiter leaks) |
+
+**Live verification not yet run** (deferred to next session):
+`./scripts/audit-design.sh` (should be exit 0),
+`php artisan migrate:status` (should show all migrations `Ran`).
+
+### Cross-reference
+
+| Subsystem | Document |
+|---|---|
+| Composite identity | `docs/composite-identity.md` |
+| Public wizard | `docs/registration-wizard.md` |
+| Audit 2026-10-19 | `docs/audit-2026-10-19.md` |
+| Backlog (ISSUE-014..025) | `docs/known-issues.md` |
+| Original identity spec (superseded) | `docs/participant-identity.md` |
+| Original registration spec (pre-wizard) | `docs/registration.md` |
+| Verification subsystem | `docs/registration-contact-verification.md` |
+| Phase plan (pre-wizard) | `docs/registration-development-plan.md` |
+
+### Files touched this date — full inventory
+
+    Documentation (new):
+      docs/composite-identity.md
+      docs/registration-wizard.md
+      docs/audit-2026-10-19.md
+
+    Documentation (appended):
+      docs/participant-identity.md
+      docs/known-issues.md
+      docs/progress.md
+      docs/AI-CONTEXT.md
+
+    Code (as reported by developer, not diffed in this session):
+      Migrations: 2026_10_19_170000, .170100, .170200, plus W1 migrations
+      app/Models/Participant.php
+      app/Services/RegistrationVerification/RegistrationVerificationService.php
+      app/Http/Controllers/PublicRegistrationController.php
+      app/Http/Controllers/AttendanceController.php (as-needed per W4/W6)
+      resources/js/pages/registrations/public.tsx
+      resources/js/pages/registrations/verify.tsx
+      resources/js/pages/registrations/confirmed.tsx
+      resources/js/components/... (wizard-progress, date-picker, phone input)
+
+    Tests (as reported by developer):
+      tests/Feature/Participants/ParticipantIdentityResolverTest.php
+      tests/Feature/Participants/ParticipantIdentityConstraintsTest.php
+      Plus any other files the W1–W7 phases touched
+
