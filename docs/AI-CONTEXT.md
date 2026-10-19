@@ -574,3 +574,78 @@ answered, do not move, rename, or fold the Registration module.
 - `docs/church-events/10-client-decision-log.md` — Q1, Q16–Q20
   answers recorded 2026-10-16
 - Section §21 above — the original deferral this section revokes
+
+---
+
+## 23. Reading-order additions — fourth pass (2026-10-19)
+
+Section §7's reading-order table was written before several
+subsystems shipped. §17, §19, and §21 added entries. The
+2026-10-19 registration-wizard and composite-identity work added
+three more docs that most sessions will need. When working on these
+tasks, ask for the corresponding doc:
+
+| Task touches | Ask for |
+|---|---|
+| Participant identity, duplicate detection, `resolveFrom()`, `normalizeName()`, the schema for `participants` | `docs/composite-identity.md` |
+| Public registration flow, 5-step wizard, consent step, emergency contact, channel choice, device trust | `docs/registration-wizard.md` |
+| Any finding labelled H1, H2, M1-M5, L1-L5, D1-D12 in a session transcript | `docs/audit-2026-10-19.md` |
+
+### Why each matters
+
+`docs/composite-identity.md` is the **authoritative** reference for
+how a participant is identified as of 2026-10-19. It reverses four
+sections of `docs/participant-identity.md` (§3 name-as-identifier,
+§4.1 unique email, §5 normalization, §6 resolution rule). A session
+that reads `participant-identity.md` alone will propose changes that
+contradict the shipped code.
+
+The identity rule is: **person key = normalized name + verified
+contact**. Contact-only matching is gone. `participants.email` and
+`participants.contact_number_normalized` are no longer unique —
+multiple participants may share either.
+
+`docs/registration-wizard.md` is the current reference for the
+public registration flow. It documents the 5-step spec, the 3-step
+shell actually shipped (W6), the per-phase status of W1-W6, the
+blocked W5.4 reCAPTCHA work, and the case-coverage matrix for the
+Ana/mother/Joy scenario. The pre-wizard `docs/registration.md` is
+now historical for the public path — its §3 phase description,
+§4 common fields, and §6 public-surface sections are superseded.
+
+`docs/audit-2026-10-19.md` is the snapshot of the static audit at
+git `2d19a5d`. Every finding is cross-referenced to a
+`docs/known-issues.md` ISSUE number. Two findings (M5, P5) are
+explicitly marked superseded by same-day W-phase work; a session
+that re-flags them is re-flagging closed items. The eleven open
+findings (H1, H2, M1-M4, L1-L5) are all filed as ISSUE-014
+through ISSUE-024.
+
+### Two supersession notes that will not be found by searching
+
+1. **`docs/participant-identity.md` §3, §4.1, §5, §6 are reversed
+   by `docs/composite-identity.md`.** The correction block at the
+   bottom of `participant-identity.md` (titled
+   `## Corrections — Composite identity (2026-10-19)`) points at
+   the authoritative file, but a session that reads the body of
+   `participant-identity.md` without scrolling to the bottom will
+   miss it.
+
+2. **`docs/registration.md` is now historical for the public
+   path.** It still describes the pre-wizard single-page submission.
+   The current flow is a wizard with a consent step, emergency
+   contact, and channel choice. Read
+   `docs/registration-wizard.md` instead for anything that touches
+   `resources/js/pages/registrations/public.tsx` or
+   `RegistrationVerificationService`.
+
+### Cross-references
+
+- Section §7 — original reading-order table
+- Section §17 — first reading-order addition (2026-10-13)
+- Section §19 — second reading-order addition (2026-10-14)
+- Section §21 — third reading-order addition (2026-10-16)
+- `docs/progress.md` 2026-10-19 entries — the shipping record
+  (birthdate swap + wizard/composite/audit)
+- `docs/known-issues.md` — ISSUE-014 through ISSUE-025 filed from
+  the audit and client Q14
