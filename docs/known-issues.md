@@ -1079,3 +1079,629 @@ Expected: `Asia/Manila` on all three lines.
     php artisan test
 
 Expected: 3 skipped, 490 passed. No regressions.
+
+---
+
+## Later additions — audit 2026-10-19
+
+Issues derived from `docs/audit-2026-10-19.md` plus one client
+decision from 2026-10-16. M5 and P5 are **not** here — M5 was closed
+by W5.1 (`begin()` message made non-revealing) and P5 was closed by
+W2 (consent columns written at finalize). Both are recorded in the
+audit's §9 and §2.3 respectively.
+
+Full reference for issues 014–024:
+`docs/audit-2026-10-19.md`. Issue 025:
+`docs/discipleship.md` + client Q14 (2026-10-16).
+
+---
+
+## ISSUE-014 — Church events can be driven through the running-event lifecycle
+
+**Severity:** High
+**Status:** Open (top-5 patch P1, not applied)
+**Found in:** `app/Models/Event.php` (`canOpenRegistration`,
+`canEdit`, `canEditRegistrationForm`),
+`app/Http/Controllers/EventController.php`,
+`app/Http/Controllers/DashboardController.php`,
+`app/Enums/ChurchEventStatus.php`
+**Related:** `docs/audit-2026-10-19.md` §3 (H1)
+
+### Symptoms
+
+Any staff user can `POST /events/{id}/open-registration` on a
+church event. `canOpenRegistration()` returns true because the event
+is in `status = Draft` (the default church creation status) and has
+a saved registration form. The event generates a public `/r/{slug}`
+URL and can be walked through `registration_open → closed → ongoing
+→ completed` while the UI reads `church_status`. The auto-advance
+middleware will fire on it once its start moment passes.
+
+`canEdit()`, `canEditRegistrationForm()`, and
+`RegistrationFormController::update` have the same gap.
+
+`ChurchEventStatus` has no `allowedTransitions()`. `EventController::update`
+sets `church_status` with only enum validation, so `Upcoming →
+Completed → Cancelled → Upcoming` jumps are accepted without audit.
+
+The dashboard reinforces the confusion: church events permanently
+sit at `Draft` and appear as "Draft — no registration form yet"
+action items.
+
+### Root cause
+
+The two lifecycles share the `events` table but the running-event
+guards predate the church-event schema. `canOpenRegistration()`
+checks `status` and `registration_form_saved_at` only — no
+`event_kind` guard.
+
+### Fix outline
+
+Add `! $this->isChurchEvent()` to every running-lifecycle guard
+(`canEdit`, `canEditRegistrationForm`, `canOpenRegistration`,
+`canCloseRegistration`, `canFinalize`, `canRecordAttendance`,
+`canRecordAttendanceNow`). Add a corresponding `! $this->isRunningEvent()`
+guard to any future church-only guards.
+
+Add `ChurchEventStatus::allowedTransitions()` mirroring
+`EventStatus::allowedTransitions()`. Wire `EventController::update`
+through a workflow method that enforces it — same pattern as
+`EventWorkflow::transition()` on the running side.
+
+### Verification when fixed
+
+New feature test file `tests/Feature/Events/ChurchEventKindGuardTest.php`:
+- `POST open-registration` on a church event → 403
+- `PUT update` on a church event cannot bypass a legal → illegal
+  `church_status` transition
+- All existing running-event lifecycle tests still pass
+
+---
+
+## ISSUE-015 — No role checks in any church-module controller
+
+**Severity:** High
+**Status:** Open (top-5 patch P9, not applied)
+**Found in:** `app/Http/Controllers/ServiceController.php`,
+`ServiceAttendanceController.php`, `FellowshipController.php`,
+`FellowshipGroupController.php`, `FellowshipAttendanceController.php`,
+`DiscipleshipController.php`, `DiscipleshipBatchController.php`,
+`DiscipleshipEnrollmentController.php`, `DiscipleshipSessionController.php`,
+`DiscipleshipAttendanceController.php`
+**Related:** `docs/audit-2026-10-19.md` §4 (H2),
+`docs/fellowship.md` (admits the gap in §4 and §8)
+
+### Symptoms
+
+Any authenticated staff user can create, update, or delete any church
+record — service occurrences, fellowship events and groups and
+attendance rows, discipleship batches, sessions, enrollments,
+attendance matrix cells. Destructive actions include
+`FellowshipController::destroy`, `ServiceController::destroyOccurrence`,
+`DiscipleshipBatchController::destroy`,
+`DiscipleshipEnrollmentController::store`.
+
+Zero `isAdmin()` / `Gate::authorize()` / `$this->authorize()` hits
+across all twelve church controllers.
+
+The running-event side at least gates deletion by role plus OTP. The
+church side gates nothing.
+
+### Root cause
+
+The church modules were built under "any authenticated staff can do
+anything" as an implicit scope decision, recorded in
+`docs/fellowship.md` §8 ("any authenticated user can perform any
+action; there is no per-event ownership check") but never surfaced
+as a security finding.
+
+### Fix outline
+
+Two layers, either of which closes the issue:
+
+**Option A (minimum):** add `abort_unless(auth()->user()->isAdmin(), 403)`
+to every `destroy` action across all twelve controllers. Non-destructive
+writes (create, update, mark) remain staff-accessible.
+
+**Option B (preferred):** introduce a per-module policy — at minimum
+`FellowshipEventPolicy`, `ServiceOccurrencePolicy`,
+`DiscipleshipProgramPolicy`. `destroy` requires admin; `update`
+requires admin or the record's creator. Wire through
+`Gate::authorize()` in each controller action.
+
+Decision needed before implementing: is per-record ownership
+desirable, or is admin-only destructive access sufficient?
+
+### Verification when fixed
+
+New feature test per module: staff cannot destroy, admin can. Existing
+running-event authorization tests unchanged.
+
+---
+
+## ISSUE-016 — `AttendanceController::mark()` wipes `verified_at` on re-mark
+
+**Severity:** Medium
+**Status:** Open (top-5 patch P3, not applied)
+**Found in:** `app/Http/Controllers/AttendanceController.php`
+**Related:** `docs/audit-2026-10-19.md` §5 (M1),
+`docs/attendance-code.md` §5 (verified_at semantics)
+
+### Symptoms
+
+A registration whose attendance was marked with a matching code has
+`verified_at` set. If staff later re-marks the same row (e.g., edits
+notes, changes status from Present to Late), the `updateOrCreate`
+call passes `verified_at => null` because no code was submitted this
+request. The end-of-event report's verified-vs-override distinction
+is silently destroyed for that row.
+
+### Root cause
+
+`mark()` calls `updateOrCreate(..., ['verified_at' => $verifiedAt])`
+where `$verifiedAt` is set only when a code was submitted and matched
+this request. Every other path writes null.
+
+### Fix outline
+
+Read the existing `verified_at` before writing. Preserve it unless a
+code was submitted this request. The rule: `verified_at` transitions
+`null → timestamp` (on code match) or stays at its current value;
+it never transitions `timestamp → null` via `mark()`.
+
+### Verification when fixed
+
+New test in `tests/Feature/Events/AttendanceVerificationTest.php`:
+- Mark Present with code → `verified_at` set
+- Re-mark Present (no code) → `verified_at` still set
+- Re-mark Absent → `verified_at` still set (absence doesn't clear
+  history)
+
+---
+
+## ISSUE-017 — Deferred walk-in on a dateless event returns 500
+
+**Severity:** Medium
+**Status:** Open
+**Found in:** `app/Http/Controllers/AttendanceController.php`
+**Related:** `docs/audit-2026-10-19.md` §6 (M2),
+`docs/attendance-redesign.md` §6 (encoding modes)
+
+### Symptoms
+
+An admin with `?force_open=1` on an event that has no `event_date`
+submits a deferred walk-in (single or bulk). The controller calls
+`$event->event_date->copy()` unconditionally, and `$event->event_date`
+is null. Fatal error — 500.
+
+`force_open` bypasses `canRecordAttendanceNow()`, which is the only
+guard requiring a non-null date. Without `force_open`, the same
+event fails the time-window gate cleanly.
+
+### Root cause
+
+The deferred-mode time computation assumes `event_date` is populated.
+Normal events always are; only `force_open` plus a null `event_date`
+reaches the code path.
+
+### Fix outline
+
+At the top of the deferred branch (both single and bulk), check
+`$event->event_date !== null`. If null, reject with a 422 message:
+"Deferred encoding requires an event date. Set the event's date
+before encoding."
+
+### Verification when fixed
+
+New test: admin with `force_open=1` on a dateless event, deferred
+walk-in → 422, not 500. Single and bulk both covered.
+
+---
+
+## ISSUE-018 — OTP attempt counters are non-atomic
+
+**Severity:** Medium
+**Status:** Open
+**Found in:** `app/Services/EventDeletion/EventDeletionOtpService.php`,
+`app/Services/EventDeletion/RegistrationDeletionOtpService.php`,
+`app/Services/TwoFactor/EmailTwoFactorService.php`
+**Related:** `docs/audit-2026-10-19.md` §7 (M3),
+`docs/event-deletion.md` §4.2, `docs/authentication.md` §4.2
+
+### Symptoms
+
+A user submitting concurrent wrong OTP guesses can exceed
+`MAX_ATTEMPTS = 5` before lockout triggers. Each concurrent request
+reads the same attempt count, increments locally, writes back — the
+last write wins and the count reflects fewer attempts than were
+submitted.
+
+In practice the window is narrow (the browser can only submit so
+fast), but a scripted client can exploit it. The cooldown itself is
+server-enforced, so the resend floor holds; only the lockout ceiling
+is vulnerable.
+
+### Root cause
+
+Read-modify-write pattern: `$payload = Cache::get($key); $payload['attempts'] += 1; Cache::put($key, $payload);`.
+Not atomic.
+
+### Fix outline
+
+Two options:
+
+- **Option A:** store `attempts` in a dedicated cache key incremented
+  via `Cache::increment()`, which is atomic across all drivers. The
+  OTP payload becomes read-only metadata.
+- **Option B:** wrap the read-modify-write in `Cache::lock($key, 5)`.
+
+Option A is simpler and driver-portable. Option B preserves the
+single-key shape.
+
+### Verification when fixed
+
+New concurrency test (or a repeat of the existing concurrency suite
+pattern in `tests/Integration/`): 6 concurrent wrong submissions on
+a fresh OTP yield 5 attempts recorded and a locked state on the 6th.
+
+---
+
+## ISSUE-019 — Unique-collision races → raw 500 despite friendly pre-checks
+
+**Severity:** Medium
+**Status:** Open
+**Found in:** `app/Http/Controllers/FellowshipAttendanceController.php`,
+`app/Http/Controllers/DiscipleshipEnrollmentController.php`,
+`app/Models/Participant.php` (`resolveFrom`)
+**Related:** `docs/audit-2026-10-19.md` §8 (M4),
+`docs/composite-identity.md` §7 (still live post-W7)
+
+### Symptoms
+
+Two operations that logically require uniqueness:
+`FellowshipAttendanceController::store` (UNIQUE on
+`(fellowship_event_id, participant_id)`),
+`DiscipleshipEnrollmentController::store` (UNIQUE on
+`(participant_id, program_id)`), and
+`Participant::resolveFrom()` (used by walk-in and bulk-walk-in).
+Each does an `exists()`-check-then-insert or a `firstOrCreate`.
+
+When two requests race past the `exists()` check (both see "not
+present") and both attempt the insert, the second insert throws
+`QueryException` and returns a 500. The user sees a server error
+where they should see a "this person is already registered" or
+"this participant already exists" message.
+
+### Root cause
+
+No `try/catch` around the write.
+
+### Fix outline
+
+Catch `Illuminate\Database\UniqueConstraintViolationException`
+(Laravel 10+) around each write. On catch, return the same
+user-facing error the pre-check would have produced, or resolve to
+the existing record where the semantics allow (`resolveFrom` can
+re-query and return the now-existing row).
+
+`RegistrationVerificationService::finalize()` already does this
+(retries on `UniqueConstraintViolationException`). Mirror that
+pattern.
+
+### Verification when fixed
+
+New test per controller: simulate the race by inserting the record
+between the pre-check and the write (via a test double or by using a
+DB transaction that commits the first row before the second
+request's write). Assert 422 (or the existing-row resolution),
+never 500.
+
+---
+
+## ISSUE-020 — `resolveFrom` ignores email/phone cross-identity conflict
+
+**Severity:** Low
+**Status:** Open
+**Found in:** `app/Models/Participant.php` (`resolveFrom`)
+**Related:** `docs/audit-2026-10-19.md` §10 (L1),
+`docs/composite-identity.md` §7.3
+
+### Symptoms
+
+When `resolveFrom($email, $phone, $attrs)` is called with both an
+email and a phone, and the email matches Participant A while the
+phone matches Participant B (two different people), the method
+matches by email and silently ignores the phone conflict.
+
+`RegistrationVerificationService::finalize()` treats the identical
+case as an identity conflict and refuses to merge. `resolveFrom`
+does not.
+
+Consequence: walk-in and bulk-walk-in intake can attach a phone
+belonging to another participant's identity with no warning. The
+stored row has A's email and B's phone. B's registration history
+does not include this row.
+
+### Root cause
+
+The original `resolveFrom` was email-first by design; the phone
+fallback was a secondary path. The composite rewrite preserved that
+ordering. The cross-check that `finalize()` performs was never
+mirrored.
+
+### Fix outline
+
+Two options, deliberate choice required:
+
+- **Enforce:** before matching, look up both the email and the phone
+  independently. If both exist and refer to different participants,
+  throw `IdentityRequiredException` (or a new
+  `CrossContactConflictException`). `resolveFrom` then behaves like
+  `finalize()`. Walk-in and bulk path surfaces the conflict to the
+  operator.
+- **Document as intentional:** keep the current behavior, add a
+  docblock to `resolveFrom` explaining that walk-in/bulk can attach
+  a cross-identity phone, and add an informational row in the
+  monitor when this occurs (analogous to `has_shared_phone`).
+
+Enforcing is more correct but changes call-site behavior for existing
+walk-in workflows. Decision needed before implementing.
+
+### Verification when fixed
+
+If enforcing: new test in `tests/Feature/Participants/ParticipantIdentityResolverTest.php`
+covering the cross-contact conflict case for both email-first and
+phone-first matches.
+
+If documenting: no test change, only docblock + monitor flag test.
+
+---
+
+## ISSUE-021 — Event deletion dialog under-reports what will be destroyed
+
+**Severity:** Low
+**Status:** Open
+**Found in:** `app/Models/Event.php` (`relatedRecordCounts`),
+`app/Services/EventDeletion/RegistrationDeletionService.php` (comment)
+**Related:** `docs/audit-2026-10-19.md` §10 (L2),
+`docs/event-deletion.md` §5
+
+### Symptoms
+
+The admin event-deletion confirmation dialog lists counts of
+event-options (removed with the schema — gone), registrations, and
+attendances. It does not list `registration_verification_challenges`,
+which are cascade-deleted when the event is deleted. An organizer
+sees "0 registrations, 0 attendances" and confirms — but pending
+verification challenges are silently destroyed.
+
+`RegistrationDeletionService` (the single-registration delete path)
+contains a comment "survives the FK becoming null." The
+`attendance.registration_id` FK is `CASCADE`, not
+`SET NULL` — the row is deleted, not nulled. The comment is wrong.
+
+### Root cause
+
+`relatedRecordCounts()` predates the verification-challenge table.
+The comment predates the FK schema decision that landed with the
+attendance redesign.
+
+### Fix outline
+
+Add `registration_verification_challenges` to
+`Event::relatedRecordCounts()` with the same cascade-count shape as
+the other entries. Update the deletion dialog template to render the
+new count.
+
+Fix the `RegistrationDeletionService` comment: "attendance row is
+deleted via CASCADE on registration_id (see migration
+`2026_09_16_160345`)."
+
+### Verification when fixed
+
+- A pending challenge on a to-be-deleted event appears in the count
+  shown in the confirmation dialog.
+- The `RegistrationDeletionService` comment reads correctly.
+
+---
+
+## ISSUE-022 — Recurring service create is non-transactional and unindexed
+
+**Severity:** Low
+**Status:** Open
+**Found in:** `app/Http/Controllers/ServiceController.php`
+(`storeRecurring`)
+**Related:** `docs/audit-2026-10-19.md` §10 (L3),
+`docs/services.md` (does not exist yet — Q1 unblocked its writing)
+
+### Symptoms
+
+Two concurrent recurring-batch requests on the same service type
+can produce duplicate occurrences: both read `exists()` as false,
+both proceed to insert. No unique index enforces the invariant.
+
+A mid-loop failure (e.g., one date violates a constraint, or the
+request is cancelled) leaves a partial batch — some occurrences
+created, others missing, no rollback.
+
+### Root cause
+
+Read-then-write dedupe with no unique index and no surrounding
+transaction.
+
+### Fix outline
+
+Two changes, both required:
+
+- **Migration:** add `UNIQUE(service_type, occurrence_date)` to
+  `service_occurrences`.
+- **Controller:** wrap the loop in `DB::transaction()`. On
+  `UniqueConstraintViolationException`, catch and skip (the pattern
+  the loop already uses via `exists()`); the transaction still
+  commits the successfully-inserted rows.
+
+If the loop is long enough that transaction size is a concern,
+switch to insert-or-skip semantics via `upsert` — but at
+`max:52` occurrences the single transaction is fine.
+
+### Verification when fixed
+
+New test: two concurrent recurring-batch requests produce exactly
+N occurrences, not 2N. Failure mid-loop produces 0 rows, not a
+partial batch.
+
+---
+
+## ISSUE-023 — `editParticipant` mutates shared cross-event identity
+
+**Severity:** Low
+**Status:** Open
+**Found in:** `app/Http/Controllers/RegistrationMonitorController.php`
+(`editParticipant`)
+**Related:** `docs/audit-2026-10-19.md` §10 (L4),
+`docs/composite-identity.md` §7.4
+
+### Symptoms
+
+Any staff user on an open or closed event can edit the shared
+`Participant` row (email, phone, name) via the monitor's edit
+dialog. Because the participant row is shared across all events and
+church modules for that person, the edit affects every event they
+have ever registered for.
+
+Documented as deliberate first-write-wins override, but it is not
+guarded by any ownership check — any staff user can do it for any
+event they have access to, which in the current model is every
+event.
+
+### Root cause
+
+No policy layer; first-write-wins semantics applied broadly.
+
+### Fix outline
+
+Two options:
+
+- **Restrict:** make `editParticipant` admin-only. Aligns with
+  ISSUE-015's general church-controller auth gap; once a policy
+  layer exists, this action is a natural customer.
+- **Scope:** apply the edit to a per-event snapshot rather than the
+  shared participant row. This is a larger schema change (registration
+  has `submitted_email` and `submitted_contact_number` already —
+  add `submitted_first_name`, `submitted_last_name`) and shifts
+  `resolveFrom` to prefer submitted snapshots over participant row.
+
+Option `Restrict` closes the immediate risk; `Scope` is the correct
+long-term fix but is out of scope for the audit-patch series.
+
+### Verification when fixed
+
+Under `Restrict`: non-admin edit returns 403. Under `Scope`:
+editing a participant on Event A does not change their display on
+Event B.
+
+---
+
+## ISSUE-024 — Design-system informational violations
+
+**Severity:** Low (cosmetic)
+**Status:** Open
+**Found in:** Multiple — see list in
+`docs/design-system.md` §11
+**Related:** `docs/audit-2026-10-19.md` §10 (L5)
+
+### Symptoms
+
+`scripts/audit-design.sh` passes all hard rules. Rule 5 (informational)
+flags raw white utilities in 9 files. Spot-checks found:
+
+- `registrations/monitor/index.tsx:68` and `show.tsx:378` —
+  `bg-white/5` empty-state circles (should be `bg-secondary`)
+- `attendance-filter-chips.tsx:88` and
+  `events/attendance.tsx:558-569` — `border-white/10` chips
+  (should be `border-border`)
+
+These are design-system §11.7 and §11.1 violations respectively.
+They render acceptably but drift from the intended token set.
+
+### Root cause
+
+Pre-§11 classes that were not swept when the design system was
+codified on 2026-10-16.
+
+### Fix outline
+
+Sweep the 9 files flagged by Rule 5. Replace raw white utilities
+with the corresponding semantic token per design-system §11. Run
+`./scripts/audit-design.sh` after each file to confirm the informational
+count drops.
+
+Not urgent. Cosmetic. A design polish session, not a code fix.
+
+### Verification when fixed
+
+`./scripts/audit-design.sh` reports zero Rule-5 hits.
+
+---
+
+## ISSUE-025 — Discipleship progress rewrite (client Q14) not implemented
+
+**Severity:** Medium
+**Status:** Open
+**Found in:** `app/Services/Discipleship/DiscipleshipProgressService.php`,
+`app/Enums/DiscipleshipAttendanceStatus.php`
+**Related:** `docs/discipleship.md` §6, client Q14 (2026-10-16),
+`docs/audit-2026-10-19.md` §11 (D4)
+
+### Symptoms
+
+Client Q14 (2026-10-16) requested three behavioral changes to
+Discipleship progress calculation:
+
+1. Drop the "excused" attendance status; use Present and Absent only.
+2. Expand the applicable-session window to all sessions in the batch,
+   not bounded by enrollment date.
+3. Count only "present" toward progress.
+
+None are implemented. The shipped code still counts Present + Excused
+as attended, and bounds applicable sessions to
+`enrolled_at..today`.
+
+### Root cause
+
+Q14 was answered after the Discipleship Phase 5F/5G work shipped.
+The enum still has three values, the service still uses the old
+policy.
+
+### Fix outline
+
+Three coordinated changes plus a data migration:
+
+1. **Enum:** remove `excused` from `DiscipleshipAttendanceStatus`.
+2. **Service:** change `progress()` — attended = present only;
+   applicable = every session in the batch.
+3. **Data migration:** existing attendance rows with `excused` status
+   need a decision. Options:
+   - Convert to `absent` (preserves history as absence; recommended)
+   - Delete the rows
+   - Leave orphaned (breaks the enum constraint)
+   Follow-up question already on the client: confirm the conversion
+   choice and confirm mid-batch joiners show partial progress under
+   the new rule.
+
+### Verification when fixed
+
+New test in `tests/Feature/Discipleship/DiscipleshipProgressTest.php`:
+- Excused status no longer accepted (validation error)
+- Applicable includes pre-enrollment sessions
+- Attended counts Present only, ignores Absent
+- Migration converts existing `excused` rows correctly
+
+---
+
+## Change log addendum
+
+- **2026-10-19** — ISSUE-014 through ISSUE-025 added under "Later
+  additions." Eleven from the audit (`docs/audit-2026-10-19.md`);
+  one from client Q14. M5 and P5 excluded — both closed by
+  shipped W-phase work (W5.1 and W2 respectively).
