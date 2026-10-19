@@ -485,3 +485,162 @@ Everything else in the previous corrections block still describes the
 shipped flow accurately. The linked document's
 `## Corrections (2026-10-14)` block is the authoritative description of
 the current phone channel.
+
+---
+
+## Correction — `participants.birthday` and derived age (2026-10-19)
+
+§4 documents the identity schema but never mentions the `birthday`
+column. It exists (added in the original Phase 3 migration),
+nullable, cast to `date`, mass-assignable — and as of 2026-10-19 it
+is the primary demographic field:
+
+- **Write.** Public registration, single walk-in, and bulk walk-in
+  all accept `birthday` (preferred) or legacy `age`, bounded to
+  ages 3–120. When both arrive, `birthday` wins and the raw `age`
+  column stays null.
+- **Read.** `Participant::getAgeAttribute()` derives age from
+  `birthday` when present, falls back to the stored `age` column
+  for legacy rows, and returns null when neither exists.
+- **Bounds change.** The previous effective range was 1–120 (age
+  input); it is now 3–120 (birthdate picker). Rows with stored ages
+  1–2 written before this change keep their values; the accessor
+  still reads them.
+
+Identity semantics (§2, §5, §6) are unchanged: email and normalized
+phone remain the identity keys, first-write-wins still applies,
+and the demographic fields never participate in identity
+resolution.
+
+---
+
+## Corrections — Composite identity (2026-10-19)
+
+Append-only. The 2026-10-19 composite identity rule (shipped W7)
+reverses several decisions recorded in the body above. Where this
+section disagrees with any earlier text — including the
+`## Correction — participants.birthday` block, which lands earlier on
+the same calendar day — this section wins.
+
+Full reference: `docs/composite-identity.md`.
+
+### §3 — reversed
+
+Body reads:
+
+> **Email + name.** Current behavior. Handles shared emails by
+> disambiguating on name. But name typos split identity, and minor
+> name variations ("Maria" vs "Maria D.") produce different people.
+> Rejected because names are not identifiers.
+
+Correction. Name **is** now an identifier. The 2026-10-19 rule is
+composite: person key = normalized name + verified contact. Names
+were rejected in 2026-10-02 because the concern at that point was
+that adding name to the match would fragment identity on typos. The
+2026-10-19 change accepts that fragmentation as the cost of
+representing families sharing one contact. See
+`composite-identity.md` §2 (motivation) and §7.1 (accepted
+limitation).
+
+### §4.1 — unique email dropped
+
+Body reads:
+
+> ### 4.1 `participants.email` — add UNIQUE on non-null values
+>
+> MySQL permits multiple NULL values in a unique index. Phone-only
+> participants have `email = NULL` and do not collide with each
+> other. Participants with an email do not share it with any other
+> participant.
+
+Correction. The UNIQUE was added 2026-10-02 and removed 2026-10-19
+(migration `2026_10_19_170000`). Multiple participants may share the
+same email — this is what makes the family case work. The same
+reasoning applies to `contact_number_normalized`: UNIQUE added
+2026-10-02, removed 2026-10-19 (migration `2026_10_19_170100`). Both
+columns remain nullable and non-unique. The base migration's
+non-unique indexes on `email` and `(last_name, first_name)` remain.
+
+See `composite-identity.md` §3.
+
+### §5 — normalization extended to names
+
+Body describes phone normalization only (`contact_number_normalized`
+via `setContactNumberAttribute` mutator). The 2026-10-19 rule adds
+name normalization: `first_name_normalized` and
+`last_name_normalized`, written by `setFirstNameAttribute` and
+`setLastNameAttribute` mutators, computed by
+`Participant::normalizeName()` using
+`mb_strtolower(trim(collapse_whitespace(...)))` — Unicode-aware.
+Case-insensitive matching; display preserves case.
+
+See `composite-identity.md` §4 (normalizer) and §8 (case
+sensitivity decision).
+
+### §6 — resolution rule rewritten
+
+Body reads:
+
+> ### The resolution rule
+>
+> 1. If `$email` is non-empty → `firstOrCreate(['email' => $email], $attributes)`.
+>    Match on email only.
+> 2. Else if `normalize($rawPhone)` returns a value →
+>    `firstOrCreate(['contact_number_normalized' => $normalized], $attributes)`.
+>    Match on phone only.
+> ...
+> On existing match, `$attributes` are **discarded**. First-write-wins.
+
+Correction. `resolveFrom()` is now composite. It matches on
+`(normalized first name, normalized last name, email)` OR
+`(normalized first name, normalized last name, normalized phone)`.
+First-write-wins is preserved within a key.
+
+Required because under the non-unique email rule, matching on email
+alone and discarding attributes would silently merge a kid's row
+into the parent's row — the kid would be registered as the parent.
+
+See `composite-identity.md` §5.3.
+
+### §6 docblock — the "Email is the primary identity key" line
+
+The `resolveFrom()` docblock in `app/Models/Participant.php` (~L155-170)
+still reads "Email is the primary identity key." That is no longer
+true. Composite is. Do not treat the docblock as authoritative — the
+composite rule is.
+
+### The birthdate correction (2026-10-19, earlier same day)
+
+The `## Correction — participants.birthday and derived age (2026-10-19)`
+block above closes with:
+
+> Identity semantics (§2, §5, §6) are unchanged: email and
+> normalized phone remain the identity keys, first-write-wins still
+> applies, and the demographic fields never participate in identity
+> resolution.
+
+That was true on the morning of 2026-10-19. The composite work landed
+later the same day. Email and normalized phone are no longer the
+identity keys — name + contact is. First-write-wins within a key is
+unchanged. The final sentence stands: neither birthday nor any other
+demographic field participates in identity resolution.
+
+### What did NOT change
+
+- `normalizeContactNumber()` — the PH phone normalizer. Unchanged.
+- `IdentityRequiredException` — still thrown when both name and
+  contact are absent.
+- The at-least-one rule (form builder + public request).
+- First-write-wins semantics — preserved within a key.
+- Per-event duplicate prevention — still enforced by
+  `UNIQUE(event_id, participant_id)` after
+  `assertNoDuplicateRegistration` runs.
+- The participant identity model's core promise: one row per
+  distinct identity, `resolveFrom()` as the sole writer.
+
+### Changelog addendum
+
+- **2026-10-19** — Correction block added. §3 (name as identifier),
+  §4.1 (unique email), §5 (normalization), §6 (resolution rule)
+  reversed by the composite identity rule. Authoritative reference:
+  `docs/composite-identity.md`.
