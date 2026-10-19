@@ -38,7 +38,7 @@ function verificationPayload(array $overrides = []): array
     return array_replace([
         'first_name' => 'Maria', 'last_name' => 'Santos', 'age' => 28,
         'address' => 'Manila', 'email' => 'maria@example.com',
-        'contact_number' => '+63 917 123 4567', 'responses' => [],
+        'contact_number' => '+63 917 123 4567', 'emergency_contact_name' => 'Jose Santos', 'emergency_contact_relationship' => 'Father', 'emergency_contact_number' => '+63 917 765 4321', 'responses' => [],
     ], $overrides);
 }
 
@@ -226,7 +226,7 @@ test('incorrect codes lock each channel after five attempts and regeneration nev
     $code = $channel === 'email' ? Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code : $service->generatePhone($challenge, $actor);
     $wrong = $code === '000000' ? '111111' : '000000';
     $this->post($url.'/'.$channel, ['code' => $wrong])->assertSessionHasErrors($channel);
-    $this->travel(60)->seconds();
+    $this->travel(100)->seconds();
     if ($channel === 'email') {
         expect($service->sendEmail($event, $token))->toBeNull();
         $replacement = Mail::sent(RegistrationVerificationOtpMail::class)->last()->code;
@@ -251,7 +251,7 @@ test('incorrect codes lock each channel after five attempts and regeneration nev
     expect(Registration::count())->toBe(0);
 })->with(['email']);
 
-test('cooldown is enforced at 59 seconds and allows issuance at 60 seconds', function (string $channel) {
+test('cooldown is enforced at 99 seconds and allows issuance at 100 seconds', function (string $channel) {
     $event = verificationEvent($channel === 'email', $channel === 'phone');
     [$challenge, , $url] = startVerification($this, $event);
     if ($channel === 'phone') {
@@ -262,7 +262,7 @@ test('cooldown is enforced at 59 seconds and allows issuance at 60 seconds', fun
         $url .= '/email/resend';
     }
     $hash = $challenge->refresh()->getAttribute($channel.'_code_hash');
-    $this->travel(59)->seconds();
+    $this->travel(99)->seconds();
     if ($channel === 'phone') {
         $this->postJson($url)->assertUnprocessable();
     } else {
@@ -389,7 +389,7 @@ test('delivery failure persists a safe retry state without completing anything',
     expect($challenge->email_verified_at)->toBeNull();
     expect(Participant::count())->toBe(0);
     $this->post($url.'/complete')->assertSessionHasErrors('verification');
-    $this->travel(60)->seconds();
+    $this->travel(100)->seconds();
     Mail::swap(new MailManager(app()));
     Mail::fake();
     $this->post($url.'/email/resend')->assertSessionHasNoErrors();

@@ -42,9 +42,15 @@ class RegistrationVerificationController extends Controller
             return $this->backToVerification($event)->withErrors([$channel => 'Enter a six-digit code.']);
         }
 
-        return $this->publicAction($event, $channel, fn () => $this->verification->verify(
-            $event, $this->token($request, $event), $channel, $validator->validated()['code'],
+        $deviceToken = $channel === 'email'
+            ? RegistrationVerificationService::deviceToken($request)
+            : null;
+
+        $response = $this->publicAction($event, $channel, fn () => $this->verification->verify(
+            $event, $this->token($request, $event), $channel, $validator->validated()['code'], $deviceToken,
         ));
+
+        return $this->withDeviceTrustCookie($request, $response, $deviceToken);
     }
 
     public function firebasePhone(Request $request, Event $event): RedirectResponse
@@ -65,9 +71,13 @@ class RegistrationVerificationController extends Controller
 
     public function resendEmail(Request $request, Event $event): RedirectResponse
     {
-        return $this->publicAction($event, 'email', fn () => $this->verification->sendEmail(
-            $event, $this->token($request, $event),
+        $deviceToken = RegistrationVerificationService::deviceToken($request);
+
+        $response = $this->publicAction($event, 'email', fn () => $this->verification->sendEmail(
+            $event, $this->token($request, $event), $deviceToken,
         ));
+
+        return $this->withDeviceTrustCookie($request, $response, $deviceToken);
     }
 
     public function complete(Request $request, Event $event): RedirectResponse
@@ -107,6 +117,47 @@ class RegistrationVerificationController extends Controller
                 false,
                 'lax',
             ));
+    }
+
+    public function chooseChannel(Request $request, Event $event): RedirectResponse
+    {
+        $validator = Validator::make($request->only('channel'), [
+            'channel' => ['required', 'string', 'in:email,phone'],
+        ]);
+        if ($validator->fails()) {
+            return $this->backToVerification($event)->withErrors([
+                'channel' => 'Choose email or phone verification.',
+            ]);
+        }
+
+        return $this->publicAction($event, 'channel', fn () => $this->verification->chooseChannel(
+            $event, $this->token($request, $event), $validator->validated()['channel'],
+        ));
+    }
+
+    /**
+     * Attach (or refresh) the device-trust cookie. The cookie carries
+     * only a random device identifier; trust itself is recorded
+     * server-side on successful email verification.
+     */
+    private function withDeviceTrustCookie(
+        Request $request,
+        RedirectResponse $response,
+        ?string $deviceToken = null,
+    ): RedirectResponse {
+        $deviceToken ??= RegistrationVerificationService::deviceToken($request);
+
+        return $response->withCookie(cookie(
+            RegistrationVerificationService::DEVICE_TRUST_COOKIE,
+            $deviceToken,
+            60 * 24 * RegistrationVerificationService::DEVICE_TRUST_TTL_DAYS,
+            '/',
+            null,
+            $request->isSecure(),
+            true,
+            false,
+            'lax',
+        ));
     }
 
     private function token(Request $request, Event $event): ?string

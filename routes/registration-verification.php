@@ -24,6 +24,9 @@ Route::middleware([ProtectRegistrationVerification::class])
         Route::post('phone/firebase', [RegistrationVerificationController::class, 'firebasePhone'])
             ->middleware('throttle:registration-verification-attempt')
             ->name('public-registration.verification.phone.firebase');
+        Route::post('channel', [RegistrationVerificationController::class, 'chooseChannel'])
+            ->middleware('throttle:registration-verification-attempt')
+            ->name('public-registration.verification.channel');
         Route::post('{channel}', [RegistrationVerificationController::class, 'verify'])
             ->whereIn('channel', ['email'])
             ->middleware('throttle:registration-verification-attempt')

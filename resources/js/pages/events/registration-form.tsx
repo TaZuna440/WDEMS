@@ -65,7 +65,7 @@ const COMMON_FIELDS: CommonFieldSpec[] = [
     { key: 'last_name', label: 'Last name', toggleable: false },
     { key: 'email', label: 'Email', toggleable: true },
     { key: 'contact_number', label: 'Contact number', toggleable: true },
-    { key: 'age', label: 'Age', toggleable: false },
+    { key: 'age', label: 'Date of birth', toggleable: false },
     { key: 'address', label: 'Address', toggleable: true },
 ];
 
@@ -290,7 +290,7 @@ export default function RegistrationForm({
                     </div>
                     <p className="text-xs text-muted-foreground">
                         Every registration includes these fields. First
-                        name, last name, and age are always required.
+                        name, last name, and date of birth are always required.
                         Email, contact number, and address can be made
                         optional.
                     </p>

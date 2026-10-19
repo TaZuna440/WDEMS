@@ -5,6 +5,7 @@ import FirebasePhoneVerifier, {
     type PhoneStage,
 } from '@/components/firebase-phone-verifier';
 import InputError from '@/components/input-error';
+import WizardProgress from '@/components/wizard-progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,8 +42,18 @@ type Props = {
         ready?: boolean;
         submitted_phone?: string | null;
         attendance_code?: string | null;
+        chosen_channel?: 'email' | 'phone' | null;
+        needs_channel_choice?: boolean;
     };
 };
+
+const REGISTRATION_STEPS = [
+    { id: 'disclaimer', label: 'Disclaimer' },
+    { id: 'personal', label: 'Personal Info' },
+    { id: 'emergency', label: 'Emergency Contact' },
+    { id: 'verification', label: 'Verification' },
+    { id: 'confirmation', label: 'Confirmation' },
+];
 
 function RegistrationCodePanel({ code }: { code: string | null }) {
     const [copied, setCopied] = useState(false);
@@ -260,6 +271,55 @@ function ContactVerification({
     );
 }
 
+function ChannelChoiceScreen({
+    verificationUrl,
+}: {
+    verificationUrl: string;
+}) {
+    const { errors } = usePage<{ errors: Record<string, string> }>().props;
+    const [busy, setBusy] = useState(false);
+
+    const pick = (channel: 'email' | 'phone') => {
+        setBusy(true);
+        router.post(
+            `${verificationUrl}/channel`,
+            { channel },
+            { preserveScroll: true, onFinish: () => setBusy(false) },
+        );
+    };
+
+    return (
+        <section className="grid gap-4 rounded-xl border border-border p-6">
+            <h2 className="text-lg font-semibold">
+                How do you want to verify?
+            </h2>
+            <p className="text-muted-foreground text-sm">
+                Choose one contact to verify. The other stays on file but
+                won't need a code.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => pick('email')}
+                >
+                    Verify by email
+                </Button>
+                <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => pick('phone')}
+                >
+                    Verify by phone
+                </Button>
+            </div>
+            <InputError message={errors.channel} />
+        </section>
+    );
+}
+
 export default function VerifyRegistration({
     event_name,
     form_url,
@@ -317,15 +377,32 @@ export default function VerifyRegistration({
     // widget is a visual checkpoint — the token is not consumed.
     // A server-enforced gate for email-only events is a separate
     // integration, not part of this flow.
+    // Stricter channel choice (W5): both required + none chosen →
+    // the participant picks one first. After the choice (or on
+    // single-channel events) only the chosen channel renders.
+    // Legacy no-choice challenges show both, as before.
+    const needsChannelChoice = verification.needs_channel_choice === true;
+    const chosenChannel = verification.chosen_channel ?? null;
+    const showEmailChannel =
+        chosenChannel === null || chosenChannel === 'email';
+    const showPhoneChannel =
+        chosenChannel === null || chosenChannel === 'phone';
+
     const showRecaptchaSection =
         verification.status === 'pending' &&
         !expired &&
+        !needsChannelChoice &&
         (emailNeedsWork || phoneNeedsWork);
 
     return (
         <>
             <Head title={`Verify registration — ${event_name}`} />
             <div className="grid gap-6">
+                <WizardProgress
+                    steps={REGISTRATION_STEPS}
+                    currentStep={3}
+                    maxReachedStep={3}
+                />
                 <h1 className="text-2xl font-semibold">
                     {verification.status === 'finalized'
                         ? 'You are registered.'
@@ -375,24 +452,32 @@ export default function VerifyRegistration({
                                 <div id="recaptcha-container" />
                             </section>
                         )}
-                        {verification.email && (
-                            <ContactVerification
-                                channel="email"
-                                state={verification.email}
-                                url={verification_url}
-                                now={now}
+                        {needsChannelChoice ? (
+                            <ChannelChoiceScreen
+                                verificationUrl={verification_url}
                             />
-                        )}
-                        {phoneChannel && (
-                            <FirebasePhoneVerifier
-                                submittedPhone={verification.submitted_phone ?? ""}
-                                verifyUrl={`${verification_url}/phone/firebase`}
-                                disabled={false}
-                                verified={phoneChannel.status === "verified"}
-                                phoneRequired={phoneIsRequired}
-                                recaptchaContainerId="recaptcha-container"
-                                onStageChange={setPhoneStage}
-                            />
+                        ) : (
+                            <>
+                                {showEmailChannel && verification.email && (
+                                    <ContactVerification
+                                        channel="email"
+                                        state={verification.email}
+                                        url={verification_url}
+                                        now={now}
+                                    />
+                                )}
+                                {showPhoneChannel && phoneChannel && (
+                                    <FirebasePhoneVerifier
+                                        submittedPhone={verification.submitted_phone ?? ""}
+                                        verifyUrl={`${verification_url}/phone/firebase`}
+                                        disabled={false}
+                                        verified={phoneChannel.status === "verified"}
+                                        phoneRequired={phoneIsRequired}
+                                        recaptchaContainerId="recaptcha-container"
+                                        onStageChange={setPhoneStage}
+                                    />
+                                )}
+                            </>
                         )}
                         <Button
                             type="button"

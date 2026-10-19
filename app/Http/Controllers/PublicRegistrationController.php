@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PublicRegistrationRequest;
 use App\Models\Event;
+use App\Support\RegistrationLegalText;
 use App\Services\RegistrationVerification\RegistrationVerificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,11 @@ class PublicRegistrationController extends Controller
                 'event' => $event->registration_slug,
             ]),
             'success' => $request->session()->pull('success'),
+            // W6 Step 1: disclaimer paragraphs + privacy consent text.
+            'disclaimer_paragraphs' => RegistrationLegalText::disclaimerFor($event),
+            'privacy_consent_text' => RegistrationLegalText::privacyConsentFor($event),
+            // W6: localStorage key for the wizard draft.
+            'event_slug' => $event->registration_slug,
         ]);
     }
 
@@ -48,8 +54,9 @@ class PublicRegistrationController extends Controller
                 is_string($token = $request->cookie(RegistrationVerificationService::cookieName($event))) ? $token : null,
             );
             $error = null;
+            $deviceToken = RegistrationVerificationService::deviceToken($request);
             if ($result['created'] && $event->isCommonFieldRequired('email')) {
-                $error = $verification->sendEmail($event, $result['token']);
+                $error = $verification->sendEmail($event, $result['token'], $deviceToken);
             }
         } catch (ValidationException $exception) {
             return back()->withErrors($exception->errors());
@@ -71,6 +78,17 @@ class PublicRegistrationController extends Controller
             $result['token'],
             60 * RegistrationVerificationService::CHALLENGE_TTL_HOURS,
             '/r/'.$event->registration_slug,
+            null,
+            $request->isSecure(),
+            true,
+            false,
+            'lax',
+        ))->withCookie(cookie(
+            // Device trust identifier (W5.3). Server stores only the hash.
+            RegistrationVerificationService::DEVICE_TRUST_COOKIE,
+            $deviceToken,
+            60 * 24 * RegistrationVerificationService::DEVICE_TRUST_TTL_DAYS,
+            '/',
             null,
             $request->isSecure(),
             true,

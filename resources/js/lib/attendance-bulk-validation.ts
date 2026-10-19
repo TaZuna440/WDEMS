@@ -62,6 +62,7 @@ export function validateBulkWalkInRows(
             email: row.email,
             contact_number: row.contact_number,
             age: row.age,
+            birthday: row.birthday,
             address: row.address,
             responses: row.responses,
         };
@@ -114,6 +115,7 @@ export function makeBulkWalkInRow(): BulkWalkInRow {
         email: '',
         contact_number: '',
         age: '',
+        birthday: '',
         address: '',
         responses: {},
         arrival_time: '',

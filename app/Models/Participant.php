@@ -10,7 +10,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'first_name',
+    'first_name_normalized',
     'last_name',
+    'last_name_normalized',
+    'middle_name',
+    'suffix',
     'contact_number',
     'contact_number_normalized',
     'email',
@@ -128,6 +132,39 @@ class Participant extends Model
     }
 
     /**
+     * Computed age derived from birthday.
+     *
+     * When `birthday` is present, age is recomputed from it on every
+     * read. This makes `birthday` the source of truth for the
+     * participant's age: after a birthday passes, `$participant->age`
+     * returns the new value without any write.
+     *
+     * When `birthday` is null, the stored `age` column is returned
+     * as-is. Two cases reach this branch:
+     *
+     *   1. Legacy participants created before the birthdate swap
+     *      (2026-10-19), which have `age` but no `birthday`.
+     *   2. Church-event participants created through the Services or
+     *      Fellowship attendance flows, which still collect `age`
+     *      directly and do not set `birthday`.
+     *
+     * `$value` is the post-cast value of the raw `age` attribute. The
+     * `integer` cast has already run, so null-or-int is what arrives
+     * here.
+     *
+     * See docs/participant-identity.md §6 and D1=B of the birthdate
+     * swap plan.
+     */
+    public function getAgeAttribute(mixed $value): ?int
+    {
+        if ($this->birthday !== null) {
+            return $this->birthday->age;
+        }
+
+        return $value === null ? null : (int) $value;
+    }
+
+    /**
      * Mutator for contact_number.
      *
      * Writes both the raw value (for display) and the normalized form
@@ -138,6 +175,65 @@ class Participant extends Model
      * create() and update() through fill(). Not called when the
      * attribute is absent from the fill payload.
      */
+    /**
+     * Normalize a raw name into the canonical form for identity matching.
+     *
+     * Canonical form: trim, collapse internal whitespace runs to a single
+     * space, mb_strtolower (Unicode-aware). "  ANA   Maria " becomes
+     * "ana maria". Returns null for null/blank input.
+     *
+     * Mirrored in docs/participant-identity.md §5. Any change here
+     * must update that doc.
+     */
+    public static function normalizeName(?string $raw): ?string
+    {
+        if (! is_string($raw)) {
+            return null;
+        }
+
+        $collapsed = preg_replace('/\s+/u', ' ', trim($raw));
+
+        if (! is_string($collapsed) || $collapsed === '') {
+            return null;
+        }
+
+        return mb_strtolower($collapsed, 'UTF-8');
+    }
+
+    /**
+     * Keep first_name_normalized in sync on every write.
+     *
+     * Mirrors setContactNumberAttribute: the raw column is the display
+     * truth, the normalized column is what identity resolution queries
+     * against.
+     */
+    public function setFirstNameAttribute(mixed $value): void
+    {
+        $raw = is_string($value) ? trim($value) : null;
+
+        if ($raw === '') {
+            $raw = null;
+        }
+
+        $this->attributes['first_name'] = $raw;
+        $this->attributes['first_name_normalized'] = self::normalizeName($raw);
+    }
+
+    /**
+     * Keep last_name_normalized in sync on every write.
+     */
+    public function setLastNameAttribute(mixed $value): void
+    {
+        $raw = is_string($value) ? trim($value) : null;
+
+        if ($raw === '') {
+            $raw = null;
+        }
+
+        $this->attributes['last_name'] = $raw;
+        $this->attributes['last_name_normalized'] = self::normalizeName($raw);
+    }
+
     public function setContactNumberAttribute(mixed $value): void
     {
         $raw = is_string($value) ? trim($value) : null;
@@ -151,18 +247,90 @@ class Participant extends Model
     }
 
     /**
-     * Resolve a participant from identity keys.
+     * Find a participant by composite identity key.
      *
-     * Email is the primary identity key and wins when both email and
-     * phone are present. Normalized phone is the fallback. When neither
-     * is present, the resolver throws — the at-least-one rule is
+     * Person key: normalized first + last name + contact (email OR
+     * normalized phone). Returns the matched row or null. Does not
+     * create.
+     *
+     * This is the sole sanctioned lookup for participant identity
+     * outside of resolveFrom(). The composite rule lives here. Do not
+     * reimplement contact-only lookups in call sites: under the
+     * non-unique email / normalized phone rule, `where('email', ...)
+     * ->first()` returns an arbitrary row when a family shares a
+     * contact.
+     *
+     * Matching rule: name must match AND one of (email OR normalized
+     * phone). When both contact fields are provided, matching either
+     * is sufficient. The cross-contact conflict case (email matches
+     * participant A, phone matches participant B) is a separate open
+     * issue -- see ISSUE-020 / docs/composite-identity.md §7.3. This
+     * method does not enforce it.
+     *
+     * Returns null when the name is incomplete after normalization
+     * (blank first or last name) -- a participant cannot be
+     * identified without a full name. Returns null when neither
+     * contact field is provided -- there is nothing to match on.
+     */
+    public static function findByComposite(
+        ?string $email,
+        ?string $rawPhone,
+        ?string $firstName,
+        ?string $lastName,
+    ): ?self {
+        $normalizedFirst = self::normalizeName($firstName);
+        $normalizedLast = self::normalizeName($lastName);
+
+        if ($normalizedFirst === null || $normalizedLast === null) {
+            return null;
+        }
+
+        $trimmedEmail = is_string($email) ? trim($email) : '';
+        $normalizedPhone = self::normalizeContactNumber($rawPhone);
+
+        if ($trimmedEmail === '' && $normalizedPhone === null) {
+            return null;
+        }
+
+        $query = self::query()
+            ->where('first_name_normalized', $normalizedFirst)
+            ->where('last_name_normalized', $normalizedLast);
+
+        if ($trimmedEmail !== '' && $normalizedPhone !== null) {
+            $query->where(function ($q) use ($trimmedEmail, $normalizedPhone): void {
+                $q->where('email', $trimmedEmail)
+                    ->orWhere('contact_number_normalized', $normalizedPhone);
+            });
+        } elseif ($trimmedEmail !== '') {
+            $query->where('email', $trimmedEmail);
+        } else {
+            $query->where('contact_number_normalized', $normalizedPhone);
+        }
+
+        return $query->first();
+    }
+
+    /**
+     * Resolve a participant from the composite identity key.
+     *
+     * A person is (normalized name + verified contact). The normalized
+     * first / last names come from $attributes. The contact is the
+     * email, the normalized phone, or both -- matching either is
+     * sufficient when both are provided. Both name parts are required.
+     *
+     * Delegates matching to findByComposite(). On no match, creates a
+     * new participant row. On match, $attributes are discarded --
+     * first-write-wins. The participant record is identity, not a
+     * mutable profile.
+     *
+     * Matching is global: the same person registering for a different
+     * event resolves to the same row. The per-event duplicate check
+     * lives in RegistrationVerificationService::assertNoDuplicateRegistration().
+     *
+     * When neither email nor phone is present, or when either name
+     * part is blank, the resolver throws -- the at-least-one rule is
      * enforced upstream by PublicRegistrationRequest, so the throw is
-     * defense-in-depth.
-     *
-     * On an existing match, $attributes are discarded. First-write-wins.
-     * The participant record is identity, not a mutable profile — a
-     * name correction on a subsequent registration does not change
-     * the stored value. See docs/participant-identity.md §6.
+     * defense-in-depth. See docs/composite-identity.md §5.3.
      *
      * @param  array<string, mixed>  $attributes
      *
@@ -173,28 +341,51 @@ class Participant extends Model
         ?string $rawPhone,
         array $attributes,
     ): self {
-        $trimmedEmail = is_string($email) ? trim($email) : '';
-
-        if ($trimmedEmail !== '') {
-            return self::firstOrCreate(
-                ['email' => $trimmedEmail],
-                $attributes,
-            );
-        }
-
-        $normalized = self::normalizeContactNumber($rawPhone);
-
-        if ($normalized !== null) {
-            return self::firstOrCreate(
-                ['contact_number_normalized' => $normalized],
-                $attributes,
-            );
-        }
-
-        throw new IdentityRequiredException(
-            'A participant must be resolved with at least one identity '
-            .'key: email or contact number.',
+        $existing = self::findByComposite(
+            $email,
+            $rawPhone,
+            $attributes['first_name'] ?? null,
+            $attributes['last_name'] ?? null,
         );
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        // Defense-in-depth. findByComposite() returns null when the
+        // name is incomplete or no contact is present. resolveFrom()
+        // cannot create a row in either of those cases -- turn the
+        // null into a real error with a specific message.
+        $normalizedFirst = self::normalizeName($attributes['first_name'] ?? null);
+        $normalizedLast = self::normalizeName($attributes['last_name'] ?? null);
+
+        if ($normalizedFirst === null || $normalizedLast === null) {
+            throw new IdentityRequiredException(
+                'A participant must be resolved with a first and last name.',
+            );
+        }
+
+        $trimmedEmail = is_string($email) ? trim($email) : '';
+        $normalizedPhone = self::normalizeContactNumber($rawPhone);
+
+        if ($trimmedEmail === '' && $normalizedPhone === null) {
+            throw new IdentityRequiredException(
+                'A participant must be resolved with at least one identity '
+                .'key: email or contact number.',
+            );
+        }
+
+        // Include the identity contact in the new row. The callers pass
+        // email / phone as separate args (not in $attributes) because
+        // the old firstOrCreate() used them as the match criteria.
+        if ($trimmedEmail !== '' && ! isset($attributes['email'])) {
+            $attributes['email'] = $trimmedEmail;
+        }
+        if ($normalizedPhone !== null && ! isset($attributes['contact_number'])) {
+            $attributes['contact_number'] = $rawPhone;
+        }
+
+        return self::create($attributes);
     }
 
     /**

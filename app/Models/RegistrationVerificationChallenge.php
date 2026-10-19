@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array<string, mixed>|null $payload
  * @property bool $email_required
  * @property bool $phone_required
+ * @property string|null $chosen_channel
  * @property CarbonInterface $expires_at
  * @property CarbonInterface|null $finalized_at
  * @property CarbonInterface|null $code_acknowledged_at

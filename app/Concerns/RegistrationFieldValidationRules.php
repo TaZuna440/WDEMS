@@ -69,7 +69,7 @@ trait RegistrationFieldValidationRules
                 ],
             ],
             'age' => [
-                'display' => 'Age',
+                'display' => 'Date of birth',
                 'aliases' => ['age', 'dob', 'birthdate', 'birthday', 'bday'],
             ],
             'address' => [

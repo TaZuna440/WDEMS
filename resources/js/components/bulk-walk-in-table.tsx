@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { Clock, Plus, Trash2 } from 'lucide-react';
+import DatePicker from '@/components/date-picker';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +9,7 @@ import {
     makeBulkWalkInRow,
     type BulkWalkInRow,
 } from '@/lib/attendance-bulk-validation';
+import { birthdayPickerBounds } from '@/lib/public-registration-validation';
 
 type CommonFieldRequirements = {
     email: boolean;
@@ -72,6 +75,11 @@ export default function BulkWalkInTable({
     maxRows,
     deferred = false,
 }: Props) {
+
+    // Birthday picker bounds, computed once per mount and shared
+    // across all rows. Same bounds the client validator enforces
+    // (age 3-120).
+    const birthdayBounds = useMemo(() => birthdayPickerBounds(), []);
     const updateRow = (index: number, patch: Partial<BulkWalkInRow>) => {
         const next = rows.slice();
         next[index] = { ...next[index], ...patch };
@@ -195,24 +203,22 @@ export default function BulkWalkInTable({
                             </div>
 
                             <div className="grid gap-1.5">
-                                <Label htmlFor={`rows.${i}.age`}>
-                                    Age{requiredMark}
+                                <Label htmlFor={`rows.${i}.birthday`}>
+                                    Date of birth{requiredMark}
                                 </Label>
-                                <Input
-                                    id={`rows.${i}.age`}
-                                    type="number"
-                                    inputMode="numeric"
-                                    min={1}
-                                    max={120}
-                                    value={row.age}
-                                    onChange={(e) =>
-                                        updateRow(i, { age: e.target.value })
+                                <DatePicker
+                                    id={`rows.${i}.birthday`}
+                                    value={row.birthday ?? ''}
+                                    onChange={(value) =>
+                                        updateRow(i, { birthday: value })
                                     }
-                                    autoComplete="off"
+                                    placeholder="MM/DD/YYYY"
+                                    minDate={birthdayBounds.minDate}
+                                    maxDate={birthdayBounds.maxDate}
                                     disabled={disabled}
                                 />
                                 <InputError
-                                    message={errors[`rows.${i}.age`]}
+                                    message={errors[`rows.${i}.birthday`]}
                                 />
                             </div>
 

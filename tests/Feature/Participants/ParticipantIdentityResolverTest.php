@@ -231,10 +231,12 @@ test('resolveFrom discards attributes on existing match', function () {
         'age' => 28,
     ]);
 
-    // Second call uses the same email but a different name and age.
+    // Second call uses the same composite key (same normalized name +
+    // same email) but a different age. First-write-wins: the stored age
+    // stays 28.
     Participant::resolveFrom('maria@example.com', null, [
-        'first_name' => 'Maria D.',
-        'last_name' => 'Santos',
+        'first_name' => '  MARIA ',
+        'last_name' => 'santos',
         'age' => 45,
     ]);
 
@@ -243,4 +245,25 @@ test('resolveFrom discards attributes on existing match', function () {
     expect($stored->first_name)->toBe('Maria');
     expect($stored->age)->toBe(28);
     expect(Participant::count())->toBe(1);
+});
+
+test('resolveFrom treats a name variant as a different person', function () {
+    Participant::create([
+        'first_name' => 'Maria',
+        'last_name' => 'Santos',
+        'email' => 'maria@example.com',
+        'age' => 28,
+    ]);
+
+    // "Maria D. Santos" normalizes differently from "Maria Santos", so
+    // under the composite rule this is a different person — even with
+    // the same email. A new row is created.
+    $resolved = Participant::resolveFrom('maria@example.com', null, [
+        'first_name' => 'Maria D.',
+        'last_name' => 'Santos',
+        'age' => 45,
+    ]);
+
+    expect(Participant::count())->toBe(2);
+    expect($resolved->first_name)->toBe('Maria D.');
 });

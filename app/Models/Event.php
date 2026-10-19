@@ -52,14 +52,27 @@ class Event extends Model
     /**
      * Common participant fields that are always required and cannot
      * be toggled off by the organizer. A participant without a name
-     * or an age is unusable for attendance tracking.
+     * or a date of birth is unusable for attendance tracking.
+     *
+     * `birthday` replaced `age` on 2026-10-19 when the public
+     * registration form switched from a free-typed age to a bounded
+     * date picker (age 3 to 120). `Participant::getAgeAttribute()`
+     * derives age from birthday on read, so downstream consumers
+     * see the same integer age they always did.
+     *
+     * `age` was removed from this list — but it does NOT break.
+     * `isCommonFieldRequired('age')` falls through to the defensive
+     * default (step 3 of the method) and returns true for any field
+     * not in either list. Existing Services and Fellowship attendance
+     * requests still collect `age` directly through their own
+     * FormRequests; the accessor falls back to the stored column.
      *
      * @var array<int, string>
      */
     public const COMMON_FIELDS_ALWAYS_REQUIRED = [
         'first_name',
         'last_name',
-        'age',
+        'birthday',
     ];
 
     /**
@@ -166,13 +179,16 @@ class Event extends Model
      * Is a common participant field required on this event's public
      * registration form?
      *
-     * Always-required fields (first_name, last_name, age) return true
-     * regardless of the stored map. Toggleable fields (email,
+     * Always-required fields (first_name, last_name, birthday) return
+     * true regardless of the stored map. Toggleable fields (email,
      * contact_number, address) read the map, falling back to true
      * for a missing key or a NULL column.
      *
      * Unknown field names return true — a defensive default so a typo
-     * does not silently make a field optional.
+     * does not silently make a field optional. This is what makes
+     * `isCommonFieldRequired('age')` continue to return true even
+     * though `age` is no longer in COMMON_FIELDS_ALWAYS_REQUIRED:
+     * `age` is not in either list, so the defensive default applies.
      */
     public function isCommonFieldRequired(string $field): bool
     {

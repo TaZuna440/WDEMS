@@ -860,3 +860,24 @@ description of the attendance page that actually exists in
 the codebase.
 
 The redesign work is done. The encoding workspace is not.
+
+---
+
+## Note — walk-in birthdate swap (2026-10-19)
+
+Where this file says walk-in rows collect "age" (single dialog and
+batch table), read "date of birth". Both walk-in paths now use the
+shared DatePicker (typed MM/DD/YYYY entry, 3–120 bounds, "Date of
+birth" label) instead of the age number input:
+
+- **Single walk-in dialog:** birthday required, like the public
+  form. Request accepts `birthday` or legacy `age`; the controller
+  prefers `birthday` on write.
+- **Batch table:** one DatePicker per row, bounds computed once and
+  shared. Shape bounds stay in the request (all-or-nothing, like the
+  old age range rule); the at-least-one demographic check runs per
+  row in the controller loop under `rows.{i}.birthday` (D6), so one
+  incomplete row never blocks the batch — mirroring the identity
+  rule.
+
+The design narrative above is otherwise unchanged.

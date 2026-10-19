@@ -87,6 +87,7 @@ function cq_public_payload(array $overrides = []): array
         'contact_number' => '+63 917 000 0000',
         'age' => 28,
         'address' => 'Manila',
+        'emergency_contact_name' => 'Jose Santos', 'emergency_contact_relationship' => 'Father', 'emergency_contact_number' => '+63 917 765 4321',
         'responses' => [],
     ], $overrides);
 }

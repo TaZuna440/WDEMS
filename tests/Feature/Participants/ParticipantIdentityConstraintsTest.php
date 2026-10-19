@@ -69,16 +69,19 @@ test('two participants with null emails can coexist', function () {
     expect(Participant::whereNull('email')->count())->toBe(2);
 });
 
-test('two participants cannot share a non-null email', function () {
-    identity_participant(['email' => 'maria@example.com']);
+test('two participants can share a non-null email (composite rule)', function () {
+    // Under the composite rule (W7), duplicate emails are allowed.
+    // Identity is (normalized name + contact), not contact alone.
+    // This is the family-registration case: a parent registering kids
+    // under the parent's email.
+    identity_participant(['email' => 'family@example.com', 'first_name' => 'Maria']);
+    identity_participant([
+        'email' => 'family@example.com',
+        'first_name' => 'Jose',
+        'last_name' => 'Santos',
+    ]);
 
-    expect(function () {
-        identity_participant([
-            'email' => 'maria@example.com',
-            'first_name' => 'Different',
-            'last_name' => 'Person',
-        ]);
-    })->toThrow(QueryException::class);
+    expect(Participant::where('email', 'family@example.com')->count())->toBe(2);
 });
 
 // ---------------------------------------------------------------------------
@@ -98,16 +101,17 @@ test('two participants with null normalized phones can coexist', function () {
     expect(Participant::whereNull('contact_number_normalized')->count())->toBe(2);
 });
 
-test('two participants cannot share a non-null normalized phone', function () {
-    identity_participant(['contact_number_normalized' => '09171234567']);
+test('two participants can share a non-null normalized phone (composite rule)', function () {
+    // Under the composite rule (W7), duplicate phones are allowed.
+    // Identity is (normalized name + contact), not contact alone.
+    identity_participant(['contact_number' => '09171234567', 'first_name' => 'Maria']);
+    identity_participant([
+        'contact_number' => '09171234567',
+        'first_name' => 'Jose',
+        'last_name' => 'Santos',
+    ]);
 
-    expect(function () {
-        identity_participant([
-            'contact_number_normalized' => '09171234567',
-            'first_name' => 'Different',
-            'last_name' => 'Person',
-        ]);
-    })->toThrow(QueryException::class);
+    expect(Participant::where('contact_number_normalized', '09171234567')->count())->toBe(2);
 });
 
 // ---------------------------------------------------------------------------

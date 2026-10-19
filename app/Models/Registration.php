@@ -21,6 +21,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'submitted_email',
     'submitted_contact_number',
     'attendance_code',
+    'consent_accepted_at',
+    'privacy_notice_version',
+    'emergency_contact_name',
+    'emergency_contact_relationship',
+    'emergency_contact_number',
 ])]
 class Registration extends Model
 {

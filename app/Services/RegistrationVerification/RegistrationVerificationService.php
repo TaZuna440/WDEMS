@@ -13,9 +13,13 @@ use App\Models\Registration;
 use App\Models\RegistrationFieldResponse;
 use App\Models\RegistrationVerificationChallenge as Challenge;
 use App\Services\Otp\OtpCode;
+use App\Support\RegistrationLegalText;
+use App\Models\EmailDeviceVerification;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
@@ -27,7 +31,16 @@ class RegistrationVerificationService
 {
     public const CODE_TTL_SECONDS = 600;
 
-    public const RESEND_COOLDOWN_SECONDS = 60;
+    public const RESEND_COOLDOWN_SECONDS = 100;
+
+    /**
+     * Device trust (W5.3): a device that verified an email address skips
+     * the OTP for that address on later registrations. Trust is per
+     * (email, device) pair, recorded server-side; the cookie only carries
+     * a random device identifier (HttpOnly, Secure, SameSite=Lax).
+     */
+    public const DEVICE_TRUST_COOKIE = 'wdems_email_trust';
+    public const DEVICE_TRUST_TTL_DAYS = 7;
 
     public const MAX_ATTEMPTS = 5;
 
@@ -102,12 +115,21 @@ class RegistrationVerificationService
             }
 
             $token = bin2hex(random_bytes(32));
+            $emailRequired = $event->isCommonFieldRequired('email');
+            $phoneRequired = $event->isCommonFieldRequired('contact_number');
             Challenge::forceCreate([
                 'event_id' => $event->id,
                 'token_hash' => hash('sha256', $token),
                 'payload' => $payload,
-                'email_required' => $event->isCommonFieldRequired('email'),
-                'phone_required' => $event->isCommonFieldRequired('contact_number'),
+                'email_required' => $emailRequired,
+                'phone_required' => $phoneRequired,
+                // Stricter channel choice (W5): a single required channel
+                // is chosen automatically — no choice screen. Both
+                // required → the participant picks one via
+                // chooseChannel(); null until then.
+                'chosen_channel' => $emailRequired !== $phoneRequired
+                    ? ($emailRequired ? 'email' : 'phone')
+                    : null,
                 'expires_at' => now()->addHours(self::CHALLENGE_TTL_HOURS),
             ]);
 
@@ -143,6 +165,40 @@ class RegistrationVerificationService
      *
      * @return array<string, mixed>
      */
+    /**
+     * Record the participant's chosen verification channel.
+     *
+     * Only reachable when both email and phone are required — a single
+     * required channel is chosen automatically at begin(). The choice
+     * is final: verify()/sendEmail()/verifyPhoneWithFirebase() reject
+     * the non-chosen channel afterwards.
+     *
+     * @return string|null Error message, or null on success.
+     */
+    public function chooseChannel(Event $event, #[\SensitiveParameter] ?string $token, string $channel): ?string
+    {
+        if (! in_array($channel, ['email', 'phone'], true)) {
+            return 'Choose email or phone verification.';
+        }
+
+        return DB::transaction(function () use ($event, $token, $channel): ?string {
+            [, $challenge] = $this->lockPending($event, $token);
+            if (! $challenge->getAttribute("{$channel}_required")) {
+                return 'This contact does not require verification.';
+            }
+            if ($challenge->chosen_channel !== null) {
+                return 'A verification channel is already chosen.';
+            }
+            if (! ($challenge->email_required && $challenge->phone_required)) {
+                return 'No channel choice is needed for this registration.';
+            }
+
+            $challenge->forceFill(['chosen_channel' => $channel])->save();
+
+            return null;
+        }, 3);
+    }
+
     public function publicState(Event $event, #[\SensitiveParameter] ?string $token): array
     {
         $challenge = $this->findChallenge($event, $token);
@@ -177,6 +233,11 @@ class RegistrationVerificationService
             'submitted_phone' => $challenge->payload['contact_number'] ?? null,
             'email' => $this->channelState($challenge, 'email'),
             'phone' => $this->channelState($challenge, 'phone'),
+            'chosen_channel' => $challenge->chosen_channel,
+            'needs_channel_choice' => $challenge->chosen_channel === null
+                && $challenge->email_required && $challenge->phone_required
+                && $challenge->email_verified_at === null
+                && $challenge->phone_verified_at === null,
             'ready' => $this->allVerified($challenge),
         ];
     }
@@ -203,11 +264,48 @@ class RegistrationVerificationService
     }
 
     /** Send synchronously through the existing Resend transport; never the log mailer. */
-    public function sendEmail(Event $event, #[\SensitiveParameter] ?string $token): ?string
+    /**
+     * Read the device identifier from the trust cookie, generating one
+     * when absent. The raw token never touches the database — only its
+     * SHA-256 hash is stored.
+     */
+    public static function deviceToken(Request $request): string
     {
+        $token = $request->cookie(self::DEVICE_TRUST_COOKIE);
+
+        return is_string($token) && $token !== '' ? $token : Str::random(64);
+    }
+
+    public function sendEmail(
+        Event $event,
+        #[\SensitiveParameter] ?string $token,
+        #[\SensitiveParameter] ?string $deviceToken = null,
+    ): ?string {
         // No automatic transaction retry around external mail delivery.
-        return DB::transaction(function () use ($event, $token): ?string {
+        return DB::transaction(function () use ($event, $token, $deviceToken): ?string {
             [$event, $challenge] = $this->lockPending($event, $token);
+
+            // Device trust: this device verified this email within the
+            // trust window — skip the code, mark verified, and adopt
+            // email as the chosen channel when no choice was made.
+            // Respects the channel choice: no auto-verification when
+            // the participant chose phone.
+            $email = $challenge->payload['email'] ?? null;
+            if ($deviceToken !== null
+                && $challenge->getAttribute('email_required')
+                && $challenge->chosen_channel !== 'phone'
+                && $challenge->getAttribute('email_verified_at') === null
+                && is_string($email) && $email !== ''
+                && $this->hasEmailDeviceTrust($email, $deviceToken)) {
+                $updates = ['email_verified_at' => now()];
+                if ($challenge->chosen_channel === null) {
+                    $updates['chosen_channel'] = 'email';
+                }
+                $challenge->forceFill($updates)->save();
+
+                return null;
+            }
+
             if ($error = $this->issuanceError($challenge, 'email')) {
                 return $error;
             }
@@ -227,21 +325,29 @@ class RegistrationVerificationService
                     'email_delivery_failed' => true,
                 ])->save();
 
-                return 'We could not send your email code. Wait 60 seconds and try again, or contact the organizer.';
+                return 'We could not send your email code. Wait 100 seconds and try again, or contact the organizer.';
             }
 
             return null;
         });
     }
 
-    public function verify(Event $event, #[\SensitiveParameter] ?string $token, string $channel, #[\SensitiveParameter] string $code): ?string
-    {
+    public function verify(
+        Event $event,
+        #[\SensitiveParameter] ?string $token,
+        string $channel,
+        #[\SensitiveParameter] string $code,
+        #[\SensitiveParameter] ?string $deviceToken = null,
+    ): ?string {
         abort_unless($channel === 'email', 404);
 
-        return DB::transaction(function () use ($event, $token, $channel, $code): ?string {
+        return DB::transaction(function () use ($event, $token, $channel, $code, $deviceToken): ?string {
             [, $challenge] = $this->lockPending($event, $token);
             if (! $challenge->getAttribute("{$channel}_required")) {
                 return 'This contact does not require verification.';
+            }
+            if ($challenge->chosen_channel !== null && $challenge->chosen_channel !== $channel) {
+                return 'You chose to verify by '.$challenge->chosen_channel.'.';
             }
             if ($challenge->getAttribute("{$channel}_verified_at") !== null) {
                 return 'This contact is already verified. The code cannot be used again.';
@@ -273,10 +379,43 @@ class RegistrationVerificationService
                 "{$channel}_expires_at" => null,
             ])->save();
 
+            // Email OTP succeeded on this device - remember it so later
+            // registrations with the same address skip the code.
+            if ($deviceToken !== null) {
+                $email = $challenge->payload['email'] ?? null;
+                if (is_string($email) && $email !== '') {
+                    $this->recordEmailDeviceTrust($email, $deviceToken);
+                }
+            }
+
             return null;
         }, 3);
     }
+    /**
+     * A trust record is valid while its expiry is in the future.
+     * Expired rows are pruned by the model's MassPrunable schedule.
+     */
+    private function hasEmailDeviceTrust(string $email, string $deviceToken): bool
+    {
+        return EmailDeviceVerification::where('email', $email)
+            ->where('device_token_hash', hash('sha256', $deviceToken))
+            ->where('expires_at', '>', now())
+            ->exists();
+    }
 
+    private function recordEmailDeviceTrust(string $email, string $deviceToken): void
+    {
+        EmailDeviceVerification::updateOrCreate(
+            [
+                'email' => $email,
+                'device_token_hash' => hash('sha256', $deviceToken),
+            ],
+            [
+                'verified_at' => now(),
+                'expires_at' => now()->addDays(self::DEVICE_TRUST_TTL_DAYS),
+            ],
+        );
+    }
     /**
      * Exactly one transaction owns the Participant, Registration, custom answers,
      * and finalized marker. Unique constraints also arbitrate other intake paths.
@@ -308,8 +447,20 @@ class RegistrationVerificationService
                     }
 
                     $payload = PublicRegistrationRequest::validatePending($event, $challenge->payload ?? []);
-                    $email = $challenge->email_required ? ($payload['email'] ?? null) : null;
-                    $phone = $challenge->phone_required ? ($payload['contact_number'] ?? null) : null;
+                    // The verified (chosen) channel is the identity
+                    // contact. A required-but-unverified contact is a
+                    // snapshot only — stored in submitted_* below, never
+                    // used for identity.
+                    if ($challenge->chosen_channel !== null) {
+                        $chosen = $challenge->chosen_channel;
+                        $email = $chosen === 'email' ? ($payload['email'] ?? null) : null;
+                        $phone = $chosen === 'phone' ? ($payload['contact_number'] ?? null) : null;
+                    } else {
+                        // Legacy challenges (no choice made): both required
+                        // contacts participate in identity, as before W5.2.
+                        $email = $challenge->email_required ? ($payload['email'] ?? null) : null;
+                        $phone = $challenge->phone_required ? ($payload['contact_number'] ?? null) : null;
+                    }
                     $normalized = Participant::normalizeContactNumber($phone);
                     if ($email === null && $normalized === null) {
                         $this->identityConflict();
@@ -333,7 +484,24 @@ class RegistrationVerificationService
                     $participant = $matches->first() ?? Participant::create([
                         'first_name' => $payload['first_name'],
                         'last_name' => $payload['last_name'],
-                        'age' => $payload['age'],
+                        'middle_name' => $payload['middle_name'] ?? null,
+                        'suffix' => $payload['suffix'] ?? null,
+                        // Demographic write: prefer `birthday` (new
+                        // shape, bounded to age 3-120 by
+                        // PublicRegistrationRequest). Fall back to
+                        // `age` for legacy payloads — pre-swap
+                        // challenges, direct tooling, or tests that
+                        // still POST `age`.
+                        //
+                        // Exactly one is guaranteed present by the
+                        // request's withValidator() DOB check. If both
+                        // are present, birthday wins on write; the
+                        // accessor prefers it on read anyway, so
+                        // writing both would leave stale age data on
+                        // the row.
+                        ...(isset($payload['birthday']) && $payload['birthday'] !== null && $payload['birthday'] !== ''
+                            ? ['birthday' => $payload['birthday']]
+                            : ['age' => (int) $payload['age']]),
                         'address' => $payload['address'] ?? null,
                         'email' => $email,
                         'contact_number' => $phone,
@@ -354,6 +522,13 @@ class RegistrationVerificationService
                         'submitted_email' => $payload['email'] ?? null,
                         'submitted_contact_number' => $payload['contact_number'] ?? null,
                         'attendance_code' => $this->generateAttendanceCode($event),
+                        // P5 compliance trail: the wizard's Step 1
+                        // disclaimer + privacy consent were accepted to reach this point.
+                        'consent_accepted_at' => now(),
+                        'privacy_notice_version' => RegistrationLegalText::PRIVACY_NOTICE_VERSION,
+                        'emergency_contact_name' => $payload['emergency_contact_name'],
+                        'emergency_contact_relationship' => $payload['emergency_contact_relationship'],
+                        'emergency_contact_number' => $payload['emergency_contact_number'],
                     ]);
 
                     foreach ($payload['responses'] ?? [] as $fieldId => $value) {
@@ -495,6 +670,18 @@ class RegistrationVerificationService
      *
      * @param  array<string, mixed>  $payload
      */
+    /**
+     * Reject a duplicate registration under the composite rule.
+     *
+     * A duplicate is (same normalized name + same contact) on the same
+     * event. Different names sharing one email/phone are allowed — that
+     * is the family-registration case the composite rule exists for.
+     * Same name with a different contact is also allowed (name alone is
+     * not identity).
+     *
+     * The message is deliberately non-revealing: it does not say whether
+     * the email, the phone, or the name collided.
+     */
     private function assertNoDuplicateRegistration(Event $event, #[\SensitiveParameter] array $payload): void
     {
         $email = $payload['email'] ?? null;
@@ -503,27 +690,32 @@ class RegistrationVerificationService
         $phone = $payload['contact_number'] ?? null;
         $normalized = is_string($phone) ? Participant::normalizeContactNumber($phone) : null;
 
-        if ($email === null && $normalized === null) {
+        $normalizedFirst = Participant::normalizeName($payload['first_name'] ?? null);
+        $normalizedLast = Participant::normalizeName($payload['last_name'] ?? null);
+
+        if (($email === null && $normalized === null) || $normalizedFirst === null || $normalizedLast === null) {
             return;
         }
 
         $exists = Registration::query()
             ->where('event_id', $event->id)
-            ->whereHas('participant', function ($query) use ($email, $normalized): void {
-                $query->where(function ($inner) use ($email, $normalized): void {
-                    if ($email !== null) {
-                        $inner->orWhere('email', $email);
-                    }
-                    if ($normalized !== null) {
-                        $inner->orWhere('contact_number_normalized', $normalized);
-                    }
-                });
+            ->whereHas('participant', function ($query) use ($email, $normalized, $normalizedFirst, $normalizedLast): void {
+                $query->where('first_name_normalized', $normalizedFirst)
+                    ->where('last_name_normalized', $normalizedLast)
+                    ->where(function ($inner) use ($email, $normalized): void {
+                        if ($email !== null) {
+                            $inner->orWhere('email', $email);
+                        }
+                        if ($normalized !== null) {
+                            $inner->orWhere('contact_number_normalized', $normalized);
+                        }
+                    });
             })
             ->exists();
 
         if ($exists) {
             throw ValidationException::withMessages([
-                'identity' => 'This email address or contact number is already registered for this event.',
+                'identity' => 'This registration cannot be started. If you believe this is an error, contact the event organizer.',
             ]);
         }
     }
@@ -581,6 +773,9 @@ class RegistrationVerificationService
         if (! $challenge->getAttribute("{$channel}_required")) {
             return 'This contact does not require verification.';
         }
+        if ($challenge->chosen_channel !== null && $challenge->chosen_channel !== $channel) {
+            return 'You chose to verify by '.$challenge->chosen_channel.'.';
+        }
         if ($challenge->getAttribute("{$channel}_verified_at") !== null) {
             return 'This contact is already verified.';
         }
@@ -589,7 +784,7 @@ class RegistrationVerificationService
         }
         $issuedAt = $challenge->getAttribute("{$channel}_issued_at");
         if ($issuedAt !== null && now()->lessThan($issuedAt->addSeconds(self::RESEND_COOLDOWN_SECONDS))) {
-            return 'Please wait 60 seconds between codes.';
+            return 'Please wait 100 seconds between codes.';
         }
 
         return null;
@@ -614,6 +809,17 @@ class RegistrationVerificationService
 
     private function allVerified(Challenge $challenge): bool
     {
+        // Stricter channel choice (W5): the participant verifies ONE
+        // channel — their pick among the required ones. The chosen
+        // channel's verification is what counts.
+        $chosen = $challenge->chosen_channel;
+        if ($chosen !== null) {
+            return $challenge->getAttribute("{$chosen}_verified_at") !== null;
+        }
+
+        // Legacy challenges (created before W5.2, both required, no
+        // choice made) keep the old every-required-channel rule so
+        // in-flight verifications are not stranded.
         return ($challenge->email_required || $challenge->phone_required)
             && (! $challenge->email_required || $challenge->email_verified_at !== null)
             && (! $challenge->phone_required || $challenge->phone_verified_at !== null);
@@ -638,6 +844,9 @@ class RegistrationVerificationService
             [, $challenge] = $this->lockPending($event, $token);
             if (! $challenge->phone_required) {
                 return 'This contact does not require verification.';
+            }
+            if ($challenge->chosen_channel !== null && $challenge->chosen_channel !== 'phone') {
+                return 'You chose to verify by email.';
             }
             if ($challenge->phone_verified_at !== null) {
                 return 'This contact is already verified.';

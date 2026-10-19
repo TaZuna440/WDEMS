@@ -513,6 +513,21 @@ class AttendanceController extends Controller
                 $attendanceTime = now();
             }
 
+            // Demographic check per row (birthdate swap Phase 4): at
+            // least one of `age` (legacy) or `birthday`. The error
+            // lands on the `rows.{i}.birthday` key so the table
+            // highlights the birthday cell. A single bad row must not
+            // block the batch (D6) — this lives in the controller
+            // loop, not in the request, mirroring the identity rule.
+            $rowHasAge = isset($row['age']) && $row['age'] !== '';
+            $rowBirthday = $row['birthday'] ?? null;
+            $rowHasBirthday = is_string($rowBirthday) && trim($rowBirthday) !== '';
+
+            if (! $rowHasAge && ! $rowHasBirthday) {
+                $errors["rows.{$i}.birthday"] = 'Please provide your date of birth.';
+                continue;
+            }
+
             $error = $this->persistBulkWalkInRow(
                 $row,
                 $event,
@@ -622,7 +637,15 @@ class AttendanceController extends Controller
                 [
                     'first_name' => $row['first_name'],
                     'last_name' => $row['last_name'],
-                    'age' => $row['age'],
+                    // Demographic write: prefer `birthday` (new shape,
+                    // bounded to age 3-120 by the request). Fall back
+                    // to `age` for legacy callers. Exactly one is
+                    // guaranteed present by the loop's demographic
+                    // check above. First-write-wins preserved:
+                    // resolveFrom() discards these on an existing match.
+                    ...(isset($row['birthday']) && $row['birthday'] !== ''
+                        ? ['birthday' => $row['birthday']]
+                        : ['age' => (int) $row['age']]),
                     'email' => $email !== '' ? $email : null,
                     'contact_number' => $phone,
                     'address' => $row['address'] ?? null,
@@ -739,7 +762,22 @@ class AttendanceController extends Controller
                 [
                     'first_name' => $validated['first_name'],
                     'last_name' => $validated['last_name'],
-                    'age' => $validated['age'],
+                    // Demographic write: prefer `birthday` (new shape,
+                    // bounded to age 3-120 by WalkInRegistrationRequest,
+                    // D4: required on walk-in like the public form).
+                    // Fall back to `age` for legacy callers and tests
+                    // that still POST `age`.
+                    //
+                    // Exactly one is guaranteed present by the request's
+                    // demographic pass. If both are present, birthday
+                    // wins on write; the accessor prefers it on read
+                    // anyway, so writing both would leave stale age
+                    // data on the row. First-write-wins is preserved:
+                    // on an existing participant match, resolveFrom()
+                    // discards these attributes entirely.
+                    ...(isset($validated['birthday']) && $validated['birthday'] !== ''
+                        ? ['birthday' => $validated['birthday']]
+                        : ['age' => (int) $validated['age']]),
                     'email' => $validated['email'] ?? null,
                     'contact_number' => $validated['contact_number'] ?? null,
                     'address' => $validated['address'] ?? null,

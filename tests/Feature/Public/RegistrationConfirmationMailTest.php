@@ -100,6 +100,7 @@ it('sends the confirmation mail on successful finalize', function () {
         'email' => 'maria@example.com',
         'contact_number' => '09171234567',
         'address' => '123 Test St',
+        'emergency_contact_name' => 'Jose Santos', 'emergency_contact_relationship' => 'Father', 'emergency_contact_number' => '+63 917 765 4321',
     ];
 
     [$token] = confmail_verified_challenge($event, $payload);
@@ -137,6 +138,7 @@ it('does not send the confirmation mail when the participant did not provide an 
         'age' => 30,
         'contact_number' => '09171234567',
         'address' => '123 Test St',
+        'emergency_contact_name' => 'Jose Santos', 'emergency_contact_relationship' => 'Father', 'emergency_contact_number' => '+63 917 765 4321',
     ];
 
     [$token] = confmail_verified_challenge($event, $payload);

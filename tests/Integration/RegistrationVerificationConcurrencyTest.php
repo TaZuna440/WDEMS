@@ -54,7 +54,7 @@ class RegistrationVerificationConcurrencyTest extends TestCase
         for ($i = 0; $i < ($independent ? 2 : 1); $i++) {
             $pending = $service->begin($event, [
                 'first_name' => 'Maria', 'last_name' => 'Santos', 'age' => 28,
-                'email' => 'concurrency@example.test', 'address' => 'Manila',
+                'email' => 'concurrency@example.test', 'address' => 'Manila', 'emergency_contact_name' => 'Jose Santos', 'emergency_contact_relationship' => 'Father', 'emergency_contact_number' => '+63 917 765 4321',
                 'responses' => [$field->id => 'Medium'],
             ], null);
             $tokens[] = $pending['token'];

@@ -48,8 +48,16 @@ class WalkInRegistrationRequest extends FormRequest
      *
      * Required-ness of three of the six common fields (email,
      * contact_number, address) is per-event, read via
-     * Event::isCommonFieldRequired(). First name, last name, and age
-     * are always required.
+     * Event::isCommonFieldRequired(). First name, last name, and
+     * birthday are always required (D4 of the birthdate swap — same
+     * as the public form).
+     *
+     * Transition note (2026-10-19): the demographic field accepts
+     * both `age` and `birthday`, mirroring PublicRegistrationRequest
+     * (birthdate swap Phase 3). The dialog submits `birthday`;
+     * legacy callers and existing test fixtures still POST `age`.
+     * The demographic pass in withValidator() requires at least one
+     * of the two; the error lands on the `birthday` key.
      *
      * Contact number and address go through
      * ContactAndAddressQualityRules — same trait the public form uses.
@@ -66,7 +74,13 @@ class WalkInRegistrationRequest extends FormRequest
         return [
             'first_name' => $this->personNameRules(),
             'last_name' => $this->personNameRules(),
-            'age' => ['required', 'integer', 'min:1', 'max:120'],
+            'age' => ['nullable', 'integer', 'min:1', 'max:120'],
+            'birthday' => [
+                'nullable',
+                'date',
+                'before_or_equal:' . now()->subYears(3)->toDateString(),
+                'after_or_equal:' . now()->subYears(120)->toDateString(),
+            ],
             'email' => $this->commonFieldRules('email', ['string', 'email:rfc', 'max:255']),
             'contact_number' => $this->commonFieldRules('contact_number', [
                 'string',
@@ -94,7 +108,7 @@ class WalkInRegistrationRequest extends FormRequest
     }
 
     /**
-     * Post-rules validation. Runs in five passes:
+     * Post-rules validation. Runs in six passes:
      *
      *   1. Custom field responses — key ownership and format.
      *   2. Required custom fields — iterating the field list, not
@@ -103,10 +117,14 @@ class WalkInRegistrationRequest extends FormRequest
      *   3. Encoding mode — arrival_time is required when the mode is
      *      deferred. In live mode, any submitted arrival_time is
      *      ignored by the controller.
-     *   4. At-least-one identity — email or normalizable phone.
+     *   4. Demographic — at least one of age (legacy) or birthday.
+     *      Error lands on the `birthday` key, matching the public
+     *      form. Per D4, birthday is required on walk-in; `age`
+     *      remains accepted for legacy callers and test fixtures.
+     *   5. At-least-one identity — email or normalizable phone.
      *      Early-returns when this fails so the duplicate check
      *      below is not run against a blank identity.
-     *   5. Not already registered for this event.
+     *   6. Not already registered for this event.
      *
      * Passes 1 + 2 mirror PublicRegistrationRequest::withValidator()
      * exactly. The isEmpty() and validateResponseType() helpers come
@@ -182,7 +200,29 @@ class WalkInRegistrationRequest extends FormRequest
                 );
             }
 
-            // -------- Pass 4: at-least-one identity --------
+            // -------- Pass 4: demographic — at least one of age or birthday --------
+
+            // Accepts both, prefers neither at the validation layer.
+            // `birthday` is the preferred representation going forward
+            // (D4: required on walk-in, same as the public form); the
+            // error lands there so the UI highlights the DatePicker.
+            // `age` remains accepted for legacy callers and existing
+            // test fixtures. Mirrors
+            // PublicRegistrationRequest::withValidator().
+            $age = $this->input('age');
+            $birthday = $this->input('birthday');
+
+            $hasAge = $age !== null && $age !== '';
+            $hasBirthday = is_string($birthday) && trim($birthday) !== '';
+
+            if (! $hasAge && ! $hasBirthday) {
+                $v->errors()->add(
+                    'birthday',
+                    'Please provide your date of birth.',
+                );
+            }
+
+            // -------- Pass 5: at-least-one identity --------
 
             $email = $this->input('email');
             $phone = $this->input('contact_number');
@@ -201,7 +241,7 @@ class WalkInRegistrationRequest extends FormRequest
                 return;
             }
 
-            // -------- Pass 5: not already registered --------
+            // -------- Pass 6: not already registered --------
 
             $existing = null;
 
@@ -267,9 +307,9 @@ class WalkInRegistrationRequest extends FormRequest
 
     /**
      * Custom messages for the name quality regexes, the contact and
-     * address quality regexes, the identity error, the arrival-time
-     * error, and the custom field errors. Mirrors
-     * PublicRegistrationRequest for the custom field keys.
+     * address quality regexes, the birthday bounds, the identity
+     * error, the arrival-time error, and the custom field errors.
+     * Mirrors PublicRegistrationRequest for the shared keys.
      *
      * @return array<string, string>
      */
@@ -283,6 +323,9 @@ class WalkInRegistrationRequest extends FormRequest
             'contact_number.regex' => 'Please enter a valid phone number.',
             'address.regex' => 'Please enter a valid address.',
             'address.not_regex' => 'Please enter a valid address.',
+            'birthday.date' => 'Please enter a valid date of birth.',
+            'birthday.before_or_equal' => 'You must be at least 3 years old to register.',
+            'birthday.after_or_equal' => 'Please enter a valid date of birth.',
             'identity.required' => 'Please provide at least an email address or a contact number.',
             'arrival_time.date_format' => 'Enter the arrival time as HH:MM (24-hour).',
         ];

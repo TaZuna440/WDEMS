@@ -38,7 +38,7 @@ function public_payload(array $overrides = []): array
 {
     return array_merge([
         'first_name' => 'Maria', 'last_name' => 'Santos', 'email' => 'maria@example.com',
-        'contact_number' => '+63 917 000 0000', 'age' => 28, 'address' => 'Manila', 'responses' => [],
+        'contact_number' => '+63 917 000 0000', 'age' => 28, 'address' => 'Manila', 'emergency_contact_name' => 'Jose Santos', 'emergency_contact_relationship' => 'Father', 'emergency_contact_number' => '+63 917 765 4321', 'responses' => [],
     ], $overrides);
 }
 

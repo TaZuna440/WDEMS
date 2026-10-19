@@ -657,3 +657,40 @@ Commit `6173540` trimmed the public form's event summary.
 
 - `docs/event-creation-wizard.md` "Corrections (2026-10-15, second
   pass)" for the wizard-side changes.
+
+---
+
+## Correction — birthdate swap (2026-10-19)
+
+The demographic field changed from an age number input to a date of
+birth picker. Four statements in this file are superseded; the
+original text above is preserved and this block wins where they
+disagree.
+
+1. **§4 table.** The row `| `age` | number | yes | 1–120 |` no longer
+   describes the shipped form. The field is now `birthday` (label
+   "Date of birth"), required, bounded to ages 3–120 inclusive.
+   During the transition the server still accepts `age` (nullable,
+   1–120) and prefers `birthday` on write when both are present.
+
+2. **`## Corrections — Phone verification (2026-10-14)`.** The
+   sentence placing `age` in `Event::COMMON_FIELDS_ALWAYS_REQUIRED`
+   alongside `first_name` and `last_name` is stale. The
+   always-required set is now `first_name`, `last_name`, `birthday`.
+
+3. **`## Status addendum (2026-10-15)` — Public form UX.** The bullet
+   "A CSS rule hiding the native number-input spinners on the Age
+   field" describes a control that no longer exists. The public form
+   collects date of birth through a DatePicker: typed MM/DD/YYYY
+   entry, calendar popup, friendly "Sep 25, 1990" display after
+   entry.
+
+4. **Display strings.** `RegistrationFieldValidationRules` now renders
+   the group as "Date of birth". The server-side group key stays
+   `age`; the form-builder collision check is unchanged.
+
+Decisions: store birthday only and derive age on read
+(`Participant::getAgeAttribute()`, falling back to the stored `age`
+column for legacy rows); bounds tightened from 1–120 to 3–120.
+Client and server each enforce the bounds. Full phase record:
+`docs/progress.md` "2026-10-19 — Birthdate swap closure".

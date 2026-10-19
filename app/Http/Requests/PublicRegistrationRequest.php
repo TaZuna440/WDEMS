@@ -21,6 +21,15 @@ class PublicRegistrationRequest extends FormRequest
      * The pending payload is decrypted server-side; no client resubmission can
      * replace the contact values that were verified.
      *
+     * Transition note (2026-10-19): accepts both `age` and `birthday`.
+     * The public form submits `birthday` after Block 6 of the birthdate
+     * swap; legacy challenges created before that block carry `age`.
+     * Both being accepted means challenges survive the swap across the
+     * 24-hour TTL window without a coordinated cutover. It also means
+     * any direct caller of this request (tests, tooling) can keep using
+     * `age` indefinitely. Removing `age` acceptance is a future cleanup
+     * (Block 10 of the swap plan), not a Phase 2 requirement.
+     *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
@@ -47,6 +56,19 @@ class PublicRegistrationRequest extends FormRequest
      * Six common participant fields plus event-owned custom responses.
      * Requiredness comes only from Event::isCommonFieldRequired().
      *
+     * The demographic block accepts EITHER `age` (free-typed integer,
+     * legacy path) OR `birthday` (date, bounded to age 3-120). At
+     * least one must be present; the check lives in withValidator() so
+     * the error lands under the `birthday` key as a single field error
+     * rather than a double error from `required_without` rules.
+     *
+     * `birthday` bounds:
+     *   before_or_equal: today - 3 years  → must be at least 3 today
+     *   after_or_equal:  today - 120 years → must be at most 120 today
+     *
+     * Both bounds are inclusive so exactly-3-today and exactly-120-today
+     * both pass. Per D2 of the birthdate swap plan.
+     *
      * @return array<string, mixed>
      */
     public function rules(): array
@@ -54,18 +76,29 @@ class PublicRegistrationRequest extends FormRequest
         return [
             'first_name' => $this->personNameRules(),
             'last_name' => $this->personNameRules(),
+            'middle_name' => ['nullable', 'string', 'max:255', ...$this->humanNameQualityRules()],
+            'suffix' => ['nullable', 'string', 'max:16', 'regex:/\A[\p{L}.]+\z/u'],
             'email' => $this->commonFieldRules('email', ['string', 'email:rfc', 'max:255']),
             'contact_number' => $this->commonFieldRules('contact_number', [
                 'string',
                 'max:50',
                 ...$this->contactNumberQualityRules(),
             ]),
-            'age' => ['required', 'integer', 'min:1', 'max:120'],
+            'age' => ['nullable', 'integer', 'min:1', 'max:120'],
+            'birthday' => [
+                'nullable',
+                'date',
+                'before_or_equal:' . now()->subYears(3)->toDateString(),
+                'after_or_equal:' . now()->subYears(120)->toDateString(),
+            ],
             'address' => $this->commonFieldRules('address', [
                 'string',
                 'max:255',
                 ...$this->addressQualityRules(),
             ]),
+            'emergency_contact_name' => ['required', 'string', 'max:255', ...$this->humanNameQualityRules()],
+            'emergency_contact_relationship' => ['required', 'string', 'max:64'],
+            'emergency_contact_number' => ['required', 'string', 'max:50', ...$this->contactNumberQualityRules()],
             'responses' => ['nullable', 'array', 'max:5'],
             'responses.*' => ['nullable'],
         ];
@@ -96,6 +129,7 @@ class PublicRegistrationRequest extends FormRequest
 
     /**
      * Validate custom response ownership, type and requiredness, then ensure
+     * at least one demographic field (age or birthday) is present, then ensure
      * at least one required (therefore verifiable) identity key is available.
      * Optional contacts remain valid input, but cannot satisfy identity.
      */
@@ -155,6 +189,29 @@ class PublicRegistrationRequest extends FormRequest
                 }
             }
 
+            // -------- Demographic: at least one of age or birthday --------
+
+            // Accepts both, prefers neither at the validation layer.
+            // `birthday` is the preferred representation going forward;
+            // the error lands there so the UI highlights the field the
+            // organizer should fill in. `age` remains accepted for
+            // legacy callers (pre-swap challenges, existing test
+            // fixtures, direct tooling).
+            $age = $this->input('age');
+            $birthday = $this->input('birthday');
+
+            $hasAge = $age !== null && $age !== '';
+            $hasBirthday = is_string($birthday) && trim($birthday) !== '';
+
+            if (! $hasAge && ! $hasBirthday) {
+                $v->errors()->add(
+                    'birthday',
+                    'Please provide your date of birth.',
+                );
+            }
+
+            // -------- Identity: at least one required contact channel --------
+
             $email = $this->input('email');
             $phone = $this->input('contact_number');
             $hasRequiredEmail = $event->isCommonFieldRequired('email')
@@ -179,9 +236,18 @@ class PublicRegistrationRequest extends FormRequest
             'first_name.not_regex' => 'Please enter a valid first name.',
             'last_name.regex' => 'Please enter a valid last name.',
             'last_name.not_regex' => 'Please enter a valid last name.',
+            'middle_name.regex' => 'Please enter a valid middle name.',
+            'middle_name.not_regex' => 'Please enter a valid middle name.',
+            'suffix.regex' => 'Please enter a valid suffix (e.g. Jr., Sr., II).',
             'contact_number.regex' => 'Please enter a valid phone number.',
             'address.regex' => 'Please enter a valid address.',
             'address.not_regex' => 'Please enter a valid address.',
+            'emergency_contact_name.regex' => 'Please enter a valid emergency contact name.',
+            'emergency_contact_name.not_regex' => 'Please enter a valid emergency contact name.',
+            'emergency_contact_number.regex' => 'Please enter a valid emergency contact number.',
+            'birthday.date' => 'Please enter a valid date of birth.',
+            'birthday.before_or_equal' => 'You must be at least 3 years old to register.',
+            'birthday.after_or_equal' => 'Please enter a valid date of birth.',
         ];
     }
 

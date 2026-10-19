@@ -1,6 +1,7 @@
 import { Clock, UserPlus, X } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm } from '@inertiajs/react';
+import DatePicker from '@/components/date-picker';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { birthdayPickerBounds } from '@/lib/public-registration-validation';
 
 type CommonFieldRequirements = {
     email: boolean;
@@ -56,6 +58,7 @@ export default function WalkInDialog({
         first_name: string;
         last_name: string;
         age: string | number;
+        birthday: string;
         email: string;
         contact_number: string;
         address: string;
@@ -68,6 +71,7 @@ export default function WalkInDialog({
         first_name: '',
         last_name: '',
         age: '' as string | number,
+        birthday: '',
         email: '',
         contact_number: '',
         address: '',
@@ -129,6 +133,11 @@ export default function WalkInDialog({
         setResponse(fieldId, next);
     };
 
+
+    // Birthday picker bounds, computed once per dialog mount. Same
+    // bounds the client validator enforces (age 3-120). Not
+    // recomputed per render — the dialog submits in one sitting.
+    const birthdayBounds = useMemo(() => birthdayPickerBounds(), []);
     const requiredMark = (
         <span className="text-destructive"> *</span>
     );
@@ -256,22 +265,21 @@ export default function WalkInDialog({
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="walk-in-age">
-                            Age{requiredMark}
+                        <Label htmlFor="walk-in-birthday">
+                            Date of birth{requiredMark}
                         </Label>
-                        <Input
-                            id="walk-in-age"
-                            type="number"
-                            inputMode="numeric"
-                            min={1}
-                            max={120}
-                            value={form.data.age}
-                            onChange={(e) =>
-                                form.setData('age', e.target.value)
+                        <DatePicker
+                            id="walk-in-birthday"
+                            value={form.data.birthday ?? ''}
+                            onChange={(value) =>
+                                form.setData('birthday', value)
                             }
-                            autoComplete="off"
+                            placeholder="MM/DD/YYYY"
+                            minDate={birthdayBounds.minDate}
+                            maxDate={birthdayBounds.maxDate}
+                            autoFocusTyped
                         />
-                        <InputError message={form.errors.age} />
+                        <InputError message={form.errors.birthday} />
                     </div>
 
                     <div className="grid gap-2">

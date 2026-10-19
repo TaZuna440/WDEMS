@@ -30,7 +30,7 @@ use Illuminate\Validation\Rule;
  * Validation split:
  *
  *   - This request validates SHAPE. Array bounds, per-row field
- *     rules (name quality, age range, per-event common field
+ *     rules (name quality, demographic range (age/birthday), per-event common field
  *     required-ness), custom field ownership and format,
  *     client_uuid uniqueness within the payload, encoding mode,
  *     and per-row arrival_time.
@@ -81,7 +81,13 @@ class BulkWalkInRegistrationRequest extends FormRequest
 
             'rows.*.first_name' => $this->personNameRules(),
             'rows.*.last_name' => $this->personNameRules(),
-            'rows.*.age' => ['required', 'integer', 'min:1', 'max:120'],
+            'rows.*.age' => ['nullable', 'integer', 'min:1', 'max:120'],
+            'rows.*.birthday' => [
+                'nullable',
+                'date',
+                'before_or_equal:' . now()->subYears(3)->toDateString(),
+                'after_or_equal:' . now()->subYears(120)->toDateString(),
+            ],
 
             'rows.*.email' => $this->commonFieldRules('email', [
                 'string',
@@ -135,6 +141,9 @@ class BulkWalkInRegistrationRequest extends FormRequest
      * That is a per-row business rule and belongs in the controller
      * so a single row with no identity does not block the whole
      * batch. The controller catches the failure per row.
+     * The demographic at-least-one check (age or birthday) follows
+     * the same pattern: the controller rejects the single bad row
+     * under `rows.{i}.birthday` (D6) instead of failing the batch.
      */
     public function withValidator($validator): void
     {
@@ -282,6 +291,9 @@ class BulkWalkInRegistrationRequest extends FormRequest
             'rows.*.address.regex' => 'Please enter a valid address.',
             'rows.*.address.not_regex' => 'Please enter a valid address.',
 
+            'rows.*.birthday.date' => 'Please enter a valid date of birth.',
+            'rows.*.birthday.before_or_equal' => 'You must be at least 3 years old to register.',
+            'rows.*.birthday.after_or_equal' => 'Please enter a valid date of birth.',
             'rows.*.arrival_time.date_format' => 'Enter the arrival time as HH:MM (24-hour).',
         ];
     }

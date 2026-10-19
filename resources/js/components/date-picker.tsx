@@ -19,6 +19,15 @@ type Props = {
      * disabled. Pass a Date at local midnight.
      */
     maxDate?: Date | null;
+    /**
+     * When true, the typed-entry input inside the popover receives
+     * focus when the popover opens. Useful for flows where typed
+     * entry is the primary interaction (e.g. date of birth).
+     *
+     * Default false. The trigger still opens the popover; the user
+     * can click the calendar or the input.
+     */
+    autoFocusTyped?: boolean;
 };
 
 const MONTHS = [
@@ -51,6 +60,49 @@ function formatDisplay(d: Date): string {
     });
 }
 
+function formatTyped(d: Date): string {
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const y = d.getFullYear();
+    return `${m}/${day}/${y}`;
+}
+
+function makeDate(y: number, m: number, d: number): Date | null {
+    if (m < 1 || m > 12) return null;
+    if (d < 1 || d > 31) return null;
+    const date = new Date(y, m - 1, d);
+    if (
+        date.getFullYear() !== y ||
+        date.getMonth() !== m - 1 ||
+        date.getDate() !== d
+    ) {
+        return null;
+    }
+    return date;
+}
+
+function parseTyped(raw: string): Date | null {
+    const trimmed = raw.trim();
+    if (trimmed === '') return null;
+
+    // Accept ISO: YYYY-MM-DD
+    const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(trimmed);
+    if (iso) {
+        return makeDate(Number(iso[1]), Number(iso[2]), Number(iso[3]));
+    }
+
+    // Accept M/D/YYYY with / - . or whitespace separators.
+    // Two-digit years are rejected: guessing between 1900s and
+    // 2000s is unsafe on a shared picker used for both birthdates
+    // and event dates.
+    const mdy = /^(\d{1,2})[\/\-.\s](\d{1,2})[\/\-.\s](\d{4})$/.exec(trimmed);
+    if (mdy) {
+        return makeDate(Number(mdy[3]), Number(mdy[1]), Number(mdy[2]));
+    }
+
+    return null;
+}
+
 function isBeforeDay(a: Date, b: Date): boolean {
     const a0 = new Date(a);
     const b0 = new Date(b);
@@ -76,10 +128,17 @@ export default function DatePicker({
     className,
     minDate = null,
     maxDate = null,
+    autoFocusTyped = false,
 }: Props) {
     const [open, setOpen] = useState(false);
     const [viewDate, setViewDate] = useState<Date>(() => parseISO(value) ?? new Date());
+    const [view, setView] = useState<'days' | 'months' | 'years'>('days');
+    const [yearPage, setYearPage] = useState(0);
+    const [typedValue, setTypedValue] = useState('');
+    const [typedError, setTypedError] = useState('');
     const containerRef = useRef<HTMLDivElement>(null);
+    const typedInputRef = useRef<HTMLInputElement>(null);
+    const hadCommitError = useRef(false);
 
     const selected = parseISO(value);
     const today = new Date();
@@ -90,10 +149,34 @@ export default function DatePicker({
         if (parsed) setViewDate(parsed);
     }, [value]);
 
+    // Sync typed-entry field with the current value each time the
+    // popover opens. On close, clear the error and the pending-error
+    // flag so the next open starts clean.
+    useEffect(() => {
+        if (open) {
+            setTypedValue(selected ? formatTyped(selected) : '');
+            setTypedError('');
+            hadCommitError.current = false;
+            setView('days');
+            setYearPage(0);
+            if (autoFocusTyped) {
+                requestAnimationFrame(() => typedInputRef.current?.focus());
+            }
+        } else {
+            setTypedError('');
+            hadCommitError.current = false;
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
+
     useEffect(() => {
         if (!open) return;
         const handler = (e: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                // If the user typed something invalid and the commit
+                // failed, the error is showing. Do not close — the
+                // user needs to see and fix it.
+                if (hadCommitError.current) return;
                 setOpen(false);
             }
         };
@@ -155,12 +238,92 @@ export default function DatePicker({
         setOpen(false);
     };
 
+    const boundsError = (parsed: Date): string | null => {
+        if (minDate && isBeforeDay(parsed, minDate)) {
+            return `Date must be on or after ${formatDisplay(minDate)}.`;
+        }
+        if (maxDate && isAfterDay(parsed, maxDate)) {
+            return `Date must be on or before ${formatDisplay(maxDate)}.`;
+        }
+        return null;
+    };
+
+    const commitTyped = (): boolean => {
+        if (typedValue.trim() === '') {
+            setTypedError('');
+            hadCommitError.current = false;
+            return true;
+        }
+        const parsed = parseTyped(typedValue);
+        if (parsed === null) {
+            setTypedError('Enter a valid date as MM/DD/YYYY.');
+            hadCommitError.current = true;
+            return false;
+        }
+        const rangeError = boundsError(parsed);
+        if (rangeError !== null) {
+            setTypedError(rangeError);
+            hadCommitError.current = true;
+            return false;
+        }
+        setTypedError('');
+        hadCommitError.current = false;
+        onChange(toISO(parsed));
+        setOpen(false);
+        return true;
+    };
+
+    const onTypedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setTypedValue(e.target.value);
+        if (typedError !== '') setTypedError('');
+        hadCommitError.current = false;
+    };
+
+    const onTypedKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            commitTyped();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            setOpen(false);
+        }
+    };
+
+    const onTypedBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        // If focus moves to another element inside the picker
+        // (calendar cell, Today button, Prev/Next), do not commit.
+        // The click that follows will do the intended thing.
+        const next = e.relatedTarget as Node | null;
+        if (next !== null && containerRef.current?.contains(next)) {
+            return;
+        }
+        if (typedValue.trim() !== '') {
+            commitTyped();
+        }
+    };
+
+    const toggleOpen = () => {
+        if (disabled) return;
+        if (open) {
+            // If there is a pending typed value, try to commit it
+            // first. On success, commitTyped closes the popover. On
+            // failure, the error is shown and the popover stays open.
+            if (typedValue.trim() !== '') {
+                commitTyped();
+                return;
+            }
+            setOpen(false);
+            return;
+        }
+        setOpen(true);
+    };
+
     return (
         <div ref={containerRef} className={cn('relative', className)}>
             <button
                 type="button"
                 id={id}
-                onClick={() => !disabled && setOpen((v) => !v)}
+                onClick={toggleOpen}
                 disabled={disabled}
                 aria-haspopup="dialog"
                 aria-expanded={open}
@@ -198,6 +361,35 @@ export default function DatePicker({
                     className="bg-popover text-popover-foreground absolute left-0 top-full z-50 mt-1 w-72 rounded-lg border border-white/10 p-3 shadow-2xl"
                     role="dialog"
                 >
+                    <div className="mb-2">
+                        <input
+                            ref={typedInputRef}
+                            type="text"
+                            inputMode="numeric"
+                            value={typedValue}
+                            onChange={onTypedChange}
+                            onKeyDown={onTypedKeyDown}
+                            onBlur={onTypedBlur}
+                            placeholder="MM/DD/YYYY"
+                            aria-label="Enter date as MM/DD/YYYY"
+                            aria-invalid={!!typedError}
+                            className={cn(
+                                'border-input bg-input flex h-8 w-full rounded-md border px-2 text-sm shadow-xs transition-[color,box-shadow]',
+                                'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none',
+                                typedError !== '' && 'border-destructive',
+                            )}
+                        />
+                        {typedError !== '' && (
+                            <p
+                                role="alert"
+                                className="mt-1 text-xs text-destructive"
+                            >
+                                {typedError}
+                            </p>
+                        )}
+                    </div>
+
+                    {view === 'days' && (
                     <div className="mb-2 flex items-center justify-between">
                         <button
                             type="button"
@@ -207,9 +399,14 @@ export default function DatePicker({
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </button>
-                        <span className="text-sm font-medium">
+                        <button
+                            type="button"
+                            onClick={() => { setView('years'); setYearPage(0); }}
+                            aria-label="Choose year"
+                            className="rounded-md px-2 py-1 text-sm font-medium transition-colors hover:bg-white/5 hover:text-lime-brand"
+                        >
                             {MONTHS[month]} {year}
-                        </span>
+                        </button>
                         <button
                             type="button"
                             onClick={() => setViewDate(new Date(year, month + 1, 1))}
@@ -219,7 +416,117 @@ export default function DatePicker({
                             <ChevronRight className="h-4 w-4" />
                         </button>
                     </div>
+                    )}
 
+                    {view === 'years' && (
+                    <div className="mb-2">
+                        <div className="mb-2 flex items-center justify-between">
+                            <button
+                                type="button"
+                                onClick={() => setYearPage((p) => p - 1)}
+                                aria-label="Previous years"
+                                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </button>
+                            <span className="text-sm font-medium">
+                                {year - yearPage * 12 - 11} – {year - yearPage * 12}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setYearPage((p) => Math.max(0, p - 1))}
+                                aria-label="Next years"
+                                disabled={yearPage <= 0}
+                                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground disabled:opacity-30"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                            {Array.from({ length: 12 }, (_, i) => {
+                                const y = year - yearPage * 12 - 11 + i;
+                                const isCurrentYear = y === year;
+                                const outOfBounds: boolean =
+                                    (minDate !== null && y < minDate.getFullYear()) ||
+                                    (maxDate !== null && y > maxDate.getFullYear());
+                                return (
+                                    <button
+                                        key={y}
+                                        type="button"
+                                        disabled={outOfBounds}
+                                        onClick={() => {
+                                            setViewDate(new Date(y, month, 1));
+                                            setView('months');
+                                        }}
+                                        className={cn(
+                                            'flex h-10 items-center justify-center rounded-md text-sm transition-colors',
+                                            outOfBounds && 'cursor-not-allowed text-muted-foreground/30',
+                                            !outOfBounds && 'text-foreground hover:bg-white/5',
+                                            !outOfBounds && isCurrentYear && 'bg-lime-brand font-medium text-navy-900 hover:bg-lime-brand/90',
+                                        )}
+                                    >
+                                        {y}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    )}
+
+                    {view === 'months' && (
+                    <div className="mb-2">
+                        <div className="mb-2 flex items-center justify-between">
+                            <button
+                                type="button"
+                                onClick={() => setView('years')}
+                                aria-label="Back to years"
+                                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setView('years'); setYearPage(0); }}
+                                className="rounded-md px-2 py-1 text-sm font-medium transition-colors hover:bg-white/5 hover:text-lime-brand"
+                            >
+                                {year}
+                            </button>
+                            <span className="w-7" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                            {MONTHS.map((m, i) => {
+                                const isCurrentMonth = i === month;
+                                const monthStart = new Date(year, i, 1);
+                                const monthEnd = new Date(year, i + 1, 0);
+                                const outOfBounds: boolean =
+                                    (minDate !== null && isAfterDay(minDate, monthEnd)) ||
+                                    (maxDate !== null && isBeforeDay(maxDate, monthStart));
+                                return (
+                                    <button
+                                        key={m}
+                                        type="button"
+                                        disabled={outOfBounds}
+                                        onClick={() => {
+                                            setViewDate(new Date(year, i, 1));
+                                            setView('days');
+                                        }}
+                                        className={cn(
+                                            'flex h-10 items-center justify-center rounded-md text-sm transition-colors',
+                                            outOfBounds && 'cursor-not-allowed text-muted-foreground/30',
+                                            !outOfBounds && 'text-foreground hover:bg-white/5',
+                                            !outOfBounds && isCurrentMonth && 'bg-lime-brand font-medium text-navy-900 hover:bg-lime-brand/90',
+                                        )}
+                                    >
+                                        {m.slice(0, 3)}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    )}
+
+                    {view === 'days' && (
+                    <>
                     <div className="mb-1 grid grid-cols-7 gap-0.5">
                         {WEEKDAYS.map((wd) => (
                             <div
@@ -266,6 +573,8 @@ export default function DatePicker({
                         })}
                     </div>
 
+                    </>
+                    )}
                     <div className="mt-2 flex items-center justify-between border-t border-white/5 pt-2">
                         <button
                             type="button"

@@ -8,13 +8,22 @@
  *
  * Error keys match the server's naming so `<InputError>` slots fire
  * on both server and client errors without any translation layer:
- *   - common fields use their own name: "email", "age", ...
+ *   - common fields use their own name: "email", "birthday", ...
  *   - custom fields use "responses.{field_id}"
  *   - at-least-one identity rule uses "identity" (form-level)
  *
+ * Demographics (age OR birthday). The 2026-10-19 birthdate swap
+ * replaced the free-typed `age` field with a bounded `birthday` date
+ * picker (age 3 to 120). Both fields remain accepted by the server so
+ * pre-swap challenges and legacy callers keep working. This file
+ * mirrors that: `age` and `birthday` are both optional on
+ * RegistrationFormData, and at least one must be present when the
+ * caller supplies a birthday field.
+ *
  * Required-ness of email, contact_number, and address comes from the
  * event's common_field_requirements map (passed as the third
- * argument). first_name, last_name, and age are always required.
+ * argument). first_name, last_name, and (age-or-birthday) are always
+ * required.
  *
  * Name quality checks reuse humanNameQualityError() from
  * @/lib/event-validation. That function is the client mirror of the
@@ -43,9 +52,47 @@ export type ServerField = {
 export type RegistrationFormData = {
     first_name: string;
     last_name: string;
+    /**
+     * Optional middle name. Same quality rules as first/last when
+     * present. Part of the composite identity key (W7).
+     */
+    middle_name?: string;
+    /**
+     * Optional suffix (Jr., Sr., II…). Letters and periods only,
+     * max 16 chars. Part of the composite identity key (W7).
+     */
+    suffix?: string;
+    /**
+     * Emergency contact (Step 3). Required at intake when the caller
+     * supplies the fields; stored on the registration, not the
+     * participant.
+     */
+    emergency_contact_name?: string;
+    emergency_contact_relationship?: string;
+    emergency_contact_number?: string;
+    /**
+     * Step 1 consent gate (W6). Client-side only; the server records
+     * consent_accepted_at at finalize() regardless. Not sent as a
+     * separate field — the checkbox state lives in the wizard.
+     */
+    consent_accepted?: boolean;
     email: string;
     contact_number: string;
-    age: string;
+    /**
+     * Legacy demographic field. Accepted by the server since
+     * pre-swap challenges and direct callers still submit it.
+     * Optional on this type so bulk walk-in rows (which still
+     * collect age only) continue to compile. When the public form
+     * collects a birthday, this stays empty.
+     */
+    age?: string;
+    /**
+     * Preferred demographic field. ISO date `YYYY-MM-DD`. Bounded
+     * to the age 3-120 envelope by both client and server. When
+     * present, the server writes it to Participant::birthday and the
+     * Participant accessor derives age from it on read.
+     */
+    birthday?: string;
     address: string;
     responses: Record<number, string | string[]>;
 };
@@ -112,6 +159,57 @@ function normalizePhone(raw: string): string | null {
     }
 
     return null;
+}
+
+/**
+ * ISO date string for "today minus N years" (local midnight).
+ *
+ * Used to build both the string-form bounds (for comparison) and
+ * the Date-form bounds (for the DatePicker's minDate/maxDate props
+ * — see birthdayPickerBounds()). The two forms are always in sync
+ * because both derive from the same Date math.
+ *
+ * Edge case note: on leap-day anniversaries, JS Date#setFullYear
+ * rolls Feb 29 forward to Mar 1 in non-leap years. Laravel's
+ * Carbon::subYears clamps backward to Feb 28. Off-by-one-day
+ * difference in a 1-in-1460-days scenario; server is authoritative.
+ */
+function isoYearsAgo(years: number): string {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setFullYear(d.getFullYear() - years);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+/**
+ * Earliest and latest acceptable birthday dates, in Date form.
+ *
+ * Exported so the DatePicker call site (public.tsx, Block 6) can
+ * pass the same bounds the client-side validator enforces.
+ *
+ * Returns:
+ *   minDate = today - 120 years  (oldest person allowed)
+ *   maxDate = today - 3 years    (youngest person allowed)
+ *
+ * Both bounds are inclusive — a person aged exactly 3 today and a
+ * person aged exactly 120 today are both accepted. Matches the
+ * server-side before_or_equal / after_or_equal rules on
+ * PublicRegistrationRequest.
+ */
+export function birthdayPickerBounds(): { minDate: Date; maxDate: Date } {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const min = new Date(today);
+    min.setFullYear(min.getFullYear() - 120);
+
+    const max = new Date(today);
+    max.setFullYear(max.getFullYear() - 3);
+
+    return { minDate: min, maxDate: max };
 }
 
 /**
@@ -185,6 +283,58 @@ function validateAddress(value: string): string | null {
     return null;
 }
 
+/**
+ * Birthday validation: ISO format, age 3-120 bounds.
+ *
+ * Mirrors PublicRegistrationRequest's `birthday` rules:
+ *   nullable|date|before_or_equal:(today-3y)|after_or_equal:(today-120y)
+ *
+ * ISO dates compare correctly as strings, so the bounds check is a
+ * plain `<=` / `>=` against the string forms. No Date construction
+ * needed at comparison time.
+ *
+ * Returns the error message or null.
+ */
+function validateBirthday(value: string): string | null {
+    if (!DATE_PATTERN.test(value)) {
+        return 'Please enter a valid date of birth.';
+    }
+
+    const maxDate = isoYearsAgo(3);   // youngest allowed (must be >= this)
+    const minDate = isoYearsAgo(120); // oldest allowed (must be <= this)
+
+    if (value > maxDate) {
+        return 'You must be at least 3 years old to register.';
+    }
+    if (value < minDate) {
+        return 'Please enter a valid date of birth.';
+    }
+
+    return null;
+}
+
+/**
+ * Non-blocking warning when the emergency contact number matches the
+ * participant's own number. Decision 2026-10-19: warn, don't block.
+ * The wizard surfaces this next to the field; validation still passes.
+ */
+export function emergencyContactWarning(
+    data: Pick<RegistrationFormData, 'contact_number' | 'emergency_contact_number'>,
+): string | null {
+    const own =
+        typeof data.contact_number === 'string' ? normalizePhone(data.contact_number) : null;
+    const ec =
+        typeof data.emergency_contact_number === 'string'
+            ? normalizePhone(data.emergency_contact_number)
+            : null;
+
+    if (own !== null && ec !== null && own === ec) {
+        return 'This is the same as your contact number. Make sure someone else can be reached in an emergency.';
+    }
+
+    return null;
+}
+
 export function validateRegistrationForm(
     data: RegistrationFormData,
     fields: ServerField[],
@@ -207,14 +357,103 @@ export function validateRegistrationForm(
         errors.last_name = lastNameError;
     }
 
-    if (isBlank(data.age)) {
-        errors.age = 'Age is required.';
-    } else {
+    // -------- Optional name parts (composite identity key in W7) --------
+
+    // Both are optional — blank is valid. When present, middle name
+    // gets the same quality checks as first/last; suffix is limited
+    // to letters and periods (Jr., Sr., II, III…), mirroring
+    // PublicRegistrationRequest.
+    if (!isBlank(data.middle_name) && typeof data.middle_name === 'string') {
+        const middleNameError = validateNameValue(data.middle_name, 'Middle name');
+        if (middleNameError) {
+            errors.middle_name = middleNameError;
+        }
+    }
+
+    if (!isBlank(data.suffix) && typeof data.suffix === 'string') {
+        if (data.suffix.length > 16 || !/^[\p{L}.]+$/u.test(data.suffix)) {
+            errors.suffix = 'Please enter a valid suffix (e.g. Jr., Sr., II).';
+        }
+    }
+
+    // -------- Demographics: age or birthday --------
+
+    // Both fields are optional on the type so not-yet-migrated
+    // callers keep compiling. `tracksBirthday` distinguishes callers
+    // that supply a birthday field at all — the public form, the
+    // single walk-in dialog, and bulk walk-in rows (Phase 4) do.
+    const tracksBirthday = data.birthday !== undefined;
+    const ageBlank = isBlank(data.age);
+    const birthdayBlank = isBlank(data.birthday);
+
+    // Individual age range check (legacy path — only when provided).
+    if (!ageBlank) {
         const age = Number(data.age);
         if (!Number.isInteger(age) || age < 1 || age > 120) {
             errors.age = 'Age must be a whole number between 1 and 120.';
         }
     }
+
+    // -------- Emergency contact (Step 3) --------
+
+    // Required at intake; stored per-registration. Validated only when
+    // the caller supplies the fields (the wizard does; the legacy
+    // single-page form does not yet) — same tracksX gate pattern as
+    // birthday.
+    const tracksEmergencyContact = data.emergency_contact_name !== undefined;
+
+    if (tracksEmergencyContact) {
+        const ecNameError = validateNameValue(
+            typeof data.emergency_contact_name === 'string' ? data.emergency_contact_name : '',
+            'Emergency contact name',
+        );
+        if (ecNameError) {
+            errors.emergency_contact_name = ecNameError;
+        }
+
+        if (isBlank(data.emergency_contact_relationship)) {
+            errors.emergency_contact_relationship = 'Relationship is required.';
+        } else if (
+            typeof data.emergency_contact_relationship === 'string' &&
+            data.emergency_contact_relationship.length > 64
+        ) {
+            errors.emergency_contact_relationship =
+                'Relationship must not exceed 64 characters.';
+        }
+
+        if (isBlank(data.emergency_contact_number)) {
+            errors.emergency_contact_number = 'Emergency contact number is required.';
+        } else if (typeof data.emergency_contact_number === 'string') {
+            const ecContactError = validateContactNumber(data.emergency_contact_number);
+            if (ecContactError) {
+                errors.emergency_contact_number = ecContactError;
+            }
+        }
+    }
+
+    // Individual birthday format/bounds check (new path — only when
+    // provided). Invalid birthday always errors even if a valid age
+    // is also supplied, because the DOB is what will be persisted
+    // (server writes birthday in preference to age).
+    if (!birthdayBlank && typeof data.birthday === 'string') {
+        const birthdayError = validateBirthday(data.birthday);
+        if (birthdayError) {
+            errors.birthday = birthdayError;
+        }
+    }
+
+    // At-least-one requirement. `birthday` is preferred as the error
+    // key because that is what the current UI collects; the server
+    // mirrors this preference in withValidator().
+    if (ageBlank && birthdayBlank) {
+        if (tracksBirthday) {
+            errors.birthday = 'Please provide your date of birth.';
+        } else {
+            errors.age = 'Age is required.';
+        }
+    }
+
+    // -------- Contact fields --------
 
     if (isBlank(data.email)) {
         if (isRequired('email')) {
