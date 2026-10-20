@@ -59,6 +59,8 @@ export function validateBulkWalkInRows(
         const rowData: RegistrationFormData = {
             first_name: row.first_name,
             last_name: row.last_name,
+            middle_name: row.middle_name,
+            suffix: row.suffix,
             email: row.email,
             contact_number: row.contact_number,
             age: row.age,
@@ -112,6 +114,8 @@ export function makeBulkWalkInRow(): BulkWalkInRow {
         client_uuid: crypto.randomUUID(),
         first_name: '',
         last_name: '',
+        middle_name: '',
+        suffix: '',
         email: '',
         contact_number: '',
         age: '',

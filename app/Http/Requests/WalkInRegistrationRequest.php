@@ -74,6 +74,8 @@ class WalkInRegistrationRequest extends FormRequest
         return [
             'first_name' => $this->personNameRules(),
             'last_name' => $this->personNameRules(),
+            'middle_name' => ['nullable', 'string', 'max:50'],
+            'suffix' => ['nullable', 'string', 'max:10'],
             'age' => ['nullable', 'integer', 'min:1', 'max:120'],
             'birthday' => [
                 'nullable',
@@ -243,18 +245,14 @@ class WalkInRegistrationRequest extends FormRequest
 
             // -------- Pass 6: not already registered --------
 
-            $existing = null;
-
-            if ($emailClean !== '') {
-                $existing = Participant::where('email', $emailClean)->first();
-            }
-
-            if ($existing === null && $normalized !== null) {
-                $existing = Participant::where(
-                    'contact_number_normalized',
-                    $normalized,
-                )->first();
-            }
+            $existing = Participant::findByComposite(
+                $emailClean,
+                $normalized,
+                is_string($this->input('first_name')) ? $this->input('first_name') : null,
+                is_string($this->input('last_name')) ? $this->input('last_name') : null,
+                is_string($this->input('middle_name')) ? $this->input('middle_name') : null,
+                is_string($this->input('suffix')) ? $this->input('suffix') : null,
+            );
 
             if ($existing === null) {
                 return;

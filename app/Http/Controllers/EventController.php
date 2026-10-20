@@ -87,6 +87,14 @@ class EventController extends Controller
     {
         $event->load('creator:id,name');
         $related = $event->relatedRecordCounts();
+        $finalizationSummary = null;
+        if ($event->isRunningEvent() && $event->canFinalize()) {
+            $finalizationSummary = [
+                'registered' => $event->registrations()->count(),
+                'checked_in' => $event->registrations()->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'present'))->count(),
+                'walk_ins' => $event->registrations()->where('source', 'walk_in')->count(),
+            ];
+        }
 
         return Inertia::render('events/show', [
             'event' => [
@@ -132,6 +140,7 @@ class EventController extends Controller
                 'can_open_registration' => $event->canOpenRegistration(),
                 'can_close_registration' => $event->canCloseRegistration(),
                 'can_finalize' => $event->canFinalize(),
+                'finalization_summary' => $finalizationSummary,
             ],
             'related' => $related,
             'has_related_records' => array_sum($related) > 0,
@@ -497,24 +506,32 @@ class EventController extends Controller
         return redirect()->route('registration-monitor.show', $event);
     }
 
-    public function closeRegistration(Event $event): RedirectResponse
+    public function closeRegistration(Request $request, Event $event): RedirectResponse
     {
-        if (! $event->canCloseRegistration()) {
-            abort(403, 'Cannot close registration for this event in its current state.');
-        }
+        abort_unless($event->canCloseRegistration(), 403);
+        $request->validate(['password' => ['required', 'string', 'current_password']]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($event): void {
+            $event = Event::query()->lockForUpdate()->findOrFail($event->id);
+            abort_unless($event->canCloseRegistration(), 403);
+            $event->registration_end = now();
+            app(EventWorkflow::class)->closeRegistration($event);
+        });
 
-        $workflow = app(EventWorkflow::class);
+        return redirect()->route('registration-monitor.show', $event);
+    }
 
-        if (! $workflow->canTransition($event, EventStatus::RegistrationClosed)) {
-            abort(403, 'Cannot close registration for this event.');
-        }
+    public function reopenRegistration(Request $request, Event $event): RedirectResponse
+    {
+        abort_unless($event->isRunningEvent() && $event->status === EventStatus::RegistrationClosed, 403);
+        $request->validate(['password' => ['required', 'string', 'current_password']]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($event): void {
+            $event = Event::query()->lockForUpdate()->findOrFail($event->id);
+            abort_unless($event->isRunningEvent() && $event->status === EventStatus::RegistrationClosed, 403);
+            $event->registration_end = null;
+            app(EventWorkflow::class)->openRegistration($event);
+        });
 
-        $event->registration_end = now();
-        $event->save();
-
-        $workflow->closeRegistration($event);
-
-        return redirect()->route('events.show', $event);
+        return redirect()->route('registration-monitor.show', $event);
     }
 
     /**

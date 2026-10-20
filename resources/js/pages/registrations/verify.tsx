@@ -5,6 +5,8 @@ import FirebasePhoneVerifier, {
     type PhoneStage,
 } from '@/components/firebase-phone-verifier';
 import InputError from '@/components/input-error';
+import RegistrationRecaptcha from '@/components/registration-recaptcha';
+import RegistrationBarcode from '@/components/registration-barcode';
 import WizardProgress from '@/components/wizard-progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +30,8 @@ type Props = {
     event_name: string;
     form_url: string;
     verification_url: string;
+    email_only?: boolean;
+    recaptcha_site_key?: string | null;
     verification: {
         status:
             | 'missing'
@@ -40,6 +44,7 @@ type Props = {
         email?: ChannelState;
         phone?: ChannelState;
         ready?: boolean;
+        similarity_warning?: boolean;
         submitted_phone?: string | null;
         attendance_code?: string | null;
         chosen_channel?: 'email' | 'phone' | null;
@@ -89,10 +94,11 @@ function RegistrationCodePanel({ code }: { code: string | null }) {
                 </p>
             )}
 
+            {code !== null && <RegistrationBarcode code={code} />}
+
             {code !== null && (
                 <p className="text-center text-sm text-muted-foreground">
-                    Present this at the event table so staff can find your
-                    registration.
+                    Save a screenshot or print this barcode for check-in at the event.
                 </p>
             )}
 
@@ -143,11 +149,17 @@ function ContactVerification({
     state,
     url,
     now,
+    captchaRequired = false,
+    captchaToken = '',
+    onSent,
 }: {
     channel: 'email' | 'phone';
     state: ChannelState;
     url: string;
     now: number;
+    captchaRequired?: boolean;
+    captchaToken?: string;
+    onSent?: () => void;
 }) {
     const form = useForm({ code: '' });
     const resend = useForm({});
@@ -177,8 +189,7 @@ function ContactVerification({
                 </p>
             ) : state.status === 'locked' ? (
                 <p role="alert">
-                    Five incorrect attempts were made. Start a new registration
-                    to verify this contact again.
+                    {captchaRequired ? 'Too many attempts. Please wait 2 hours to try again.' : 'Five incorrect attempts were made. Start a new registration to verify this contact again.'}
                 </p>
             ) : (
                 <>
@@ -253,16 +264,18 @@ function ContactVerification({
                         <Button
                             type="button"
                             variant="outline"
-                            disabled={wait > 0 || resend.processing}
-                            onClick={() =>
+                            disabled={wait > 0 || resend.processing || (captchaRequired && !captchaToken)}
+                            onClick={() => {
+                                resend.transform(() => ({ recaptcha_token: captchaToken }));
                                 resend.post(`${url}/email/resend`, {
                                     preserveScroll: true,
-                                })
-                            }
+                                    onFinish: onSent,
+                                });
+                            }}
                         >
                             {wait > 0
                                 ? `Request another code in ${wait}s`
-                                : 'Send another email code'}
+                                : state.status === 'waiting' ? 'Send Email' : 'Send another email code'}
                         </Button>
                     )}
                 </>
@@ -325,9 +338,13 @@ export default function VerifyRegistration({
     form_url,
     verification_url,
     verification,
+    email_only = false,
+    recaptcha_site_key = null,
 }: Props) {
+    const [captchaToken, setCaptchaToken] = useState('');
+    const [captchaReset, setCaptchaReset] = useState(0);
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
-    const completion = useForm({});
+    const completion = useForm({ similarity_acknowledged: false });
     const acknowledgement = useForm({});
     const [now, setNow] = useState(() => Date.now());
     const [phoneStage, setPhoneStage] = useState<PhoneStage>('idle');
@@ -435,7 +452,7 @@ export default function VerifyRegistration({
 
                 {verification.status === 'pending' && !expired && (
                     <>
-                        {showRecaptchaSection && (
+                        {showRecaptchaSection && !email_only && (
                             <section
                                 className={
                                     phoneStage === 'idle' || !phoneNeedsWork
@@ -452,6 +469,10 @@ export default function VerifyRegistration({
                                 <div id="recaptcha-container" />
                             </section>
                         )}
+                        {email_only && emailNeedsWork && <section className="rounded-xl border border-border p-6">
+                            <h2 className="mb-3 text-lg font-semibold">Human verification</h2>
+                            <RegistrationRecaptcha siteKey={recaptcha_site_key} resetKey={captchaReset} onToken={setCaptchaToken} />
+                        </section>}
                         {needsChannelChoice ? (
                             <ChannelChoiceScreen
                                 verificationUrl={verification_url}
@@ -464,6 +485,9 @@ export default function VerifyRegistration({
                                         state={verification.email}
                                         url={verification_url}
                                         now={now}
+                                        captchaRequired={email_only}
+                                        captchaToken={captchaToken}
+                                        onSent={() => { setCaptchaToken(''); setCaptchaReset((value) => value + 1); }}
                                     />
                                 )}
                                 {showPhoneChannel && phoneChannel && (
@@ -488,10 +512,14 @@ export default function VerifyRegistration({
                         >
                             Refresh verification status
                         </Button>
+                        {verification.similarity_warning && <div className="space-y-3 rounded-xl border border-amber-500/40 p-4 text-sm" role="alert">
+                            <p>A similar registration may exist. Check that your name, birthdate, and contact are correct. You can continue if this is a separate registration.</p>
+                            <label className="flex items-center gap-2"><input type="checkbox" checked={completion.data.similarity_acknowledged} onChange={e => completion.setData('similarity_acknowledged', e.target.checked)} />I reviewed my details and want to continue.</label>
+                        </div>}
                         <Button
                             type="button"
                             disabled={
-                                !verification.ready || completion.processing
+                                !verification.ready || (verification.similarity_warning && !completion.data.similarity_acknowledged) || completion.processing
                             }
                             onClick={() =>
                                 completion.post(

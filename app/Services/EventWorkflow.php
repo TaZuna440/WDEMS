@@ -15,6 +15,10 @@ class EventWorkflow
      */
     public function transition(Event $event, EventStatus $target): Event
     {
+        if (! $event->isRunningEvent()) {
+            throw new InvalidArgumentException('The running-event workflow cannot transition this event kind.');
+        }
+
         $current = $event->status;
 
         if (! $current instanceof EventStatus) {
@@ -69,6 +73,10 @@ class EventWorkflow
      */
     public function canTransition(Event $event, EventStatus $target): bool
     {
+        if (! $event->isRunningEvent()) {
+            return false;
+        }
+
         $current = $event->status;
 
         if (! $current instanceof EventStatus) {

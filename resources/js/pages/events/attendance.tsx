@@ -1,8 +1,10 @@
+import PaperRegistrationForm from '@/components/paper-registration-form';
+import CheckInCamera from '@/components/check-in-camera';
+import QuickWalkIn from '@/components/quick-walk-in';
 import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
     Check,
-    CheckCircle2,
     Clock,
     Plus,
     Search,
@@ -11,27 +13,14 @@ import {
     Lock,
     UserCheck,
     MoreHorizontal,
-    Save,
     X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AttendanceFilterChips, {
     type AttendanceFilter,
 } from '@/components/attendance-filter-chips';
-import BulkMarkToolbar from '@/components/bulk-mark-toolbar';
-import BulkWalkInTable from '@/components/bulk-walk-in-table';
 import Pagination from '@/components/pagination';
-import WalkInDialog from '@/components/walk-in-dialog';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -39,17 +28,11 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import {
-    makeBulkWalkInRow,
-    validateBulkWalkInRows,
-    type BulkWalkInRow,
-} from '@/lib/attendance-bulk-validation';
 
-type AttendanceStatus = 'present' | 'late' | 'absent' | 'excused';
+type AttendanceStatus = 'present' | 'absent';
 
-type PageMode = 'mark' | 'confirm' | 'batch';
+type PageMode = 'check-in' | 'walk-in';
 
-type EncodingMode = 'live' | 'deferred';
 
 type StatusOption = {
     value: AttendanceStatus;
@@ -61,6 +44,8 @@ type AttendanceRow = {
     source: string;
     registered_at: string | null;
     attendance_code: string | null;
+    tshirt_choice?: string | null;
+    custom_fields?: { label: string; value: string | string[] }[];
     participant: {
         id: number | null;
         full_name: string | null;
@@ -97,6 +82,8 @@ type EventData = {
         address: boolean;
     };
     registration_fields: ServerField[];
+    form_version: number;
+    tshirt: { label: string; choices: string[]; required: boolean } | null;
 };
 
 type Props = {
@@ -122,19 +109,9 @@ type Props = {
 
 const STATUS_STYLES: Record<AttendanceStatus, string> = {
     present: 'bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400',
-    late: 'bg-[#13253B] text-white border border-[#13253B] dark:bg-yellow-500/15 dark:text-yellow-500 dark:border-yellow-500/30',
     absent: 'bg-destructive/15 text-destructive border-destructive/30',
-    excused: 'bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-400',
 };
 
-const FILTER_LABELS: Record<AttendanceFilter, string> = {
-    all: 'all registrations',
-    unmarked: 'unmarked',
-    present: 'present',
-    absent: 'absent',
-    late: 'late',
-    excused: 'excused',
-};
 
 const MAX_BULK_ROWS = 100;
 
@@ -159,31 +136,11 @@ export default function EventsAttendance({
 }: Props) {
     const [localSearch, setLocalSearch] = useState(filters.q);
     const [localCode, setLocalCode] = useState(filters.code);
+    const codeInput = useRef<HTMLInputElement>(null);
+    const [checkInMessage, setCheckInMessage] = useState('');
     const [marking, setMarking] = useState<number | null>(null);
-    const [walkInOpen, setWalkInOpen] = useState(false);
-    const [mode, setMode] = useState<PageMode>('mark');
-    const [selected, setSelected] = useState<Set<number>>(new Set());
-    const [confirm, setConfirm] = useState<{
-        shape: 'selected' | 'all';
-        count: number;
-    } | null>(null);
-    const [bulkWorking, setBulkWorking] = useState(false);
-
-    // Bulk walk-in rows. Starts with a single empty row so the table
-    // has something to render on first entry.
-    const [bulkRows, setBulkRows] = useState<BulkWalkInRow[]>([
-        makeBulkWalkInRow(),
-    ]);
-    const [bulkErrors, setBulkErrors] = useState<Record<string, string>>({});
-    const [bulkSubmitting, setBulkSubmitting] = useState(false);
-
-    // Batch-level encoding mode. One choice for the whole stack of
-    // paper forms: either the operator is entering participants as
-    // they arrive (live), or transcribing a paper form after the fact
-    // (deferred). In deferred mode, each row carries its own arrival
-    // time; the server uses it to stamp attendance_time.
-    const [batchEncodingMode, setBatchEncodingMode] =
-        useState<EncodingMode>('live');
+    const [mode, setMode] = useState<PageMode>('check-in');
+    const [walkInMode, setWalkInMode] = useState<'quick' | 'paper'>('quick');
 
     const baseUrl = `/events/${event.id}/attendance`;
     const codeActive = filters.code !== '';
@@ -205,9 +162,6 @@ export default function EventsAttendance({
         setLocalCode(filters.code);
     }, [filters.code]);
 
-    useEffect(() => {
-        setSelected(new Set());
-    }, [rows]);
 
     useEffect(() => {
         if (codeActive) {
@@ -231,9 +185,9 @@ export default function EventsAttendance({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [localSearch, codeActive]);
 
-    const submitCode = (e: React.FormEvent) => {
-        e.preventDefault();
-        const trimmed = localCode.trim();
+    const lookupCode = (code: string) => {
+        setCheckInMessage('');
+        const trimmed = code.trim();
         if (trimmed === '') return;
 
         // The code takes precedence over search and filter on the
@@ -252,6 +206,11 @@ export default function EventsAttendance({
                 only: ['rows', 'pagination', 'counts', 'filters'],
             },
         );
+    };
+
+    const submitCode = (e: React.FormEvent) => {
+        e.preventDefault();
+        lookupCode(localCode);
     };
 
     const clearCode = () => {
@@ -288,7 +247,7 @@ export default function EventsAttendance({
             force_open: force_open ? 1 : 0,
         };
 
-        const isPresenceStatus = status === 'present' || status === 'late';
+        const isPresenceStatus = status === 'present';
 
         if (codeActive && isPresenceStatus) {
             payload.verified_code = filters.code;
@@ -298,6 +257,13 @@ export default function EventsAttendance({
             preserveScroll: true,
             preserveState: true,
             only: ['rows', 'counts'],
+            onSuccess: () => {
+                if (codeActive && isPresenceStatus) {
+                    setCheckInMessage('Checked in successfully. Ready for the next participant.');
+                    clearCode();
+                    requestAnimationFrame(() => codeInput.current?.focus());
+                }
+            },
             onFinish: () => setMarking(null),
         });
     };
@@ -315,157 +281,13 @@ export default function EventsAttendance({
         );
     };
 
-    const toggleRow = (id: number) => {
-        setSelected((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
-            } else {
-                next.add(id);
-            }
-            return next;
-        });
-    };
-
-    const toggleAllOnPage = () => {
-        const allOnPage = rows.map((r) => r.id);
-        const allSelected = allOnPage.every((id) => selected.has(id));
-
-        setSelected((prev) => {
-            const next = new Set(prev);
-            if (allSelected) {
-                allOnPage.forEach((id) => next.delete(id));
-            } else {
-                allOnPage.forEach((id) => next.add(id));
-            }
-            return next;
-        });
-    };
-
-    const requestMarkSelected = () => {
-        if (selected.size === 0) return;
-        setConfirm({ shape: 'selected', count: selected.size });
-    };
-
-    const requestMarkAllVisible = () => {
-        const count = counts[filters.filter] ?? 0;
-        if (count === 0) return;
-        setConfirm({ shape: 'all', count });
-    };
-
-    const runBulkMark = () => {
-        if (confirm === null) return;
-        setBulkWorking(true);
-
-        const payload: Record<string, string | number | boolean | number[]> = {
-            force_open: force_open ? 1 : 0,
-        };
-
-        if (confirm.shape === 'selected') {
-            payload.registration_ids = Array.from(selected);
-        } else {
-            payload.mark_all_visible = true;
-            payload.filter = filters.filter;
-            payload.q = localSearch;
-        }
-
-        router.post(`${baseUrl}/bulk-mark`, payload, {
-            preserveScroll: true,
-            preserveState: true,
-            only: ['rows', 'counts'],
-            onSuccess: () => {
-                setSelected(new Set());
-                setConfirm(null);
-            },
-            onFinish: () => setBulkWorking(false),
-        });
-    };
-
-    const submitBulkRows = () => {
-        // Strip empty trailing rows before validation. If the operator
-        // added a row and left it blank, they do not want an error —
-        // they want the empty row ignored.
-        const nonEmpty = bulkRows.filter((r) =>
-            r.first_name.trim() !== '' ||
-            r.last_name.trim() !== '' ||
-            r.age !== '' ||
-            r.email.trim() !== '' ||
-            r.contact_number.trim() !== '' ||
-            r.address.trim() !== '' ||
-            Object.keys(r.responses).some(
-                (k) => r.responses[Number(k)] !== '' &&
-                       (Array.isArray(r.responses[Number(k)])
-                           ? (r.responses[Number(k)] as string[]).length > 0
-                           : true),
-            ),
-        );
-
-        if (nonEmpty.length === 0) {
-            setBulkErrors({
-                rows: 'Add at least one row before submitting.',
-            });
-            return;
-        }
-
-        const deferred = batchEncodingMode === 'deferred';
-
-        const { errors } = validateBulkWalkInRows(
-            nonEmpty,
-            event.registration_fields,
-            event.common_field_requirements,
-            deferred,
-        );
-
-        setBulkErrors(errors);
-
-        if (Object.keys(errors).length > 0) {
-            return;
-        }
-
-        setBulkSubmitting(true);
-
-        router.post(
-            `${baseUrl}/bulk-walk-in`,
-            {
-                rows: nonEmpty,
-                encoding_mode: batchEncodingMode,
-                force_open: force_open ? 1 : 0,
-            },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                only: ['rows', 'counts'],
-                onError: (serverErrors) => {
-                    // Server returned per-row business errors. Keep the
-                    // rows so the operator can fix the failed ones.
-                    // Successful rows already persisted and their
-                    // client_uuid is cached — resubmitting them is a
-                    // no-op.
-                    setBulkErrors(serverErrors as Record<string, string>);
-                },
-                onSuccess: () => {
-                    // All rows accepted (or idempotently skipped).
-                    // Reset to a single empty row for the next batch.
-                    setBulkRows([makeBulkWalkInRow()]);
-                    setBulkErrors({});
-                },
-                onFinish: () => setBulkSubmitting(false),
-            },
-        );
-    };
-
     const otherStatuses = attendance_statuses.filter(
         (s) => s.value !== 'present',
     );
 
     const showForceToggle = is_admin && (!can_mark || force_open);
-    const isConfirmMode = mode === 'confirm';
-    const isBatchMode = mode === 'batch';
+    const isWalkInMode = mode === 'walk-in';
 
-    const allOnPageSelected =
-        rows.length > 0 && rows.every((r) => selected.has(r.id));
-    const someOnPageSelected =
-        ! allOnPageSelected && rows.some((r) => selected.has(r.id));
 
     return (
         <>
@@ -544,148 +366,48 @@ export default function EventsAttendance({
                     </div>
                 )}
 
-                {/* Mode toggle — Mark is the default. Confirm adds a
-                    checkbox column for bulk mark. Batch opens the
-                    multi-row walk-in table. */}
+                {/* Check-in and Walk-in are the two attendance entry points. */}
                 {can_mark && (
                     <div className="flex items-center gap-3">
                         <div className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
                             <button
                                 type="button"
-                                onClick={() => setMode('mark')}
+                                onClick={() => setMode('check-in')}
                                 className={
-                                    mode === 'mark'
+                                    mode === 'check-in'
                                         ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
                                         : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
                                 }
                             >
-                                Mark
+                                Check-in
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setMode('confirm')}
+                                onClick={() => setMode('walk-in')}
                                 className={
-                                    mode === 'confirm'
+                                    mode === 'walk-in'
                                         ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
                                         : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
                                 }
                             >
-                                Confirm
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setMode('batch')}
-                                className={
-                                    mode === 'batch'
-                                        ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
-                                        : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
-                                }
-                            >
-                                Batch
+                                Walk-in
                             </button>
                         </div>
                         <span className="text-xs text-muted-foreground">
-                            {isConfirmMode
-                                ? 'Select rows and mark as present in bulk.'
-                                : isBatchMode
-                                  ? 'Transcribe a stack of paper forms into the system.'
+                            {isWalkInMode
+                                  ? 'Add a quick walk-in or encode paper forms.'
                                   : 'Mark participants one at a time.'}
                         </span>
                     </div>
                 )}
 
-                {/* Batch mode replaces the entire list view */}
-                {isBatchMode ? (
-                    <div className="glass-panel flex flex-col gap-4 rounded-xl p-6">
-                        <div className="flex flex-col gap-1">
-                            <h2 className="text-sm font-semibold text-foreground">
-                                Bulk walk-in entry
-                            </h2>
-                            <p className="text-xs text-muted-foreground">
-                                Each row is registered as a paper submission
-                                and marked present. Already-processed rows
-                                are skipped on resubmit.
-                            </p>
-                        </div>
-
-                        {/* Encoding mode — one choice for the whole
-                            batch. Live stamps each row with now();
-                            Deferred reads each row's arrival_time off
-                            the paper form. */}
-                        <div className="grid gap-3 rounded-md border border-white/5 bg-white/[0.02] p-3">
-                            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                Encoding mode
-                            </span>
-                            <div className="inline-flex w-fit rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setBatchEncodingMode('live')
-                                    }
-                                    className={
-                                        batchEncodingMode === 'live'
-                                            ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
-                                            : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
-                                    }
-                                >
-                                    Live — encoding as they arrive
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setBatchEncodingMode('deferred')
-                                    }
-                                    className={
-                                        batchEncodingMode === 'deferred'
-                                            ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
-                                            : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
-                                    }
-                                >
-                                    Deferred — transcribing from paper
-                                </button>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                {batchEncodingMode === 'deferred'
-                                    ? 'Each row needs its own arrival time, read from the paper form.'
-                                    : 'Each row will be stamped with the current time as you submit.'}
-                            </p>
-                        </div>
-
-                        {bulkErrors.rows && (
-                            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-                                {bulkErrors.rows}
-                            </div>
-                        )}
-
-                        <BulkWalkInTable
-                            rows={bulkRows}
-                            fields={event.registration_fields}
-                            requirements={event.common_field_requirements}
-                            errors={bulkErrors}
-                            onChange={setBulkRows}
-                            disabled={bulkSubmitting}
-                            maxRows={MAX_BULK_ROWS}
-                            deferred={batchEncodingMode === 'deferred'}
-                        />
-
-                        <div className="flex flex-col gap-2 border-t border-white/5 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                            <p className="text-xs text-muted-foreground">
-                                All rows are marked present. To skip a row,
-                                remove it before submitting.
-                            </p>
-                            <Button
-                                type="button"
-                                onClick={submitBulkRows}
-                                disabled={bulkSubmitting}
-                                className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
-                            >
-                                <Save className="mr-2 h-4 w-4" />
-                                {bulkSubmitting
-                                    ? 'Saving…'
-                                    : 'Save batch'}
-                            </Button>
-                        </div>
-                    </div>
+                {isWalkInMode && <div className="flex gap-2">
+                    <Button variant={walkInMode === 'quick' ? 'default' : 'outline'} onClick={() => setWalkInMode('quick')}>Quick walk-in</Button>
+                    <Button variant={walkInMode === 'paper' ? 'default' : 'outline'} onClick={() => setWalkInMode('paper')}>Encode paper forms</Button>
+                </div>}
+                {isWalkInMode && walkInMode === 'quick' && <div className="glass-panel rounded-xl p-6"><QuickWalkIn eventId={event.id} forceOpen={force_open} /></div>}
+                {isWalkInMode && walkInMode === 'quick' ? null : isWalkInMode ? (
+                    <div className="glass-panel rounded-xl p-6"><PaperRegistrationForm eventId={event.id} forceOpen={force_open} version={event.form_version} fields={event.registration_fields} tshirt={event.tshirt} /></div>
                 ) : (
                     <div className="glass-panel flex flex-col gap-4 rounded-xl p-6">
                         {/* Attendance-code lookup. The volunteer types
@@ -700,6 +422,8 @@ export default function EventsAttendance({
                             <div className="relative w-full sm:max-w-xs">
                                 <Ticket className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-lime-brand" />
                                 <Input
+                                    ref={codeInput}
+                                    autoFocus
                                     value={localCode}
                                     onChange={(e) =>
                                         setLocalCode(e.target.value)
@@ -708,9 +432,10 @@ export default function EventsAttendance({
                                     autoComplete="off"
                                     maxLength={12}
                                     aria-label="Attendance code"
-                                    className="pl-9 font-mono uppercase tracking-wider"
+                                    className="h-14 pl-9 font-mono text-xl uppercase tracking-wider"
                                 />
                             </div>
+                            <CheckInCamera onCode={(code) => { setLocalCode(code); lookupCode(code); }} />
                             {codeActive ? (
                                 <Button
                                     type="button"
@@ -730,19 +455,18 @@ export default function EventsAttendance({
                             )}
                         </form>
 
-                        {codeActive && (
-                            <div className="flex items-start gap-3 rounded-xl border border-lime-brand/30 bg-lime-brand/5 p-3">
-                                <Ticket className="mt-0.5 h-4 w-4 shrink-0 text-lime-brand" />
-                                <p className="text-sm text-lime-brand">
-                                    Showing the registration matching{' '}
-                                    <span className="font-mono font-medium">
-                                        {filters.code}
-                                    </span>
-                                    . Clear the code to return to the full
-                                    list.
-                                </p>
-                            </div>
-                        )}
+                        {checkInMessage && <p role="status" className="rounded-lg border border-green-500/40 bg-green-500/10 p-4 text-green-700 dark:text-green-300">{checkInMessage}</p>}
+                        {codeActive && rows.length === 0 && <p role="alert" className="rounded-lg border border-destructive/40 p-4 text-destructive">Code not found for this event. Check the code or use walk-in entry.</p>}
+                        {codeActive && rows.length === 1 && <section className="space-y-3 rounded-xl border border-lime-brand/40 bg-lime-brand/5 p-5">
+                            <h2 className="text-xl font-semibold">{rows[0].participant.full_name}</h2>
+                            <p>{event.event_name}</p>
+                            {rows[0].tshirt_choice && <p>T-shirt: {rows[0].tshirt_choice}</p>}
+                            {rows[0].custom_fields?.map((field, index) => <p key={index}><span className="font-medium">{field.label}: </span>{Array.isArray(field.value) ? field.value.join(', ') : field.value}</p>)}
+                            {rows[0].attendance?.status === 'present' && <p role="status">Already present.</p>}
+                            {can_mark && <Button className="h-14 bg-green-700 px-10 text-lg text-white hover:bg-green-800" disabled={marking !== null} onClick={() => mark(rows[0].id, 'present')}>
+                                {marking !== null ? 'Saving…' : rows[0].attendance?.status === 'present' ? 'Verify check-in' : 'Present'}
+                            </Button>}
+                        </section>}
 
                         {/* Toolbar */}
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -759,10 +483,10 @@ export default function EventsAttendance({
                                 />
                             </div>
 
-                            {can_mark && ! isConfirmMode && (
+                            {can_mark && (
                                 <Button
                                     type="button"
-                                    onClick={() => setWalkInOpen(true)}
+                                    onClick={() => { setMode('walk-in'); setWalkInMode('quick'); }}
                                     className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
                                 >
                                     <Plus className="mr-2 h-4 w-4" />
@@ -780,18 +504,6 @@ export default function EventsAttendance({
                             disabled={codeActive}
                         />
 
-                        {/* Confirm-mode bulk toolbar */}
-                        {can_mark && isConfirmMode && (
-                            <BulkMarkToolbar
-                                selectedCount={selected.size}
-                                filterCount={counts[filters.filter] ?? 0}
-                                filterLabel={FILTER_LABELS[filters.filter]}
-                                disabled={bulkWorking}
-                                onMarkSelected={requestMarkSelected}
-                                onMarkAllVisible={requestMarkAllVisible}
-                            />
-                        )}
-
                         {/* Table or empty states */}
                         {rows.length === 0 ? (
                             <EmptyState
@@ -804,23 +516,6 @@ export default function EventsAttendance({
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-white/5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                            {isConfirmMode && (
-                                                <th className="w-10 pb-3 pr-3">
-                                                    <Checkbox
-                                                        checked={
-                                                            allOnPageSelected
-                                                                ? true
-                                                                : someOnPageSelected
-                                                                  ? 'indeterminate'
-                                                                  : false
-                                                        }
-                                                        onCheckedChange={
-                                                            toggleAllOnPage
-                                                        }
-                                                        aria-label="Select all on this page"
-                                                    />
-                                                </th>
-                                            )}
                                             <th className="pb-3 pr-4">
                                                 Participant
                                             </th>
@@ -845,8 +540,6 @@ export default function EventsAttendance({
                                                 'present';
                                             const isMarking =
                                                 marking === row.id;
-                                            const isSelected =
-                                                selected.has(row.id);
 
                                             return (
                                                 <tr
@@ -857,21 +550,6 @@ export default function EventsAttendance({
                                                             : ''
                                                     }`}
                                                 >
-                                                    {isConfirmMode && (
-                                                        <td className="py-3 pr-3">
-                                                            <Checkbox
-                                                                checked={
-                                                                    isSelected
-                                                                }
-                                                                onCheckedChange={() =>
-                                                                    toggleRow(
-                                                                        row.id,
-                                                                    )
-                                                                }
-                                                                aria-label={`Select ${row.participant.full_name ?? 'participant'}`}
-                                                            />
-                                                        </td>
-                                                    )}
                                                     <td className="py-3 pr-4">
                                                         <div className="font-medium text-foreground">
                                                             {row.participant
@@ -1016,62 +694,8 @@ export default function EventsAttendance({
                 )}
             </div>
 
-            <WalkInDialog
-                eventId={event.id}
-                open={walkInOpen}
-                onOpenChange={setWalkInOpen}
-                requirements={event.common_field_requirements}
-                fields={event.registration_fields}
-                forceOpen={force_open}
-            />
 
-            {/* Bulk mark confirmation */}
-            <Dialog
-                open={confirm !== null}
-                onOpenChange={(open) => {
-                    if (! open) setConfirm(null);
-                }}
-            >
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4 text-lime-brand" />
-                            Confirm bulk mark
-                        </DialogTitle>
-                        <DialogDescription>
-                            {confirm?.shape === 'selected'
-                                ? `Mark ${confirm.count} selected ${confirm.count === 1 ? 'participant' : 'participants'} as present?`
-                                : `Mark all ${confirm?.count ?? 0} registrations matching the current filter as present?`}
-                        </DialogDescription>
-                    </DialogHeader>
 
-                    <p className="text-xs text-muted-foreground">
-                        Already-present rows are unaffected. This action is
-                        idempotent — rerunning has no additional effect.
-                    </p>
-
-                    <DialogFooter className="gap-2 pt-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setConfirm(null)}
-                            disabled={bulkWorking}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={runBulkMark}
-                            disabled={bulkWorking}
-                            className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
-                        >
-                            {bulkWorking
-                                ? 'Marking…'
-                                : `Mark ${confirm?.count ?? 0} as present`}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </>
     );
 }

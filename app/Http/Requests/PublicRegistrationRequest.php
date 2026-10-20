@@ -73,7 +73,9 @@ class PublicRegistrationRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $event = $this->pendingEvent ?? $this->route('event');
+        $v2 = $event instanceof Event && $event->usesEmailOnlyRegistration();
+        $rules = [
             'first_name' => $this->personNameRules(),
             'last_name' => $this->personNameRules(),
             'middle_name' => ['nullable', 'string', 'max:255', ...$this->humanNameQualityRules()],
@@ -102,6 +104,28 @@ class PublicRegistrationRequest extends FormRequest
             'responses' => ['nullable', 'array', 'max:5'],
             'responses.*' => ['nullable'],
         ];
+
+        if ($v2) {
+            $name = ['required', 'string', 'min:2', 'max:50', "regex:/\\A[\\p{L}\\p{M} '\\-]+\\z/u"];
+            $rules['first_name'] = $name;
+            $rules['last_name'] = $name;
+            $rules['middle_name'] = array_merge(['nullable'], array_slice($name, 1));
+            $rules['suffix'] = ['nullable', 'string', 'max:10', 'regex:/\A[\p{L}.]+\z/u'];
+            $rules['birthday'][0] = 'required';
+            $rules['address'] = ['required', 'string', 'min:3', 'max:255'];
+            $rules['emergency_contact_name'] = ['nullable', 'string', 'max:101'];
+            $rules['emergency_contact_first_name'] = $name;
+            $rules['emergency_contact_last_name'] = $name;
+            $rules['emergency_contact_relationship'] = ['required', \Illuminate\Validation\Rule::in(['Parent', 'Sibling', 'Spouse', 'Friend', 'Guardian', 'Other'])];
+            $rules['emergency_contact_relationship_other'] = ['exclude_unless:emergency_contact_relationship,Other', 'required', 'string', 'max:15'];
+        }
+
+        $tshirt = $event instanceof Event ? $event->registration_tshirt : null;
+        $rules['tshirt_choice'] = $tshirt
+            ? [$tshirt['required'] ? 'required' : 'nullable', 'string', \Illuminate\Validation\Rule::in($tshirt['choices'])]
+            : ['prohibited'];
+
+        return $rules;
     }
 
     /** @return array<int, string> */

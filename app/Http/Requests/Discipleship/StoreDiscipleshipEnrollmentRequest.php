@@ -33,7 +33,7 @@ class StoreDiscipleshipEnrollmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'participant_id' => ['required', 'integer', 'exists:participants,id'],
+            'participant_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists('participants', 'id')->whereNull('provisional_event_id')],
             'batch_id' => ['nullable', 'integer', 'exists:discipleship_batches,id'],
             'enrolled_at' => ['nullable', 'date', 'before_or_equal:today'],
             'notes' => ['nullable', 'string', 'max:1000'],

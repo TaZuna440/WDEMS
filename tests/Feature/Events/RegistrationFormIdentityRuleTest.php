@@ -66,7 +66,7 @@ test('both identity fields required is accepted', function () {
     $response->assertSessionHasNoErrors();
 });
 
-test('phone required, email optional is accepted', function () {
+test('phone required, email optional is rejected for new forms', function () {
     $staff = rfidentity_staff();
     $event = rfidentity_event();
 
@@ -79,7 +79,7 @@ test('phone required, email optional is accepted', function () {
         ]),
     );
 
-    $response->assertSessionHasNoErrors();
+    $response->assertSessionHasErrors('common_field_requirements.email');
 });
 
 test('a payload with no requirements map is accepted', function () {

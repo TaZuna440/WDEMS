@@ -47,6 +47,33 @@ function kindguard_user(): User
     ]);
 }
 
+test('church events cannot transition through the running workflow service', function () {
+    $event = kindguard_church_event();
+    $workflow = app(\App\Services\EventWorkflow::class);
+
+    expect($workflow->canTransition($event, \App\Enums\EventStatus::RegistrationOpen))->toBeFalse();
+    expect(fn () => $workflow->openRegistration($event))->toThrow(\InvalidArgumentException::class);
+    expect($event->fresh()->status->value)->toBe('draft');
+});
+
+test('church events do not auto-advance through running statuses', function () {
+    $event = kindguard_church_event(['status' => 'registration_closed', 'event_date' => today()->subDay()]);
+
+    $this->actingAs(kindguard_user())->get(route('events.show', $event))->assertOk();
+
+    expect($event->fresh()->status->value)->toBe('registration_closed')
+        ->and($event->fresh()->church_status->value)->toBe('upcoming');
+});
+
+test('church events cannot expose running registration or monitor pages', function () {
+    $event = kindguard_church_event(['status' => 'registration_open', 'registration_slug' => 'church-test']);
+
+    $this->get('/r/church-test')->assertNotFound();
+    $this->get('/r/church-test/registered')->assertNotFound();
+    $this->actingAs(kindguard_user())->get(route('registration-monitor.show', $event))->assertNotFound();
+    $this->get(route('registration-monitor.export', $event))->assertNotFound();
+});
+
 /**
  * @param  array<string, mixed>  $overrides
  */

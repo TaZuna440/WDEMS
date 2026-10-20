@@ -4,6 +4,8 @@ namespace App\Services\Reporting;
 
 use App\Enums\EventStatus;
 use App\Models\Event;
+use App\Models\Registration;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -35,6 +37,8 @@ class ReportService
      */
     public function build(Event $event): array
     {
+        abort_unless($event->isRunningEvent(), 404);
+
         return [
             'event' => $this->eventPayload($event),
             'summary' => $this->summary($event),
@@ -59,6 +63,7 @@ class ReportService
      */
     public function toCsv(Event $event): string
     {
+        abort_unless($event->isRunningEvent(), 404);
         $participants = $this->participants($event);
 
         $maxHistory = 0;
@@ -74,7 +79,8 @@ class ReportService
             'Source',
             'Attendance',
             'Total appearances',
-            'Last appearance',
+            'Age',
+            'Birthdate',
         ];
 
         for ($i = 1; $i <= $maxHistory; $i++) {
@@ -89,10 +95,11 @@ class ReportService
             $row = [
                 $p['full_name'],
                 $p['contact'] ?? '',
-                $p['source'],
+                $p['source_label'],
                 $p['attendance_status'] ?? '',
                 $p['total_appearances'],
-                $p['last_appearance'] ?? '',
+                $p['age'] ?? '',
+                $p['birthdate'] ?? '',
             ];
 
             for ($i = 0; $i < $maxHistory; $i++) {
@@ -111,6 +118,9 @@ class ReportService
                 $row[] = $entry['status'];
             }
 
+            // Spreadsheet applications interpret leading formula characters even in quoted CSV cells.
+            $row = array_map(static fn ($value) => is_string($value) && preg_match('/^[=+@\-\t\r\n]/', $value)
+                ? "'".$value : $value, $row);
             fputcsv($handle, $row);
         }
 
@@ -195,7 +205,10 @@ class ReportService
             'unmarked' => (int) ($statusCounts['_unmarked'] ?? 0),
         ];
 
+        $sources = $event->registrations()->selectRaw("SUM(CASE WHEN source = 'form' AND contact_attested_at IS NULL THEN 1 ELSE 0 END) as online, SUM(CASE WHEN source = 'paper' OR contact_attested_at IS NOT NULL THEN 1 ELSE 0 END) as paper, SUM(CASE WHEN source = 'walk_in' AND contact_attested_at IS NULL THEN 1 ELSE 0 END) as quick")->first();
+
         return [
+            'sources' => ['online' => (int) $sources->online, 'paper' => (int) $sources->paper, 'quick' => (int) $sources->quick],
             'registered_form' => $registeredForm,
             'attended_verified' => $attendedVerified,
             'attended_override' => $attendedOverride,
@@ -231,6 +244,7 @@ class ReportService
         $rows = DB::table('events')
             ->leftJoin('registrations', 'registrations.event_id', '=', 'events.id')
             ->leftJoin('attendances', 'attendances.registration_id', '=', 'registrations.id')
+            ->where('events.event_kind', Event::KIND_RUNNING)
             ->where('events.event_type', $type)
             ->whereIn('events.status', [
                 EventStatus::Ongoing->value,
@@ -238,10 +252,11 @@ class ReportService
             ])
             ->selectRaw('events.id')
             ->selectRaw('events.event_name')
+            ->selectRaw('events.status')
             ->selectRaw('DATE(events.event_date) as event_date')
             ->selectRaw("SUM(CASE WHEN registrations.source = 'form' THEN 1 ELSE 0 END) as registered")
             ->selectRaw("SUM(CASE WHEN registrations.source = 'form' AND attendances.attendance_status IN ('present', 'late') THEN 1 ELSE 0 END) as attended")
-            ->groupBy('events.id', 'events.event_name', 'events.event_date')
+            ->groupBy('events.id', 'events.event_name', 'events.event_date', 'events.status')
             ->orderByDesc('events.event_date')
             ->orderByDesc('events.id')
             ->get();
@@ -253,6 +268,7 @@ class ReportService
             return [
                 'id' => (int) $row->id,
                 'event_name' => $row->event_name,
+                'status' => $row->status,
                 'event_date' => $row->event_date,
                 'registered' => $registered,
                 'attended' => $attended,
@@ -328,6 +344,10 @@ class ReportService
                 'registrations.source',
                 'participants.id as participant_id',
                 'participants.first_name',
+                'participants.middle_name',
+                'participants.suffix',
+                'participants.birthday',
+                'participants.age',
                 'participants.last_name',
                 'participants.email',
                 'participants.contact_number',
@@ -344,6 +364,7 @@ class ReportService
             ->join('events', 'events.id', '=', 'registrations.event_id')
             ->join('attendances', 'attendances.registration_id', '=', 'registrations.id')
             ->whereIn('registrations.participant_id', $participantIds)
+            ->where('events.event_kind', Event::KIND_RUNNING)
             ->where('events.event_type', $type)
             ->whereIn('events.status', [
                 EventStatus::Ongoing->value,
@@ -363,7 +384,13 @@ class ReportService
             ->get()
             ->groupBy('participant_id');
 
-        return $rows->map(function ($row) use ($historyRows, $event) {
+        $registrations = Registration::where('event_id', $event->id)
+            ->with(['participant', 'fieldResponses.registrationField'])->get()->keyBy('id');
+
+        return $rows->map(function ($row) use ($historyRows, $event, $registrations) {
+            $registration = $registrations->get($row->registration_id);
+            $sourceLabel = $row->source === 'paper' || $registration->contact_attested_at !== null
+                ? 'Paper Form' : ($row->source === 'walk_in' ? 'Quick Walk-in' : 'Online');
             $history = $historyRows->get($row->participant_id) ?? collect();
 
             $totalAppearances = $history->count();
@@ -390,10 +417,33 @@ class ReportService
             return [
                 'registration_id' => (int) $row->registration_id,
                 'participant_id' => (int) $row->participant_id,
-                'full_name' => trim("{$row->first_name} {$row->last_name}"),
+                'full_name' => implode(' ', array_filter([$row->first_name, $row->middle_name, $row->last_name, $row->suffix])),
+                'age' => $row->birthday ? Carbon::parse($row->birthday)->age : $row->age,
+                'birthdate' => $row->birthday ? Carbon::parse($row->birthday)->toDateString() : null,
+                'source_label' => $sourceLabel,
                 'contact' => $row->email ?? $row->contact_number,
                 'source' => $row->source,
-                'attendance_status' => $row->attendance_status,
+                'attendance_status' => in_array($row->attendance_status, ['present', 'late'], true) ? 'present' : 'absent',
+                'details' => [
+                    'First name' => $row->first_name,
+                    'Middle name' => $row->middle_name,
+                    'Last name' => $row->last_name,
+                    'Suffix' => $row->suffix,
+                    'Email' => $registration->submitted_email ?? $row->email,
+                    'Phone' => $registration->submitted_contact_number ?? $row->contact_number,
+                    'Address' => $registration->participant?->address,
+                    'Emergency contact' => $registration->emergency_contact_name,
+                    'Emergency relationship' => $registration->emergency_contact_relationship === 'Other'
+                        ? $registration->emergency_contact_relationship_other : $registration->emergency_contact_relationship,
+                    'Emergency phone' => $registration->emergency_contact_number,
+                    'T-shirt' => $registration->tshirt_choice,
+                    'Encoded by (user ID)' => $registration->encoded_by,
+                    'Contact attested at' => $registration->contact_attested_at,
+                ],
+                'answers' => $registration->fieldResponses->map(fn ($answer) => [
+                    'label' => $answer->registrationField?->label ?? 'Deleted field',
+                    'value' => $answer->value,
+                ])->values()->all(),
                 'total_appearances' => $totalAppearances,
                 'last_appearance' => $lastAppearance,
                 'history' => $priorHistory,

@@ -158,6 +158,8 @@ class Event extends Model
             'registration_end' => 'datetime',
             'registration_form_saved_at' => 'datetime',
             'registration_common_field_requirements' => 'array',
+            'registration_form_version' => 'integer',
+            'registration_tshirt' => 'array',
             'status' => EventStatus::class,
             'church_status' => ChurchEventStatus::class,
 
@@ -262,6 +264,10 @@ class Event extends Model
      */
     public function isCommonFieldRequired(string $field): bool
     {
+        if ($this->usesEmailOnlyRegistration() && in_array($field, ['email', 'address'], true)) {
+            return true;
+        }
+
         if (in_array($field, self::COMMON_FIELDS_ALWAYS_REQUIRED, true)) {
             return true;
         }
@@ -273,6 +279,11 @@ class Event extends Model
         $requirements = $this->registration_common_field_requirements ?? [];
 
         return $requirements[$field] ?? true;
+    }
+
+    public function usesEmailOnlyRegistration(): bool
+    {
+        return $this->isRunningEvent() && $this->registration_form_version >= 2;
     }
 
     public function creator(): BelongsTo

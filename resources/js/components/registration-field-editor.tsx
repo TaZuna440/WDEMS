@@ -122,7 +122,7 @@ export default function RegistrationFieldEditor({
                             </SelectTrigger>
                             <SelectContent>
                                 {FIELD_TYPES.map((type) => (
-                                    <SelectItem key={type} value={type}>
+                                    <SelectItem key={type} value={type} title={FIELD_TYPE_HINTS[type]}>
                                         {FIELD_TYPE_LABELS[type]}
                                     </SelectItem>
                                 ))}

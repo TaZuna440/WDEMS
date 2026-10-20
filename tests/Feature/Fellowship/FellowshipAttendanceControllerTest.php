@@ -145,7 +145,7 @@ test('store reuses an existing participant matched by id', function () {
     expect(Participant::count())->toBe(1);
 });
 
-test('store reuses an existing participant matched by normalized phone', function () {
+test('store reuses an existing participant matched by full name and normalized phone', function () {
     $existing = fwParticipantAttn([
         'first_name' => 'Existing',
         'last_name' => 'Person',
@@ -154,8 +154,8 @@ test('store reuses an existing participant matched by normalized phone', functio
 
     $this->actingAs($this->staff)
         ->post(route('fellowship.attendance.store', ['event' => $this->event->id]), [
-            'first_name' => 'Some',
-            'last_name' => 'Name',
+            'first_name' => 'Existing',
+            'last_name' => 'Person',
             'contact_number' => '09171234567',
         ])
         ->assertRedirect();
@@ -396,4 +396,21 @@ test('deleting a row that belongs to a different event returns 404', function ()
 test('guests cannot view the attendance page', function () {
     $this->get(route('fellowship.attendance.show', ['event' => $this->event->id]))
         ->assertRedirect(route('login'));
+});
+
+test('shared phone does not merge different family members', function () {
+    fwParticipantAttn(['first_name' => 'Maria', 'last_name' => 'Santos', 'contact_number' => '09171234567']);
+    $this->actingAs($this->staff)->post(route('fellowship.attendance.store', ['event' => $this->event->id]), [
+        'first_name' => 'Juan', 'last_name' => 'Santos', 'contact_number' => '09171234567',
+    ])->assertSessionHasNoErrors();
+    expect(Participant::count())->toBe(2)
+        ->and(FellowshipAttendance::sole()->participant->first_name)->toBe('Juan');
+});
+
+test('provisional running participants cannot be linked through a church picker', function () {
+    $participant = fwParticipantAttn(['provisional_event_id' => 123]);
+    $this->actingAs($this->staff)->post(route('fellowship.attendance.store', ['event' => $this->event->id]), [
+        'participant_id' => $participant->id,
+    ])->assertSessionHasErrors('participant_id');
+    expect(FellowshipAttendance::count())->toBe(0);
 });

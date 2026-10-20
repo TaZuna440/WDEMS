@@ -226,7 +226,8 @@ test('bulk walk-in rejects a row already registered but keeps the others', funct
         ->post("/events/{$event->id}/attendance/bulk-walk-in", [
             'rows' => [
                 bwt_row([
-                    'first_name' => 'Duplicate',
+                    'first_name' => 'Existing',
+                    'last_name' => 'Person',
                     'email' => 'existing@example.com',
                 ]),
                 bwt_row(['first_name' => 'Fresh']),

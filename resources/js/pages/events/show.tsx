@@ -1,3 +1,4 @@
+import RegistrationStatusToggle from '@/components/registration-status-toggle';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import {
@@ -14,7 +15,6 @@ import {
     Tag,
     Trash2,
     UserPlus,
-    UserMinus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import EventDeletionOtpDialog from '@/components/event-deletion-otp-dialog';
@@ -62,6 +62,7 @@ type EventData = {
     can_open_registration: boolean;
     can_close_registration: boolean;
     can_finalize: boolean;
+    finalization_summary: { registered: number; checked_in: number; walk_ins: number } | null;
 };
 
 type RelatedCounts = {
@@ -146,7 +147,7 @@ export default function EventsShow({
     const [otpOpen, setOtpOpen] = useState(false);
 
     // The registration form is editable only while the event is Draft.
-    const canEditRegistrationForm = event.status === 'draft';
+    const canEditRegistrationForm = event.event_kind === 'running' && event.status === 'draft';
 
     // The report is reachable when the event has attendance data to
     // report on. This mirrors ReportController::show()'s guard, so the
@@ -172,16 +173,6 @@ export default function EventsShow({
         });
     };
 
-    const closeRegistration = () => {
-        openConfirm({
-            variant: 'warning',
-            title: 'Close registration?',
-            description:
-                'No new participants can register after this. This action cannot be undone.',
-            confirmLabel: 'Close Registration',
-            onConfirm: () => router.post(`/events/${event.id}/close-registration`),
-        });
-    };
 
     /**
      * Finalize the event. Terminal transition from Ongoing to
@@ -200,6 +191,11 @@ export default function EventsShow({
             children: (
                 <div className="space-y-3">
                     <p className="text-sm text-muted-foreground">
+                        {event.finalization_summary && <span className="mb-3 block text-foreground">
+                            Total registered: {event.finalization_summary.registered}<br />
+                            Checked in: {event.finalization_summary.checked_in}<br />
+                            Walk-ins: {event.finalization_summary.walk_ins}
+                        </span>}
                         After finalizing:
                     </p>
                     <ul className="ml-1 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
@@ -268,6 +264,7 @@ export default function EventsShow({
     return (
         <>
             <Head title={event.event_name} />
+            {event.event_kind === 'running' && <div className="px-6 pt-4"><Link href={`/events/${event.id}/possible-duplicates`} className="text-sm underline">Review possible duplicates</Link></div>}
 
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
                 <Link
@@ -495,11 +492,11 @@ export default function EventsShow({
                                 </Button>
                             )}
 
-                            {canEditRegistrationForm ? (
+                            {event.event_kind === 'running' && (canEditRegistrationForm ? (
                                 <Button variant="outline" className="justify-start" asChild>
                                     <Link href={`/events/${event.id}/registration-form`}>
                                         <FileText className="mr-2 h-4 w-4" />
-                                        Create Registration Form
+                                        {event.registration_form_saved_at ? 'Edit Registration Form' : 'Create Registration Form'}
                                     </Link>
                                 </Button>
                             ) : (
@@ -510,7 +507,16 @@ export default function EventsShow({
                                     title="The registration form is locked after registration opens"
                                 >
                                     <FileText className="mr-2 h-4 w-4" />
-                                    Create Registration Form
+                                    {event.registration_form_saved_at ? 'Edit Registration Form' : 'Create Registration Form'}
+                                </Button>
+                            ))}
+
+                            {event.event_kind === 'running' && event.registration_form_saved_at && (
+                                <Button variant="outline" className="justify-start" asChild>
+                                    <Link href={`/events/${event.id}/registration-form/preview`}>
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        View Registration Form
+                                    </Link>
                                 </Button>
                             )}
 
@@ -527,7 +533,7 @@ export default function EventsShow({
                                 </Button>
                             )}
 
-                            {event.can_open_registration ? (
+                            {event.event_kind === 'running' && (event.can_open_registration ? (
                                 <Button
                                     onClick={openRegistration}
                                     className="justify-start bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
@@ -535,15 +541,8 @@ export default function EventsShow({
                                     <UserPlus className="mr-2 h-4 w-4" />
                                     Open Registration
                                 </Button>
-                            ) : event.can_close_registration ? (
-                                <Button
-                                    onClick={closeRegistration}
-                                    variant="outline"
-                                    className="justify-start"
-                                >
-                                    <UserMinus className="mr-2 h-4 w-4" />
-                                    Close Registration
-                                </Button>
+                            ) : event.can_close_registration || event.status === 'registration_closed' ? (
+                                <RegistrationStatusToggle eventId={event.id} isOpen={event.can_close_registration} />
                             ) : (
                                 <Button
                                     disabled
@@ -554,7 +553,7 @@ export default function EventsShow({
                                     <UserPlus className="mr-2 h-4 w-4" />
                                     Open Registration
                                 </Button>
-                            )}
+                            ))}
 
                             {event.can_finalize && (
                                 <Button

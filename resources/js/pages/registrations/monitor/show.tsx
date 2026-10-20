@@ -1,3 +1,4 @@
+import RegistrationStatusToggle from '@/components/registration-status-toggle';
 import { Head, Link, router } from '@inertiajs/react';
 import {
     AlertTriangle,
@@ -19,6 +20,7 @@ import EditParticipantDialog from '@/components/edit-participant-dialog';
 import NoteDialog from '@/components/note-dialog';
 import RegistrationDeletionOtpDialog from '@/components/registration-deletion-otp-dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -86,7 +88,7 @@ type Props = {
     is_admin: boolean;
 };
 
-const POLL_KEYS = ['stats', 'registrations'] as const;
+const POLL_KEYS = ['event', 'stats', 'registrations'] as const;
 const POLL_INTERVAL_MS = 10_000;
 
 type Filter = 'all' | 'new' | 'returning' | 'flagged';
@@ -412,6 +414,7 @@ function FilteredEmpty({ filter }: { filter: Filter }) {
 
 export default function MonitorShow({ event, stats, registrations, is_admin }: Props) {
     const [filter, setFilter] = useState<Filter>('all');
+    const [search, setSearch] = useState('');
     const [now, setNow] = useState(() => new Date());
 
     // Dialog state. Only one dialog can be open at a time. Each
@@ -424,7 +427,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
     const { lastRefreshed, isRefreshing, refresh } = usePolling({
         interval: POLL_INTERVAL_MS,
         only: [...POLL_KEYS],
-        enabled: event.is_open,
+        enabled: true,
     });
 
     useEffect(() => {
@@ -462,11 +465,15 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
     }, [registrations]);
 
     const filtered = useMemo(() => {
-        if (filter === 'all') return registrations;
-        if (filter === 'returning') return registrations.filter((r) => r.is_returning);
-        if (filter === 'flagged') return registrations.filter((r) => r.is_flagged);
-        return registrations.filter((r) => !r.is_returning);
-    }, [registrations, filter]);
+        const query = search.trim().toLocaleLowerCase();
+        return registrations.filter((row) => {
+            if (filter === 'returning' && !row.is_returning) return false;
+            if (filter === 'new' && row.is_returning) return false;
+            if (filter === 'flagged' && !row.is_flagged) return false;
+            return !query || [row.participant.full_name, row.participant.email, row.participant.contact_number]
+                .some((value) => value?.toLocaleLowerCase().includes(query));
+        });
+    }, [registrations, filter, search]);
 
     const secondsAgo = secondsSince(lastRefreshed, now);
     const canEdit = true;
@@ -541,14 +548,15 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                     <StatsStrip stats={stats} isOpen={event.is_open} />
 
                     <div className="flex flex-wrap items-center gap-3 text-xs">
-                        {event.is_open && event.registration_slug !== null && (
+                        <RegistrationStatusToggle eventId={event.id} isOpen={event.is_open} />
+                        {event.registration_slug !== null && (
                             <PublicLinkButton slug={event.registration_slug} />
                         )}
                         <span className="text-muted-foreground">Updated {relativeSeconds(secondsAgo)}</span>
                         <button
                             type="button"
                             onClick={refresh}
-                            disabled={!event.is_open || isRefreshing}
+                            disabled={isRefreshing}
                             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card/80 px-2 py-1 text-xs shadow-xs backdrop-blur-sm transition-colors hover:bg-card disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <RefreshCw
@@ -566,6 +574,10 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                     </div>
                 </div>
 
+                <div className="space-y-2">
+                    <Input aria-label="Search recent registrations" placeholder="Search recent registrations by name, email, or phone" value={search} onChange={(e) => setSearch(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">Showing the latest {registrations.length} registrations (up to 100). Existing verification sessions may finish after registration closes.</p>
+                </div>
                 {/* Filters */}
                 {registrations.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2">

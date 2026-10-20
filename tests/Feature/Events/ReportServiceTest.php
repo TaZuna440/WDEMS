@@ -23,7 +23,6 @@ uses(RefreshDatabase::class);
  *
  * Helpers are prefixed rpt_ to avoid Pest function collisions.
  */
-
 function rpt_staff(): User
 {
     return User::factory()->create([
@@ -34,7 +33,7 @@ function rpt_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function rpt_event(array $overrides = []): Event
 {
@@ -57,7 +56,7 @@ function rpt_event(array $overrides = []): Event
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function rpt_participant(array $overrides = []): Participant
 {
@@ -74,7 +73,7 @@ function rpt_participant(array $overrides = []): Participant
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function rpt_registration(
     Event $event,
@@ -452,4 +451,29 @@ it('produces CSV with N prior-event columns for the deepest history', function (
     expect($csv)->toContain('Prior Event 1')
         ->and($csv)->toContain('Prior Event 2')
         ->and($csv)->not->toContain('Prior Event 3');
+});
+
+it('excludes church events with the same legacy type from reports and history', function () {
+    $current = rpt_event();
+    $church = rpt_event(['event_kind' => 'church']);
+    $person = rpt_participant();
+    rpt_registration($current, $person);
+    rpt_attend(rpt_registration($church, $person), 'present');
+    $report = rpt_service()->build($current);
+    expect($report['cross_event']['rows'])->toHaveCount(1)
+        ->and($report['participants'][0]['history'])->toBeEmpty();
+});
+
+it('reports paper attestation, full names, birthdate and safe CSV cells', function () {
+    $event = rpt_event();
+    $person = rpt_participant(['first_name' => '=Formula', 'middle_name' => 'Middle', 'suffix' => 'Jr.', 'birthday' => '2000-01-01']);
+    rpt_registration($event, $person, ['contact_attested_at' => now(), 'encoded_by' => $event->created_by, 'tshirt_choice' => 'Large']);
+    $report = rpt_service()->build($event);
+    expect($report['summary']['sources']['paper'])->toBe(1)
+        ->and($report['summary']['sources']['online'])->toBe(0)
+        ->and($report['participants'][0]['source_label'])->toBe('Paper Form')
+        ->and($report['participants'][0]['birthdate'])->toBe('2000-01-01')
+        ->and($report['participants'][0]['attendance_status'])->toBe('absent')
+        ->and($report['participants'][0]['details']['T-shirt'])->toBe('Large')
+        ->and(rpt_service()->toCsv($event))->toContain("'=Formula Middle");
 });

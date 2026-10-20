@@ -79,6 +79,54 @@ test('it renders the builder for a draft event', function () {
 // Save — happy paths
 // ---------------------------------------------------------------------------
 
+test('a saved draft can be previewed without opening registration', function () {
+    $event = regform_event();
+    $event->update(['registration_form_saved_at' => now()]);
+
+    $this->actingAs(regform_staff())
+        ->get("/events/{$event->id}/registration-form/preview")
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('registrations/public')
+            ->where('preview', true)
+            ->where('submit_url', '')
+            ->where('preview_return_url', route('events.show', $event))
+            ->where('event.event_name', $event->event_name)
+            ->has('disclaimer_paragraphs')
+            ->has('privacy_consent_text')
+        );
+
+    expect($event->fresh()->status->value)->toBe('draft')
+        ->and($event->registrations()->count())->toBe(0);
+});
+
+test('an unsaved form cannot be previewed', function () {
+    $event = regform_event();
+
+    $this->actingAs(regform_staff())
+        ->get("/events/{$event->id}/registration-form/preview")
+        ->assertNotFound();
+});
+
+test('church events cannot expose the running form builder or preview', function () {
+    $event = regform_event();
+    $event->update(['event_kind' => 'church', 'registration_form_saved_at' => now()]);
+
+    $this->actingAs(regform_staff())
+        ->get("/events/{$event->id}/registration-form")
+        ->assertNotFound();
+    $this->get("/events/{$event->id}/registration-form/preview")
+        ->assertNotFound();
+});
+
+test('registration form preview requires authentication', function () {
+    $event = regform_event();
+    $event->update(['registration_form_saved_at' => now()]);
+
+    $this->get("/events/{$event->id}/registration-form/preview")
+        ->assertRedirect(route('login'));
+});
+
 test('it saves an empty form (common fields only)', function () {
     $staff = regform_staff();
     $event = regform_event();
@@ -93,6 +141,23 @@ test('it saves an empty form (common fields only)', function () {
 
     expect($event->fresh()->registrationFields)->toHaveCount(0);
     expect($event->fresh()->registration_form_saved_at)->not->toBeNull();
+    expect($event->fresh()->registration_form_version)->toBe(2);
+});
+
+test('saving a draft cannot make email optional', function () {
+    $event = regform_event();
+    $this->actingAs(regform_staff())->put(route('events.registration-form.update', $event), [
+        'fields' => [], 'common_field_requirements' => ['email' => false, 'contact_number' => true],
+    ])->assertSessionHasErrors('common_field_requirements.email');
+    expect($event->fresh()->registration_form_version)->toBe(1);
+});
+
+test('published legacy forms retain their optional email rule', function () {
+    $event = regform_event('registration_open');
+    $event->update(['registration_common_field_requirements' => ['email' => false, 'contact_number' => true]]);
+    $this->actingAs(regform_staff())->put(route('events.registration-form.update', $event), ['fields' => []])->assertForbidden();
+    expect($event->fresh()->registration_form_version)->toBe(1)
+        ->and($event->fresh()->isCommonFieldRequired('email'))->toBeFalse();
 });
 
 test('it saves one custom text field', function () {

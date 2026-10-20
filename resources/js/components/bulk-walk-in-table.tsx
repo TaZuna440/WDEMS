@@ -202,6 +202,15 @@ export default function BulkWalkInTable({
                                 />
                             </div>
 
+                            {(['middle_name', 'suffix'] as const).map((key) => (
+                                <div key={key} className="grid gap-1.5">
+                                    <Label htmlFor={`rows.${i}.${key}`}>{key === 'middle_name' ? 'Middle name' : 'Suffix'} (optional)</Label>
+                                    <Input id={`rows.${i}.${key}`} value={row[key] ?? ''} disabled={disabled}
+                                        maxLength={key === 'suffix' ? 10 : 50} onChange={(e) => updateRow(i, { [key]: e.target.value })} />
+                                    <InputError message={errors[`rows.${i}.${key}`]} />
+                                </div>
+                            ))}
+
                             <div className="grid gap-1.5">
                                 <Label htmlFor={`rows.${i}.birthday`}>
                                     Date of birth{requiredMark}

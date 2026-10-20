@@ -23,7 +23,6 @@ uses(RefreshDatabase::class);
  *
  * Helpers are prefixed rpth_ to avoid Pest function collisions.
  */
-
 function rpth_staff(): User
 {
     return User::factory()->create([
@@ -34,7 +33,7 @@ function rpth_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function rpth_event(array $overrides = []): Event
 {
@@ -57,7 +56,7 @@ function rpth_event(array $overrides = []): Event
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function rpth_participant(array $overrides = []): Participant
 {
@@ -74,7 +73,7 @@ function rpth_participant(array $overrides = []): Participant
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function rpth_registration(
     Event $event,
@@ -275,4 +274,10 @@ it('redirects unauthenticated export requests to login', function () {
 
     $this->get("/events/{$event->id}/report/export")
         ->assertRedirect('/login');
+});
+
+it('rejects church report and CSV even with a running-compatible status', function () {
+    $event = rpth_event(['event_kind' => 'church', 'status' => 'completed']);
+    $this->actingAs(rpth_staff())->get("/events/{$event->id}/report")->assertNotFound();
+    $this->get("/events/{$event->id}/report/export")->assertNotFound();
 });

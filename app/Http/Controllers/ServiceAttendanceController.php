@@ -227,7 +227,7 @@ class ServiceAttendanceController extends Controller
      *
      * First-write-wins is not applicable here -- the organizer is
      * explicitly adding someone to a service. If participant_id is
-     * given, use it. Otherwise, look up by email or normalized phone
+     * given, use it. Otherwise, look up by normalized name plus contact
      * if either is provided; fall back to creating a new participant
      * with the given name.
      *
@@ -246,28 +246,24 @@ class ServiceAttendanceController extends Controller
             ? trim($validated['email'])
             : null;
 
-        if ($email !== null && $email !== '') {
-            $byEmail = Participant::where('email', $email)->first();
-            if ($byEmail !== null) {
-                return $byEmail;
-            }
-        }
-
         $phoneRaw = $validated['contact_number'] ?? null;
-        $normalized = Participant::normalizeContactNumber(
+        $existing = Participant::findByComposite(
+            $email,
             is_string($phoneRaw) ? $phoneRaw : null,
+            $validated['first_name'] ?? null,
+            $validated['last_name'] ?? null,
+            $validated['middle_name'] ?? null,
+            $validated['suffix'] ?? null,
         );
-
-        if ($normalized !== null) {
-            $byPhone = Participant::where('contact_number_normalized', $normalized)->first();
-            if ($byPhone !== null) {
-                return $byPhone;
-            }
+        if ($existing !== null) {
+            return $existing;
         }
 
         return Participant::create([
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
+            'middle_name' => $validated['middle_name'] ?? null,
+            'suffix' => $validated['suffix'] ?? null,
             'age' => $validated['age'] ?? null,
             'birthday' => $validated['birthday'] ?? null,
             'address' => $validated['address'] ?? null,

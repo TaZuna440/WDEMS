@@ -152,13 +152,16 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     Route::put('events/{event}', [EventController::class, 'update'])->name('events.update');
 
     // Registration form builder — Phase 2 of the registration plan.
+    Route::get('events/{event}/registration-form/preview', [PublicRegistrationController::class, 'preview'])
+        ->name('events.registration-form.preview');
     Route::get('events/{event}/registration-form', [RegistrationFormController::class, 'show'])
         ->name('events.registration-form.show');
     Route::put('events/{event}/registration-form', [RegistrationFormController::class, 'update'])
         ->name('events.registration-form.update');
 
     Route::post('events/{event}/open-registration', [EventController::class, 'openRegistration'])->name('events.open-registration');
-    Route::post('events/{event}/close-registration', [EventController::class, 'closeRegistration'])->name('events.close-registration');
+    Route::post('events/{event}/close-registration', [EventController::class, 'closeRegistration'])->middleware('throttle:6,1')->name('events.close-registration');
+    Route::post('events/{event}/reopen-registration', [EventController::class, 'reopenRegistration'])->middleware('throttle:6,1')->name('events.reopen-registration');
 
     // Finalize event — the terminal transition from Ongoing to
     // Completed. Password-gated via Laravel's RequirePassword
@@ -200,8 +203,14 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     // sit. The paths have different segment counts (`walk-in` is 4
     // segments, `{registration}/mark` is 5), so they cannot collide.
     // Listing walk-in first keeps the pattern obvious to a reader.
+    Route::get('events/{event}/participant-review/search', [\App\Http\Controllers\ParticipantReviewController::class, 'search'])->middleware('throttle:60,1')->name('events.participant-review.search');
+    Route::get('events/{event}/possible-duplicates', [\App\Http\Controllers\ParticipantReviewController::class, 'audit'])->name('events.possible-duplicates');
     Route::get('events/{event}/attendance', [AttendanceController::class, 'show'])->name('events.attendance');
     Route::post('events/{event}/attendance/walk-in', [AttendanceController::class, 'walkIn'])->name('events.attendance.walk-in');
+    Route::post('events/{event}/attendance/encode-paper', [AttendanceController::class, 'encodePaper'])
+        ->middleware('throttle:walk-in-batch')->name('events.attendance.encode-paper');
+    Route::post('events/{event}/attendance/quick-walk-in', [AttendanceController::class, 'quickWalkIn'])
+        ->middleware('throttle:walk-in-batch')->name('events.attendance.quick-walk-in');
     Route::post('events/{event}/attendance/bulk-mark', [AttendanceController::class, 'bulkMark'])->name('events.attendance.bulk-mark');
     Route::post('events/{event}/attendance/bulk-walk-in', [AttendanceController::class, 'bulkWalkIn'])
         ->middleware('throttle:walk-in-batch')->name('events.attendance.bulk-walk-in');

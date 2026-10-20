@@ -127,7 +127,7 @@ it('accepts a code submitted without the dash', function () {
     expect(Attendance::where('registration_id', $registration->id)->first()->verified_at)->not->toBeNull();
 });
 
-it('sets verified_at when a matching code is submitted with late', function () {
+it('rejects late for new attendance entries even with a matching code', function () {
     [$event, $registration] = attv_event_with_registration();
     $staff = attv_staff();
 
@@ -136,9 +136,9 @@ it('sets verified_at when a matching code is submitted with late', function () {
             'status' => 'late',
             'verified_code' => 'KM4X-P2N7',
         ])
-        ->assertRedirect();
+        ->assertSessionHasErrors('status');
 
-    expect(Attendance::where('registration_id', $registration->id)->first()->verified_at)->not->toBeNull();
+    expect(Attendance::where('registration_id', $registration->id)->exists())->toBeFalse();
 });
 
 it('leaves verified_at null when no code is submitted', function () {
@@ -184,7 +184,7 @@ it('leaves verified_at null for absent even with a matching code', function () {
         ->and($attendance->attendance_status)->toBe(AttendanceStatus::Absent);
 });
 
-it('leaves verified_at null for excused even with a matching code', function () {
+it('rejects excused for new attendance entries even with a matching code', function () {
     [$event, $registration] = attv_event_with_registration();
     $staff = attv_staff();
 
@@ -193,9 +193,9 @@ it('leaves verified_at null for excused even with a matching code', function () 
             'status' => 'excused',
             'verified_code' => 'KM4X-P2N7',
         ])
-        ->assertRedirect();
+        ->assertSessionHasErrors('status');
 
-    expect(Attendance::where('registration_id', $registration->id)->first()->verified_at)->toBeNull();
+    expect(Attendance::where('registration_id', $registration->id)->exists())->toBeFalse();
 });
 
 it('leaves verified_at null for walk-in registrations which have no code', function () {

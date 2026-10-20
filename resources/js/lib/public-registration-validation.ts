@@ -68,6 +68,10 @@ export type RegistrationFormData = {
      * participant.
      */
     emergency_contact_name?: string;
+    tshirt_choice?: string;
+    emergency_contact_first_name?: string;
+    emergency_contact_last_name?: string;
+    emergency_contact_relationship_other?: string;
     emergency_contact_relationship?: string;
     emergency_contact_number?: string;
     /**
@@ -339,6 +343,7 @@ export function validateRegistrationForm(
     data: RegistrationFormData,
     fields: ServerField[],
     commonFieldRequirements: Record<string, boolean> = {},
+    formVersion = 1,
 ): Record<string, string> {
     const errors: Record<string, string> = {};
 
@@ -400,14 +405,14 @@ export function validateRegistrationForm(
     // the caller supplies the fields (the wizard does; the legacy
     // single-page form does not yet) — same tracksX gate pattern as
     // birthday.
-    const tracksEmergencyContact = data.emergency_contact_name !== undefined;
+    const tracksEmergencyContact = data.emergency_contact_name !== undefined || formVersion >= 2;
 
     if (tracksEmergencyContact) {
         const ecNameError = validateNameValue(
             typeof data.emergency_contact_name === 'string' ? data.emergency_contact_name : '',
             'Emergency contact name',
         );
-        if (ecNameError) {
+        if (ecNameError && formVersion < 2) {
             errors.emergency_contact_name = ecNameError;
         }
 
@@ -429,6 +434,28 @@ export function validateRegistrationForm(
                 errors.emergency_contact_number = ecContactError;
             }
         }
+    }
+
+    if (formVersion >= 2) {
+        const nameKeys = ['first_name', 'last_name', 'emergency_contact_first_name', 'emergency_contact_last_name'] as const;
+        for (const key of [...nameKeys, 'middle_name'] as const) {
+            const value = (data[key] ?? '').trim();
+            if (key === 'middle_name' && value === '') continue;
+            if (value.length < 2 || value.length > 50 || !/^[\p{L}\p{M} '\-]+$/u.test(value)) {
+                errors[key] = 'Use 2–50 characters: letters, spaces, hyphens, or apostrophes.';
+            } else {
+                delete errors[key];
+            }
+        }
+        if ((data.suffix ?? '').length > 10) errors.suffix = 'Suffix must not exceed 10 characters.';
+        if (!['Parent', 'Sibling', 'Spouse', 'Friend', 'Guardian', 'Other'].includes(data.emergency_contact_relationship ?? '')) {
+            errors.emergency_contact_relationship = 'Choose a relationship.';
+        }
+        if (data.emergency_contact_relationship === 'Other') {
+            const other = (data.emergency_contact_relationship_other ?? '').trim();
+            if (!other || other.length > 15) errors.emergency_contact_relationship_other = 'Specify the relationship using 1–15 characters.';
+        }
+        if (data.address.trim().length < 3 || data.address.length > 255) errors.address = 'Enter barangay and city using 3–255 characters.';
     }
 
     // Individual birthday format/bounds check (new path — only when

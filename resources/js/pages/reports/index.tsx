@@ -128,10 +128,10 @@ export default function ReportsIndex({ events }: Props) {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <Link
-                                                    href={`/events/${event.id}/report`}
+                                                    href={event.event_kind === 'running' ? `/events/${event.id}/report` : `/events/${event.id}`}
                                                     className="text-sm font-medium text-lime-700 hover:text-lime-800 dark:text-lime-brand dark:hover:text-lime-brand/80"
                                                 >
-                                                    View report →
+                                                    {event.event_kind === 'running' ? 'View report →' : 'View church event →'}
                                                 </Link>
                                             </td>
                                         </tr>

@@ -1,7 +1,8 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { CalendarDays, CheckCircle2, ExternalLink, MapPin } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DatePicker from '@/components/date-picker';
+import TshirtPhotoGallery from '@/components/tshirt-photo-gallery';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,8 +54,13 @@ type Props = {
     submit_url: string;
     success: string | null;
     disclaimer_paragraphs: string[];
+    disclaimer_html?: string | null;
+    form_version?: number;
+    tshirt?: { label: string; required: boolean; choices: string[]; photos: string[] } | null;
     privacy_consent_text: string;
     event_slug: string;
+    preview?: boolean;
+    preview_return_url?: string | null;
 };
 
 type CommonFieldKey =
@@ -68,6 +74,9 @@ type CommonFieldKey =
     | 'age'
     | 'address'
     | 'emergency_contact_name'
+    | 'emergency_contact_first_name'
+    | 'emergency_contact_last_name'
+    | 'emergency_contact_relationship_other'
     | 'emergency_contact_relationship'
     | 'emergency_contact_number';
 
@@ -81,22 +90,32 @@ export default function PublicRegistration({
     submit_url,
     success,
     disclaimer_paragraphs,
+    disclaimer_html = null,
+    form_version = 1,
+    tshirt = null,
     privacy_consent_text,
     event_slug,
+    preview = false,
+    preview_return_url = null,
 }: Props) {
+    const [previewStep, setPreviewStep] = useState(0);
     const form = useForm<RegistrationFormData>({
-        first_name: '',
-        last_name: '',
+        first_name: preview ? 'Maria' : '',
+        tshirt_choice: '',
+        last_name: preview ? 'Santos' : '',
         middle_name: '',
         suffix: '',
-        email: '',
-        contact_number: '',
+        email: preview ? 'participant@example.com' : '',
+        contact_number: preview ? '09171234567' : '',
         age: '',
-        birthday: '',
-        address: '',
-        emergency_contact_name: '',
-        emergency_contact_relationship: '',
-        emergency_contact_number: '',
+        birthday: preview ? '2000-01-15' : '',
+        address: preview ? 'Sample Barangay, Sample City' : '',
+        emergency_contact_name: preview ? 'Juan Santos' : '',
+        emergency_contact_first_name: preview ? 'Juan' : '',
+        emergency_contact_last_name: preview ? 'Santos' : '',
+        emergency_contact_relationship_other: '',
+        emergency_contact_relationship: preview ? 'Sibling' : '',
+        emergency_contact_number: preview ? '09179876543' : '',
         consent_accepted: false,
         responses: {},
     });
@@ -168,12 +187,14 @@ export default function PublicRegistration({
                     'birthday',
                     'address',
                     'responses',
+                    'tshirt_choice',
                 ],
                 validate: (data) => {
                     const all = validateRegistrationForm(
                         data as RegistrationFormData,
                         fields,
                         common_field_requirements,
+                        form_version,
                     );
                     const keep = new Set([
                         'first_name',
@@ -187,6 +208,7 @@ export default function PublicRegistration({
                         'address',
                     ]);
                     const out: Record<string, string> = {};
+                    if (tshirt?.required && !(data as RegistrationFormData).tshirt_choice) out.tshirt_choice = 'Choose a T-shirt option.';
                     for (const [k, v] of Object.entries(all)) {
                         if (keep.has(k) || k.startsWith('responses.')) {
                             out[k] = v;
@@ -200,6 +222,9 @@ export default function PublicRegistration({
                 label: 'Emergency Contact',
                 fields: [
                     'emergency_contact_name',
+                    'emergency_contact_first_name',
+                    'emergency_contact_last_name',
+                    'emergency_contact_relationship_other',
                     'emergency_contact_relationship',
                     'emergency_contact_number',
                 ],
@@ -208,6 +233,7 @@ export default function PublicRegistration({
                         data as RegistrationFormData,
                         fields,
                         common_field_requirements,
+                        form_version,
                     );
                     const out: Record<string, string> = {};
                     for (const [k, v] of Object.entries(all)) {
@@ -219,10 +245,11 @@ export default function PublicRegistration({
                 },
             },
         ],
-        [fields, common_field_requirements],
+        [fields, common_field_requirements, form_version, tshirt],
     );
 
     const submit = () => {
+        if (preview) return;
         form.post(submit_url);
     };
 
@@ -256,7 +283,7 @@ export default function PublicRegistration({
                     Participant Disclaimer & Agreement
                 </h2>
                 <div className="flex flex-col gap-3 rounded-xl border border-border bg-card/40 p-6">
-                    {disclaimer_paragraphs.map((paragraph, i) => (
+                    {disclaimer_html ? <div className="text-sm leading-relaxed [&_h1]:text-2xl [&_h2]:text-xl [&_p]:my-3" dangerouslySetInnerHTML={{ __html: disclaimer_html }} /> : disclaimer_paragraphs.map((paragraph, i) => (
                         <p
                             key={i}
                             className="text-sm leading-relaxed text-foreground/80"
@@ -456,6 +483,16 @@ export default function PublicRegistration({
                 </div>
             </section>
 
+            {tshirt && <section className="grid gap-3">
+                {!preview && <TshirtPhotoGallery photos={tshirt.photos} />}
+                <Label htmlFor="tshirt-choice">{tshirt.label}{tshirt.required && ' *'}</Label>
+                <Select value={form.data.tshirt_choice ?? ''} onValueChange={(value) => { clearServerErrors('tshirt_choice'); form.setData('tshirt_choice', value); }}>
+                    <SelectTrigger id="tshirt-choice"><SelectValue placeholder="Choose an option" /></SelectTrigger>
+                    <SelectContent>{tshirt.choices.map((choice) => <SelectItem key={choice} value={choice}>{choice}</SelectItem>)}</SelectContent>
+                </Select>
+                <InputError message={stepErrors.tshirt_choice} />
+            </section>}
+
             {fields.length > 0 && (
                 <section className="flex flex-col gap-4">
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -595,7 +632,13 @@ export default function PublicRegistration({
                     * indicates required question
                 </p>
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="grid gap-1.5 sm:col-span-2">
+                    {form_version >= 2 ? (['emergency_contact_first_name', 'emergency_contact_last_name'] as const).map((key) => (
+                        <div key={key} className="grid gap-1.5">
+                            <Label htmlFor={key}>{key.endsWith('first_name') ? 'First name' : 'Last name'} *</Label>
+                            <Input id={key} maxLength={50} value={form.data[key] ?? ''} onChange={(e) => onCommonChange(key, e.target.value)} />
+                            <InputError message={stepErrors[key]} />
+                        </div>
+                    )) : <div className="grid gap-1.5 sm:col-span-2">
                         <Label htmlFor="emergency_contact_name">
                             Contact name *
                         </Label>
@@ -609,12 +652,16 @@ export default function PublicRegistration({
                             aria-invalid={!!stepErrors.emergency_contact_name}
                         />
                         <InputError message={stepErrors.emergency_contact_name} />
-                    </div>
+                    </div>}
                     <div className="grid gap-1.5">
                         <Label htmlFor="emergency_contact_relationship">
                             Relationship *
                         </Label>
-                        <Input
+                        {form_version >= 2 ? <Select value={form.data.emergency_contact_relationship ?? ''}
+                            onValueChange={(value) => onCommonChange('emergency_contact_relationship', value)}>
+                            <SelectTrigger id="emergency_contact_relationship"><SelectValue placeholder="Choose relationship" /></SelectTrigger>
+                            <SelectContent>{['Parent', 'Sibling', 'Spouse', 'Friend', 'Guardian', 'Other'].map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent>
+                        </Select> : <Input
                             id="emergency_contact_relationship"
                             placeholder="Father"
                             value={form.data.emergency_contact_relationship ?? ''}
@@ -627,11 +674,19 @@ export default function PublicRegistration({
                             aria-invalid={
                                 !!stepErrors.emergency_contact_relationship
                             }
-                        />
+                        />}
                         <InputError
                             message={stepErrors.emergency_contact_relationship}
                         />
                     </div>
+                    {form_version >= 2 && form.data.emergency_contact_relationship === 'Other' && (
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="emergency_contact_relationship_other">Specify relationship *</Label>
+                            <Input id="emergency_contact_relationship_other" maxLength={15} value={form.data.emergency_contact_relationship_other ?? ''}
+                                onChange={(e) => onCommonChange('emergency_contact_relationship_other', e.target.value)} />
+                            <InputError message={stepErrors.emergency_contact_relationship_other} />
+                        </div>
+                    )}
                     <div className="grid gap-1.5">
                         <Label htmlFor="emergency_contact_number">
                             Contact number *
@@ -735,7 +790,28 @@ export default function PublicRegistration({
                 )}
             </div>
 
-            <Wizard
+            {preview ? (
+                <div className="flex flex-col gap-6">
+                    <div className="rounded-xl border border-border bg-card p-4">
+                        <p className="font-semibold">Registration form preview</p>
+                        <p className="mt-1 text-sm text-muted-foreground">Explore the saved form. Inputs are disabled and no registration will be submitted.</p>
+                    </div>
+                    <nav aria-label="Preview steps" className="flex flex-wrap gap-2">
+                        {steps.map((step, index) => (
+                            <Button key={step.id} variant={previewStep === index ? 'default' : 'outline'}
+                                aria-current={previewStep === index ? 'step' : undefined}
+                                onClick={() => setPreviewStep(index)}>
+                                {index + 1}. {step.label}
+                            </Button>
+                        ))}
+                    </nav>
+                    {previewStep === 1 && tshirt && <TshirtPhotoGallery photos={tshirt.photos} />}
+                    <fieldset disabled inert className="glass-panel min-w-0 rounded-xl p-8">
+                        {previewStep === 0 ? renderDisclaimerStep({}) : previewStep === 1 ? renderPersonalStep({}) : renderEmergencyStep({})}
+                    </fieldset>
+                    {preview_return_url && <Button variant="outline" asChild><Link href={preview_return_url}>Close Preview</Link></Button>}
+                </div>
+            ) : <Wizard
                 steps={steps}
                 storageKey={`wdems-registration-${event_slug}`}
                 data={form.data}
@@ -757,7 +833,7 @@ export default function PublicRegistration({
                             return null;
                     }
                 }}
-            </Wizard>
+            </Wizard>}
 
             <Dialog open={privacyOpen} onOpenChange={setPrivacyOpen}>
                 <DialogContent className="max-w-2xl">
@@ -792,9 +868,9 @@ export default function PublicRegistration({
                         </DialogDescription>
                     </DialogHeader>
                     <div className="max-h-[60vh] overflow-y-auto pr-2">
-                        <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-muted-foreground">
+                        {disclaimer_html ? <div className="text-sm [&_h1]:text-2xl [&_h2]:text-xl [&_p]:my-3" dangerouslySetInnerHTML={{ __html: disclaimer_html }} /> : <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-muted-foreground">
                             {disclaimer_paragraphs.join('\n\n')}
-                        </pre>
+                        </pre>}
                     </div>
                     <DialogFooter>
                         <Button

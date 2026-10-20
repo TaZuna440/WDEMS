@@ -11,6 +11,9 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import InputError from '@/components/input-error';
+import RegistrationDisclaimerEditor from '@/components/registration-disclaimer-editor';
+import TshirtFieldBuilder, { validateTshirt, type TshirtDraft, type TshirtPhoto } from '@/components/tshirt-field-builder';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import RegistrationFieldEditor, {
     type FieldDraft,
 } from '@/components/registration-field-editor';
@@ -27,6 +30,7 @@ type EventData = {
     status: string;
     status_label: string;
     can_edit: boolean;
+    form_saved: boolean;
 };
 
 type ServerField = {
@@ -43,6 +47,9 @@ type Props = {
     event: EventData;
     fields: ServerField[];
     common_field_requirements: Record<string, boolean>;
+    disclaimer_html: string | null;
+    default_disclaimer_html: string;
+    tshirt: { label: string; required: boolean; choices: string[]; photos: TshirtPhoto[] } | null;
 };
 
 const statusStyles: Record<string, string> = {
@@ -63,10 +70,12 @@ type CommonFieldSpec = {
 const COMMON_FIELDS: CommonFieldSpec[] = [
     { key: 'first_name', label: 'First name', toggleable: false },
     { key: 'last_name', label: 'Last name', toggleable: false },
-    { key: 'email', label: 'Email', toggleable: true },
+    { key: 'middle_name', label: 'Middle name', toggleable: false },
+    { key: 'suffix', label: 'Suffix', toggleable: false },
+    { key: 'email', label: 'Email', toggleable: false },
     { key: 'contact_number', label: 'Contact number', toggleable: true },
     { key: 'age', label: 'Date of birth', toggleable: false },
-    { key: 'address', label: 'Address', toggleable: true },
+    { key: 'address', label: 'Barangay & City', toggleable: false },
 ];
 
 function generateClientId(): string {
@@ -80,7 +89,11 @@ export default function RegistrationForm({
     event,
     fields,
     common_field_requirements,
+    disclaimer_html,
+    default_disclaimer_html,
+    tshirt,
 }: Props) {
+    const [disclaimerOpen, setDisclaimerOpen] = useState(false);
     const { dialog, openConfirm } = useConfirmDialog();
     const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
 
@@ -97,16 +110,26 @@ export default function RegistrationForm({
         [fields],
     );
 
-    const form = useForm<{
+    const form = useForm<TshirtDraft & {
         fields: FieldDraft[];
         common_field_requirements: Record<string, boolean>;
+        disclaimer_html: string | null;
     }>({
         fields: initialFields,
-        common_field_requirements,
+        disclaimer_html,
+        tshirt_enabled: tshirt !== null,
+        tshirt_label: tshirt?.label ?? 'T-shirt Size',
+        tshirt_required: tshirt?.required ?? true,
+        tshirt_choices: tshirt?.choices ?? ['Small', 'Medium', 'Large'],
+        tshirt_existing_photos: tshirt?.photos.map((photo) => photo.path) ?? [],
+        tshirt_photos: [],
+        common_field_requirements: event.can_edit
+            ? { ...common_field_requirements, email: true, address: true }
+            : common_field_requirements,
     });
 
     const clientErrors = hasAttemptedSave
-        ? validateRegistrationForm(form.data.fields)
+        ? { ...validateRegistrationForm(form.data.fields), ...validateTshirt(form.data, tshirt?.photos ?? []) }
         : {};
     const allErrors: Record<string, string> = {
         ...form.errors,
@@ -202,7 +225,11 @@ export default function RegistrationForm({
     const saveForm = () => {
         setHasAttemptedSave(true);
 
-        const errors = validateRegistrationForm(form.data.fields);
+        const errors = { ...validateRegistrationForm(form.data.fields), ...validateTshirt(form.data, tshirt?.photos ?? []) };
+        if (form.data.disclaimer_html !== null && !form.data.disclaimer_html.replace(/<[^>]*>/g, '').trim()) {
+            form.setError('disclaimer_html', 'The disclaimer must contain text.');
+            return;
+        }
         if (Object.keys(errors).length > 0) {
             return;
         }
@@ -215,6 +242,8 @@ export default function RegistrationForm({
             confirmLabel: 'Save Form',
             onConfirm: () => {
                 form.transform((data) => ({
+                    ...data,
+                    _method: 'put',
                     fields: data.fields.map((field) => ({
                         label: field.label,
                         field_type: field.field_type,
@@ -223,8 +252,9 @@ export default function RegistrationForm({
                         validation_rules: field.validation_rules,
                     })),
                     common_field_requirements: data.common_field_requirements,
+                    disclaimer_html: data.disclaimer_html,
                 }));
-                form.put(`/events/${event.id}/registration-form`);
+                form.post(`/events/${event.id}/registration-form`, { forceFormData: true });
             },
         });
     };
@@ -244,7 +274,7 @@ export default function RegistrationForm({
 
                 <div>
                     <h1 className="text-foreground text-2xl font-semibold">
-                        Create Registration Form
+                        {event.form_saved ? 'Edit Registration Form' : 'Create Registration Form'}
                     </h1>
                     <div className="mt-2 flex items-center gap-3">
                         <span
@@ -265,6 +295,47 @@ export default function RegistrationForm({
                         Add custom fields for anything event-specific.
                     </p>
                 </div>
+
+                <section aria-labelledby="participant-workflow" className="glass-panel rounded-xl p-5">
+                    <h2 id="participant-workflow" className="font-semibold">Participant registration workflow</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">Participants complete these steps in order. Build the form with their experience in mind.</p>
+                    <ol className="mt-4 grid gap-4 sm:grid-cols-3">
+                        {[
+                            ['Disclaimer', 'Read the participant agreement and privacy notice, then give consent.'],
+                            ['Personal Info', 'Enter personal details and answer your event-specific questions.'],
+                            ['Emergency Contact', 'Provide someone we can contact in an emergency.'],
+                            ['Verification', 'Verify contact details before registration is completed.'],
+                            ['Confirmation', 'Receive the registration code for event check-in.'],
+                        ].map(([title, description], index) => (
+                            <li key={title} className="rounded-lg border border-border p-3">
+                                <p className="text-sm font-medium">{index + 1}. {title}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+                            </li>
+                        ))}
+                    </ol>
+                    {event.form_saved && <Button variant="outline" className="mt-4" asChild>
+                        <Link href={`/events/${event.id}/registration-form/preview`}>View Saved Registration Form</Link>
+                    </Button>}
+                </section>
+
+                <section className="glass-panel space-y-3 rounded-xl p-5">
+                    <h2 className="font-semibold">Participant Disclaimer &amp; Agreement</h2>
+                    <p className="text-sm text-muted-foreground">{canEdit ? 'Do you want to edit the participant agreement? The default applies unless you customize it.' : 'The published participant agreement is locked.'}</p>
+                    <div className="max-h-48 overflow-y-auto text-sm [&_h1]:text-2xl [&_h2]:text-xl [&_p]:my-3" dangerouslySetInnerHTML={{ __html: form.data.disclaimer_html ?? default_disclaimer_html }} />
+                    {canEdit && <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setDisclaimerOpen(true)}>Edit Disclaimer</Button>
+                        {form.data.disclaimer_html !== null && <Button variant="ghost" onClick={() => form.setData('disclaimer_html', null)}>Use Default</Button>}
+                    </div>}
+                    <InputError message={allErrors.disclaimer_html} />
+                </section>
+
+                <section className="glass-panel space-y-2 rounded-xl p-5">
+                    <h2 className="font-semibold">Emergency contact &amp; verification</h2>
+                    {canEdit ? <>
+                        <p className="text-sm text-muted-foreground">Emergency contact first name, last name, relationship, and phone number are required. Relationships: Parent, Sibling, Spouse, Friend, Guardian, or Other (up to 15 characters).</p>
+                        <p className="text-sm text-muted-foreground">Newly saved forms verify email only. Requiring a contact number does not enable phone verification.</p>
+                    </> : <p className="text-sm text-muted-foreground">Published forms retain the rules they were opened with. View the saved form to inspect the participant experience.</p>}
+                </section>
 
                 {!canEdit && (
                     <div className="glass-panel flex items-start gap-3 rounded-xl p-4">
@@ -290,14 +361,13 @@ export default function RegistrationForm({
                     </div>
                     <p className="text-xs text-muted-foreground">
                         Every registration includes these fields. First
-                        name, last name, and date of birth are always required.
-                        Email, contact number, and address can be made
-                        optional.
+                        name, last name, date of birth, email, and barangay & city
+                        are required on newly saved forms. Contact number can be optional.
                     </p>
 
                     <div className="glass-panel grid gap-3 rounded-xl p-4 sm:grid-cols-2">
                         {COMMON_FIELDS.map((field) => {
-                            const isRequired = field.toggleable
+                            const isRequired = ['middle_name', 'suffix'].includes(field.key) ? false : field.toggleable || !canEdit
                                 ? form.data.common_field_requirements[
                                       field.key
                                   ] ?? true
@@ -336,8 +406,7 @@ export default function RegistrationForm({
                                                     *
                                                 </span>
                                             )}
-                                            {field.toggleable &&
-                                                !isRequired && (
+                                            {!isRequired && (
                                                     <span className="ml-auto text-xs text-muted-foreground">
                                                         Optional
                                                     </span>
@@ -352,6 +421,9 @@ export default function RegistrationForm({
                         message={allErrors.common_field_requirements}
                     />
                 </section>
+
+                <TshirtFieldBuilder data={form.data} photos={tshirt?.photos ?? []} errors={allErrors} disabled={!canEdit}
+                    onChange={(patch) => { form.clearErrors(); form.setData({ ...form.data, ...patch }); }} />
 
                 <section className="flex flex-col gap-3">
                     <div className="flex items-baseline justify-between">
@@ -453,6 +525,14 @@ export default function RegistrationForm({
             </div>
 
             {dialog}
+            <Dialog open={disclaimerOpen} onOpenChange={setDisclaimerOpen}>
+                <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader><DialogTitle>Edit participant disclaimer</DialogTitle><DialogDescription>Format the agreement with headings, bold, and italic text.</DialogDescription></DialogHeader>
+                    <RegistrationDisclaimerEditor value={form.data.disclaimer_html ?? default_disclaimer_html}
+                        onChange={(html) => { clearServerErrors('disclaimer_html'); form.setData('disclaimer_html', html); }} />
+                    <Button onClick={() => setDisclaimerOpen(false)}>Done</Button>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

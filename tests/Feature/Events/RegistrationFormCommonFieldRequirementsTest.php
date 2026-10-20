@@ -101,11 +101,11 @@ test('saving all-required stores NULL on the column', function () {
     expect($event->fresh()->registration_common_field_requirements)->toBeNull();
 });
 
-test('saving with email optional persists the map', function () {
+test('saving with email optional is rejected for new forms', function () {
     $staff = rfreqs_staff();
     $event = rfreqs_event();
 
-    $this->actingAs($staff)->put(
+    $response = $this->actingAs($staff)->put(
         "/events/{$event->id}/registration-form",
         rfreqs_payload([
             'common_field_requirements' => [
@@ -115,10 +115,8 @@ test('saving with email optional persists the map', function () {
         ]),
     );
 
-    $stored = $event->fresh()->registration_common_field_requirements;
-    expect($stored)->toBeArray();
-    expect($stored['email'])->toBeFalse();
-    expect($stored['address'])->toBeTrue();
+    $response->assertSessionHasErrors('common_field_requirements.email');
+    expect($event->fresh()->registration_form_saved_at)->toBeNull();
 });
 
 test('saving with contact number optional persists the map', function () {
@@ -139,11 +137,11 @@ test('saving with contact number optional persists the map', function () {
     expect($event->fresh()->registration_common_field_requirements['contact_number'])->toBeFalse();
 });
 
-test('saving with email and address optional persists the map', function () {
+test('saving with email and address optional is rejected for new forms', function () {
     $staff = rfreqs_staff();
     $event = rfreqs_event();
 
-    $this->actingAs($staff)->put(
+    $response = $this->actingAs($staff)->put(
         "/events/{$event->id}/registration-form",
         rfreqs_payload([
             'common_field_requirements' => [
@@ -153,21 +151,21 @@ test('saving with email and address optional persists the map', function () {
         ]),
     );
 
-    $stored = $event->fresh()->registration_common_field_requirements;
-    expect($stored['email'])->toBeFalse();
-    expect($stored['address'])->toBeFalse();
+    $response->assertSessionHasErrors(['common_field_requirements.email', 'common_field_requirements.address']);
+    expect($event->fresh()->registration_form_saved_at)->toBeNull();
 });
 
 test('re-saving with all-required compresses back to NULL', function () {
     $staff = rfreqs_staff();
     $event = rfreqs_event();
 
-    // First save: email optional.
+    // First save: contact number optional.
     $this->actingAs($staff)->put(
         "/events/{$event->id}/registration-form",
         rfreqs_payload([
             'common_field_requirements' => [
-                'email' => false,
+                'email' => true,
+                'contact_number' => false,
                 'address' => true,
             ],
         ]),
@@ -257,7 +255,8 @@ test('saving custom fields alongside a requirements map works', function () {
                 ],
             ],
             'common_field_requirements' => [
-                'email' => false,
+                'email' => true,
+                'contact_number' => false,
                 'address' => true,
             ],
         ]),
@@ -266,5 +265,5 @@ test('saving custom fields alongside a requirements map works', function () {
     expect(RegistrationField::where('event_id', $event->id)->count())->toBe(1);
 
     $stored = $event->fresh()->registration_common_field_requirements;
-    expect($stored['email'])->toBeFalse();
+    expect($stored['contact_number'])->toBeFalse();
 });

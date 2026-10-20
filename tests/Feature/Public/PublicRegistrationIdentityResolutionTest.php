@@ -70,7 +70,7 @@ test('an existing participant record is not updated by a later verified submissi
     $eventA = resolution_event(['registration_slug' => 'resolvaa']);
     $eventB = resolution_event(['registration_slug' => 'resolvbb']);
     completePublicRegistration($this, $eventA, resolution_payload())->assertSessionHasNoErrors();
-    completePublicRegistration($this, $eventB, resolution_payload(['first_name' => 'Maria D.', 'age' => 45]))->assertSessionHasNoErrors();
+    completePublicRegistration($this, $eventB, resolution_payload(['age' => 45]))->assertSessionHasNoErrors();
     $participant = Participant::where('email', 'maria@example.com')->sole();
     expect($participant->first_name)->toBe('Maria');
     expect($participant->age)->toBe(28);

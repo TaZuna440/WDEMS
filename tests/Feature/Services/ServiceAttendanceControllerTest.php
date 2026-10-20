@@ -36,6 +36,24 @@ function makeParticipant(array $overrides = []): Participant
     ], $overrides));
 }
 
+test('adding a family member does not select another participant with the same phone', function () {
+    $details = ['contact_number' => '09171234567'];
+    $parent = makeParticipant(array_merge($details, ['first_name' => 'Maria', 'last_name' => 'Santos']));
+
+    $this->actingAs($this->staff)
+        ->post(route('services.attendance.store', ['occurrence' => $this->occurrence->id]), array_merge($details, [
+            'track' => 'member',
+            'first_name' => 'Juan',
+            'last_name' => 'Santos',
+            'age' => 15,
+        ]))
+        ->assertRedirect()->assertSessionHasNoErrors();
+
+    $attendance = ServiceAttendanceMember::sole();
+    expect($attendance->participant_id)->not->toBe($parent->id)
+        ->and(Participant::findOrFail($attendance->participant_id)->first_name)->toBe('Juan');
+});
+
 // ----------------------------------------------------------------
 // Show
 // ----------------------------------------------------------------

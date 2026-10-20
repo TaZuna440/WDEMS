@@ -37,14 +37,14 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
  * Optional hint shown beneath each type in the picker.
  */
 export const FIELD_TYPE_HINTS: Record<FieldType, string> = {
-    text: 'Single line of text',
-    textarea: 'Multiple lines, good for notes',
-    number: 'Digits only',
-    email: 'Validated email address',
-    select: 'Pick one from a list',
-    checkbox: 'Pick any number from a list',
-    radio: 'Pick exactly one from a list',
-    date: 'Calendar date',
+    text: 'e.g. Nickname, Emergency contact name',
+    textarea: 'e.g. Medical conditions, Dietary restrictions',
+    number: 'e.g. Number of companions',
+    email: 'e.g. Alternate email address',
+    select: 'e.g. Distance — 3km, 5km, 10km',
+    checkbox: 'e.g. Add-ons — Timing chip, Meal, Medal engraving',
+    radio: 'e.g. Preferred wave — Morning, Afternoon',
+    date: 'e.g. Preferred race date',
 };
 
 /**

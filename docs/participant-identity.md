@@ -644,3 +644,47 @@ demographic field participates in identity resolution.
   §4.1 (unique email), §5 (normalization), §6 (resolution rule)
   reversed by the composite identity rule. Authoritative reference:
   `docs/composite-identity.md`.
+
+## Full-name identity amendment — 2026-10-20
+
+Mark approved Option A and case-insensitive matching, including middle name and
+suffix. This supersedes earlier descriptions limited to first and last name.
+The name portion now contains first name, middle name, last name, and suffix;
+each is trimmed, internal whitespace collapsed, and lowercased. Null or blank
+optional parts normalize to the empty string. An omitted middle name or suffix
+is not a wildcard for an existing populated name.
+
+The migration backfills normalized columns from existing raw name values.
+Verified contact plus the full normalized name resolves the person; matching
+names with different contacts and different names sharing a contact remain
+allowed. A second registration for the same resolved person on the same event
+remains rejected. Birthday and other demographics remain outside the key.
+Public finalization and duplicate checks, walk-in entry, and service attendance
+resolution use this full-name rule. Service/event-kind boundaries remain intact.
+
+## Provisional Quick walk-ins — 2026-10-20
+
+Mark approved event-local provisional records for name-only Quick walk-ins.
+Quick entry always creates a fresh participant with `provisional_event_id`,
+flags the registration for staff review, and marks attendance Present. It does
+not infer identity from the name. Composite lookup excludes provisional records,
+even if contact data is later added; staff review is required before linking.
+No automatic cross-event merge or provisional-to-established conversion is made.
+
+For paper registration Mark approved staff attestation instead of participant
+email OTP. The encoder's user ID and attestation time are stored separately on
+the registration. This is not an OTP verification or barcode verification marker.
+The full event form contract and per-event duplicate check still apply.
+
+## Follow-up — advisory duplicate defense and church pickers (2026-10-21)
+
+The full case-insensitive composite rule also applies to Fellowship's previous
+phone-only lookup. Provisional running participants are excluded from explicit
+Services/Fellowship picker validation and Discipleship enrollment/search until
+staff linking has a dedicated review flow.
+
+Possible-duplicate matches are event-scoped suggestions, not identity resolution.
+Similar normalized full names require a shared birthdate or contact to appear in
+the audit. Staff name lookup is advisory and permits an encoder to review an
+existing registration instead of creating another. A family sharing a contact
+remains valid when the full names identify different people.

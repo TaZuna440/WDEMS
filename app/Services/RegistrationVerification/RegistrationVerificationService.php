@@ -116,7 +116,7 @@ class RegistrationVerificationService
 
             $token = bin2hex(random_bytes(32));
             $emailRequired = $event->isCommonFieldRequired('email');
-            $phoneRequired = $event->isCommonFieldRequired('contact_number');
+            $phoneRequired = ! $event->usesEmailOnlyRegistration() && $event->isCommonFieldRequired('contact_number');
             Challenge::forceCreate([
                 'event_id' => $event->id,
                 'token_hash' => hash('sha256', $token),
@@ -239,6 +239,7 @@ class RegistrationVerificationService
                 && $challenge->email_verified_at === null
                 && $challenge->phone_verified_at === null,
             'ready' => $this->allVerified($challenge),
+            'similarity_warning' => $this->allVerified($challenge) && app(\App\Services\Participants\DuplicateReview::class)->hasSimilar($event, $challenge->payload ?? []),
         ];
     }
 
@@ -280,10 +281,18 @@ class RegistrationVerificationService
         Event $event,
         #[\SensitiveParameter] ?string $token,
         #[\SensitiveParameter] ?string $deviceToken = null,
+        #[\SensitiveParameter] ?string $recaptchaToken = null,
     ): ?string {
+        if ($event->usesEmailOnlyRegistration() && ($error = app(Recaptcha::class)->error($recaptchaToken))) {
+            return $error;
+        }
         // No automatic transaction retry around external mail delivery.
         return DB::transaction(function () use ($event, $token, $deviceToken): ?string {
             [$event, $challenge] = $this->lockPending($event, $token);
+
+            if ($event->usesEmailOnlyRegistration() && $this->emailLocked($challenge)) {
+                return 'Too many attempts. Please wait 2 hours to try again.';
+            }
 
             // Device trust: this device verified this email within the
             // trust window — skip the code, mark verified, and adopt
@@ -343,6 +352,9 @@ class RegistrationVerificationService
 
         return DB::transaction(function () use ($event, $token, $channel, $code, $deviceToken): ?string {
             [, $challenge] = $this->lockPending($event, $token);
+            if ($event->usesEmailOnlyRegistration() && $this->emailLocked($challenge)) {
+                return 'Too many attempts. Please wait 2 hours to try again.';
+            }
             if (! $challenge->getAttribute("{$channel}_required")) {
                 return 'This contact does not require verification.';
             }
@@ -366,6 +378,16 @@ class RegistrationVerificationService
                 || ! OtpCode::matches($code, $challenge->getAttribute("{$channel}_code_hash"))) {
                 $attempts = $challenge->getAttribute("{$channel}_attempts") + 1;
                 $challenge->forceFill(["{$channel}_attempts" => $attempts])->save();
+
+                if ($event->usesEmailOnlyRegistration()) {
+                    $key = $this->emailAttemptKey($challenge);
+                    $total = \Illuminate\Support\Facades\RateLimiter::hit($key, 7200);
+                    if ($total >= self::MAX_ATTEMPTS) {
+                        \Illuminate\Support\Facades\Cache::put($key.':locked', true, now()->addHours(2));
+                        return 'Too many attempts. Please wait 2 hours to try again.';
+                    }
+                    return 'The verification code is incorrect. You have '.(self::MAX_ATTEMPTS - $total).' attempts left.';
+                }
 
                 // Returning commits the failed attempt; throwing here would roll it back.
                 return $attempts >= self::MAX_ATTEMPTS
@@ -430,11 +452,11 @@ class RegistrationVerificationService
      * on the confirmation page immediately; the email is a durable second copy
      * for the case where they close the tab before saving it.
      */
-    public function finalize(Event $event, #[\SensitiveParameter] ?string $token): void
+    public function finalize(Event $event, #[\SensitiveParameter] ?string $token, bool $similarityAcknowledged = false): void
     {
         for ($attempt = 0; $attempt < 3; $attempt++) {
             try {
-                DB::transaction(function () use ($event, $token): void {
+                DB::transaction(function () use ($event, $token, $similarityAcknowledged): void {
                     $event = Event::query()->lockForUpdate()->findOrFail($event->id);
                     $challenge = $this->findChallenge($event, $token, true);
                     $state = $challenge === null ? 'missing' : $this->challengeState($challenge, $event);
@@ -447,6 +469,9 @@ class RegistrationVerificationService
                     }
 
                     $payload = PublicRegistrationRequest::validatePending($event, $challenge->payload ?? []);
+                    if (! $similarityAcknowledged && app(\App\Services\Participants\DuplicateReview::class)->hasSimilar($event, $payload)) {
+                        throw ValidationException::withMessages(['verification' => 'A similar registration may exist. Review your details and acknowledge the warning to continue.']);
+                    }
                     // The verified (chosen) channel is the identity
                     // contact. A required-but-unverified contact is a
                     // snapshot only — stored in submitted_* below, never
@@ -466,7 +491,10 @@ class RegistrationVerificationService
                         $this->identityConflict();
                     }
 
-                    $matches = Participant::query()->where(function ($query) use ($email, $normalized) {
+                    $matches = Participant::query()->matchingName(
+                        $payload['first_name'], $payload['last_name'],
+                        $payload['middle_name'] ?? null, $payload['suffix'] ?? null,
+                    )->where(function ($query) use ($email, $normalized) {
                         $query->whereRaw('1 = 0');
                         if ($email !== null) {
                             $query->orWhere('email', $email);
@@ -526,7 +554,13 @@ class RegistrationVerificationService
                         // disclaimer + privacy consent were accepted to reach this point.
                         'consent_accepted_at' => now(),
                         'privacy_notice_version' => RegistrationLegalText::PRIVACY_NOTICE_VERSION,
-                        'emergency_contact_name' => $payload['emergency_contact_name'],
+                        'emergency_contact_name' => $event->usesEmailOnlyRegistration()
+                            ? $payload['emergency_contact_first_name'].' '.$payload['emergency_contact_last_name']
+                            : $payload['emergency_contact_name'],
+                        'emergency_contact_first_name' => $payload['emergency_contact_first_name'] ?? null,
+                        'tshirt_choice' => $payload['tshirt_choice'] ?? null,
+                        'emergency_contact_last_name' => $payload['emergency_contact_last_name'] ?? null,
+                        'emergency_contact_relationship_other' => $payload['emergency_contact_relationship_other'] ?? null,
                         'emergency_contact_relationship' => $payload['emergency_contact_relationship'],
                         'emergency_contact_number' => $payload['emergency_contact_number'],
                     ]);
@@ -699,9 +733,8 @@ class RegistrationVerificationService
 
         $exists = Registration::query()
             ->where('event_id', $event->id)
-            ->whereHas('participant', function ($query) use ($email, $normalized, $normalizedFirst, $normalizedLast): void {
-                $query->where('first_name_normalized', $normalizedFirst)
-                    ->where('last_name_normalized', $normalizedLast)
+            ->whereHas('participant', function ($query) use ($email, $normalized, $payload): void {
+                $query->matchingName($payload['first_name'], $payload['last_name'], $payload['middle_name'] ?? null, $payload['suffix'] ?? null)
                     ->where(function ($inner) use ($email, $normalized): void {
                         if ($email !== null) {
                             $inner->orWhere('email', $email);
@@ -732,11 +765,13 @@ class RegistrationVerificationService
         if ($challenge->finalized_at !== null) {
             return 'finalized';
         }
-        if (! $this->isOpen($event)) {
+        // Existing challenges retain their original 24-hour lifetime after closure.
+        // Cancelled/completed events still reject completion; new intake uses assertOpen.
+        if (! $this->isOpen($event) && ! ($event->isRunningEvent() && in_array($event->status, [EventStatus::RegistrationClosed, EventStatus::Ongoing], true))) {
             return 'closed';
         }
         if ($challenge->email_required !== $event->isCommonFieldRequired('email')
-            || $challenge->phone_required !== $event->isCommonFieldRequired('contact_number')
+            || $challenge->phone_required !== (! $event->usesEmailOnlyRegistration() && $event->isCommonFieldRequired('contact_number'))
             || (! $challenge->email_required && ! $challenge->phone_required)) {
             return 'changed';
         }
@@ -760,9 +795,15 @@ class RegistrationVerificationService
             default => 'sent',
         };
 
+        $remaining = max(0, self::MAX_ATTEMPTS - $challenge->getAttribute("{$channel}_attempts"));
+        if ($channel === 'email' && $challenge->event?->usesEmailOnlyRegistration()) {
+            $remaining = $this->emailLocked($challenge) ? 0 : min($remaining, max(0, self::MAX_ATTEMPTS - \Illuminate\Support\Facades\RateLimiter::attempts($this->emailAttemptKey($challenge))));
+            if ($remaining === 0 && $status !== 'verified') $status = 'locked';
+        }
+
         return [
             'status' => $status,
-            'attempts_remaining' => max(0, self::MAX_ATTEMPTS - $challenge->getAttribute("{$channel}_attempts")),
+            'attempts_remaining' => $remaining,
             'retry_at' => $retryAt?->toIso8601String(),
             'expires_at' => $expiresAt?->toIso8601String(),
         ];
@@ -788,6 +829,16 @@ class RegistrationVerificationService
         }
 
         return null;
+    }
+
+    private function emailAttemptKey(Challenge $challenge): string
+    {
+        return 'registration-email-attempts:'.hash('sha256', mb_strtolower(trim($challenge->payload['email'] ?? '')));
+    }
+
+    private function emailLocked(Challenge $challenge): bool
+    {
+        return \Illuminate\Support\Facades\Cache::has($this->emailAttemptKey($challenge).':locked');
     }
 
     private function issue(Challenge $challenge, string $channel): string
@@ -827,7 +878,7 @@ class RegistrationVerificationService
 
     private function isOpen(Event $event): bool
     {
-        return $event->getAttribute('status') === EventStatus::RegistrationOpen
+        return $event->isRunningEvent() && $event->getAttribute('status') === EventStatus::RegistrationOpen
             && ($event->registration_end === null || now()->lessThan($event->registration_end));
     }
 

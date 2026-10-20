@@ -81,6 +81,8 @@ class BulkWalkInRegistrationRequest extends FormRequest
 
             'rows.*.first_name' => $this->personNameRules(),
             'rows.*.last_name' => $this->personNameRules(),
+            'rows.*.middle_name' => ['nullable', 'string', 'max:50'],
+            'rows.*.suffix' => ['nullable', 'string', 'max:10'],
             'rows.*.age' => ['nullable', 'integer', 'min:1', 'max:120'],
             'rows.*.birthday' => [
                 'nullable',

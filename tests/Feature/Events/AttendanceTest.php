@@ -340,7 +340,7 @@ test('marking attendance creates an attendance row', function () {
 
     $this->actingAs($staff)
         ->post("/events/{$event->id}/attendance/{$registration->id}/mark", [
-            'status' => 'late',
+            'status' => 'present',
             'notes' => 'Arrived 10 minutes after start',
         ])
         ->assertRedirect();
@@ -348,7 +348,7 @@ test('marking attendance creates an attendance row', function () {
     $attendance = $registration->fresh()->attendance;
 
     expect($attendance)->not->toBeNull();
-    expect($attendance->attendance_status)->toBe(AttendanceStatus::Late);
+    expect($attendance->attendance_status)->toBe(AttendanceStatus::Present);
     expect($attendance->notes)->toBe('Arrived 10 minutes after start');
 });
 
@@ -449,8 +449,8 @@ test('walk-in rejects a person already registered for the event', function () {
 
     $this->actingAs($staff)
         ->post("/events/{$event->id}/attendance/walk-in", [
-            'first_name' => 'Someone',
-            'last_name' => 'Else',
+            'first_name' => 'Maria',
+            'last_name' => 'Santos',
             'age' => 30,
             'email' => 'already@example.com',
         ])

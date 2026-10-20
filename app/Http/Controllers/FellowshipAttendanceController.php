@@ -200,7 +200,7 @@ class FellowshipAttendanceController extends Controller
         );
 
         if ($normalized !== null) {
-            $byPhone = Participant::where('contact_number_normalized', $normalized)->first();
+            $byPhone = Participant::findByComposite(null, $phoneRaw, $validated['first_name'] ?? null, $validated['last_name'] ?? null, $validated['middle_name'] ?? null, $validated['suffix'] ?? null);
             if ($byPhone !== null) {
                 return $byPhone;
             }
@@ -209,6 +209,8 @@ class FellowshipAttendanceController extends Controller
         return Participant::create([
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
+            'middle_name' => $validated['middle_name'] ?? null,
+            'suffix' => $validated['suffix'] ?? null,
             'age' => $validated['age'] ?? null,
             'birthday' => $validated['birthday'] ?? null,
             'address' => $validated['address'] ?? null,

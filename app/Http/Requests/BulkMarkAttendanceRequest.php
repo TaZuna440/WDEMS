@@ -51,7 +51,7 @@ class BulkMarkAttendanceRequest extends FormRequest
             'filter' => [
                 'nullable',
                 'string',
-                Rule::in(['all', 'unmarked', 'present', 'absent', 'late', 'excused']),
+                Rule::in(['all', 'unmarked', 'present', 'absent']),
             ],
             'q' => ['nullable', 'string', 'max:255'],
         ];

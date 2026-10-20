@@ -34,10 +34,12 @@ class AddFellowshipAttendanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'participant_id' => ['nullable', 'integer', 'exists:participants,id'],
+            'participant_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('participants', 'id')->whereNull('provisional_event_id')],
 
             'first_name' => ['nullable', 'required_if:participant_id,null', 'string', 'max:255'],
             'last_name' => ['nullable', 'required_if:participant_id,null', 'string', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:50'],
+            'suffix' => ['nullable', 'string', 'max:10'],
             'age' => ['nullable', 'integer', 'min:1', 'max:120'],
             'birthday' => ['nullable', 'date'],
             'address' => ['nullable', 'string', 'max:500'],

@@ -212,7 +212,7 @@ class DiscipleshipController extends Controller
     ): JsonResponse {
         $q = trim((string) $request->query('q', ''));
 
-        $query = Participant::query();
+        $query = Participant::query()->whereNull('provisional_event_id');
 
         if ($q !== '') {
             $like = '%'.$q.'%';

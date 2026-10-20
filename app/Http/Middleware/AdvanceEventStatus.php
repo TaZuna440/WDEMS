@@ -50,7 +50,7 @@ class AdvanceEventStatus
     {
         $event = $request->route('event');
 
-        if (! $event instanceof Event) {
+        if (! $event instanceof Event || ! $event->isRunningEvent()) {
             return $next($request);
         }
 

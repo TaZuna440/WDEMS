@@ -31,11 +31,13 @@ class AddServiceAttendanceRequest extends FormRequest
     {
         return [
             'track' => ['required', Rule::in(['member', 'first_timer'])],
-            'participant_id' => ['nullable', 'integer', 'exists:participants,id'],
+            'participant_id' => ['nullable', 'integer', Rule::exists('participants', 'id')->whereNull('provisional_event_id')],
 
             // Only required when participant_id is null (new participant).
             'first_name' => ['nullable', 'required_if:participant_id,null', 'string', 'max:255'],
             'last_name' => ['nullable', 'required_if:participant_id,null', 'string', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:50'],
+            'suffix' => ['nullable', 'string', 'max:10'],
             'age' => ['nullable', 'integer', 'min:1', 'max:120'],
             'birthday' => ['nullable', 'date'],
             'address' => ['nullable', 'string', 'max:500'],

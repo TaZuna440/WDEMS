@@ -57,6 +57,8 @@ export default function WalkInDialog({
     const form = useForm<{
         first_name: string;
         last_name: string;
+        middle_name: string;
+        suffix: string;
         age: string | number;
         birthday: string;
         email: string;
@@ -70,6 +72,8 @@ export default function WalkInDialog({
     }>({
         first_name: '',
         last_name: '',
+        middle_name: '',
+        suffix: '',
         age: '' as string | number,
         birthday: '',
         email: '',
@@ -262,6 +266,17 @@ export default function WalkInDialog({
                             />
                             <InputError message={form.errors.last_name} />
                         </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        {(['middle_name', 'suffix'] as const).map((key) => (
+                            <div key={key} className="grid gap-2">
+                                <Label htmlFor={`walk-in-${key}`}>{key === 'middle_name' ? 'Middle name' : 'Suffix'} (optional)</Label>
+                                <Input id={`walk-in-${key}`} value={form.data[key]} maxLength={key === 'suffix' ? 10 : 50}
+                                    onChange={(e) => form.setData(key, e.target.value)} />
+                                <InputError message={form.errors[key]} />
+                            </div>
+                        ))}
                     </div>
 
                     <div className="grid gap-2">

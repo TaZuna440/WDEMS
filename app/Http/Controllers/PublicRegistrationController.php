@@ -17,19 +17,42 @@ class PublicRegistrationController extends Controller
 {
     public function show(Request $request, Event $event): Response
     {
+        return $this->renderForm($event, $request->session()->pull('success'));
+    }
+
+    public function preview(Event $event): Response
+    {
+        abort_unless($event->isRunningEvent(), 404);
+        abort_if($event->registration_form_saved_at === null, 404);
+
+        return $this->renderForm($event, null, true);
+    }
+
+    private function renderForm(Event $event, ?string $success, bool $preview = false): Response
+    {
         return Inertia::render('registrations/public', [
+            'preview' => $preview,
+            'form_version' => $event->registration_form_version ?? 1,
+            'tshirt' => $event->registration_tshirt ? [
+                'label' => $event->registration_tshirt['label'],
+                'required' => $event->registration_tshirt['required'],
+                'choices' => $event->registration_tshirt['choices'],
+                'photos' => array_map(fn ($photo) => \Illuminate\Support\Facades\Storage::disk('public')->url($photo['path']), $event->registration_tshirt['photos']),
+            ] : null,
+            'preview_return_url' => $preview ? route('events.show', $event) : null,
             'event' => $this->eventPayload($event),
             'fields' => $this->fieldsPayload($event),
             'common_field_requirements' => $this->resolveCommonFieldRequirements($event),
-            'submit_url' => route('public-registration.store', [
+            'submit_url' => $preview ? '' : route('public-registration.store', [
                 'event' => $event->registration_slug,
             ]),
-            'success' => $request->session()->pull('success'),
+            'success' => $success,
             // W6 Step 1: disclaimer paragraphs + privacy consent text.
             'disclaimer_paragraphs' => RegistrationLegalText::disclaimerFor($event),
+            'disclaimer_html' => $event->registration_disclaimer_html,
             'privacy_consent_text' => RegistrationLegalText::privacyConsentFor($event),
             // W6: localStorage key for the wizard draft.
-            'event_slug' => $event->registration_slug,
+            'event_slug' => $event->registration_slug ?? '',
         ]);
     }
 
@@ -55,7 +78,7 @@ class PublicRegistrationController extends Controller
             );
             $error = null;
             $deviceToken = RegistrationVerificationService::deviceToken($request);
-            if ($result['created'] && $event->isCommonFieldRequired('email')) {
+            if ($result['created'] && $event->isCommonFieldRequired('email') && ! $event->usesEmailOnlyRegistration()) {
                 $error = $verification->sendEmail($event, $result['token'], $deviceToken);
             }
         } catch (ValidationException $exception) {

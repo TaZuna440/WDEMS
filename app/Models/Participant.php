@@ -4,11 +4,13 @@ namespace App\Models;
 
 use App\Exceptions\IdentityRequiredException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
+    'provisional_event_id',
     'first_name',
     'first_name_normalized',
     'last_name',
@@ -246,6 +248,26 @@ class Participant extends Model
         $this->attributes['contact_number_normalized'] = self::normalizeContactNumber($raw);
     }
 
+    public function setMiddleNameAttribute(mixed $value): void
+    {
+        $this->attributes['middle_name'] = is_string($value) && trim($value) !== '' ? trim($value) : null;
+        $this->attributes['middle_name_normalized'] = self::normalizeName($value) ?? '';
+    }
+
+    public function setSuffixAttribute(mixed $value): void
+    {
+        $this->attributes['suffix'] = is_string($value) && trim($value) !== '' ? trim($value) : null;
+        $this->attributes['suffix_normalized'] = self::normalizeName($value) ?? '';
+    }
+
+    public function scopeMatchingName(Builder $query, ?string $first, ?string $last, ?string $middle = null, ?string $suffix = null): Builder
+    {
+        return $query->whereNull('provisional_event_id')->where('first_name_normalized', self::normalizeName($first))
+            ->where('last_name_normalized', self::normalizeName($last))
+            ->where('middle_name_normalized', self::normalizeName($middle) ?? '')
+            ->where('suffix_normalized', self::normalizeName($suffix) ?? '');
+    }
+
     /**
      * Find a participant by composite identity key.
      *
@@ -277,6 +299,8 @@ class Participant extends Model
         ?string $rawPhone,
         ?string $firstName,
         ?string $lastName,
+        ?string $middleName = null,
+        ?string $suffix = null,
     ): ?self {
         $normalizedFirst = self::normalizeName($firstName);
         $normalizedLast = self::normalizeName($lastName);
@@ -292,9 +316,7 @@ class Participant extends Model
             return null;
         }
 
-        $query = self::query()
-            ->where('first_name_normalized', $normalizedFirst)
-            ->where('last_name_normalized', $normalizedLast);
+        $query = self::query()->matchingName($firstName, $lastName, $middleName, $suffix);
 
         if ($trimmedEmail !== '' && $normalizedPhone !== null) {
             $query->where(function ($q) use ($trimmedEmail, $normalizedPhone): void {
@@ -346,6 +368,8 @@ class Participant extends Model
             $rawPhone,
             $attributes['first_name'] ?? null,
             $attributes['last_name'] ?? null,
+            $attributes['middle_name'] ?? null,
+            $attributes['suffix'] ?? null,
         );
 
         if ($existing !== null) {

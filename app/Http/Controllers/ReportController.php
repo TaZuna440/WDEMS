@@ -85,7 +85,7 @@ class ReportController extends Controller
      */
     private function assertReportable(Event $event): void
     {
-        if (! in_array($event->status, [
+        if (! $event->isRunningEvent() || ! in_array($event->status, [
             EventStatus::Ongoing,
             EventStatus::Completed,
         ], true)) {

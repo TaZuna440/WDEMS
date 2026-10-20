@@ -34,6 +34,7 @@ class AttendanceController extends Controller
         $today = today()->toDateString();
 
         $events = Event::query()
+            ->where('event_kind', Event::KIND_RUNNING)
             ->whereIn('status', $statuses)
             ->whereDate('event_date', '<=', $today)
             ->orderByDesc('event_date')
@@ -80,7 +81,7 @@ class AttendanceController extends Controller
         $search = trim((string) $request->input('q', ''));
         $filter = (string) $request->input('filter', 'all');
 
-        $allowedFilters = ['all', 'unmarked', 'present', 'absent', 'late', 'excused'];
+        $allowedFilters = ['all', 'unmarked', 'present', 'absent'];
         if (! in_array($filter, $allowedFilters, true)) {
             $filter = 'all';
         }
@@ -133,16 +134,11 @@ class AttendanceController extends Controller
             'absent' => $baseQuery()
                 ->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'absent'))
                 ->count(),
-            'late' => $baseQuery()
-                ->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'late'))
-                ->count(),
-            'excused' => $baseQuery()
-                ->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'excused'))
-                ->count(),
         ];
 
         $query = $baseQuery()->with([
-            'participant:id,first_name,last_name,email,contact_number',
+            'participant:id,first_name,middle_name,last_name,suffix,email,contact_number',
+            'fieldResponses.registrationField',
             'attendance:id,registration_id,attendance_status,attendance_time,notes,verified_at',
         ]);
 
@@ -167,6 +163,8 @@ class AttendanceController extends Controller
             'source' => $r->source,
             'registered_at' => $r->registered_at?->toIso8601String(),
             'attendance_code' => $r->attendance_code,
+            'tshirt_choice' => $r->tshirt_choice,
+            'custom_fields' => $r->fieldResponses->map(fn ($response) => ['label' => $response->registrationField?->label ?? 'Answer', 'value' => $response->registrationField?->field_type === 'checkbox' ? (json_decode($response->value, true) ?? $response->value) : $response->value])->values(),
             'participant' => [
                 'id' => $r->participant?->id,
                 'full_name' => $r->participant?->fullName(),
@@ -196,6 +194,8 @@ class AttendanceController extends Controller
                     'address' => $event->isCommonFieldRequired('address'),
                 ],
                 'registration_fields' => $this->registrationFieldsPayload($event),
+                'form_version' => $event->registration_form_version,
+                'tshirt' => $event->registration_tshirt ? array_intersect_key($event->registration_tshirt, array_flip(['label', 'choices', 'required'])) : null,
             ],
             'rows' => $rows,
             'pagination' => [
@@ -213,7 +213,7 @@ class AttendanceController extends Controller
             'can_mark' => $forceOpen || $event->canRecordAttendanceNow(),
             'is_admin' => $isAdmin,
             'force_open' => $forceOpen,
-            'attendance_statuses' => collect(AttendanceStatus::cases())
+            'attendance_statuses' => collect([AttendanceStatus::Present, AttendanceStatus::Absent])
                 ->map(fn (AttendanceStatus $s) => [
                     'value' => $s->value,
                     'label' => $s->label(),
@@ -240,6 +240,8 @@ class AttendanceController extends Controller
      */
     public function mark(Request $request, Event $event, Registration $registration): RedirectResponse
     {
+        abort_unless($event->isRunningEvent(), 403);
+
         $forceOpen = $request->user()?->isAdmin() === true
             && $request->boolean('force_open');
 
@@ -252,7 +254,7 @@ class AttendanceController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => ['required', Rule::enum(AttendanceStatus::class)],
+            'status' => ['required', Rule::in(['present', 'absent'])],
             'notes' => ['nullable', 'string', 'max:1000'],
             'verified_code' => ['nullable', 'string', 'max:16'],
         ]);
@@ -260,15 +262,12 @@ class AttendanceController extends Controller
         $status = AttendanceStatus::from($validated['status']);
         $user = $request->user();
 
-        $shouldRecordTime = in_array($status, [
-            AttendanceStatus::Present,
-            AttendanceStatus::Late,
-        ], true);
+        $shouldRecordTime = $status === AttendanceStatus::Present;
 
         // Verification: the submitted code must normalize to the
         // registration's stored code. The status must be one of the
         // presence states. Anything else leaves `verified_at` null.
-        $verifiedAt = null;
+        $verifiedAt = $shouldRecordTime ? $registration->attendance?->verified_at : null;
         $submittedCode = $this->normalizeAttendanceCode(
             (string) ($validated['verified_code'] ?? ''),
         );
@@ -325,6 +324,8 @@ class AttendanceController extends Controller
      */
     public function bulkMark(BulkMarkAttendanceRequest $request, Event $event): RedirectResponse
     {
+        abort_unless($event->isRunningEvent(), 403);
+
         $forceOpen = $request->user()?->isAdmin() === true
             && $request->boolean('force_open');
 
@@ -473,6 +474,8 @@ class AttendanceController extends Controller
      */
     public function bulkWalkIn(BulkWalkInRegistrationRequest $request, Event $event): RedirectResponse
     {
+        abort_unless($event->isRunningEvent(), 403);
+
         $forceOpen = $request->user()?->isAdmin() === true
             && $request->boolean('force_open');
 
@@ -504,8 +507,9 @@ class AttendanceController extends Controller
             // Compute the per-row attendance timestamp. Live mode uses
             // now(); deferred mode uses the row's arrival_time on the
             // event's date. Validation guarantees arrival_time is
-            // present when deferred, but the guard is defensive.
-            if ($deferred && isset($row['arrival_time']) && $row['arrival_time'] !== null) {
+            // present when deferred. Dateless events opened by an
+            // admin fall back to now().
+            if ($deferred && $event->event_date !== null && isset($row['arrival_time']) && $row['arrival_time'] !== null) {
                 $attendanceTime = $event->event_date
                     ->copy()
                     ->setTimeFromTimeString($row['arrival_time']);
@@ -600,18 +604,14 @@ class AttendanceController extends Controller
 
         // Read-only lookup. If the identity already exists, we know
         // the row will resolve to it. No write yet.
-        $existing = null;
-
-        if ($email !== '') {
-            $existing = Participant::where('email', $email)->first();
-        }
-
-        if ($existing === null && $normalized !== null) {
-            $existing = Participant::where(
-                'contact_number_normalized',
-                $normalized,
-            )->first();
-        }
+        $existing = Participant::findByComposite(
+            $email,
+            $phone,
+            $row['first_name'] ?? null,
+            $row['last_name'] ?? null,
+            $row['middle_name'] ?? null,
+            $row['suffix'] ?? null,
+        );
 
         // Duplicate within this batch?
         if ($existing !== null && in_array($existing->id, $seenParticipantIds, true)) {
@@ -637,6 +637,8 @@ class AttendanceController extends Controller
                 [
                     'first_name' => $row['first_name'],
                     'last_name' => $row['last_name'],
+                    'middle_name' => $row['middle_name'] ?? null,
+                    'suffix' => $row['suffix'] ?? null,
                     // Demographic write: prefer `birthday` (new shape,
                     // bounded to age 3-120 by the request). Fall back
                     // to `age` for legacy callers. Exactly one is
@@ -729,8 +731,84 @@ class AttendanceController extends Controller
      * WalkInRegistrationRequest Pass 3). In live mode, any submitted
      * arrival_time is ignored.
      */
+    public function encodePaper(Request $request, Event $event): RedirectResponse
+    {
+        abort_unless($event->isRunningEvent(), 403);
+        $forceOpen = $request->user()?->isAdmin() === true && $request->boolean('force_open');
+        abort_unless($forceOpen || $event->canRecordAttendanceNow(), 403);
+        $timing = $request->validate([
+            'encoding_mode' => ['required', 'in:live,deferred'],
+            'arrival_time' => ['required_if:encoding_mode,deferred', 'nullable', 'date_format:H:i'],
+        ]);
+        DB::transaction(function () use ($event, $request, $timing, $forceOpen): void {
+            $event = Event::query()->lockForUpdate()->findOrFail($event->id);
+            abort_unless($event->isRunningEvent() && ($forceOpen || $event->canRecordAttendanceNow()), 403);
+            $data = \App\Http\Requests\PublicRegistrationRequest::validatePending($event, $request->all());
+            $participant = Participant::resolveFrom($data['email'] ?? null, $data['contact_number'] ?? null,
+                array_intersect_key($data, array_flip(['first_name', 'middle_name', 'last_name', 'suffix', 'birthday', 'age', 'address'])));
+            if ($event->registrations()->where('participant_id', $participant->id)->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['identity' => 'This person is already registered for this event. Use Check-in instead.']);
+            }
+            $registration = Registration::create([
+                'event_id' => $event->id, 'participant_id' => $participant->id,
+                'registration_date' => now(), 'registered_at' => now(),
+                'registration_status' => RegistrationStatus::Confirmed, 'source' => 'form',
+                'encoded_by' => $request->user()->id, 'contact_attested_at' => now(),
+                'submitted_email' => $data['email'] ?? null, 'submitted_contact_number' => $data['contact_number'] ?? null,
+                'emergency_contact_name' => $event->usesEmailOnlyRegistration()
+                    ? $data['emergency_contact_first_name'].' '.$data['emergency_contact_last_name'] : $data['emergency_contact_name'],
+                'emergency_contact_first_name' => $data['emergency_contact_first_name'] ?? null,
+                'emergency_contact_last_name' => $data['emergency_contact_last_name'] ?? null,
+                'emergency_contact_relationship' => $data['emergency_contact_relationship'],
+                'emergency_contact_relationship_other' => $data['emergency_contact_relationship_other'] ?? null,
+                'emergency_contact_number' => $data['emergency_contact_number'],
+                'tshirt_choice' => $data['tshirt_choice'] ?? null,
+            ]);
+            foreach ($data['responses'] ?? [] as $fieldId => $value) {
+                $registration->fieldResponses()->create(['registration_field_id' => $fieldId, 'value' => is_array($value) ? json_encode($value) : (string) $value]);
+            }
+            $time = $timing['encoding_mode'] === 'deferred' && $event->event_date !== null
+                ? $event->event_date->copy()->setTimeFromTimeString($timing['arrival_time']) : now();
+            $registration->attendance()->create(['attendance_status' => AttendanceStatus::Present,
+                'attendance_time' => $time, 'recorded_by' => $request->user()->id]);
+        });
+
+        return redirect()->route('events.attendance', $event)->with('success', 'Paper registration saved and marked present.');
+    }
+
+    public function quickWalkIn(Request $request, Event $event): RedirectResponse
+    {
+        abort_unless($event->isRunningEvent(), 403);
+        $forceOpen = $request->user()?->isAdmin() === true && $request->boolean('force_open');
+        abort_unless($forceOpen || $event->canRecordAttendanceNow(), 403);
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'min:2', 'max:50', "regex:/^[\\pL\\pM '\\-]+$/u"],
+            'last_name' => ['required', 'string', 'min:2', 'max:50', "regex:/^[\\pL\\pM '\\-]+$/u"],
+            'middle_name' => ['nullable', 'string', 'max:50'],
+            'suffix' => ['nullable', 'string', 'max:10'],
+        ]);
+        DB::transaction(function () use ($event, $validated, $request): void {
+            // A name alone cannot establish identity. Never resolve or merge it.
+            $participant = Participant::create([...$validated, 'provisional_event_id' => $event->id]);
+            $registration = Registration::create([
+                'event_id' => $event->id, 'participant_id' => $participant->id,
+                'registration_date' => now(), 'registered_at' => now(),
+                'registration_status' => RegistrationStatus::Confirmed, 'source' => 'walk_in',
+                'flagged_at' => now(), 'notes' => 'Name-only provisional walk-in. Staff review required before linking identity.',
+            ]);
+            $registration->attendance()->create([
+                'attendance_status' => AttendanceStatus::Present, 'attendance_time' => now(),
+                'recorded_by' => $request->user()->id,
+            ]);
+        });
+
+        return redirect()->route('events.attendance', $event)->with('success', 'Quick walk-in marked present. Identity remains provisional.');
+    }
+
     public function walkIn(WalkInRegistrationRequest $request, Event $event): RedirectResponse
     {
+        abort_unless($event->isRunningEvent(), 403);
+
         $forceOpen = $request->user()?->isAdmin() === true
             && $request->boolean('force_open');
 
@@ -746,8 +824,9 @@ class AttendanceController extends Controller
 
         // Compute the attendance timestamp once, outside the
         // transaction. Live mode uses now(); deferred mode uses the
-        // arrival time on the event's date.
-        if ($encodingMode === 'deferred' && $arrivalTime !== null) {
+        // arrival time on the event's date. Dateless events opened
+        // by an admin fall back to now().
+        if ($encodingMode === 'deferred' && $event->event_date !== null && $arrivalTime !== null) {
             $attendanceTime = $event->event_date
                 ->copy()
                 ->setTimeFromTimeString($arrivalTime);
@@ -762,6 +841,8 @@ class AttendanceController extends Controller
                 [
                     'first_name' => $validated['first_name'],
                     'last_name' => $validated['last_name'],
+                    'middle_name' => $validated['middle_name'] ?? null,
+                    'suffix' => $validated['suffix'] ?? null,
                     // Demographic write: prefer `birthday` (new shape,
                     // bounded to age 3-120 by WalkInRegistrationRequest,
                     // D4: required on walk-in like the public form).

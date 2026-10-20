@@ -37,6 +37,8 @@ class EnsureRegistrationIsOpen
             return $next($request);
         }
 
+        abort_unless($event->isRunningEvent(), 404);
+
         if ($event->status !== EventStatus::RegistrationOpen) {
             return $this->closed($request, $event);
         }

@@ -33,6 +33,7 @@ class RegistrationMonitorController extends Controller
     public function index(): Response
     {
         $events = Event::query()
+            ->where('event_kind', Event::KIND_RUNNING)
             ->where('status', EventStatus::RegistrationOpen)
             ->get();
 
@@ -114,6 +115,8 @@ class RegistrationMonitorController extends Controller
      */
     public function show(Event $event): Response
     {
+        abort_unless($event->isRunningEvent(), 404);
+
         if (! in_array($event->status, [
             EventStatus::RegistrationOpen,
             EventStatus::RegistrationClosed,
@@ -361,6 +364,8 @@ class RegistrationMonitorController extends Controller
      */
     public function exportCsv(Event $event): StreamedResponse
     {
+        abort_unless($event->isRunningEvent(), 404);
+
         if (! in_array($event->status, [
             EventStatus::RegistrationOpen,
             EventStatus::RegistrationClosed,
@@ -461,7 +466,7 @@ class RegistrationMonitorController extends Controller
     {
         $event = $registration->event;
 
-        if ($event === null) {
+        if ($event === null || ! $event->isRunningEvent()) {
             abort(404);
         }
 

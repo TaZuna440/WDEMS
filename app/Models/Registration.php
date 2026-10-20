@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
+    'encoded_by',
+    'contact_attested_at',
     'event_id',
     'participant_id',
     'registration_date',
@@ -24,6 +26,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'consent_accepted_at',
     'privacy_notice_version',
     'emergency_contact_name',
+    'tshirt_choice',
+    'emergency_contact_first_name',
+    'emergency_contact_last_name',
+    'emergency_contact_relationship_other',
     'emergency_contact_relationship',
     'emergency_contact_number',
 ])]

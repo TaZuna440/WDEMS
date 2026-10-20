@@ -26,6 +26,8 @@ class RegistrationVerificationController extends Controller
 
         return Inertia::render('registrations/verify', [
             'event_name' => $event->event_name,
+            'email_only' => $event->usesEmailOnlyRegistration(),
+            'recaptcha_site_key' => $event->usesEmailOnlyRegistration() ? config('services.recaptcha.site_key') : null,
             'verification' => $verification,
             'form_url' => route('public-registration.show', ['event' => $event->registration_slug]),
             'verification_url' => route('public-registration.verification', ['event' => $event->registration_slug]),
@@ -75,6 +77,7 @@ class RegistrationVerificationController extends Controller
 
         $response = $this->publicAction($event, 'email', fn () => $this->verification->sendEmail(
             $event, $this->token($request, $event), $deviceToken,
+            is_string($request->input('recaptcha_token')) ? $request->input('recaptcha_token') : null,
         ));
 
         return $this->withDeviceTrustCookie($request, $response, $deviceToken);
@@ -83,7 +86,7 @@ class RegistrationVerificationController extends Controller
     public function complete(Request $request, Event $event): RedirectResponse
     {
         return $this->publicAction($event, 'verification', function () use ($request, $event): ?string {
-            $this->verification->finalize($event, $this->token($request, $event));
+            $this->verification->finalize($event, $this->token($request, $event), $request->boolean('similarity_acknowledged'));
 
             return null;
         });
