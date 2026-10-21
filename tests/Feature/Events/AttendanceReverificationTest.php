@@ -40,7 +40,6 @@ beforeEach(function () {
  *
  * Helpers prefixed reverify_ to avoid Pest collisions.
  */
-
 function reverify_staff(): User
 {
     return User::factory()->create([
@@ -74,7 +73,7 @@ function reverify_verified_row(string $code = 'KM4X-P2N7'): array
         'status' => 'ongoing',
     ]);
 
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'email' => 'maria-'.uniqid().'@example.com',

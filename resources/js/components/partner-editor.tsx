@@ -33,11 +33,7 @@ type Props = {
     errors?: Record<string, string>;
 };
 
-export default function PartnerEditor({
-    value,
-    onChange,
-    errors = {},
-}: Props) {
+export default function PartnerEditor({ value, onChange, errors = {} }: Props) {
     const addPartner = () => {
         onChange([...value, { name: '', type: 'host' }]);
     };
@@ -58,11 +54,11 @@ export default function PartnerEditor({
         <div className="flex flex-col gap-3">
             {value.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-white/10 py-8 text-center">
-                    <Users className="mb-2 h-8 w-8 text-muted-foreground/40" />
-                    <p className="text-sm text-muted-foreground">
+                    <Users className="text-muted-foreground/40 mb-2 h-8 w-8" />
+                    <p className="text-muted-foreground text-sm">
                         No partners yet.
                     </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="text-muted-foreground mt-0.5 text-xs">
                         Add hosts, sponsors, food, or beverage providers.
                     </p>
                 </div>
@@ -121,7 +117,7 @@ export default function PartnerEditor({
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => removePartner(index)}
-                                className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                className="text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
                                 aria-label={`Remove partner ${index + 1}`}
                             >
                                 <Trash2 className="h-4 w-4" />

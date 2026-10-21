@@ -120,23 +120,14 @@ const CHURCH_STEPS: WizardStepConfig[] = [
     {
         id: 'basics',
         label: 'Details',
-        fields: [
-            'event_type',
-            'church_category',
-            'event_name',
-            'description',
-        ],
+        fields: ['event_type', 'church_category', 'event_name', 'description'],
         requiredFields: ['church_category', 'event_name'],
         validate: validateBasics,
     },
     {
         id: 'schedule',
         label: 'Schedule',
-        fields: [
-            'event_date',
-            'start_time',
-            'end_time',
-        ],
+        fields: ['event_date', 'start_time', 'end_time'],
         requiredFields: ['event_date', 'start_time'],
         validate: validateSchedule,
     },
@@ -229,14 +220,19 @@ export default function EventsEdit({ event, church_categories }: Props) {
      * them back to the step that owns that field.
      */
     const setData = (key: string, value: unknown) => {
-        (inertiaSetData as unknown as (key: string, value: unknown) => void)(key, value);
+        (inertiaSetData as unknown as (key: string, value: unknown) => void)(
+            key,
+            value,
+        );
 
         const matching = Object.keys(errors).filter(
             (k) => k === key || k.startsWith(`${key}.`),
         );
 
         if (matching.length > 0) {
-            (clearErrors as unknown as (...fields: string[]) => void)(...matching);
+            (clearErrors as unknown as (...fields: string[]) => void)(
+                ...matching,
+            );
         }
     };
 
@@ -251,7 +247,7 @@ export default function EventsEdit({ event, church_categories }: Props) {
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
                 <Link
                     href={`/events/${event.id}`}
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Event
@@ -262,10 +258,10 @@ export default function EventsEdit({ event, church_categories }: Props) {
                         Edit Event
                     </h1>
                     <div className="mt-2 flex items-center gap-3">
-                        <span className="inline-flex rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-foreground">
+                        <span className="bg-secondary text-foreground inline-flex rounded-full px-2.5 py-1 text-xs font-medium">
                             {event.status_label}
                         </span>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-muted-foreground text-sm">
                             {event.event_name}
                         </span>
                     </div>

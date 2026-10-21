@@ -7,6 +7,7 @@ use App\Models\Registration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
@@ -24,7 +25,6 @@ uses(RefreshDatabase::class);
  * AttendanceEncodingModeTest (attdef_), AttendanceDateGateTest
  * (attgate_), and RegistrationFormTest (regform_).
  */
-
 function attbulk_staff(): User
 {
     return User::factory()->create([
@@ -35,7 +35,7 @@ function attbulk_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function attbulk_event(array $overrides = []): Event
 {
@@ -69,7 +69,7 @@ function attbulk_event(array $overrides = []): Event
  * Tests that need a specific email or phone override the field.
  * Rows that leave the default inherit a distinct value.
  *
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
  */
 function attbulk_row(array $overrides = []): array
@@ -78,7 +78,7 @@ function attbulk_row(array $overrides = []): array
     $counter++;
 
     return array_merge([
-        'client_uuid' => (string) \Illuminate\Support\Str::uuid(),
+        'client_uuid' => (string) Str::uuid(),
         'first_name' => 'Walk',
         'last_name' => 'In',
         'age' => 30,

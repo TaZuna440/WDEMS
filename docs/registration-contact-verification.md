@@ -412,7 +412,6 @@ is unchanged. The new label reflects what the code is: a lookup
 key the participant presents at the event table, not an attendance
 marking.
 
-
 ## Running Events audit addendum — 2026-10-21
 
 Version 2 uses email-only verification with reCAPTCHA, 100-second cooldown, and a per-email five-attempt/two-hour lock shared across resends and replacement challenges. Published version 1 channel choice/Firebase compatibility remains intentional. Closing intake preserves existing challenge expiry; Completed/Cancelled prevent completion. Similarity review now occurs at Step 2, before challenge creation.

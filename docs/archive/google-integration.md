@@ -229,6 +229,7 @@ The Google account you're signing in with isn't in the test users list.
 ### "Google hasn't verified this app" (with no Go to option)
 
 Same as above, but the Advanced → Go to link is missing. Happens when:
+
 - The account isn't a test user
 - Or the account is a Google Workspace account with admin restrictions
 
@@ -243,6 +244,7 @@ The redirect URI in Google Cloud Console doesn't match `GOOGLE_REDIRECT_URI` in 
 ### "Google token refresh failed"
 
 The refresh token was revoked — either because:
+
 - You removed the app from https://myaccount.google.com/permissions
 - The refresh token wasn't stored (missing `access_type=offline` — not an issue in current code)
 
@@ -251,6 +253,7 @@ The refresh token was revoked — either because:
 ### Verify Sheet Link returns "No Sheet is linked"
 
 Either:
+
 - The Apps Script hasn't run yet
 - Or it ran but failed silently
 
@@ -272,13 +275,13 @@ If you delete an event in WDEMS but the Form survives in Google, the Form may ev
 
 ## Free tier limits
 
-| Service | Free tier | Typical WDEMS usage |
-|---|---|---|
-| Forms API | 300 req/min per project | ~10 per form setup |
-| Sheets API | 300 req/min per project | 0 (WDEMS builds Sheet URL directly) |
-| Drive API | 12,000 req/min | ~2 per form |
-| Apps Script | 20,000 fetches/day, 90 min runtime/day | ~1 per form |
-| OAuth test users | 100 | 1–5 |
+| Service          | Free tier                              | Typical WDEMS usage                 |
+| ---------------- | -------------------------------------- | ----------------------------------- |
+| Forms API        | 300 req/min per project                | ~10 per form setup                  |
+| Sheets API       | 300 req/min per project                | 0 (WDEMS builds Sheet URL directly) |
+| Drive API        | 12,000 req/min                         | ~2 per form                         |
+| Apps Script      | 20,000 fetches/day, 90 min runtime/day | ~1 per form                         |
+| OAuth test users | 100                                    | 1–5                                 |
 
 WDEMS stays under 1% of the free tier even with heavy use. No billing account needed.
 
@@ -290,4 +293,3 @@ WDEMS stays under 1% of the free tier even with heavy use. No billing account ne
 - Apps Script dashboard: https://script.google.com
 - OAuth permissions view: https://myaccount.google.com/permissions
 - Resend dashboard: https://resend.com
-

@@ -122,7 +122,11 @@ export default function RegistrationFieldEditor({
                             </SelectTrigger>
                             <SelectContent>
                                 {FIELD_TYPES.map((type) => (
-                                    <SelectItem key={type} value={type} title={FIELD_TYPE_HINTS[type]}>
+                                    <SelectItem
+                                        key={type}
+                                        value={type}
+                                        title={FIELD_TYPE_HINTS[type]}
+                                    >
                                         {FIELD_TYPE_LABELS[type]}
                                     </SelectItem>
                                 ))}
@@ -133,7 +137,7 @@ export default function RegistrationFieldEditor({
                 </div>
 
                 {/* Type hint */}
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                     {FIELD_TYPE_HINTS[field.field_type as FieldType] ?? ''}
                 </p>
 
@@ -142,11 +146,12 @@ export default function RegistrationFieldEditor({
                     <div className="grid gap-2 rounded-md border border-white/10 bg-white/[0.02] p-3">
                         <div className="flex items-center justify-between">
                             <div className="flex items-baseline gap-2">
-                                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                                <Label className="text-muted-foreground text-xs tracking-wider uppercase">
                                     Choices
                                 </Label>
-                                <span className="text-xs text-muted-foreground">
-                                    {field.options.length} / {MAX_OPTIONS_PER_FIELD}
+                                <span className="text-muted-foreground text-xs">
+                                    {field.options.length} /{' '}
+                                    {MAX_OPTIONS_PER_FIELD}
                                 </span>
                             </div>
                             <Button
@@ -156,7 +161,11 @@ export default function RegistrationFieldEditor({
                                 onClick={addOption}
                                 disabled={disabled || atOptionsCap}
                                 className="h-7 text-xs"
-                                title={atOptionsCap ? `Maximum ${MAX_OPTIONS_PER_FIELD} choices` : undefined}
+                                title={
+                                    atOptionsCap
+                                        ? `Maximum ${MAX_OPTIONS_PER_FIELD} choices`
+                                        : undefined
+                                }
                             >
                                 <Plus className="mr-1 h-3 w-3" />
                                 Add choice
@@ -164,7 +173,7 @@ export default function RegistrationFieldEditor({
                         </div>
 
                         {field.options.length === 0 ? (
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-muted-foreground text-xs">
                                 Add at least two choices.
                             </p>
                         ) : (
@@ -200,11 +209,13 @@ export default function RegistrationFieldEditor({
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() =>
-                                                        removeOption(optionIndex)
+                                                        removeOption(
+                                                            optionIndex,
+                                                        )
                                                     }
                                                     disabled={disabled}
                                                     aria-label={`Remove choice ${optionIndex + 1}`}
-                                                    className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
                                                 >
                                                     <X className="h-4 w-4" />
                                                 </Button>
@@ -217,8 +228,9 @@ export default function RegistrationFieldEditor({
                         )}
 
                         {atOptionsCap && !optionsError && (
-                            <p className="text-xs text-muted-foreground">
-                                Maximum of {MAX_OPTIONS_PER_FIELD} choices reached. Remove one to add another.
+                            <p className="text-muted-foreground text-xs">
+                                Maximum of {MAX_OPTIONS_PER_FIELD} choices
+                                reached. Remove one to add another.
                             </p>
                         )}
 
@@ -253,7 +265,7 @@ export default function RegistrationFieldEditor({
                 onClick={onRemove}
                 disabled={disabled}
                 aria-label={`Remove field ${index + 1}`}
-                className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
             >
                 <Trash2 className="h-4 w-4" />
             </Button>

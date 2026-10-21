@@ -24,6 +24,7 @@ class DemoUsersSeeder extends Seeder
     {
         if (app()->environment('production')) {
             $this->command?->warn('DemoUsersSeeder skipped — production environment.');
+
             return;
         }
 
@@ -58,6 +59,7 @@ class DemoUsersSeeder extends Seeder
     ): void {
         if (User::where('email', $email)->exists()) {
             $this->command?->line("  · {$email} — already exists, skipped.");
+
             return;
         }
 

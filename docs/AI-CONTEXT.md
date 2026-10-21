@@ -45,9 +45,9 @@ There is **no public sign-up**. Accounts are created by an admin.
 
 Two roles exist:
 
-| Role | Can do |
-|---|---|
-| **Admin** | Everything. Bypasses 2FA. Can delete any event without verification. |
+| Role      | Can do                                                                |
+| --------- | --------------------------------------------------------------------- |
+| **Admin** | Everything. Bypasses 2FA. Can delete any event without verification.  |
 | **Staff** | Runs events day to day. Must verify via email OTP to delete an event. |
 
 Participants are **not** users. They do not log in. Their data lives in
@@ -97,14 +97,14 @@ the `participants` table but has no account.
 Before working on a subsystem, ask the developer to paste the relevant
 doc:
 
-| Task touches | Ask for |
-|---|---|
-| Login, 2FA, sessions, settings/security | `docs/authentication.md` |
-| Event creation, edit, options, lifecycle | `docs/event-creation.md` |
-| Wizard shell, steps, checkpoint, field components | `docs/event-creation-wizard.md` |
-| Event deletion (OTP, admin/staff paths) | `docs/event-deletion.md` |
-| RBAC, dashboard, sidebar | `docs/known-issues.md` (ISSUE-001–004) |
-| Whole-system overview | `docs/architecture.md` |
+| Task touches                                      | Ask for                                |
+| ------------------------------------------------- | -------------------------------------- |
+| Login, 2FA, sessions, settings/security           | `docs/authentication.md`               |
+| Event creation, edit, options, lifecycle          | `docs/event-creation.md`               |
+| Wizard shell, steps, checkpoint, field components | `docs/event-creation-wizard.md`        |
+| Event deletion (OTP, admin/staff paths)           | `docs/event-deletion.md`               |
+| RBAC, dashboard, sidebar                          | `docs/known-issues.md` (ISSUE-001–004) |
+| Whole-system overview                             | `docs/architecture.md`                 |
 
 **Read the doc before proposing code.**
 
@@ -186,17 +186,17 @@ a problem. If you find one:
 
 ## 12. Reference — one-line map
 
-| File | Purpose |
-|---|---|
-| `README.md` | Entry point |
-| `docs/architecture.md` | Whole-system overview |
-| `docs/authentication.md` | Auth subsystem |
-| `docs/event-creation.md` | Event code reference |
-| `docs/event-creation-wizard.md` | Wizard as a feature |
-| `docs/event-deletion.md` | Deletion subsystem |
-| `docs/known-issues.md` | Backlog |
-| `docs/development-log.md` | Chronological log |
-| `docs/archive/` | Historical (Google integration, removed) |
+| File                            | Purpose                                  |
+| ------------------------------- | ---------------------------------------- |
+| `README.md`                     | Entry point                              |
+| `docs/architecture.md`          | Whole-system overview                    |
+| `docs/authentication.md`        | Auth subsystem                           |
+| `docs/event-creation.md`        | Event code reference                     |
+| `docs/event-creation-wizard.md` | Wizard as a feature                      |
+| `docs/event-deletion.md`        | Deletion subsystem                       |
+| `docs/known-issues.md`          | Backlog                                  |
+| `docs/development-log.md`       | Chronological log                        |
+| `docs/archive/`                 | Historical (Google integration, removed) |
 
 ---
 
@@ -347,10 +347,10 @@ Section §7's reading-order table was written before several
 subsystems shipped. Two entries are missing. When working on these
 tasks, ask for the corresponding doc:
 
-| Task touches | Ask for |
-|---|---|
+| Task touches                                                      | Ask for                                     |
+| ----------------------------------------------------------------- | ------------------------------------------- |
 | Public registration verification, contact OTPs, staff phone queue | `docs/registration-contact-verification.md` |
-| Non-obvious behaviors that don't fit a subsystem doc | `docs/implementation-notes.md` |
+| Non-obvious behaviors that don't fit a subsystem doc              | `docs/implementation-notes.md`              |
 
 ### Why `registration-contact-verification.md` matters
 
@@ -428,12 +428,12 @@ subsystems shipped. §17 (2026-10-13) added two entries. Four more
 are still missing. When working on these tasks, ask for the
 corresponding doc:
 
-| Task touches | Ask for |
-|---|---|
-| Public registration form, verification challenge, finalize | `docs/registration.md` |
-| Attendance code, workspace lookup, `verified_at`, live/deferred encoding | `docs/attendance-code.md` |
-| Three-mode attendance workspace (Mark / Confirm / Batch) | `docs/attendance-redesign.md` |
-| Attendance encoding spec, finalize event, end-of-event report | `docs/attendance-encoding-and-reporting.md` |
+| Task touches                                                             | Ask for                                     |
+| ------------------------------------------------------------------------ | ------------------------------------------- |
+| Public registration form, verification challenge, finalize               | `docs/registration.md`                      |
+| Attendance code, workspace lookup, `verified_at`, live/deferred encoding | `docs/attendance-code.md`                   |
+| Three-mode attendance workspace (Mark / Confirm / Batch)                 | `docs/attendance-redesign.md`               |
+| Attendance encoding spec, finalize event, end-of-event report            | `docs/attendance-encoding-and-reporting.md` |
 
 ### Why each matters
 
@@ -499,9 +499,9 @@ church-events workstreams shipped. §17 (2026-10-13) added two
 entries. §19 (2026-10-14) added four more. Two remain missing.
 When working on these tasks, ask for the corresponding doc:
 
-| Task touches | Ask for |
-|---|---|
-| Fellowship module — types, events, groups, attendance roster | `docs/fellowship.md` |
+| Task touches                                                                               | Ask for                |
+| ------------------------------------------------------------------------------------------ | ---------------------- |
+| Fellowship module — types, events, groups, attendance roster                               | `docs/fellowship.md`   |
 | Discipleship module — programs, batches, enrollment, sessions, attendance matrix, progress | `docs/discipleship.md` |
 
 ### Why each matters
@@ -585,11 +585,11 @@ subsystems shipped. §17, §19, and §21 added entries. The
 three more docs that most sessions will need. When working on these
 tasks, ask for the corresponding doc:
 
-| Task touches | Ask for |
-|---|---|
-| Participant identity, duplicate detection, `resolveFrom()`, `normalizeName()`, the schema for `participants` | `docs/composite-identity.md` |
-| Public registration flow, 5-step wizard, consent step, emergency contact, channel choice, device trust | `docs/registration-wizard.md` |
-| Any finding labelled H1, H2, M1-M5, L1-L5, D1-D12 in a session transcript | `docs/audit-2026-10-19.md` |
+| Task touches                                                                                                 | Ask for                       |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------- |
+| Participant identity, duplicate detection, `resolveFrom()`, `normalizeName()`, the schema for `participants` | `docs/composite-identity.md`  |
+| Public registration flow, 5-step wizard, consent step, emergency contact, channel choice, device trust       | `docs/registration-wizard.md` |
+| Any finding labelled H1, H2, M1-M5, L1-L5, D1-D12 in a session transcript                                    | `docs/audit-2026-10-19.md`    |
 
 ### Why each matters
 
@@ -650,7 +650,6 @@ through ISSUE-024.
 - `docs/known-issues.md` — ISSUE-014 through ISSUE-025 filed from
   the audit and client Q14
 
-
 ## Running Events audit addendum — 2026-10-21
 
 Read running-events-audit-2026-10-21.md first for current Running Events behavior. The older first/last-only identity, blocked reCAPTCHA, three attendance modes, and pending P1/P3/P4 statements are superseded. Mark authorized direct edits in ~/WDEMS. Commit 39e554f is local; audit fixes/documentation after it remain local and unpushed.
@@ -658,3 +657,45 @@ Read running-events-audit-2026-10-21.md first for current Running Events behavio
 Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
 This dated addendum supersedes conflicting Running Events statements above;
 historical entries are retained under the append-only documentation policy.
+
+## 24. Documentation reorganization — `docs/specs/` (2026-10-21)
+
+Sections §7, §17, §19, §21, §23 describe reading-order additions made
+across 2026-10-13 to 2026-10-21. Those additions pointed at `docs/`
+subsystem docs and were correct at the time.
+
+On 2026-10-21 a `docs/specs/` tier was added to hold **canonical
+feature definitions**, promoted from the workspace-only `docs2/`
+folder that Section §21 (and Master §9.1) treated as workspace-only:
+
+| File                                               | Authority                                                                                                                                      |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/specs/WDEMS_MASTER_PROJECT_DOCUMENT.md`      | Top-of-tree: consolidates all decisions, feature specs, build state. Where it conflicts with older working docs, it and the Church MD prevail. |
+| `docs/specs/Church_Events_Update.md`               | The church guideline (v1.0 + Amendments A–D). Per Decision D-15, prevails on church matters over any other church document.                    |
+| `docs/specs/wdems-church-events-update-spec.md`    | Companion church build spec (Appendix B–E). Implementation detail; subordinate to the Church MD.                                               |
+| `docs/specs/dashboard_update.md`                   | Dashboard feature spec. Implementation is a separate track (DASH-1/2/3); has not started as of this writing.                                   |
+| `docs/specs/wdems-panel-duplicate-participants.md` | Panel preparation script. Not a feature spec; contains a supersession amendment per Decision D-10.                                             |
+
+**Ordering for AI sessions:**
+
+1. This file's §7/§17/§19/§21/§23 reading-order entries → `docs/` subsystem docs.
+2. If the task touches features, product decisions, or MVP scope → read
+   `docs/specs/WDEMS_MASTER_PROJECT_DOCUMENT.md` first.
+3. For church tasks → `docs/specs/Church_Events_Update.md` prevails per D-15.
+4. Section §7's reading order still applies for implementation specifics.
+
+**Why `specs/` and not `docs2/`:** `docs2` was a workspace label
+(Master §9.1). Promoting to the repo required a semantic name —
+`docs/specs/` reads as "canonical feature definitions" for a new
+reader. Filenames are preserved so cross-references inside the
+specs stay valid; the previous location (`docs2/`) is retired.
+
+Historical docs (`docs/participant-identity.md` §3/§4.1/§5/§6,
+`docs/registration.md` for the public path) remain reversed by their
+own Corrections blocks per §23 — the specs tier does not undo that.
+
+**Master §9.1 paths are now stale.** Its table references workspace
+paths like `user/files/Church_Events_Update.md`. The canonical path
+is now `docs/specs/Church_Events_Update.md`. Per the append-only
+policy on the Master doc, do not silently rewrite §9.1 — append a
+dated correction note if the discrepancy matters for a task.

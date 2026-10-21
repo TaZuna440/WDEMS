@@ -17,7 +17,6 @@ use Illuminate\Support\Facades\Date;
  *
  * Helpers prefixed monitor_ to avoid Pest collisions.
  */
-
 function monitor_staff(): User
 {
     return User::factory()->create([
@@ -28,7 +27,7 @@ function monitor_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function monitor_event(array $overrides = []): Event
 {
@@ -46,7 +45,7 @@ function monitor_event(array $overrides = []): Event
 
 function monitor_registration(Event $event, array $participantOverrides = []): Registration
 {
-    $participant = Participant::create(array_merge([
+    $participant = Participant::create(array_merge(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'age' => 28,
@@ -246,7 +245,7 @@ test('the show page classifies a participant with prior events as returning', fu
     $staff = monitor_staff();
     $priorEvent = monitor_event(['event_name' => 'Prior', 'status' => 'registration_closed']);
 
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'age' => 28,

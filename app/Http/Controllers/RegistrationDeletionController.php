@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\EventStatus;
+use App\Enums\RegistrationStatus;
 use App\Models\Registration;
 use App\Models\User;
 use App\Services\EventDeletion\OtpResendTooSoonException;
@@ -167,6 +168,7 @@ class RegistrationDeletionController extends Controller
      */
     private function ensureManageable(Registration $registration): void
     {
+        abort_unless(! in_array($registration->registration_status, [RegistrationStatus::Held, RegistrationStatus::Duplicate, RegistrationStatus::Removed], true) && $registration->participant?->pool === 'running', 422, 'Use organizer review for inactive submissions.');
         $event = $registration->event;
 
         if ($event === null) {

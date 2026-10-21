@@ -16,6 +16,7 @@ Church Events scoping prompt. Present the smallest safe first
 change and the dependency chain that follows.
 
 **Related:**
+
 - `docs/church-events/01-current-system-audit.md`
 - `docs/church-events/02-product-scope-and-requirements.md`
 - `docs/church-events/03-domain-model-and-workflows.md`
@@ -47,13 +48,13 @@ compliance confirmation.
 
 ### 0.2 Tags
 
-| Tag | Meaning |
-|---|---|
-| **VERIFIED** | A finding supported by reading a file during the audit. |
-| **PENDING-DATA** | A finding that requires a command to be run. |
-| **PENDING-PRODUCT** | A decision that requires client input. |
-| **PROPOSED** | A suggestion, not an approval. |
-| **CONFIRMED** | A directive from the scoping prompt. |
+| Tag                 | Meaning                                                 |
+| ------------------- | ------------------------------------------------------- |
+| **VERIFIED**        | A finding supported by reading a file during the audit. |
+| **PENDING-DATA**    | A finding that requires a command to be run.            |
+| **PENDING-PRODUCT** | A decision that requires client input.                  |
+| **PROPOSED**        | A suggestion, not an approval.                          |
+| **CONFIRMED**       | A directive from the scoping prompt.                    |
 
 ### 0.3 What this document does not do
 
@@ -71,13 +72,13 @@ compliance confirmation.
 Five files were created in `docs/church-events/` during the
 documentation phase:
 
-| File | Purpose | Lines (approx) |
-|---|---|---|
-| `01-current-system-audit.md` | Verified current state, inferred findings, unverified claims, impact map, and the A-F decision analyses. | ~1,445 |
-| `02-product-scope-and-requirements.md` | Product objectives, users, in-scope, out-of-scope, and tagged requirements with confirmed/proposed/pending/out markers. | ~613 |
-| `03-domain-model-and-workflows.md` | Domain model candidates for ten pending decisions, with consequences, migration requirements, and blocking questions per decision. | ~976 |
-| `04-feature-specifications-and-acceptance-criteria.md` | Fourteen feature specs with behavior, flows, validation, errors, permissions, and acceptance criteria. Criteria separated into test-ready and blocked. | ~1,218 |
-| `05-compatibility-and-test-plan.md` | Preservation baseline, test categories per feature, migration safety analysis, integration scenarios, risks, rollbacks, and traceability. | ~850 |
+| File                                                   | Purpose                                                                                                                                                | Lines (approx) |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
+| `01-current-system-audit.md`                           | Verified current state, inferred findings, unverified claims, impact map, and the A-F decision analyses.                                               | ~1,445         |
+| `02-product-scope-and-requirements.md`                 | Product objectives, users, in-scope, out-of-scope, and tagged requirements with confirmed/proposed/pending/out markers.                                | ~613           |
+| `03-domain-model-and-workflows.md`                     | Domain model candidates for ten pending decisions, with consequences, migration requirements, and blocking questions per decision.                     | ~976           |
+| `04-feature-specifications-and-acceptance-criteria.md` | Fourteen feature specs with behavior, flows, validation, errors, permissions, and acceptance criteria. Criteria separated into test-ready and blocked. | ~1,218         |
+| `05-compatibility-and-test-plan.md`                    | Preservation baseline, test categories per feature, migration safety analysis, integration scenarios, risks, rollbacks, and traceability.              | ~850           |
 
 **Updated:** None. No existing documentation file was modified.
 
@@ -180,43 +181,43 @@ change.
 
 ### 3.1 Fully reusable (no change)
 
-| Feature | Where | Reused by |
-|---|---|---|
-| Authentication (login, Fortify, session) | `config/fortify.php`, `FortifyServiceProvider` | All users |
-| Email 2FA and trusted devices | `EmailTwoFactorService`, `EnsureDeviceIsTrusted` | All users |
-| Email verification gate | `EnsureEmailIsVerifiedOrAdmin`, `MustVerifyEmail` | All users |
-| User model and roles | `User`, `isAdmin()`, `homePath()` | All users |
-| Participant identity resolution | `Participant::resolveFrom`, `normalizeContactNumber` | Church event attendees |
-| Name quality rules | `HumanNameQualityRules` | Church event fields |
-| Contact and address quality rules | `ContactAndAddressQualityRules` | Church event fields |
-| OTP helper | `OtpCode` | Any future OTP path |
-| Inertia + React plumbing | `app.tsx`, layouts, hooks | New pages |
-| Design system | `docs/design-system.md`, `resources/css/app.css` | New UI |
-| Wizard pattern | `resources/js/components/wizard.tsx` | New creation flows |
-| Pagination component | `resources/js/components/pagination.tsx` | New list views |
-| Confirm dialog pattern | `use-confirm-dialog` hook | New destructive actions |
-| Rate limiter pattern | `AppServiceProvider::configureRateLimiters` | New endpoints |
+| Feature                                  | Where                                                | Reused by               |
+| ---------------------------------------- | ---------------------------------------------------- | ----------------------- |
+| Authentication (login, Fortify, session) | `config/fortify.php`, `FortifyServiceProvider`       | All users               |
+| Email 2FA and trusted devices            | `EmailTwoFactorService`, `EnsureDeviceIsTrusted`     | All users               |
+| Email verification gate                  | `EnsureEmailIsVerifiedOrAdmin`, `MustVerifyEmail`    | All users               |
+| User model and roles                     | `User`, `isAdmin()`, `homePath()`                    | All users               |
+| Participant identity resolution          | `Participant::resolveFrom`, `normalizeContactNumber` | Church event attendees  |
+| Name quality rules                       | `HumanNameQualityRules`                              | Church event fields     |
+| Contact and address quality rules        | `ContactAndAddressQualityRules`                      | Church event fields     |
+| OTP helper                               | `OtpCode`                                            | Any future OTP path     |
+| Inertia + React plumbing                 | `app.tsx`, layouts, hooks                            | New pages               |
+| Design system                            | `docs/design-system.md`, `resources/css/app.css`     | New UI                  |
+| Wizard pattern                           | `resources/js/components/wizard.tsx`                 | New creation flows      |
+| Pagination component                     | `resources/js/components/pagination.tsx`             | New list views          |
+| Confirm dialog pattern                   | `use-confirm-dialog` hook                            | New destructive actions |
+| Rate limiter pattern                     | `AppServiceProvider::configureRateLimiters`          | New endpoints           |
 
 ### 3.2 Reusable with additive change
 
-| Feature | Where | What is added |
-|---|---|---|
-| Event model | `Event` | New nullable columns for church fields, new relations |
-| Event creation entry | `EventController::store` | A branch for church events |
-| Event listing | `EventController::index` | A kind filter, category display |
-| Event detail | `EventController::show`, `events/show.tsx` | Conditional sections for church vs running |
-| Event deletion | `EventDeletionService` | Cascade coverage for new child tables |
-| Reports | `ReportService`, `ReportController` | Category-aware scoping, possibly new sections |
-| Sidebar | `app-sidebar.tsx` | New entries if Category management is approved |
-| Dashboard | `DashboardController`, `dashboard.tsx` | Stats scope decision, new widget layout |
+| Feature              | Where                                      | What is added                                         |
+| -------------------- | ------------------------------------------ | ----------------------------------------------------- |
+| Event model          | `Event`                                    | New nullable columns for church fields, new relations |
+| Event creation entry | `EventController::store`                   | A branch for church events                            |
+| Event listing        | `EventController::index`                   | A kind filter, category display                       |
+| Event detail         | `EventController::show`, `events/show.tsx` | Conditional sections for church vs running            |
+| Event deletion       | `EventDeletionService`                     | Cascade coverage for new child tables                 |
+| Reports              | `ReportService`, `ReportController`        | Category-aware scoping, possibly new sections         |
+| Sidebar              | `app-sidebar.tsx`                          | New entries if Category management is approved        |
+| Dashboard            | `DashboardController`, `dashboard.tsx`     | Stats scope decision, new widget layout               |
 
 ### 3.3 Cannot be reused as-is
 
-| Feature | Where | Why not |
-|---|---|---|
-| Attendance storage | `Attendance`, `AttendanceController` | FK is `registration_id`; church attendance may need occurrences |
-| Public registration flow | `PublicRegistrationController`, `RegistrationVerificationService` | Contact verification is not needed for all church activities |
-| `EventStatus` state machine | `EventStatus`, `EventWorkflow` | Six running states do not match the ten-stage church workflow |
+| Feature                     | Where                                                             | Why not                                                         |
+| --------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------- |
+| Attendance storage          | `Attendance`, `AttendanceController`                              | FK is `registration_id`; church attendance may need occurrences |
+| Public registration flow    | `PublicRegistrationController`, `RegistrationVerificationService` | Contact verification is not needed for all church activities    |
+| `EventStatus` state machine | `EventStatus`, `EventWorkflow`                                    | Six running states do not match the ten-stage church workflow   |
 
 ---
 
@@ -241,22 +242,22 @@ Grouped by likelihood and phase dependency.
 
 ### 4.2 Changes conditional on decisions
 
-| Component | Conditional on |
-|---|---|
-| `app/Enums/EventType.php` | Decision 1 (category/type modeling) |
-| `app/Enums/EventStatus.php` | Decision 2 (status and lifecycle) |
-| `app/Services/EventWorkflow.php` | Decision 2 |
-| `app/Http/Middleware/AdvanceEventStatus.php` | Decision 3 (occurrences) |
-| `app/Models/Attendance.php` | Decision 3, Decision 8 |
-| `app/Http/Controllers/AttendanceController.php` | Decision 3, Decision 8 |
-| `app/Models/User.php` | Decision 4 (approval) |
-| `app/Services/Reporting/ReportService.php` | Decision 9 (reports) |
-| `app/Http/Requests/EventRequest.php` | Decision 1, Decision 10 |
-| `app/Services/EventDeletion/EventDeletionService.php` | Any new table |
-| `resources/js/app.tsx` | New page families |
-| `resources/js/components/app-sidebar.tsx` | Decision 1 (Categories entry) |
-| `app/Providers/AppServiceProvider.php` | New rate limiters |
-| New policies | Decision 10 |
+| Component                                             | Conditional on                      |
+| ----------------------------------------------------- | ----------------------------------- |
+| `app/Enums/EventType.php`                             | Decision 1 (category/type modeling) |
+| `app/Enums/EventStatus.php`                           | Decision 2 (status and lifecycle)   |
+| `app/Services/EventWorkflow.php`                      | Decision 2                          |
+| `app/Http/Middleware/AdvanceEventStatus.php`          | Decision 3 (occurrences)            |
+| `app/Models/Attendance.php`                           | Decision 3, Decision 8              |
+| `app/Http/Controllers/AttendanceController.php`       | Decision 3, Decision 8              |
+| `app/Models/User.php`                                 | Decision 4 (approval)               |
+| `app/Services/Reporting/ReportService.php`            | Decision 9 (reports)                |
+| `app/Http/Requests/EventRequest.php`                  | Decision 1, Decision 10             |
+| `app/Services/EventDeletion/EventDeletionService.php` | Any new table                       |
+| `resources/js/app.tsx`                                | New page families                   |
+| `resources/js/components/app-sidebar.tsx`             | Decision 1 (Categories entry)       |
+| `app/Providers/AppServiceProvider.php`                | New rate limiters                   |
+| New policies                                          | Decision 10                         |
 
 ### 4.3 Must not change without an approved requirement
 
@@ -392,18 +393,18 @@ phases.
 
 ### 7.1 The ten decisions from doc 03 section 16
 
-| # | Decision | Blocks |
-|---|---|---|
-| 1 | Category and event type modeling | Phase 1, Phase 2 |
-| 2 | Event status and lifecycle | Phase 2, Phase 3, Phase 5 |
-| 3 | Occurrence model | Phase 4 |
-| 4 | Approval workflow | Phase 5 |
-| 5 | Budget and expenses | Phase 7 |
-| 6 | Enrollment and completion | Phase 6 |
-| 7 | Subgroups | Phase 8 |
-| 8 | Attendance entity and identity | Phase 4 |
-| 9 | Reports and aggregation | Phase 9 |
-| 10 | Event ownership and authorization | Phase 10 |
+| #   | Decision                          | Blocks                    |
+| --- | --------------------------------- | ------------------------- |
+| 1   | Category and event type modeling  | Phase 1, Phase 2          |
+| 2   | Event status and lifecycle        | Phase 2, Phase 3, Phase 5 |
+| 3   | Occurrence model                  | Phase 4                   |
+| 4   | Approval workflow                 | Phase 5                   |
+| 5   | Budget and expenses               | Phase 7                   |
+| 6   | Enrollment and completion         | Phase 6                   |
+| 7   | Subgroups                         | Phase 8                   |
+| 8   | Attendance entity and identity    | Phase 4                   |
+| 9   | Reports and aggregation           | Phase 9                   |
+| 10  | Event ownership and authorization | Phase 10                  |
 
 ### 7.2 Additional product questions surfaced by docs 02-05
 
@@ -961,7 +962,6 @@ the client has resolved at least Decisions 1 and 2.**
   with definition of done. Compliance confirmation recorded.
   No code, migrations, enums, tests, or configuration changed.
 
-
 ---
 
 ## Phase 0 verification results (2026-10-16)
@@ -1074,16 +1074,16 @@ Command:
 
 Result: all eight files exist. Sizes confirmed:
 
-| File | Bytes | Last modified |
-|---|---|---|
-| `docs/implementation-notes.md` | 15,880 | 2026-10-14 |
-| `docs/design-system.md` | 13,472 | 2026-10-15 |
-| `docs/event-creation.md` | 33,082 | 2026-09-25 |
-| `docs/event-creation-wizard.md` | 33,288 | 2026-10-15 |
-| `docs/event-creation-issues.md` | 30,807 | 2026-09-25 |
-| `docs/event-deletion.md` | 22,334 | 2026-09-25 |
-| `docs/development-log.md` | 10,719 | 2026-09-25 |
-| `docs/demo-email.md` | 10,236 | 2026-09-25 |
+| File                            | Bytes  | Last modified |
+| ------------------------------- | ------ | ------------- |
+| `docs/implementation-notes.md`  | 15,880 | 2026-10-14    |
+| `docs/design-system.md`         | 13,472 | 2026-10-15    |
+| `docs/event-creation.md`        | 33,082 | 2026-09-25    |
+| `docs/event-creation-wizard.md` | 33,288 | 2026-10-15    |
+| `docs/event-creation-issues.md` | 30,807 | 2026-09-25    |
+| `docs/event-deletion.md`        | 22,334 | 2026-09-25    |
+| `docs/development-log.md`       | 10,719 | 2026-09-25    |
+| `docs/demo-email.md`            | 10,236 | 2026-09-25    |
 
 The files have not been read. This verification remains open.
 
@@ -1096,13 +1096,13 @@ most current and most directly relevant to Phase 1 decisions.
 
 ### Updated Phase 0 status
 
-| Verification | Status |
-|---|---|
-| 6.1 Baseline test run | COMPLETE |
-| 6.2 Enum consumer inventory | OPEN |
-| 6.3 Payment grep | COMPLETE |
-| 6.4 Migration state | COMPLETE |
-| 6.5 Test file inspection | OPEN |
+| Verification                   | Status                                       |
+| ------------------------------ | -------------------------------------------- |
+| 6.1 Baseline test run          | COMPLETE                                     |
+| 6.2 Enum consumer inventory    | OPEN                                         |
+| 6.3 Payment grep               | COMPLETE                                     |
+| 6.4 Migration state            | COMPLETE                                     |
+| 6.5 Test file inspection       | OPEN                                         |
 | 6.6 Missing documentation read | PARTIAL (files confirmed to exist, not read) |
 
 **Two of six complete. Two partial or open. Three items remain
@@ -1142,12 +1142,10 @@ based on the verification results.
 
 Phase 0 is partially complete. Section 8.1's definition of done
 is partially satisfied. Phases 1 through 11 remain blocked on
-Phase 0 completion plus the client decisions in doc 07 section
-5.
+Phase 0 completion plus the client decisions in doc 07 section 5.
 
 No phase has been approved. No code, migration, enum, test, or
 configuration has been changed.
-
 
 ---
 
@@ -1167,14 +1165,14 @@ Commands:
 
 #### EventType consumers (complete list)
 
-| File | Line | Usage |
-|---|---|---|
-| `app/Http/Controllers/EventController.php` | 110 | `EventType::cases()` for the wizard dropdown |
-| `app/Concerns/EventValidationRules.php` | 62 | `Rule::enum(EventType::class)` |
-| `app/Models/Event.php` | 86 | `event_type` cast |
-| `app/Models/Event.php` | 358 | `isCommunityRun()` |
-| `app/Models/Event.php` | 363 | `isFunRun()` |
-| `tests/Feature/Events/EventWorkflowTest.php` | 27 | Test fixture |
+| File                                         | Line | Usage                                        |
+| -------------------------------------------- | ---- | -------------------------------------------- |
+| `app/Http/Controllers/EventController.php`   | 110  | `EventType::cases()` for the wizard dropdown |
+| `app/Concerns/EventValidationRules.php`      | 62   | `Rule::enum(EventType::class)`               |
+| `app/Models/Event.php`                       | 86   | `event_type` cast                            |
+| `app/Models/Event.php`                       | 358  | `isCommunityRun()`                           |
+| `app/Models/Event.php`                       | 363  | `isFunRun()`                                 |
+| `tests/Feature/Events/EventWorkflowTest.php` | 27   | Test fixture                                 |
 
 **Total: 5 production locations, 1 test fixture.**
 
@@ -1191,30 +1189,30 @@ doc 03 estimated.
 
 Production files:
 
-| File | Approx. hits |
-|---|---|
-| `app/Models/Event.php` | 15 |
-| `app/Http/Controllers/DashboardController.php` | 10 |
-| `app/Http/Controllers/RegistrationMonitorController.php` | 9 |
-| `app/Services/EventWorkflow.php` | 8 |
-| `app/Http/Controllers/RegistrationController.php` | 6 |
-| `app/Http/Controllers/EventController.php` | 4 |
-| `app/Services/Reporting/ReportService.php` | 4 |
-| `app/Http/Controllers/AttendanceController.php` | 3 |
-| `app/Http/Middleware/AdvanceEventStatus.php` | 3 |
-| `app/Http/Controllers/RegistrationDeletionController.php` | 2 |
-| `app/Http/Controllers/ReportController.php` | 2 |
-| `app/Concerns/EventValidationRules.php` | 2 |
-| `app/Http/Middleware/EnsureRegistrationIsOpen.php` | 1 |
-| `app/Services/RegistrationVerification/RegistrationVerificationService.php` | 1 |
+| File                                                                        | Approx. hits |
+| --------------------------------------------------------------------------- | ------------ |
+| `app/Models/Event.php`                                                      | 15           |
+| `app/Http/Controllers/DashboardController.php`                              | 10           |
+| `app/Http/Controllers/RegistrationMonitorController.php`                    | 9            |
+| `app/Services/EventWorkflow.php`                                            | 8            |
+| `app/Http/Controllers/RegistrationController.php`                           | 6            |
+| `app/Http/Controllers/EventController.php`                                  | 4            |
+| `app/Services/Reporting/ReportService.php`                                  | 4            |
+| `app/Http/Controllers/AttendanceController.php`                             | 3            |
+| `app/Http/Middleware/AdvanceEventStatus.php`                                | 3            |
+| `app/Http/Controllers/RegistrationDeletionController.php`                   | 2            |
+| `app/Http/Controllers/ReportController.php`                                 | 2            |
+| `app/Concerns/EventValidationRules.php`                                     | 2            |
+| `app/Http/Middleware/EnsureRegistrationIsOpen.php`                          | 1            |
+| `app/Services/RegistrationVerification/RegistrationVerificationService.php` | 1            |
 
 Test files:
 
-| File | Note |
-|---|---|
-| `tests/Feature/Events/EventWorkflowTest.php` | Many, plus two hard-shape assertions |
-| `tests/Feature/Events/EventFinalizeTest.php` | 8 |
-| `tests/Feature/Events/EventAutoAdvanceTest.php` | 10 |
+| File                                            | Note                                 |
+| ----------------------------------------------- | ------------------------------------ |
+| `tests/Feature/Events/EventWorkflowTest.php`    | Many, plus two hard-shape assertions |
+| `tests/Feature/Events/EventFinalizeTest.php`    | 8                                    |
+| `tests/Feature/Events/EventAutoAdvanceTest.php` | 10                                   |
 
 **Total: 14 production files, 3 test files.**
 
@@ -1275,13 +1273,13 @@ after save.
 
 ### Updated Phase 0 status -- final
 
-| Verification | Status |
-|---|---|
-| 6.1 Baseline test run | COMPLETE |
-| 6.2 Enum consumer inventory | COMPLETE |
-| 6.3 Payment grep | COMPLETE |
-| 6.4 Migration state | COMPLETE |
-| 6.5 Test file inspection | COMPLETE |
+| Verification                   | Status                                             |
+| ------------------------------ | -------------------------------------------------- |
+| 6.1 Baseline test run          | COMPLETE                                           |
+| 6.2 Enum consumer inventory    | COMPLETE                                           |
+| 6.3 Payment grep               | COMPLETE                                           |
+| 6.4 Migration state            | COMPLETE                                           |
+| 6.5 Test file inspection       | COMPLETE                                           |
 | 6.6 Missing documentation read | OPEN (files confirmed to exist; contents not read) |
 
 **Five of six developer-side verifications complete.** Only 6.6
@@ -1294,6 +1292,7 @@ Append-only. These corrections supersede specific claims in docs
 
 **Doc 01 section 1.5.** The EventStatus consumer list is
 incomplete. Add:
+
 - `app/Concerns/EventValidationRules.php` (duplicate-name check).
 - `app/Http/Controllers/RegistrationController.php` (queue page).
 
@@ -1333,7 +1332,6 @@ Phase 0 is complete on the developer side except for doc reads.
 No phase has been approved. No code, migration, enum, test, or
 configuration has been changed.
 
-
 ## Encoding note
 
 The Phase 0 verification results block added on 2026-10-16
@@ -1341,7 +1339,6 @@ contains non-ASCII characters that rendered as mojibake in the
 terminal. The content is correct; the characters are not. This
 is a paste-channel artifact, not a content error. The block is
 otherwise readable.
-
 
 ---
 
@@ -1355,16 +1352,16 @@ contradict them.
 
 ### 6.6 status -- partial
 
-| File | Bytes | Read |
-|---|---|---|
-| docs/implementation-notes.md | 15,880 | Yes |
-| docs/design-system.md | 13,472 | Yes |
-| docs/event-creation-wizard.md | 33,288 | Yes |
-| docs/event-creation.md | 33,082 | Yes |
-| docs/event-creation-issues.md | 30,807 | No |
-| docs/event-deletion.md | 22,334 | No |
-| docs/development-log.md | 10,719 | No |
-| docs/demo-email.md | 10,236 | No |
+| File                          | Bytes  | Read |
+| ----------------------------- | ------ | ---- |
+| docs/implementation-notes.md  | 15,880 | Yes  |
+| docs/design-system.md         | 13,472 | Yes  |
+| docs/event-creation-wizard.md | 33,288 | Yes  |
+| docs/event-creation.md        | 33,082 | Yes  |
+| docs/event-creation-issues.md | 30,807 | No   |
+| docs/event-deletion.md        | 22,334 | No   |
+| docs/development-log.md       | 10,719 | No   |
+| docs/demo-email.md            | 10,236 | No   |
 
 **Four of eight complete.** The four remaining are lower priority
 for Phase 1: `event-creation-issues.md` is a backlog file,
@@ -1379,12 +1376,12 @@ extend but not modify, `development-log.md` is narrative, and
 From `event-creation-wizard.md` corrections (2026-10-15) and the
 `Event` model:
 
-| Column | Status |
-|---|---|
-| `faq` | Column preserved on schema. Not in `Event::$fillable`. Never editable via UI. Seeded once on create via `EventController::defaultFaq()`. |
-| `course_url` | Column preserved on schema. **Still in `Event::$fillable`.** Removed from wizard UI, validation, controller payload, and public form in commit 6173540. |
-| `quiet_space_available` | Column preserved on schema. **Still in `Event::$fillable`.** Removed from the accessibility grid in commit 6173540. The grid now has 8 flags, not 9. |
-| `rsvp_required` | Column dropped by migration 2026_09_25_170000. Not in fillable. Not in UI. Fully removed. |
+| Column                  | Status                                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `faq`                   | Column preserved on schema. Not in `Event::$fillable`. Never editable via UI. Seeded once on create via `EventController::defaultFaq()`.                |
+| `course_url`            | Column preserved on schema. **Still in `Event::$fillable`.** Removed from wizard UI, validation, controller payload, and public form in commit 6173540. |
+| `quiet_space_available` | Column preserved on schema. **Still in `Event::$fillable`.** Removed from the accessibility grid in commit 6173540. The grid now has 8 flags, not 9.    |
+| `rsvp_required`         | Column dropped by migration 2026_09_25_170000. Not in fillable. Not in UI. Fully removed.                                                               |
 
 **Two dead fillable entries exist today** (`course_url`,
 `quiet_space_available`). Mass-assignment can set them; no code
@@ -1402,12 +1399,12 @@ to clean them up first is a decision worth making explicitly.
 Every step component in the wizard has running-event-specific
 fields hard-coded:
 
-| Step | Fields | Church-relevant? |
-|---|---|---|
-| Basics | `event_type`, `event_name`, `description`, accessibility flags | Partially |
-| Schedule | `event_date`, `start_time`, `end_time`, `distance_value`, `distance_unit` | Distance is running-only |
-| Venue | `venue`, `venue_address`, `venue_latitude`, `venue_longitude` | Coordinates are running-specific |
-| Extras | `partners` | Running-event concept |
+| Step     | Fields                                                                    | Church-relevant?                 |
+| -------- | ------------------------------------------------------------------------- | -------------------------------- |
+| Basics   | `event_type`, `event_name`, `description`, accessibility flags            | Partially                        |
+| Schedule | `event_date`, `start_time`, `end_time`, `distance_value`, `distance_unit` | Distance is running-only         |
+| Venue    | `venue`, `venue_address`, `venue_latitude`, `venue_longitude`             | Coordinates are running-specific |
+| Extras   | `partners`                                                                | Running-event concept            |
 
 **The wizard shell does not support conditional steps.** The
 `WizardStepConfig` type has `fields` and `requiredFields` but no
@@ -1497,17 +1494,17 @@ endpoint must register in the appropriate method.
 Both `event-creation-wizard.md` and `event-creation.md` reference
 things that no longer exist in the codebase:
 
-| Reference in doc | Actual state |
-|---|---|
-| `EventOptionController` (both docs) | File does not exist in the tree |
-| `EventOption` model (both docs) | Deleted in registration Phase 2 |
-| `app/Http/Controllers/EventOptionController.php` | Not in tree |
-| "Event Options" flow (both docs, Sec. 7.1) | Removed |
-| `rsvp_required` field (both docs) | Dropped by migration 2026_09_25_170000 |
-| `EventStatus` "Seven states" (`event-creation.md` Sec. 2) | Six states. Configured removed. |
-| `canConfigure()` (both docs) | Renamed to `canEditRegistrationForm()` |
-| "9 accessibility flags" (both docs) | 8 flags after quiet_space_available removal |
-| `course_url` in Schedule step (both docs) | Removed in commit 6173540 |
+| Reference in doc                                          | Actual state                                |
+| --------------------------------------------------------- | ------------------------------------------- |
+| `EventOptionController` (both docs)                       | File does not exist in the tree             |
+| `EventOption` model (both docs)                           | Deleted in registration Phase 2             |
+| `app/Http/Controllers/EventOptionController.php`          | Not in tree                                 |
+| "Event Options" flow (both docs, Sec. 7.1)                | Removed                                     |
+| `rsvp_required` field (both docs)                         | Dropped by migration 2026_09_25_170000      |
+| `EventStatus` "Seven states" (`event-creation.md` Sec. 2) | Six states. Configured removed.             |
+| `canConfigure()` (both docs)                              | Renamed to `canEditRegistrationForm()`      |
+| "9 accessibility flags" (both docs)                       | 8 flags after quiet_space_available removal |
+| `course_url` in Schedule step (both docs)                 | Removed in commit 6173540                   |
 
 **Note.** The corrections blocks at the bottom of each doc do
 address some of these (course_url removal, quiet_space removal,
@@ -1551,13 +1548,13 @@ before the `npx tsc --noEmit` step for any UI phase.
 
 ### Updated Phase 0 status
 
-| Verification | Status |
-|---|---|
-| 6.1 Baseline test run | COMPLETE |
-| 6.2 Enum consumer inventory | COMPLETE |
-| 6.3 Payment grep | COMPLETE |
-| 6.4 Migration state | COMPLETE |
-| 6.5 Test file inspection | COMPLETE |
+| Verification                   | Status           |
+| ------------------------------ | ---------------- |
+| 6.1 Baseline test run          | COMPLETE         |
+| 6.2 Enum consumer inventory    | COMPLETE         |
+| 6.3 Payment grep               | COMPLETE         |
+| 6.4 Migration state            | COMPLETE         |
+| 6.5 Test file inspection       | COMPLETE         |
 | 6.6 Missing documentation read | PARTIAL (4 of 8) |
 
 **Five of six complete. One partial.** The remaining four
@@ -1599,7 +1596,6 @@ decisions already owed.
 This phase read four documentation files and appended this
 record. No production code was touched.
 
-
 ---
 
 ## Phase 0 closure -- final documentation reads (2026-10-16)
@@ -1610,16 +1606,16 @@ closes Phase 0 on the developer side.
 
 ### 6.6 status -- COMPLETE
 
-| File | Bytes | Read |
-|---|---|---|
-| docs/implementation-notes.md | 15,880 | Yes |
-| docs/design-system.md | 13,472 | Yes |
-| docs/event-creation-wizard.md | 33,288 | Yes |
-| docs/event-creation.md | 33,082 | Yes |
-| docs/event-creation-issues.md | 30,807 | Yes |
-| docs/event-deletion.md | 22,334 | Yes |
-| docs/development-log.md | 10,719 | Yes |
-| docs/demo-email.md | 10,236 | Yes |
+| File                          | Bytes  | Read |
+| ----------------------------- | ------ | ---- |
+| docs/implementation-notes.md  | 15,880 | Yes  |
+| docs/design-system.md         | 13,472 | Yes  |
+| docs/event-creation-wizard.md | 33,288 | Yes  |
+| docs/event-creation.md        | 33,082 | Yes  |
+| docs/event-creation-issues.md | 30,807 | Yes  |
+| docs/event-deletion.md        | 22,334 | Yes  |
+| docs/development-log.md       | 10,719 | Yes  |
+| docs/demo-email.md            | 10,236 | Yes  |
 
 **Eight of eight complete.** Phase 0 developer side is finished.
 
@@ -1802,13 +1798,13 @@ transaction failure. Add this to the cascade test coverage list.
 
 ### Phase 0 status -- final
 
-| Verification | Status |
-|---|---|
-| 6.1 Baseline test run | COMPLETE |
-| 6.2 Enum consumer inventory | COMPLETE |
-| 6.3 Payment grep | COMPLETE |
-| 6.4 Migration state | COMPLETE |
-| 6.5 Test file inspection | COMPLETE |
+| Verification                   | Status   |
+| ------------------------------ | -------- |
+| 6.1 Baseline test run          | COMPLETE |
+| 6.2 Enum consumer inventory    | COMPLETE |
+| 6.3 Payment grep               | COMPLETE |
+| 6.4 Migration state            | COMPLETE |
+| 6.5 Test file inspection       | COMPLETE |
 | 6.6 Missing documentation read | COMPLETE |
 
 **All six developer-side verifications are complete.** Phase 0 is
@@ -1827,28 +1823,27 @@ Once those nine answers arrive, Phase 1 can begin.
 Across the six Phase 0 verifications, the following new facts
 about the codebase emerged that earlier documents did not record:
 
-| # | Finding | Source | Effect |
-|---|---|---|---|
-| F-1 | Dead fillable columns exist | Wizard doc | Migration matrix needs adjustment |
-| F-2 | Wizard has no conditional steps | Wizard doc | Phase 2 estimate too optimistic |
-| F-3 | `event_type` locked in edit | Wizard doc + code ref | Unified creation needs new design |
-| F-4 | Design system has 6 anti-patterns and an audit script | Design system | Every UI PR must run `./scripts/audit-design.sh` |
-| F-5 | Rate limiter inventory is 11, not 5 | Implementation notes | New endpoints register in correct method |
-| F-6 | Wizard docs reference 6 removed symbols | Wizard docs | Live inaccuracies in docs |
-| F-7 | Draft-loss bug pattern will repeat | EC issues | Fix wizard before reuse |
-| F-8 | No trimming on text inputs | EC issues | Verify TrimStrings middleware |
-| F-9 | Non-ASCII names rejected | EC issues | Directly affects Filipino event names |
-| F-10 | Deletion doc is stale but concept holds | Deletion doc | Cascade pattern is per-new-table |
-| F-11 | No transaction failure test | Deletion doc | Add to cascade test list |
-| F-12 | Two wizard traps must be preserved | EC code ref | Do not change `event_name` regexes, do not unlock `event_type` |
-| F-13 | Validation without tests is a pattern | EC issues | Enforce tests per phase |
-| F-14 | Shared traits are the discipline | Implementation notes | Reuse `HumanNameQualityRules` |
+| #    | Finding                                               | Source                | Effect                                                         |
+| ---- | ----------------------------------------------------- | --------------------- | -------------------------------------------------------------- |
+| F-1  | Dead fillable columns exist                           | Wizard doc            | Migration matrix needs adjustment                              |
+| F-2  | Wizard has no conditional steps                       | Wizard doc            | Phase 2 estimate too optimistic                                |
+| F-3  | `event_type` locked in edit                           | Wizard doc + code ref | Unified creation needs new design                              |
+| F-4  | Design system has 6 anti-patterns and an audit script | Design system         | Every UI PR must run `./scripts/audit-design.sh`               |
+| F-5  | Rate limiter inventory is 11, not 5                   | Implementation notes  | New endpoints register in correct method                       |
+| F-6  | Wizard docs reference 6 removed symbols               | Wizard docs           | Live inaccuracies in docs                                      |
+| F-7  | Draft-loss bug pattern will repeat                    | EC issues             | Fix wizard before reuse                                        |
+| F-8  | No trimming on text inputs                            | EC issues             | Verify TrimStrings middleware                                  |
+| F-9  | Non-ASCII names rejected                              | EC issues             | Directly affects Filipino event names                          |
+| F-10 | Deletion doc is stale but concept holds               | Deletion doc          | Cascade pattern is per-new-table                               |
+| F-11 | No transaction failure test                           | Deletion doc          | Add to cascade test list                                       |
+| F-12 | Two wizard traps must be preserved                    | EC code ref           | Do not change `event_name` regexes, do not unlock `event_type` |
+| F-13 | Validation without tests is a pattern                 | EC issues             | Enforce tests per phase                                        |
+| F-14 | Shared traits are the discipline                      | Implementation notes  | Reuse `HumanNameQualityRules`                                  |
 
 ### No code, migration, enum, test, or configuration was changed
 
 This phase read four documentation files and appended this
 record. No production code was touched.
-
 
 ---
 
@@ -1970,7 +1965,7 @@ track. The workflow spec says:
     Organizer confirms link -> Existing profile is reused ->
     Attendance history continues
 
-This describes a *link and merge* flow. A first-timer record
+This describes a _link and merge_ flow. A first-timer record
 becomes a permanent member record after the second or third
 attendance, at the organizer's discretion.
 
@@ -2017,17 +2012,17 @@ client should confirm before Phase 3 (Services) begins.
 
 ### Summary of resolved vs. open
 
-| Question | Status |
-|---|---|
-| Q1 -- Top-level modules | RESOLVED |
-| Q2 -- Members is new entity | RESOLVED (sub-decision Q2a open) |
+| Question                         | Status                                 |
+| -------------------------------- | -------------------------------------- |
+| Q1 -- Top-level modules          | RESOLVED                               |
+| Q2 -- Members is new entity      | RESOLVED (sub-decision Q2a open)       |
 | Q3 -- First-Timers is new entity | RESOLVED (sub-decisions Q3a, Q3b open) |
-| Q4 -- Cell Group placement | OPEN |
-| Q5 -- Mockup authority | OPEN |
-| Q6 -- Workflow stages | OPEN |
-| Q7 -- Non-English event names | OPEN |
-| Q8 -- Wizard draft-loss fix | OPEN |
-| Q9 -- TrimStrings middleware | OPEN |
+| Q4 -- Cell Group placement       | OPEN                                   |
+| Q5 -- Mockup authority           | OPEN                                   |
+| Q6 -- Workflow stages            | OPEN                                   |
+| Q7 -- Non-English event names    | OPEN                                   |
+| Q8 -- Wizard draft-loss fix      | OPEN                                   |
+| Q9 -- TrimStrings middleware     | OPEN                                   |
 
 **Phase 1 blockers cleared.** Phase 2 blocked only by Q5 and Q6.
 
@@ -2056,7 +2051,6 @@ the design space.
 
 This block records three client answers. No production code was
 touched.
-
 
 ---
 
@@ -2176,20 +2170,20 @@ tables.
 
 ### Updated resolution status
 
-| Question | Status |
-|---|---|
-| Q1 -- Top-level modules | RESOLVED |
-| Q2 -- Members is new entity | RESOLVED |
-| Q2a -- Members references participants | RESOLVED |
-| Q3 -- First-Timers is new entity | RESOLVED |
+| Question                                    | Status   |
+| ------------------------------------------- | -------- |
+| Q1 -- Top-level modules                     | RESOLVED |
+| Q2 -- Members is new entity                 | RESOLVED |
+| Q2a -- Members references participants      | RESOLVED |
+| Q3 -- First-Timers is new entity            | RESOLVED |
 | Q3a -- First-Timers references participants | RESOLVED |
-| Q3b -- First-Timers is hybrid | RESOLVED |
-| Q4 -- Cell Group placement | OPEN |
-| Q5 -- Mockup authority | OPEN |
-| Q6 -- Workflow stages | OPEN |
-| Q7 -- Non-English event names | OPEN |
-| Q8 -- Wizard draft-loss fix | OPEN |
-| Q9 -- TrimStrings middleware | OPEN |
+| Q3b -- First-Timers is hybrid               | RESOLVED |
+| Q4 -- Cell Group placement                  | OPEN     |
+| Q5 -- Mockup authority                      | OPEN     |
+| Q6 -- Workflow stages                       | OPEN     |
+| Q7 -- Non-English event names               | OPEN     |
+| Q8 -- Wizard draft-loss fix                 | OPEN     |
+| Q9 -- TrimStrings middleware                | OPEN     |
 
 **All Phase 1 blockers cleared.** Phase 2 blocked only by Q5 and
 Q6. Phase 3 (Services) requires Q7 (non-ASCII names) resolved.
@@ -2269,7 +2263,6 @@ verification. Per P4, one block per message.
 
 This block records three sub-decision answers. No production
 code was touched.
-
 
 ---
 
@@ -2389,29 +2382,29 @@ solved. If not, Phase 2 adds it.
 
 ### Updated resolution status
 
-| Question | Status |
-|---|---|
-| Q1 -- Top-level modules | RESOLVED |
-| Q2, Q2a -- Members entity | RESOLVED |
-| Q3, Q3a, Q3b -- First-Timers | RESOLVED |
-| Q4 -- Cell Group placement | OPEN (blocks Phase 6) |
-| Q5 -- Mockup authority | RESOLVED (approved as-is) |
-| Q6 -- Workflow stages | RESOLVED (four stages) |
-| Q7 -- Non-English event names | OPEN (blocks Phase 3) |
-| Q8 -- Wizard draft-loss fix | RESOLVED (deferred) |
-| Q9 -- TrimStrings middleware | OPEN (verification pending) |
+| Question                      | Status                      |
+| ----------------------------- | --------------------------- |
+| Q1 -- Top-level modules       | RESOLVED                    |
+| Q2, Q2a -- Members entity     | RESOLVED                    |
+| Q3, Q3a, Q3b -- First-Timers  | RESOLVED                    |
+| Q4 -- Cell Group placement    | OPEN (blocks Phase 6)       |
+| Q5 -- Mockup authority        | RESOLVED (approved as-is)   |
+| Q6 -- Workflow stages         | RESOLVED (four stages)      |
+| Q7 -- Non-English event names | OPEN (blocks Phase 3)       |
+| Q8 -- Wizard draft-loss fix   | RESOLVED (deferred)         |
+| Q9 -- TrimStrings middleware  | OPEN (verification pending) |
 
 ### Phase status after these answers
 
-| Phase | Status | Blocker |
-|---|---|---|
-| Phase 2 -- General Events | UNBLOCKED | none |
-| Phase 3 -- Services | Blocked by Q7 | non-ASCII names |
-| Phase 4 -- Fellowship | UNBLOCKED | none |
-| Phase 5 -- Discipleship | UNBLOCKED | none |
+| Phase                         | Status        | Blocker              |
+| ----------------------------- | ------------- | -------------------- |
+| Phase 2 -- General Events     | UNBLOCKED     | none                 |
+| Phase 3 -- Services           | Blocked by Q7 | non-ASCII names      |
+| Phase 4 -- Fellowship         | UNBLOCKED     | none                 |
+| Phase 5 -- Discipleship       | UNBLOCKED     | none                 |
 | Phase 6 -- Youth + Cell Group | Blocked by Q4 | Cell Group placement |
-| Phase 7 -- Cross-module | UNBLOCKED | none |
-| Phase 8 -- Cross-cutting | UNBLOCKED | none |
+| Phase 7 -- Cross-module       | UNBLOCKED     | none                 |
+| Phase 8 -- Cross-cutting      | UNBLOCKED     | none                 |
 
 **Phase 2 can begin immediately.** Phase 3 is the next
 sequential blocker, via Q7.
@@ -2420,7 +2413,6 @@ sequential blocker, via Q7.
 
 This block records three client answers. No production code was
 touched.
-
 
 ---
 
@@ -2456,32 +2448,31 @@ No action required.
 
 ### Updated resolution status
 
-| Question | Status |
-|---|---|
-| Q1 -- Top-level modules | RESOLVED |
-| Q2, Q2a -- Members entity | RESOLVED |
-| Q3, Q3a, Q3b -- First-Timers | RESOLVED |
-| Q4 -- Cell Group placement | OPEN (blocks Phase 6) |
-| Q5 -- Mockup authority | RESOLVED |
-| Q6 -- Workflow stages | RESOLVED (four) |
+| Question                      | Status                |
+| ----------------------------- | --------------------- |
+| Q1 -- Top-level modules       | RESOLVED              |
+| Q2, Q2a -- Members entity     | RESOLVED              |
+| Q3, Q3a, Q3b -- First-Timers  | RESOLVED              |
+| Q4 -- Cell Group placement    | OPEN (blocks Phase 6) |
+| Q5 -- Mockup authority        | RESOLVED              |
+| Q6 -- Workflow stages         | RESOLVED (four)       |
 | Q7 -- Non-English event names | OPEN (blocks Phase 3) |
-| Q8 -- Wizard draft-loss fix | RESOLVED (deferred) |
-| Q9 -- TrimStrings middleware | RESOLVED (active) |
+| Q8 -- Wizard draft-loss fix   | RESOLVED (deferred)   |
+| Q9 -- TrimStrings middleware  | RESOLVED (active)     |
 
 **Seven of nine decisions resolved.** Q4 and Q7 remain.
 
 ### Phase status
 
-| Phase | Status | Blocker |
-|---|---|---|
-| Phase 2 -- General Events | UNBLOCKED | none |
-| Phase 3 -- Services | Blocked by Q7 | non-ASCII names |
-| Phase 4 -- Fellowship | UNBLOCKED | none |
-| Phase 5 -- Discipleship | UNBLOCKED | none |
+| Phase                         | Status        | Blocker              |
+| ----------------------------- | ------------- | -------------------- |
+| Phase 2 -- General Events     | UNBLOCKED     | none                 |
+| Phase 3 -- Services           | Blocked by Q7 | non-ASCII names      |
+| Phase 4 -- Fellowship         | UNBLOCKED     | none                 |
+| Phase 5 -- Discipleship       | UNBLOCKED     | none                 |
 | Phase 6 -- Youth + Cell Group | Blocked by Q4 | Cell Group placement |
-| Phase 7 -- Cross-module | UNBLOCKED | none |
-| Phase 8 -- Cross-cutting | UNBLOCKED | none |
-
+| Phase 7 -- Cross-module       | UNBLOCKED     | none                 |
+| Phase 8 -- Cross-cutting      | UNBLOCKED     | none                 |
 
 ---
 
@@ -2580,9 +2571,9 @@ status label dispatch. Recorded so it is not silently inherited.
     -> clean
 
 Diff reviews confirmed:
-    Event.php            -- additions only
-    EventValidationRules.php -- additions + two methods rewritten
-    EventController.php  -- additions + three methods rewritten
+Event.php -- additions only
+EventValidationRules.php -- additions + two methods rewritten
+EventController.php -- additions + three methods rewritten
 
 ### Effect on later phases
 
@@ -2606,7 +2597,6 @@ Files touched:
 
 Nothing else in app/, bootstrap/, config/, routes/, resources/,
 or tests/ was modified.
-
 
 ---
 
@@ -2632,7 +2622,6 @@ block above.
 
 **Updated test count:** 3 skipped, 611 passed.
 
-
 ---
 
 ## Phase 2 frontend closure (2026-10-16)
@@ -2644,6 +2633,7 @@ out to be unnecessary.
 ### Shipped
 
 Commit `21e6ffa` -- events index:
+
 - Kind filter chips (All / Running / Church) wired to ?kind=
 - `upcoming` status pill style for church events
 - `church` event type pill style
@@ -2651,6 +2641,7 @@ Commit `21e6ffa` -- events index:
 - Empty state respects the active filter
 
 Commit `d2da45a` -- event detail:
+
 - `event_kind` and `church_category` added to EventData type
 - `upcoming` status pill style for church events
 - Event Type row shows `church_category` when present,
@@ -2668,6 +2659,7 @@ etc.) that arrive in Phase 3+.
 
 **Event detail conditional sections.**
 `events/show.tsx` already hides sections conditionally:
+
 - Distance row only renders when `event.distance_label` is
   non-null
 - Partners section only renders when `event.partners` is
@@ -2704,7 +2696,6 @@ context to see church events without opening them.
 
 Nothing else in resources/, app/, or tests/ was modified.
 
-
 ---
 
 ## Commit message correction -- a0b27ae (2026-10-16)
@@ -2718,7 +2709,6 @@ reports "17 passed (65 assertions)" at commit a0b27ae.
 
 No code change is required. Recorded per P9: commit messages
 must match the diff.
-
 
 ---
 
@@ -2924,4 +2914,3 @@ Modified:
 ### Next phase
 
 Phase 4 (Fellowship module). See doc 07 section 3.5.
-

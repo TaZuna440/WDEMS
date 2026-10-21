@@ -24,7 +24,6 @@ uses(RefreshDatabase::class);
  * AttendanceDateGateTest (attgate_), and RegistrationFormTest
  * (regform_).
  */
-
 function attdef_staff(): User
 {
     return User::factory()->create([
@@ -35,7 +34,7 @@ function attdef_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function attdef_event(array $overrides = []): Event
 {
@@ -63,7 +62,7 @@ function attdef_event(array $overrides = []): Event
  * the common walk-in shape and to keep the identity resolver on its
  * email path when both are present.
  *
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
  */
 function attdef_payload(array $overrides = []): array

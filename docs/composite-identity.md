@@ -14,6 +14,7 @@ name + contact composite identity — what shipped, what didn't, and what
 remains open.
 
 **Related:**
+
 - `docs/participant-identity.md` — original spec. §3 ("Email + name
   rejected") is reversed by this file.
 - `docs/registration-wizard.md` — the public flow that consumes the
@@ -81,10 +82,10 @@ once under its own key.
 
 Three migrations, all landed 2026-10-19.
 
-| Migration | Change |
-|---|---|
-| `2026_10_19_170000` | Drop UNIQUE on `participants.email` |
-| `2026_10_19_170100` | Drop UNIQUE on `participants.contact_number_normalized` |
+| Migration           | Change                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `2026_10_19_170000` | Drop UNIQUE on `participants.email`                                                  |
+| `2026_10_19_170100` | Drop UNIQUE on `participants.contact_number_normalized`                              |
 | `2026_10_19_170200` | Add `participants.first_name_normalized` + `last_name_normalized` (nullable strings) |
 
 The UNIQUE indexes being dropped were added 2026-10-02:
@@ -283,8 +284,8 @@ matching**.
 `normalizeName()` uses `mb_strtolower()`. "ANA" and "ana" normalize to
 the same value. "Ana Santos" and "ana santos" are the same key.
 
-A note in the 2026-10-19 progress report reads: *"Mark said 'it is case
-sensitive'."* That comment is not reflected in code. Two readings:
+A note in the 2026-10-19 progress report reads: _"Mark said 'it is case
+sensitive'."_ That comment is not reflected in code. Two readings:
 
 1. Mark meant **display** — names render as entered, matching is
    case-insensitive. Both are true in the current code.
@@ -355,9 +356,9 @@ walk-in rows to the wrong participant when a family shares an email.
 W7 updated the identity suites and added new cases. Full suite at
 close: **833 passed, 3 skipped, 0 failed.**
 
-| File | Change |
-|---|---|
-| `tests/Feature/Participants/ParticipantIdentityResolverTest.php` | Rewritten for composite matching; added "name variant = different person" |
+| File                                                                | Change                                                                                 |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `tests/Feature/Participants/ParticipantIdentityResolverTest.php`    | Rewritten for composite matching; added "name variant = different person"              |
 | `tests/Feature/Participants/ParticipantIdentityConstraintsTest.php` | Two UNIQUE-constraint tests rewritten — duplicates now allowed and verified to coexist |
 
 Listed in the checklist but **not confirmed** in the W7 close:
@@ -387,13 +388,13 @@ That decision was reversed on 2026-10-19. The amendment lands in
 
 ## 12. Cross-references
 
-| Document | Purpose |
-|---|---|
-| `docs/participant-identity.md` | Original spec; §3 reversed by this file |
-| `docs/registration-wizard.md` | Public flow that consumes the composite resolver |
-| `docs/audit-2026-10-19.md` | Findings L1, M4, M5 touch this subsystem |
-| `docs/known-issues.md` | ISSUE-014+ derived from the audit |
-| `docs/registration-contact-verification.md` | Verification flow that precedes finalize |
+| Document                                    | Purpose                                          |
+| ------------------------------------------- | ------------------------------------------------ |
+| `docs/participant-identity.md`              | Original spec; §3 reversed by this file          |
+| `docs/registration-wizard.md`               | Public flow that consumes the composite resolver |
+| `docs/audit-2026-10-19.md`                  | Findings L1, M4, M5 touch this subsystem         |
+| `docs/known-issues.md`                      | ISSUE-014+ derived from the audit                |
+| `docs/registration-contact-verification.md` | Verification flow that precedes finalize         |
 
 ## 13. Changelog
 
@@ -402,7 +403,6 @@ That decision was reversed on 2026-10-19. The amendment lands in
   (middle-name/suffix gap, cross-contact conflict, name-variant splits),
   and the open items (name warning UI, checklist I/J/K verification,
   client confirmation on Option A).
-
 
 ## Running Events audit addendum — 2026-10-21
 

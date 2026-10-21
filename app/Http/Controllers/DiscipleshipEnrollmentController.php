@@ -129,7 +129,7 @@ class DiscipleshipEnrollmentController extends Controller
             ->exists();
 
         if (! $belongs) {
-            throw new NotFoundHttpException();
+            throw new NotFoundHttpException;
         }
     }
 }

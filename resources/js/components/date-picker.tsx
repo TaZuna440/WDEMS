@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import {
+    Calendar as CalendarIcon,
+    ChevronLeft,
+    ChevronRight,
+    X,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -31,8 +36,18 @@ type Props = {
 };
 
 const MONTHS = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
 ];
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -95,7 +110,7 @@ function parseTyped(raw: string): Date | null {
     // Two-digit years are rejected: guessing between 1900s and
     // 2000s is unsafe on a shared picker used for both birthdates
     // and event dates.
-    const mdy = /^(\d{1,2})[\/\-.\s](\d{1,2})[\/\-.\s](\d{4})$/.exec(trimmed);
+    const mdy = /^(\d{1,2})[/\-.\s](\d{1,2})[/\-.\s](\d{4})$/.exec(trimmed);
     if (mdy) {
         return makeDate(Number(mdy[3]), Number(mdy[1]), Number(mdy[2]));
     }
@@ -131,7 +146,9 @@ export default function DatePicker({
     autoFocusTyped = false,
 }: Props) {
     const [open, setOpen] = useState(false);
-    const [viewDate, setViewDate] = useState<Date>(() => parseISO(value) ?? new Date());
+    const [viewDate, setViewDate] = useState<Date>(
+        () => parseISO(value) ?? new Date(),
+    );
     const [view, setView] = useState<'days' | 'months' | 'years'>('days');
     const [yearPage, setYearPage] = useState(0);
     const [typedValue, setTypedValue] = useState('');
@@ -172,7 +189,10 @@ export default function DatePicker({
     useEffect(() => {
         if (!open) return;
         const handler = (e: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+            if (
+                containerRef.current &&
+                !containerRef.current.contains(e.target as Node)
+            ) {
                 // If the user typed something invalid and the commit
                 // failed, the error is showing. Do not close — the
                 // user needs to see and fix it.
@@ -199,7 +219,10 @@ export default function DatePicker({
 
     const cells: { date: Date; inMonth: boolean }[] = [];
     for (let i = firstDay - 1; i >= 0; i--) {
-        cells.push({ date: new Date(year, month - 1, daysInPrevMonth - i), inMonth: false });
+        cells.push({
+            date: new Date(year, month - 1, daysInPrevMonth - i),
+            inMonth: false,
+        });
     }
     for (let d = 1; d <= daysInMonth; d++) {
         cells.push({ date: new Date(year, month, d), inMonth: true });
@@ -340,7 +363,7 @@ export default function DatePicker({
                         !selected && 'text-muted-foreground',
                     )}
                 >
-                    <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <CalendarIcon className="text-muted-foreground h-4 w-4 shrink-0" />
                     {selected ? formatDisplay(selected) : placeholder}
                 </span>
                 {selected && (
@@ -349,7 +372,7 @@ export default function DatePicker({
                         tabIndex={-1}
                         onClick={clear}
                         title="Clear date"
-                        className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground shrink-0 rounded p-0.5 transition-colors hover:bg-white/10"
                     >
                         <X className="h-3 w-3" />
                     </span>
@@ -358,7 +381,7 @@ export default function DatePicker({
 
             {open && (
                 <div
-                    className="bg-popover text-popover-foreground absolute left-0 top-full z-50 mt-1 w-72 rounded-lg border border-white/10 p-3 shadow-2xl"
+                    className="bg-popover text-popover-foreground absolute top-full left-0 z-50 mt-1 w-72 rounded-lg border border-white/10 p-3 shadow-2xl"
                     role="dialog"
                 >
                     <div className="mb-2">
@@ -382,7 +405,7 @@ export default function DatePicker({
                         {typedError !== '' && (
                             <p
                                 role="alert"
-                                className="mt-1 text-xs text-destructive"
+                                className="text-destructive mt-1 text-xs"
                             >
                                 {typedError}
                             </p>
@@ -390,190 +413,227 @@ export default function DatePicker({
                     </div>
 
                     {view === 'days' && (
-                    <div className="mb-2 flex items-center justify-between">
-                        <button
-                            type="button"
-                            onClick={() => setViewDate(new Date(year, month - 1, 1))}
-                            aria-label="Previous month"
-                            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
-                        >
-                            <ChevronLeft className="h-4 w-4" />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => { setView('years'); setYearPage(0); }}
-                            aria-label="Choose year"
-                            className="rounded-md px-2 py-1 text-sm font-medium transition-colors hover:bg-white/5 hover:text-lime-brand"
-                        >
-                            {MONTHS[month]} {year}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setViewDate(new Date(year, month + 1, 1))}
-                            aria-label="Next month"
-                            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
-                        >
-                            <ChevronRight className="h-4 w-4" />
-                        </button>
-                    </div>
-                    )}
-
-                    {view === 'years' && (
-                    <div className="mb-2">
                         <div className="mb-2 flex items-center justify-between">
                             <button
                                 type="button"
-                                onClick={() => setYearPage((p) => p - 1)}
-                                aria-label="Previous years"
-                                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+                                onClick={() =>
+                                    setViewDate(new Date(year, month - 1, 1))
+                                }
+                                aria-label="Previous month"
+                                className="text-muted-foreground hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-white/5"
                             >
                                 <ChevronLeft className="h-4 w-4" />
                             </button>
-                            <span className="text-sm font-medium">
-                                {year - yearPage * 12 - 11} – {year - yearPage * 12}
-                            </span>
                             <button
                                 type="button"
-                                onClick={() => setYearPage((p) => Math.max(0, p - 1))}
-                                aria-label="Next years"
-                                disabled={yearPage <= 0}
-                                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground disabled:opacity-30"
+                                onClick={() => {
+                                    setView('years');
+                                    setYearPage(0);
+                                }}
+                                aria-label="Choose year"
+                                className="hover:text-lime-brand rounded-md px-2 py-1 text-sm font-medium transition-colors hover:bg-white/5"
+                            >
+                                {MONTHS[month]} {year}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setViewDate(new Date(year, month + 1, 1))
+                                }
+                                aria-label="Next month"
+                                className="text-muted-foreground hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-white/5"
                             >
                                 <ChevronRight className="h-4 w-4" />
                             </button>
                         </div>
-                        <div className="grid grid-cols-3 gap-1">
-                            {Array.from({ length: 12 }, (_, i) => {
-                                const y = year - yearPage * 12 - 11 + i;
-                                const isCurrentYear = y === year;
-                                const outOfBounds: boolean =
-                                    (minDate !== null && y < minDate.getFullYear()) ||
-                                    (maxDate !== null && y > maxDate.getFullYear());
-                                return (
-                                    <button
-                                        key={y}
-                                        type="button"
-                                        disabled={outOfBounds}
-                                        onClick={() => {
-                                            setViewDate(new Date(y, month, 1));
-                                            setView('months');
-                                        }}
-                                        className={cn(
-                                            'flex h-10 items-center justify-center rounded-md text-sm transition-colors',
-                                            outOfBounds && 'cursor-not-allowed text-muted-foreground/30',
-                                            !outOfBounds && 'text-foreground hover:bg-white/5',
-                                            !outOfBounds && isCurrentYear && 'bg-lime-brand font-medium text-navy-900 hover:bg-lime-brand/90',
-                                        )}
-                                    >
-                                        {y}
-                                    </button>
-                                );
-                            })}
+                    )}
+
+                    {view === 'years' && (
+                        <div className="mb-2">
+                            <div className="mb-2 flex items-center justify-between">
+                                <button
+                                    type="button"
+                                    onClick={() => setYearPage((p) => p - 1)}
+                                    aria-label="Previous years"
+                                    className="text-muted-foreground hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-white/5"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </button>
+                                <span className="text-sm font-medium">
+                                    {year - yearPage * 12 - 11} –{' '}
+                                    {year - yearPage * 12}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setYearPage((p) => Math.max(0, p - 1))
+                                    }
+                                    aria-label="Next years"
+                                    disabled={yearPage <= 0}
+                                    className="text-muted-foreground hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-white/5 disabled:opacity-30"
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-3 gap-1">
+                                {Array.from({ length: 12 }, (_, i) => {
+                                    const y = year - yearPage * 12 - 11 + i;
+                                    const isCurrentYear = y === year;
+                                    const outOfBounds: boolean =
+                                        (minDate !== null &&
+                                            y < minDate.getFullYear()) ||
+                                        (maxDate !== null &&
+                                            y > maxDate.getFullYear());
+                                    return (
+                                        <button
+                                            key={y}
+                                            type="button"
+                                            disabled={outOfBounds}
+                                            onClick={() => {
+                                                setViewDate(
+                                                    new Date(y, month, 1),
+                                                );
+                                                setView('months');
+                                            }}
+                                            className={cn(
+                                                'flex h-10 items-center justify-center rounded-md text-sm transition-colors',
+                                                outOfBounds &&
+                                                    'text-muted-foreground/30 cursor-not-allowed',
+                                                !outOfBounds &&
+                                                    'text-foreground hover:bg-white/5',
+                                                !outOfBounds &&
+                                                    isCurrentYear &&
+                                                    'bg-lime-brand text-navy-900 hover:bg-lime-brand/90 font-medium',
+                                            )}
+                                        >
+                                            {y}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
                     )}
 
                     {view === 'months' && (
-                    <div className="mb-2">
-                        <div className="mb-2 flex items-center justify-between">
-                            <button
-                                type="button"
-                                onClick={() => setView('years')}
-                                aria-label="Back to years"
-                                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
-                            >
-                                <ChevronLeft className="h-4 w-4" />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => { setView('years'); setYearPage(0); }}
-                                className="rounded-md px-2 py-1 text-sm font-medium transition-colors hover:bg-white/5 hover:text-lime-brand"
-                            >
-                                {year}
-                            </button>
-                            <span className="w-7" />
+                        <div className="mb-2">
+                            <div className="mb-2 flex items-center justify-between">
+                                <button
+                                    type="button"
+                                    onClick={() => setView('years')}
+                                    aria-label="Back to years"
+                                    className="text-muted-foreground hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-white/5"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setView('years');
+                                        setYearPage(0);
+                                    }}
+                                    className="hover:text-lime-brand rounded-md px-2 py-1 text-sm font-medium transition-colors hover:bg-white/5"
+                                >
+                                    {year}
+                                </button>
+                                <span className="w-7" />
+                            </div>
+                            <div className="grid grid-cols-3 gap-1">
+                                {MONTHS.map((m, i) => {
+                                    const isCurrentMonth = i === month;
+                                    const monthStart = new Date(year, i, 1);
+                                    const monthEnd = new Date(year, i + 1, 0);
+                                    const outOfBounds: boolean =
+                                        (minDate !== null &&
+                                            isAfterDay(minDate, monthEnd)) ||
+                                        (maxDate !== null &&
+                                            isBeforeDay(maxDate, monthStart));
+                                    return (
+                                        <button
+                                            key={m}
+                                            type="button"
+                                            disabled={outOfBounds}
+                                            onClick={() => {
+                                                setViewDate(
+                                                    new Date(year, i, 1),
+                                                );
+                                                setView('days');
+                                            }}
+                                            className={cn(
+                                                'flex h-10 items-center justify-center rounded-md text-sm transition-colors',
+                                                outOfBounds &&
+                                                    'text-muted-foreground/30 cursor-not-allowed',
+                                                !outOfBounds &&
+                                                    'text-foreground hover:bg-white/5',
+                                                !outOfBounds &&
+                                                    isCurrentMonth &&
+                                                    'bg-lime-brand text-navy-900 hover:bg-lime-brand/90 font-medium',
+                                            )}
+                                        >
+                                            {m.slice(0, 3)}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-1">
-                            {MONTHS.map((m, i) => {
-                                const isCurrentMonth = i === month;
-                                const monthStart = new Date(year, i, 1);
-                                const monthEnd = new Date(year, i + 1, 0);
-                                const outOfBounds: boolean =
-                                    (minDate !== null && isAfterDay(minDate, monthEnd)) ||
-                                    (maxDate !== null && isBeforeDay(maxDate, monthStart));
-                                return (
-                                    <button
-                                        key={m}
-                                        type="button"
-                                        disabled={outOfBounds}
-                                        onClick={() => {
-                                            setViewDate(new Date(year, i, 1));
-                                            setView('days');
-                                        }}
-                                        className={cn(
-                                            'flex h-10 items-center justify-center rounded-md text-sm transition-colors',
-                                            outOfBounds && 'cursor-not-allowed text-muted-foreground/30',
-                                            !outOfBounds && 'text-foreground hover:bg-white/5',
-                                            !outOfBounds && isCurrentMonth && 'bg-lime-brand font-medium text-navy-900 hover:bg-lime-brand/90',
-                                        )}
-                                    >
-                                        {m.slice(0, 3)}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
                     )}
 
                     {view === 'days' && (
-                    <>
-                    <div className="mb-1 grid grid-cols-7 gap-0.5">
-                        {WEEKDAYS.map((wd) => (
-                            <div
-                                key={wd}
-                                className="flex h-7 items-center justify-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
-                            >
-                                {wd}
+                        <>
+                            <div className="mb-1 grid grid-cols-7 gap-0.5">
+                                {WEEKDAYS.map((wd) => (
+                                    <div
+                                        key={wd}
+                                        className="text-muted-foreground flex h-7 items-center justify-center text-[10px] font-medium tracking-wider uppercase"
+                                    >
+                                        {wd}
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
 
-                    <div className="grid grid-cols-7 gap-0.5">
-                        {cells.map((cell, i) => {
-                            const isSelected =
-                                selected &&
-                                cell.date.toDateString() === selected.toDateString();
-                            const isToday =
-                                cell.date.toDateString() === today.toDateString();
-                            const isDisabled = isCellDisabled(cell.date);
+                            <div className="grid grid-cols-7 gap-0.5">
+                                {cells.map((cell, i) => {
+                                    const isSelected =
+                                        selected &&
+                                        cell.date.toDateString() ===
+                                            selected.toDateString();
+                                    const isToday =
+                                        cell.date.toDateString() ===
+                                        today.toDateString();
+                                    const isDisabled = isCellDisabled(
+                                        cell.date,
+                                    );
 
-                            return (
-                                <button
-                                    key={i}
-                                    type="button"
-                                    disabled={isDisabled}
-                                    onClick={() => pick(cell.date)}
-                                    className={cn(
-                                        'flex h-8 items-center justify-center rounded-md text-xs transition-colors',
-                                        isDisabled &&
-                                            'cursor-not-allowed text-muted-foreground/30',
-                                        !isDisabled && !cell.inMonth &&
-                                            'text-muted-foreground/40 hover:bg-white/[0.03]',
-                                        !isDisabled && cell.inMonth &&
-                                            'text-foreground hover:bg-white/5',
-                                        !isDisabled && isToday && !isSelected &&
-                                            'border border-lime-brand/40 text-lime-brand',
-                                        !isDisabled && isSelected &&
-                                            'bg-lime-brand font-medium text-navy-900 hover:bg-lime-brand/90',
-                                    )}
-                                >
-                                    {cell.date.getDate()}
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    </>
+                                    return (
+                                        <button
+                                            key={i}
+                                            type="button"
+                                            disabled={isDisabled}
+                                            onClick={() => pick(cell.date)}
+                                            className={cn(
+                                                'flex h-8 items-center justify-center rounded-md text-xs transition-colors',
+                                                isDisabled &&
+                                                    'text-muted-foreground/30 cursor-not-allowed',
+                                                !isDisabled &&
+                                                    !cell.inMonth &&
+                                                    'text-muted-foreground/40 hover:bg-white/[0.03]',
+                                                !isDisabled &&
+                                                    cell.inMonth &&
+                                                    'text-foreground hover:bg-white/5',
+                                                !isDisabled &&
+                                                    isToday &&
+                                                    !isSelected &&
+                                                    'border-lime-brand/40 text-lime-brand border',
+                                                !isDisabled &&
+                                                    isSelected &&
+                                                    'bg-lime-brand text-navy-900 hover:bg-lime-brand/90 font-medium',
+                                            )}
+                                        >
+                                            {cell.date.getDate()}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </>
                     )}
                     <div className="mt-2 flex items-center justify-between border-t border-white/5 pt-2">
                         <button
@@ -584,7 +644,7 @@ export default function DatePicker({
                                 'text-xs font-medium transition-opacity',
                                 canPickToday
                                     ? 'text-lime-brand hover:opacity-80'
-                                    : 'cursor-not-allowed text-muted-foreground/40',
+                                    : 'text-muted-foreground/40 cursor-not-allowed',
                             )}
                         >
                             Today
@@ -592,7 +652,7 @@ export default function DatePicker({
                         <button
                             type="button"
                             onClick={() => setOpen(false)}
-                            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                            className="text-muted-foreground hover:text-foreground text-xs transition-colors"
                         >
                             Close
                         </button>

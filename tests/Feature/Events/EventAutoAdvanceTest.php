@@ -22,7 +22,6 @@ uses(RefreshDatabase::class);
  *
  * Helpers are prefixed advance_ to avoid Pest function collisions.
  */
-
 function advance_staff(): User
 {
     return User::factory()->create([
@@ -33,7 +32,7 @@ function advance_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function advance_event(array $overrides = []): Event
 {

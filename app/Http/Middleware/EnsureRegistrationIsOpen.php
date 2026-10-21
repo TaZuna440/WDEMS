@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Enums\EventStatus;
 use App\Models\Event;
 use Closure;
 use Illuminate\Http\Request;

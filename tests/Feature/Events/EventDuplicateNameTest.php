@@ -13,7 +13,6 @@ use App\Models\User;
  *
  * Helpers prefixed dup_ to avoid collisions with sibling test files.
  */
-
 function dup_staff(): User
 {
     return User::factory()->create([
@@ -24,7 +23,7 @@ function dup_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
  */
 function dup_payload(array $overrides = []): array

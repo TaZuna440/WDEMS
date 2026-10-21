@@ -129,7 +129,8 @@ const CONTACT_DIGIT_COUNT = /^(?=(?:\D*\d){7,15}\D*$)/;
  */
 const ADDRESS_HAS_LETTER = /[A-Za-z]/;
 const ADDRESS_HAS_VOWEL_OR_DIGIT = /[aeiouyAEIOUY0-9]/;
-const ADDRESS_HAS_CONSONANT_OR_DIGIT = /[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ0-9]/;
+const ADDRESS_HAS_CONSONANT_OR_DIGIT =
+    /[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ0-9]/;
 const ADDRESS_REPEATED_LETTERS = /([A-Za-z])\1\1/;
 
 function isBlank(value: unknown): boolean {
@@ -226,10 +227,7 @@ export function birthdayPickerBounds(): { minDate: Date; maxDate: Date } {
  * so that "sdfasf" is rejected identically here and in the wizard.
  * Returns the error message or null when the value passes.
  */
-function validateNameValue(
-    value: string,
-    label: string,
-): string | null {
+function validateNameValue(value: string, label: string): string | null {
     if (isBlank(value)) {
         return `${label} is required.`;
     }
@@ -307,7 +305,7 @@ function validateBirthday(value: string): string | null {
         return 'Please enter a valid date of birth.';
     }
 
-    const maxDate = isoYearsAgo(3);   // youngest allowed (must be >= this)
+    const maxDate = isoYearsAgo(3); // youngest allowed (must be >= this)
     const minDate = isoYearsAgo(120); // oldest allowed (must be <= this)
 
     if (value > maxDate) {
@@ -326,10 +324,15 @@ function validateBirthday(value: string): string | null {
  * The wizard surfaces this next to the field; validation still passes.
  */
 export function emergencyContactWarning(
-    data: Pick<RegistrationFormData, 'contact_number' | 'emergency_contact_number'>,
+    data: Pick<
+        RegistrationFormData,
+        'contact_number' | 'emergency_contact_number'
+    >,
 ): string | null {
     const own =
-        typeof data.contact_number === 'string' ? normalizePhone(data.contact_number) : null;
+        typeof data.contact_number === 'string'
+            ? normalizePhone(data.contact_number)
+            : null;
     const ec =
         typeof data.emergency_contact_number === 'string'
             ? normalizePhone(data.emergency_contact_number)
@@ -372,7 +375,10 @@ export function validateRegistrationForm(
     // to letters and periods (Jr., Sr., II, III…), mirroring
     // PublicRegistrationRequest.
     if (!isBlank(data.middle_name) && typeof data.middle_name === 'string') {
-        const middleNameError = validateNameValue(data.middle_name, 'Middle name');
+        const middleNameError = validateNameValue(
+            data.middle_name,
+            'Middle name',
+        );
         if (middleNameError) {
             errors.middle_name = middleNameError;
         }
@@ -408,11 +414,14 @@ export function validateRegistrationForm(
     // the caller supplies the fields (the wizard does; the legacy
     // single-page form does not yet) — same tracksX gate pattern as
     // birthday.
-    const tracksEmergencyContact = data.emergency_contact_name !== undefined || formVersion >= 2;
+    const tracksEmergencyContact =
+        data.emergency_contact_name !== undefined || formVersion >= 2;
 
     if (tracksEmergencyContact) {
         const ecNameError = validateNameValue(
-            typeof data.emergency_contact_name === 'string' ? data.emergency_contact_name : '',
+            typeof data.emergency_contact_name === 'string'
+                ? data.emergency_contact_name
+                : '',
             'Emergency contact name',
         );
         if (ecNameError && formVersion < 2) {
@@ -430,9 +439,12 @@ export function validateRegistrationForm(
         }
 
         if (isBlank(data.emergency_contact_number)) {
-            errors.emergency_contact_number = 'Emergency contact number is required.';
+            errors.emergency_contact_number =
+                'Emergency contact number is required.';
         } else if (typeof data.emergency_contact_number === 'string') {
-            const ecContactError = validateContactNumber(data.emergency_contact_number);
+            const ecContactError = validateContactNumber(
+                data.emergency_contact_number,
+            );
             if (ecContactError) {
                 errors.emergency_contact_number = ecContactError;
             }
@@ -440,29 +452,62 @@ export function validateRegistrationForm(
     }
 
     if (formVersion >= 2) {
-        const nameKeys = ['first_name', 'last_name', 'emergency_contact_first_name', 'emergency_contact_last_name'] as const;
+        const nameKeys = [
+            'first_name',
+            'last_name',
+            'emergency_contact_first_name',
+            'emergency_contact_last_name',
+        ] as const;
         for (const key of [...nameKeys, 'middle_name'] as const) {
             const value = (data[key] ?? '').trim();
             if (key === 'middle_name' && value === '') continue;
-            if (value.length < 2 || value.length > 50 || !/^[\p{L}\p{M} '\-]+$/u.test(value)) {
-                errors[key] = 'Use 2–50 characters: letters, spaces, hyphens, or apostrophes.';
+            if (
+                value.length < 2 ||
+                value.length > 50 ||
+                !/^[\p{L}\p{M} '-]+$/u.test(value)
+            ) {
+                errors[key] =
+                    'Use 2–50 characters: letters, spaces, hyphens, or apostrophes.';
             } else {
                 delete errors[key];
             }
         }
-        if ((data.suffix ?? '').length > 10) errors.suffix = 'Suffix must not exceed 10 characters.';
-        for (const key of ['contact_number', 'emergency_contact_number'] as const) {
+        if ((data.suffix ?? '').length > 10)
+            errors.suffix = 'Suffix must not exceed 10 characters.';
+        for (const key of [
+            'contact_number',
+            'emergency_contact_number',
+        ] as const) {
             const value = data[key] ?? '';
-            if (value && !/^(?:09|\+639)[0-9]{9}$/.test(value)) errors[key] = 'Enter a valid Philippine mobile number: +63 9xxxxxxxxx.';
+            if (value && !/^(?:09|\+639)[0-9]{9}$/.test(value))
+                errors[key] =
+                    'Enter a valid Philippine mobile number: +63 9xxxxxxxxx.';
         }
-        if (!['Parent', 'Sibling', 'Spouse', 'Friend', 'Guardian', 'Other'].includes(data.emergency_contact_relationship ?? '')) {
+        if (
+            ![
+                'Parent',
+                'Sibling',
+                'Spouse',
+                'Friend',
+                'Guardian',
+                'Other',
+            ].includes(data.emergency_contact_relationship ?? '')
+        ) {
             errors.emergency_contact_relationship = 'Choose a relationship.';
         }
         if (data.emergency_contact_relationship === 'Other') {
-            const other = (data.emergency_contact_relationship_other ?? '').trim();
-            if (!/^[\p{L}\p{M} '\-]{2,15}$/u.test(other) || !/\p{L}/u.test(other)) errors.emergency_contact_relationship_other = 'Specify the relationship using 2–15 letters, spaces, apostrophes or hyphens.';
+            const other = (
+                data.emergency_contact_relationship_other ?? ''
+            ).trim();
+            if (
+                !/^[\p{L}\p{M} '-]{2,15}$/u.test(other) ||
+                !/\p{L}/u.test(other)
+            )
+                errors.emergency_contact_relationship_other =
+                    'Specify the relationship using 2–15 letters, spaces, apostrophes or hyphens.';
         }
-        if (data.address.trim().length < 3 || data.address.length > 255) errors.address = 'Enter barangay and city using 3–255 characters.';
+        if (data.address.trim().length < 3 || data.address.length > 255)
+            errors.address = 'Enter barangay and city using 3–255 characters.';
     }
 
     // Individual birthday format/bounds check (new path — only when
@@ -528,15 +573,15 @@ export function validateRegistrationForm(
     // Under normal configuration at least one of email/contact_number
     // is required, so this check is defense in depth against a legacy
     // or manually-edited event where both are optional.
-    const hasRequiredEmail =
-        isRequired('email') && !isBlank(data.email);
+    const hasRequiredEmail = isRequired('email') && !isBlank(data.email);
     const hasRequiredPhone =
         isRequired('contact_number') &&
         !isBlank(data.contact_number) &&
         normalizePhone(data.contact_number) !== null;
 
     if (!hasRequiredEmail && !hasRequiredPhone) {
-        errors.identity = 'Please provide at least an email address or a contact number.';
+        errors.identity =
+            'Please provide at least an email address or a contact number.';
     }
 
     // -------- Custom fields --------
@@ -566,20 +611,29 @@ export function validateRegistrationForm(
                 break;
 
             case 'number':
-                if (typeof value !== 'string' || !/^-?\d+(\.\d+)?$/.test(value)) {
+                if (
+                    typeof value !== 'string' ||
+                    !/^-?\d+(\.\d+)?$/.test(value)
+                ) {
                     errors[key] = 'Please enter a number.';
                 }
                 break;
 
             case 'select':
             case 'radio':
-                if (typeof value !== 'string' || !field.options.includes(value)) {
+                if (
+                    typeof value !== 'string' ||
+                    !field.options.includes(value)
+                ) {
                     errors[key] = 'Please choose one of the available options.';
                 }
                 break;
 
             case 'checkbox':
-                if (!Array.isArray(value) || value.some((v) => !field.options.includes(v))) {
+                if (
+                    !Array.isArray(value) ||
+                    value.some((v) => !field.options.includes(v))
+                ) {
                     errors[key] = 'Please choose from the available options.';
                 }
                 break;

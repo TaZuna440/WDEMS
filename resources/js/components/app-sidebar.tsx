@@ -43,7 +43,11 @@ export function AppSidebar() {
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem className="flex items-center justify-between gap-1">
-                        <SidebarMenuButton size="lg" asChild className="min-w-0 flex-1">
+                        <SidebarMenuButton
+                            size="lg"
+                            asChild
+                            className="min-w-0 flex-1"
+                        >
                             <Link href={dashboard()} prefetch>
                                 <AppLogo />
                             </Link>

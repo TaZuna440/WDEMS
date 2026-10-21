@@ -24,7 +24,7 @@ test('walk-in duplicate checks distinguish family members sharing contact detail
     $contactDetails = $contact === 'email'
         ? ['email' => 'family@example.com']
         : ['contact_number' => '09171234567'];
-    $parent = Participant::create(array_merge($contactDetails, ['first_name' => 'Maria', 'last_name' => 'Santos']));
+    $parent = Participant::create(array_merge($contactDetails, ['pool' => 'running', 'first_name' => 'Maria', 'last_name' => 'Santos']));
     Registration::create([
         'event_id' => $event->id,
         'participant_id' => $parent->id,

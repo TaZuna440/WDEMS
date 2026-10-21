@@ -1,9 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import {
-    CalendarDays,
-    CircleCheck,
-    ClipboardList,
-} from 'lucide-react';
+import { CalendarDays, CircleCheck, ClipboardList } from 'lucide-react';
 
 type EventRow = {
     id: number;
@@ -31,10 +27,10 @@ function EmptySection({
     description: string;
 }) {
     return (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border p-8 text-center">
-            <Icon className="mb-3 h-6 w-6 text-muted-foreground/40" />
-            <p className="text-sm text-foreground">{title}</p>
-            <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+        <div className="border-border flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
+            <Icon className="text-muted-foreground/40 mb-3 h-6 w-6" />
+            <p className="text-foreground text-sm">{title}</p>
+            <p className="text-muted-foreground mt-1 max-w-xs text-xs">
                 {description}
             </p>
         </div>
@@ -49,28 +45,28 @@ function EventRowItem({
     showMonitor?: boolean;
 }) {
     return (
-        <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card/40 px-4 py-3 transition-colors hover:bg-card/70">
+        <div className="border-border bg-card/40 hover:bg-card/70 flex items-center justify-between gap-4 rounded-lg border px-4 py-3 transition-colors">
             <Link
                 href={`/events/${event.id}`}
                 className="flex min-w-0 flex-1 flex-col"
             >
-                <span className="truncate text-sm font-medium text-foreground">
+                <span className="text-foreground truncate text-sm font-medium">
                     {event.event_name}
                 </span>
-                <span className="mt-0.5 truncate text-xs text-muted-foreground">
+                <span className="text-muted-foreground mt-0.5 truncate text-xs">
                     {event.event_date ?? '—'} · {event.venue ?? 'No venue'}
                 </span>
             </Link>
 
             <div className="flex shrink-0 items-center gap-3">
-                <span className="text-xs text-muted-foreground">
+                <span className="text-muted-foreground text-xs">
                     {event.status_label}
                 </span>
 
                 {showMonitor && (
                     <Link
                         href={`/registrations/monitor/${event.id}`}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-lime-brand hover:underline"
+                        className="text-lime-brand inline-flex items-center gap-1 text-xs font-medium hover:underline"
                     >
                         Monitor
                     </Link>
@@ -92,10 +88,10 @@ function Section({
     return (
         <div className="glass-panel rounded-xl p-6">
             <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                     {title}
                 </h2>
-                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                <span className="bg-secondary text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
                     {count}
                 </span>
             </div>
@@ -104,11 +100,7 @@ function Section({
     );
 }
 
-export default function RegistrationsIndex({
-    needsForm,
-    open,
-    closed,
-}: Props) {
+export default function RegistrationsIndex({ needsForm, open, closed }: Props) {
     return (
         <>
             <Head title="Registration" />
@@ -184,7 +176,5 @@ export default function RegistrationsIndex({
 }
 
 RegistrationsIndex.layout = {
-    breadcrumbs: [
-        { title: 'Registration', href: '/registrations' },
-    ],
+    breadcrumbs: [{ title: 'Registration', href: '/registrations' }],
 };

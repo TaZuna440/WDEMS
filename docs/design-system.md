@@ -133,14 +133,14 @@ Semantic colors are not brand. They carry meaning. Each has a
 light-mode value and a dark-mode value, and the meaning is preserved
 across the flip.
 
-| Semantic | Meaning | Light mode | Dark mode |
-|---|---|---|---|
-| **Brand / accent** | WDEMS identity, primary actions | `#84CC16` (lime) | `#B6FF3B` (lime) |
-| **Success / Completed** | Finished, confirmed, verified | `bg-green-500/15 text-green-700` | `bg-green-500/15 text-green-500` |
-| **Warning** | Attention needed, pending, urgent | see Section 5 | yellow family |
-| **Danger** | Destructive, errors, overdue | `bg-destructive/15 text-destructive` | `bg-destructive/15 text-destructive` |
-| **Neutral / Draft** | Inactive, not-yet-started | `bg-secondary text-foreground` | `bg-secondary text-foreground` |
-| **Info / Type** | Category label, informational | `bg-accent/15 text-teal-700` | `bg-accent/15 text-accent` |
+| Semantic                | Meaning                           | Light mode                           | Dark mode                            |
+| ----------------------- | --------------------------------- | ------------------------------------ | ------------------------------------ |
+| **Brand / accent**      | WDEMS identity, primary actions   | `#84CC16` (lime)                     | `#B6FF3B` (lime)                     |
+| **Success / Completed** | Finished, confirmed, verified     | `bg-green-500/15 text-green-700`     | `bg-green-500/15 text-green-500`     |
+| **Warning**             | Attention needed, pending, urgent | see Section 5                        | yellow family                        |
+| **Danger**              | Destructive, errors, overdue      | `bg-destructive/15 text-destructive` | `bg-destructive/15 text-destructive` |
+| **Neutral / Draft**     | Inactive, not-yet-started         | `bg-secondary text-foreground`       | `bg-secondary text-foreground`       |
+| **Info / Type**         | Category label, informational     | `bg-accent/15 text-teal-700`         | `bg-accent/15 text-accent`           |
 
 **Rule:** success is green in both modes. Brand is lime in both modes.
 Danger is red in both modes. Only the **warning** semantic has a
@@ -219,22 +219,22 @@ Text on glass reads from `--foreground`.
 Every page's primary surface must declare its tier. This is the
 current audit.
 
-| Surface | File | Tier |
-|---|---|---|
-| Sidebar panel | `ui/sidebar.tsx` | A |
-| Top header strip | `app-sidebar-header.tsx` | A |
-| Floating sidebar trigger | `app-sidebar-header.tsx` | A |
-| Page hero heading | page body | Layer 3 (text-on-image) |
-| Dashboard — Needs Attention card | `dashboard.tsx` | B |
-| Dashboard — Coming Up card | `dashboard.tsx` | B |
-| Dashboard — action row | `dashboard.tsx` | C |
-| Events list — table wrapper | `events/index.tsx` | B |
-| Events list — table row | `events/index.tsx` | C |
-| Registrations — section cards | `registrations/index.tsx` | B |
-| Attendance — table wrapper | `events/attendance.tsx` | B |
-| Report — section cards | `events/report.tsx` | B |
-| Monitor — feed cards | `registrations/monitor/show.tsx` | B |
-| Any modal content | `ui/dialog.tsx`, `ui/sheet.tsx` | B |
+| Surface                          | File                             | Tier                    |
+| -------------------------------- | -------------------------------- | ----------------------- |
+| Sidebar panel                    | `ui/sidebar.tsx`                 | A                       |
+| Top header strip                 | `app-sidebar-header.tsx`         | A                       |
+| Floating sidebar trigger         | `app-sidebar-header.tsx`         | A                       |
+| Page hero heading                | page body                        | Layer 3 (text-on-image) |
+| Dashboard — Needs Attention card | `dashboard.tsx`                  | B                       |
+| Dashboard — Coming Up card       | `dashboard.tsx`                  | B                       |
+| Dashboard — action row           | `dashboard.tsx`                  | C                       |
+| Events list — table wrapper      | `events/index.tsx`               | B                       |
+| Events list — table row          | `events/index.tsx`               | C                       |
+| Registrations — section cards    | `registrations/index.tsx`        | B                       |
+| Attendance — table wrapper       | `events/attendance.tsx`          | B                       |
+| Report — section cards           | `events/report.tsx`              | B                       |
+| Monitor — feed cards             | `registrations/monitor/show.tsx` | B                       |
+| Any modal content                | `ui/dialog.tsx`, `ui/sheet.tsx`  | B                       |
 
 **Rule:** when you build a new page or component, decide its tier
 first. Tier A → Tier A opacity. Tier B → Tier B opacity. Tier C →
@@ -358,7 +358,7 @@ system. Each gets its own doc if the project grows to need it.
 ## 11. Interactive element surfaces
 
 §6 covers text placed directly on the image. This section covers
-the *other* elements that sit on the image or on light glass and
+the _other_ elements that sit on the image or on light glass and
 need explicit mode-aware surfaces: chips, anchor buttons, inputs,
 checkboxes, status badges, and icon glyphs.
 
@@ -518,14 +518,15 @@ Every rule above traces back to one of two failures:
 
 Both classes are enforced by `scripts/audit-design.sh` Rules 4-6
 plus the existing Rules 1-3. See §9.1.
+
 ## 12. Cross-references
 
-| Document | Purpose |
-|---|---|
-| `docs/design-system.md` | This file — the visual contract |
-| `resources/css/app.css` | The implementation |
-| `docs/dev-workflow/README.md` | The general workflow rules |
-| `docs/AI-CONTEXT.md` | Session bootstrap for AI tools |
+| Document                      | Purpose                         |
+| ----------------------------- | ------------------------------- |
+| `docs/design-system.md`       | This file — the visual contract |
+| `resources/css/app.css`       | The implementation              |
+| `docs/dev-workflow/README.md` | The general workflow rules      |
+| `docs/AI-CONTEXT.md`          | Session bootstrap for AI tools  |
 
 ---
 
@@ -535,7 +536,6 @@ plus the existing Rules 1-3. See §9.1.
   tiers, mode contract, semantic colors, the yellow-to-navy warning
   rule, text-on-image usage, tier assignments, anti-patterns, and
   enforcement.
-
 
 - **2026-10-16** — §11 added. Documents the interactive-element
   surface rules discovered during the light/dark sweep: chips,

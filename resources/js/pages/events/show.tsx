@@ -63,7 +63,11 @@ type EventData = {
     can_close_registration: boolean;
     can_reopen_registration: boolean;
     can_finalize: boolean;
-    finalization_summary: { registered: number; checked_in: number; walk_ins: number } | null;
+    finalization_summary: {
+        registered: number;
+        checked_in: number;
+        walk_ins: number;
+    } | null;
 };
 
 type RelatedCounts = {
@@ -83,7 +87,8 @@ type Props = {
 const statusStyles: Record<string, string> = {
     draft: 'bg-secondary text-foreground',
     registration_open: 'bg-lime-brand/20 text-lime-brand',
-    registration_closed: 'bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500',
+    registration_closed:
+        'bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500',
     upcoming: 'bg-lime-brand/20 text-lime-brand',
     ongoing: 'bg-accent/20 text-accent',
     completed: 'bg-green-500/15 text-green-500',
@@ -123,13 +128,13 @@ function DetailRow({
     value: string | null;
 }) {
     return (
-        <div className="flex items-start gap-3 border-b border-border py-3 last:border-b-0">
-            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+        <div className="border-border flex items-start gap-3 border-b py-3 last:border-b-0">
+            <Icon className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
             <div className="flex flex-1 flex-col">
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <span className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                     {label}
                 </span>
-                <span className="mt-0.5 text-sm text-foreground">
+                <span className="text-foreground mt-0.5 text-sm">
                     {value ?? '—'}
                 </span>
             </div>
@@ -148,7 +153,8 @@ export default function EventsShow({
     const [otpOpen, setOtpOpen] = useState(false);
 
     // The registration form is editable only while the event is Draft.
-    const canEditRegistrationForm = event.event_kind === 'running' && event.status === 'draft';
+    const canEditRegistrationForm =
+        event.event_kind === 'running' && event.status === 'draft';
 
     // The report is reachable when the event has attendance data to
     // report on. This mirrors ReportController::show()'s guard, so the
@@ -170,10 +176,10 @@ export default function EventsShow({
             description:
                 'Participants will be able to register for this event. The registration form will lock and can no longer be edited.',
             confirmLabel: 'Open Registration',
-            onConfirm: () => router.post(`/events/${event.id}/open-registration`),
+            onConfirm: () =>
+                router.post(`/events/${event.id}/open-registration`),
         });
     };
-
 
     /**
      * Finalize the event. Terminal transition from Ongoing to
@@ -191,21 +197,27 @@ export default function EventsShow({
             confirmLabel: 'Finalize Event',
             children: (
                 <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                        {event.finalization_summary && <span className="mb-3 block text-foreground">
-                            Total registered: {event.finalization_summary.registered}<br />
-                            Checked in: {event.finalization_summary.checked_in}<br />
-                            Walk-ins: {event.finalization_summary.walk_ins}
-                        </span>}
+                    <p className="text-muted-foreground text-sm">
+                        {event.finalization_summary && (
+                            <span className="text-foreground mb-3 block">
+                                Total registered:{' '}
+                                {event.finalization_summary.registered}
+                                <br />
+                                Checked in:{' '}
+                                {event.finalization_summary.checked_in}
+                                <br />
+                                Walk-ins: {event.finalization_summary.walk_ins}
+                            </span>
+                        )}
                         After finalizing:
                     </p>
-                    <ul className="ml-1 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+                    <ul className="text-muted-foreground ml-1 list-disc space-y-1 pl-4 text-sm">
                         <li>Registrations become read-only</li>
                         <li>Attendance marks are frozen</li>
                         <li>Walk-in entry is disabled</li>
                         <li>Encoding becomes read-only</li>
                     </ul>
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-foreground text-sm font-medium">
                         This cannot be undone.
                     </p>
                 </div>
@@ -223,11 +235,15 @@ export default function EventsShow({
             description: has_related_records
                 ? 'This event already has related records. Deleting it will permanently remove the event and its associated data. This action cannot be undone.'
                 : 'This will permanently delete this event. This action cannot be undone.',
-            confirmLabel: has_related_records ? 'Delete Everything' : 'Delete Event',
+            confirmLabel: has_related_records
+                ? 'Delete Everything'
+                : 'Delete Event',
             children: has_related_records ? (
-                <ul className="ml-1 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+                <ul className="text-muted-foreground ml-1 list-disc space-y-1 pl-4 text-sm">
                     {related.registration_fields > 0 && (
-                        <li>Registration Fields: {related.registration_fields}</li>
+                        <li>
+                            Registration Fields: {related.registration_fields}
+                        </li>
                     )}
                     {related.registrations > 0 && (
                         <li>Registrations: {related.registrations}</li>
@@ -265,12 +281,21 @@ export default function EventsShow({
     return (
         <>
             <Head title={event.event_name} />
-            {event.event_kind === 'running' && <div className="px-6 pt-4"><Link href={`/events/${event.id}/possible-duplicates`} className="text-sm underline">Review possible duplicates</Link></div>}
+            {event.event_kind === 'running' && (
+                <div className="px-6 pt-4">
+                    <Link
+                        href={`/events/${event.id}/possible-duplicates`}
+                        className="text-sm underline"
+                    >
+                        Review possible duplicates
+                    </Link>
+                </div>
+            )}
 
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
                 <Link
                     href="/events"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Events
@@ -284,18 +309,19 @@ export default function EventsShow({
                         <div className="mt-2 flex flex-wrap items-center gap-3">
                             <span
                                 className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                                    statusStyles[event.status] ?? statusStyles.draft
+                                    statusStyles[event.status] ??
+                                    statusStyles.draft
                                 }`}
                             >
                                 {event.status_label}
                             </span>
                             {event.distance_label && (
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-muted-foreground text-xs">
                                     {event.distance_label}
                                 </span>
                             )}
                             {event.creator && (
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-muted-foreground text-xs">
                                     Created by {event.creator}
                                 </span>
                             )}
@@ -307,14 +333,17 @@ export default function EventsShow({
                     {/* Left: Event details */}
                     <div className="flex flex-col gap-6">
                         <div className="glass-panel rounded-xl p-6">
-                            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                            <h2 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wider uppercase">
                                 Event Details
                             </h2>
 
                             <DetailRow
                                 icon={Tag}
                                 label="Event Type"
-                                value={event.church_category ?? event.event_type_label}
+                                value={
+                                    event.church_category ??
+                                    event.event_type_label
+                                }
                             />
                             <DetailRow
                                 icon={Calendar}
@@ -327,7 +356,7 @@ export default function EventsShow({
                                 value={
                                     event.start_time && event.end_time
                                         ? `${event.start_time} – ${event.end_time}`
-                                        : event.start_time ?? event.end_time
+                                        : (event.start_time ?? event.end_time)
                                 }
                             />
                             {event.distance_label && (
@@ -368,19 +397,21 @@ export default function EventsShow({
                         </div>
 
                         {/* Venue */}
-                        {(event.venue || event.venue_address || hasVenueMapLink) && (
+                        {(event.venue ||
+                            event.venue_address ||
+                            hasVenueMapLink) && (
                             <div className="glass-panel rounded-xl p-6">
-                                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                                <h2 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wider uppercase">
                                     Venue
                                 </h2>
 
                                 {event.venue && (
-                                    <p className="text-sm font-medium text-foreground">
+                                    <p className="text-foreground text-sm font-medium">
                                         {event.venue}
                                     </p>
                                 )}
                                 {event.venue_address && (
-                                    <p className="mt-1 text-sm text-muted-foreground">
+                                    <p className="text-muted-foreground mt-1 text-sm">
                                         {event.venue_address}
                                     </p>
                                 )}
@@ -391,7 +422,7 @@ export default function EventsShow({
                                                 href={event.venue_map_url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-1.5 text-xs font-medium text-lime-brand transition-colors hover:text-lime-brand/80"
+                                                className="text-lime-brand hover:text-lime-brand/80 inline-flex items-center gap-1.5 text-xs font-medium transition-colors"
                                             >
                                                 View on map
                                                 <ExternalLink className="h-3 w-3" />
@@ -402,7 +433,7 @@ export default function EventsShow({
                                                 href={osmUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-1.5 text-xs font-medium text-lime-brand transition-colors hover:text-lime-brand/80"
+                                                className="text-lime-brand hover:text-lime-brand/80 inline-flex items-center gap-1.5 text-xs font-medium transition-colors"
                                             >
                                                 View on OpenStreetMap
                                                 <ExternalLink className="h-3 w-3" />
@@ -416,20 +447,21 @@ export default function EventsShow({
                         {/* Partners */}
                         {hasPartners && (
                             <div className="glass-panel rounded-xl p-6">
-                                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                                <h2 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wider uppercase">
                                     Partners
                                 </h2>
                                 <ul className="flex flex-col">
                                     {event.partners!.map((partner, i) => (
                                         <li
                                             key={i}
-                                            className="flex items-center gap-3 border-b border-border py-2.5 last:border-b-0"
+                                            className="border-border flex items-center gap-3 border-b py-2.5 last:border-b-0"
                                         >
-                                            <span className="w-24 shrink-0 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                                {PARTNER_TYPE_LABELS[partner.type] ??
-                                                    partner.type}
+                                            <span className="text-muted-foreground w-24 shrink-0 text-xs font-medium tracking-wider uppercase">
+                                                {PARTNER_TYPE_LABELS[
+                                                    partner.type
+                                                ] ?? partner.type}
                                             </span>
-                                            <span className="text-sm text-foreground">
+                                            <span className="text-foreground text-sm">
                                                 {partner.name}
                                             </span>
                                         </li>
@@ -441,7 +473,7 @@ export default function EventsShow({
                         {/* Accessibility */}
                         {hasAccessibility && (
                             <div className="glass-panel rounded-xl p-6">
-                                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                                <h2 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wider uppercase">
                                     Accessibility
                                 </h2>
                                 <ul className="grid gap-2 sm:grid-cols-2">
@@ -450,9 +482,9 @@ export default function EventsShow({
                                     ).map(({ key, label }) => (
                                         <li
                                             key={key}
-                                            className="flex items-center gap-2 text-sm text-foreground"
+                                            className="text-foreground flex items-center gap-2 text-sm"
                                         >
-                                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-lime-brand/20 text-[10px] text-lime-700 dark:text-lime-brand">
+                                            <span className="bg-lime-brand/20 dark:text-lime-brand flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] text-lime-700">
                                                 ✓
                                             </span>
                                             {label}
@@ -465,17 +497,21 @@ export default function EventsShow({
 
                     {/* Right: Workflow actions */}
                     <div className="glass-panel flex h-fit flex-col gap-4 rounded-xl p-6">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                             Workflow Actions
                         </h2>
 
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                             Actions become available as the workflow progresses.
                         </p>
 
                         <div className="flex flex-col gap-2">
                             {event.can_edit ? (
-                                <Button variant="outline" className="justify-start" asChild>
+                                <Button
+                                    variant="outline"
+                                    className="justify-start"
+                                    asChild
+                                >
                                     <Link href={`/events/${event.id}/edit`}>
                                         <Pencil className="mr-2 h-4 w-4" />
                                         Edit Event
@@ -493,74 +529,99 @@ export default function EventsShow({
                                 </Button>
                             )}
 
-                            {event.event_kind === 'running' && (canEditRegistrationForm ? (
-                                <Button variant="outline" className="justify-start" asChild>
-                                    <Link href={`/events/${event.id}/registration-form`}>
+                            {event.event_kind === 'running' &&
+                                (canEditRegistrationForm ? (
+                                    <Button
+                                        variant="outline"
+                                        className="justify-start"
+                                        asChild
+                                    >
+                                        <Link
+                                            href={`/events/${event.id}/registration-form`}
+                                        >
+                                            <FileText className="mr-2 h-4 w-4" />
+                                            {event.registration_form_saved_at
+                                                ? 'Edit Registration Form'
+                                                : 'Create Registration Form'}
+                                        </Link>
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        disabled
+                                        variant="outline"
+                                        className="justify-start"
+                                        title="The registration form is locked after registration opens"
+                                    >
                                         <FileText className="mr-2 h-4 w-4" />
-                                        {event.registration_form_saved_at ? 'Edit Registration Form' : 'Create Registration Form'}
-                                    </Link>
-                                </Button>
-                            ) : (
-                                <Button
-                                    disabled
-                                    variant="outline"
-                                    className="justify-start"
-                                    title="The registration form is locked after registration opens"
-                                >
-                                    <FileText className="mr-2 h-4 w-4" />
-                                    {event.registration_form_saved_at ? 'Edit Registration Form' : 'Create Registration Form'}
-                                </Button>
-                            ))}
+                                        {event.registration_form_saved_at
+                                            ? 'Edit Registration Form'
+                                            : 'Create Registration Form'}
+                                    </Button>
+                                ))}
 
-                            {event.event_kind === 'running' && event.registration_form_saved_at && (
-                                <Button variant="outline" className="justify-start" asChild>
-                                    <Link href={`/events/${event.id}/registration-form/preview`}>
-                                        <FileText className="mr-2 h-4 w-4" />
-                                        View Registration Form
-                                    </Link>
-                                </Button>
-                            )}
+                            {event.event_kind === 'running' &&
+                                event.registration_form_saved_at && (
+                                    <Button
+                                        variant="outline"
+                                        className="justify-start"
+                                        asChild
+                                    >
+                                        <Link
+                                            href={`/events/${event.id}/registration-form/preview`}
+                                        >
+                                            <FileText className="mr-2 h-4 w-4" />
+                                            View Registration Form
+                                        </Link>
+                                    </Button>
+                                )}
 
                             {can_record_attendance && (
                                 <Button
                                     variant="outline"
-                                    className="justify-start border-lime-brand/40 text-lime-brand hover:border-lime-brand hover:bg-lime-brand hover:text-navy-900"
+                                    className="border-lime-brand/40 text-lime-brand hover:border-lime-brand hover:bg-lime-brand hover:text-navy-900 justify-start"
                                     asChild
                                 >
-                                    <Link href={`/events/${event.id}/attendance`}>
+                                    <Link
+                                        href={`/events/${event.id}/attendance`}
+                                    >
                                         <ClipboardCheck className="mr-2 h-4 w-4" />
                                         Record Attendance
                                     </Link>
                                 </Button>
                             )}
 
-                            {event.event_kind === 'running' && (event.can_open_registration ? (
-                                <Button
-                                    onClick={openRegistration}
-                                    className="justify-start bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
-                                >
-                                    <UserPlus className="mr-2 h-4 w-4" />
-                                    Open Registration
-                                </Button>
-                            ) : event.can_close_registration || event.can_reopen_registration ? (
-                                <RegistrationStatusToggle eventId={event.id} isOpen={event.can_close_registration} />
-                            ) : (
-                                <Button
-                                    disabled
-                                    variant="outline"
-                                    className="justify-start"
-                                    title={openRegistrationTooltip}
-                                >
-                                    <UserPlus className="mr-2 h-4 w-4" />
-                                    Open Registration
-                                </Button>
-                            ))}
+                            {event.event_kind === 'running' &&
+                                (event.can_open_registration ? (
+                                    <Button
+                                        onClick={openRegistration}
+                                        className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90 justify-start"
+                                    >
+                                        <UserPlus className="mr-2 h-4 w-4" />
+                                        Open Registration
+                                    </Button>
+                                ) : event.can_close_registration ||
+                                  event.can_reopen_registration ? (
+                                    <RegistrationStatusToggle
+                                        eventId={event.id}
+                                        isOpen={event.can_close_registration}
+                                    />
+                                ) : (
+                                    <Button
+                                        disabled
+                                        variant="outline"
+                                        className="justify-start"
+                                        title={openRegistrationTooltip}
+                                    >
+                                        <UserPlus className="mr-2 h-4 w-4" />
+                                        Open Registration
+                                    </Button>
+                                ))}
 
                             {event.can_finalize && (
                                 <Button
                                     onClick={finalizeEvent}
                                     variant="outline"
-                                    className="justify-start bg-[#13253B] text-white border border-[#13253B] hover:bg-[#13253B]/90 dark:bg-transparent dark:border-amber-500/40 dark:text-amber-400 dark:hover:border-amber-500 dark:hover:bg-amber-500 dark:hover:text-navy-900"
+                                    className="dark:hover:text-navy-900 justify-start border border-[#13253B] bg-[#13253B] text-white hover:bg-[#13253B]/90 dark:border-amber-500/40 dark:bg-transparent dark:text-amber-400 dark:hover:border-amber-500 dark:hover:bg-amber-500"
                                 >
                                     <CheckCircle2 className="mr-2 h-4 w-4" />
                                     Finalize Event
@@ -583,14 +644,15 @@ export default function EventsShow({
                     </div>
                 </div>
 
-                <div className="rounded-xl border border-destructive/40 bg-card/60 p-6 shadow-xs backdrop-blur-sm">
-                    <h2 className="text-sm font-semibold uppercase tracking-wider text-destructive">
+                <div className="border-destructive/40 bg-card/60 rounded-xl border p-6 shadow-xs backdrop-blur-sm">
+                    <h2 className="text-destructive text-sm font-semibold tracking-wider uppercase">
                         Danger Zone
                     </h2>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                        Deleting this event is permanent and cannot be undone. Related records
-                        (registration fields, registrations, attendance) will also be removed.
-                        Participants are preserved.
+                    <p className="text-muted-foreground mt-2 text-xs">
+                        Deleting this event is permanent and cannot be undone.
+                        Related records (registration fields, registrations,
+                        attendance) will also be removed. Participants are
+                        preserved.
                     </p>
                     <Button
                         variant="destructive"

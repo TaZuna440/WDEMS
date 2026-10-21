@@ -90,7 +90,7 @@ class FellowshipGroupController extends Controller
     private function assertGroupBelongsToEvent(int $rowEventId, int $routeEventId): void
     {
         if ($rowEventId !== $routeEventId) {
-            throw new NotFoundHttpException();
+            throw new NotFoundHttpException;
         }
     }
 }

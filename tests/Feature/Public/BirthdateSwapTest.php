@@ -22,7 +22,6 @@ require_once __DIR__.'/../../Support/PublicVerification.php';
  * files are loaded in the same process; a bare `public_event()` here
  * would redeclare and fatal.
  */
-
 function birthdate_staff(): User
 {
     return User::factory()->create([

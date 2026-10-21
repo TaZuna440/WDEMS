@@ -97,7 +97,7 @@ export default function WalkInDialog({
     });
 
     useEffect(() => {
-        if (! open) {
+        if (!open) {
             form.reset();
             form.clearErrors();
         }
@@ -137,14 +137,11 @@ export default function WalkInDialog({
         setResponse(fieldId, next);
     };
 
-
     // Birthday picker bounds, computed once per dialog mount. Same
     // bounds the client validator enforces (age 3-120). Not
     // recomputed per render — the dialog submits in one sitting.
     const birthdayBounds = useMemo(() => birthdayPickerBounds(), []);
-    const requiredMark = (
-        <span className="text-destructive"> *</span>
-    );
+    const requiredMark = <span className="text-destructive"> *</span>;
 
     const isDeferred = form.data.encoding_mode === 'deferred';
 
@@ -179,8 +176,8 @@ export default function WalkInDialog({
                                 }
                                 className={
                                     form.data.encoding_mode === 'live'
-                                        ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
-                                        : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
+                                        ? 'text-foreground rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium'
+                                        : 'text-muted-foreground hover:text-foreground rounded-md px-3 py-1.5 text-xs font-medium'
                                 }
                             >
                                 Live — encoding as they arrive
@@ -192,14 +189,14 @@ export default function WalkInDialog({
                                 }
                                 className={
                                     form.data.encoding_mode === 'deferred'
-                                        ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
-                                        : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
+                                        ? 'text-foreground rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium'
+                                        : 'text-muted-foreground hover:text-foreground rounded-md px-3 py-1.5 text-xs font-medium'
                                 }
                             >
                                 Deferred — transcribing from paper
                             </button>
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                             {isDeferred
                                 ? 'Arrival time will be read from the paper form. Use this when entering a walk-in after the fact.'
                                 : 'Arrival time will be recorded as right now. Use this when the participant is standing in front of you.'}
@@ -220,14 +217,11 @@ export default function WalkInDialog({
                                 type="time"
                                 value={form.data.arrival_time}
                                 onChange={(e) =>
-                                    form.setData(
-                                        'arrival_time',
-                                        e.target.value,
-                                    )
+                                    form.setData('arrival_time', e.target.value)
                                 }
                                 aria-invalid={!!form.errors.arrival_time}
                             />
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-muted-foreground text-xs">
                                 The time on the paper form, not the current
                                 time.
                             </p>
@@ -271,9 +265,20 @@ export default function WalkInDialog({
                     <div className="grid gap-4 sm:grid-cols-2">
                         {(['middle_name', 'suffix'] as const).map((key) => (
                             <div key={key} className="grid gap-2">
-                                <Label htmlFor={`walk-in-${key}`}>{key === 'middle_name' ? 'Middle name' : 'Suffix'} (optional)</Label>
-                                <Input id={`walk-in-${key}`} value={form.data[key]} maxLength={key === 'suffix' ? 10 : 50}
-                                    onChange={(e) => form.setData(key, e.target.value)} />
+                                <Label htmlFor={`walk-in-${key}`}>
+                                    {key === 'middle_name'
+                                        ? 'Middle name'
+                                        : 'Suffix'}{' '}
+                                    (optional)
+                                </Label>
+                                <Input
+                                    id={`walk-in-${key}`}
+                                    value={form.data[key]}
+                                    maxLength={key === 'suffix' ? 10 : 50}
+                                    onChange={(e) =>
+                                        form.setData(key, e.target.value)
+                                    }
+                                />
                                 <InputError message={form.errors[key]} />
                             </div>
                         ))}
@@ -349,7 +354,7 @@ export default function WalkInDialog({
 
                     {fields.length > 0 && (
                         <div className="flex flex-col gap-4 border-t border-white/5 pt-4">
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                                 Additional Information
                             </p>
 
@@ -358,20 +363,15 @@ export default function WalkInDialog({
                                 const error = (
                                     form.errors as Record<string, string>
                                 )[key];
-                                const value =
-                                    form.data.responses[field.id];
+                                const value = form.data.responses[field.id];
 
                                 return (
-                                    <div
-                                        key={field.id}
-                                        className="grid gap-2"
-                                    >
+                                    <div key={field.id} className="grid gap-2">
                                         <Label
                                             htmlFor={`walk-in-field-${field.id}`}
                                         >
                                             {field.label}
-                                            {field.is_required &&
-                                                requiredMark}
+                                            {field.is_required && requiredMark}
                                         </Label>
 
                                         {field.field_type === 'textarea' && (
@@ -390,7 +390,7 @@ export default function WalkInDialog({
                                                 }
                                                 rows={4}
                                                 aria-invalid={!!error}
-                                                className="flex min-h-[80px] w-full rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-foreground focus:border-lime-brand/50 focus:outline-none focus:ring-1 focus:ring-lime-brand/50"
+                                                className="text-foreground focus:border-lime-brand/50 focus:ring-lime-brand/50 flex min-h-[80px] w-full rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm focus:ring-1 focus:outline-none"
                                             />
                                         )}
 
@@ -409,42 +409,71 @@ export default function WalkInDialog({
                                                     )
                                                 }
                                                 aria-invalid={!!error}
-                                                className="h-9 w-full rounded-md border border-white/10 bg-white/[0.02] px-3 text-sm text-foreground focus:border-lime-brand/50 focus:outline-none"
+                                                className="text-foreground focus:border-lime-brand/50 h-9 w-full rounded-md border border-white/10 bg-white/[0.02] px-3 text-sm focus:outline-none"
                                             >
                                                 <option value="">
                                                     Choose…
                                                 </option>
-                                                {field.options.map(
-                                                    (option) => (
-                                                        <option
-                                                            key={option}
-                                                            value={option}
-                                                        >
-                                                            {option}
-                                                        </option>
-                                                    ),
-                                                )}
+                                                {field.options.map((option) => (
+                                                    <option
+                                                        key={option}
+                                                        value={option}
+                                                    >
+                                                        {option}
+                                                    </option>
+                                                ))}
                                             </select>
                                         )}
 
                                         {field.field_type === 'radio' && (
                                             <div className="flex flex-col gap-2 pt-1">
-                                                {field.options.map(
-                                                    (option) => (
+                                                {field.options.map((option) => (
+                                                    <label
+                                                        key={option}
+                                                        className="text-foreground flex cursor-pointer items-center gap-2 text-sm"
+                                                    >
+                                                        <input
+                                                            type="radio"
+                                                            name={`walk-in-field-${field.id}`}
+                                                            value={option}
+                                                            checked={
+                                                                value === option
+                                                            }
+                                                            onChange={() =>
+                                                                setResponse(
+                                                                    field.id,
+                                                                    option,
+                                                                )
+                                                            }
+                                                            className="h-4 w-4"
+                                                        />
+                                                        {option}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {field.field_type === 'checkbox' && (
+                                            <div className="flex flex-col gap-2 pt-1">
+                                                {field.options.map((option) => {
+                                                    const list = Array.isArray(
+                                                        value,
+                                                    )
+                                                        ? value
+                                                        : [];
+                                                    return (
                                                         <label
                                                             key={option}
-                                                            className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+                                                            className="text-foreground flex cursor-pointer items-center gap-2 text-sm"
                                                         >
                                                             <input
-                                                                type="radio"
-                                                                name={`walk-in-field-${field.id}`}
+                                                                type="checkbox"
                                                                 value={option}
-                                                                checked={
-                                                                    value ===
-                                                                    option
-                                                                }
+                                                                checked={list.includes(
+                                                                    option,
+                                                                )}
                                                                 onChange={() =>
-                                                                    setResponse(
+                                                                    toggleCheckboxOption(
                                                                         field.id,
                                                                         option,
                                                                     )
@@ -453,47 +482,8 @@ export default function WalkInDialog({
                                                             />
                                                             {option}
                                                         </label>
-                                                    ),
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {field.field_type === 'checkbox' && (
-                                            <div className="flex flex-col gap-2 pt-1">
-                                                {field.options.map(
-                                                    (option) => {
-                                                        const list =
-                                                            Array.isArray(
-                                                                value,
-                                                            )
-                                                                ? value
-                                                                : [];
-                                                        return (
-                                                            <label
-                                                                key={option}
-                                                                className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
-                                                            >
-                                                                <input
-                                                                    type="checkbox"
-                                                                    value={
-                                                                        option
-                                                                    }
-                                                                    checked={list.includes(
-                                                                        option,
-                                                                    )}
-                                                                    onChange={() =>
-                                                                        toggleCheckboxOption(
-                                                                            field.id,
-                                                                            option,
-                                                                        )
-                                                                    }
-                                                                    className="h-4 w-4"
-                                                                />
-                                                                {option}
-                                                            </label>
-                                                        );
-                                                    },
-                                                )}
+                                                    );
+                                                })}
                                             </div>
                                         )}
 
@@ -538,9 +528,9 @@ export default function WalkInDialog({
                     )}
 
                     {form.errors.identity && (
-                        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3">
-                            <X className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                            <p className="text-sm text-destructive">
+                        <div className="border-destructive/40 bg-destructive/10 flex items-start gap-2 rounded-md border p-3">
+                            <X className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
+                            <p className="text-destructive text-sm">
                                 {form.errors.identity}
                             </p>
                         </div>
@@ -576,9 +566,7 @@ export default function WalkInDialog({
                             disabled={form.processing}
                             className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
                         >
-                            {form.processing
-                                ? 'Adding...'
-                                : 'Add Walk-In'}
+                            {form.processing ? 'Adding...' : 'Add Walk-In'}
                         </Button>
                     </DialogFooter>
                 </form>

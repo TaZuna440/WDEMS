@@ -32,9 +32,9 @@ export default function ServicesIndex({ service_types }: Props) {
             <Head title="Services" />
 
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
-                                <Link
+                <Link
                     href="/events?kind=church"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Church Events
@@ -59,14 +59,14 @@ export default function ServicesIndex({ service_types }: Props) {
                                 href={`/events/church/services/${type.value}`}
                                 className="glass-panel glass-panel-hover group flex flex-col gap-3 rounded-xl p-5"
                             >
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-lime-brand/15 text-lime-700 dark:text-lime-brand">
+                                <div className="bg-lime-brand/15 dark:text-lime-brand flex h-10 w-10 items-center justify-center rounded-full text-lime-700">
                                     <Icon className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-semibold text-foreground">
+                                    <p className="text-foreground text-sm font-semibold">
                                         {type.label}
                                     </p>
-                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                    <p className="text-muted-foreground mt-0.5 text-xs">
                                         {type.occurrence_count === 0
                                             ? 'No records yet'
                                             : `${type.occurrence_count} ${
@@ -76,7 +76,7 @@ export default function ServicesIndex({ service_types }: Props) {
                                               }`}
                                     </p>
                                     {type.latest_date !== null && (
-                                        <p className="mt-1 text-xs text-muted-foreground">
+                                        <p className="text-muted-foreground mt-1 text-xs">
                                             Latest: {type.latest_date}
                                         </p>
                                     )}

@@ -35,14 +35,14 @@ export default function BulkMarkToolbar({
         <div className="flex flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3 text-sm">
                 <span className="text-muted-foreground">
-                    <span className="font-medium text-foreground">
+                    <span className="text-foreground font-medium">
                         {selectedCount}
                     </span>{' '}
                     selected
                 </span>
                 <span className="text-muted-foreground/40">·</span>
                 <span className="text-muted-foreground">
-                    <span className="font-medium text-foreground">
+                    <span className="text-foreground font-medium">
                         {filterCount}
                     </span>{' '}
                     match {filterLabel}
@@ -55,7 +55,7 @@ export default function BulkMarkToolbar({
                     size="sm"
                     variant="outline"
                     onClick={onMarkSelected}
-                    disabled={disabled || ! hasSelection}
+                    disabled={disabled || !hasSelection}
                 >
                     <CheckSquare className="mr-2 h-3.5 w-3.5" />
                     Mark selected
@@ -65,7 +65,7 @@ export default function BulkMarkToolbar({
                     type="button"
                     size="sm"
                     onClick={onMarkAllVisible}
-                    disabled={disabled || ! hasVisible}
+                    disabled={disabled || !hasVisible}
                     className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
                 >
                     <CheckCheck className="mr-2 h-3.5 w-3.5" />

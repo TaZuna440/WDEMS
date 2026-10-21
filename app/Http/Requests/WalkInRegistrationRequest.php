@@ -80,8 +80,8 @@ class WalkInRegistrationRequest extends FormRequest
             'birthday' => [
                 'nullable',
                 'date',
-                'before_or_equal:' . now()->subYears(3)->toDateString(),
-                'after_or_equal:' . now()->subYears(120)->toDateString(),
+                'before_or_equal:'.now()->subYears(3)->toDateString(),
+                'after_or_equal:'.now()->subYears(120)->toDateString(),
             ],
             'email' => $this->commonFieldRules('email', ['string', 'email:rfc', 'max:255']),
             'contact_number' => $this->commonFieldRules('contact_number', [
@@ -159,6 +159,7 @@ class WalkInRegistrationRequest extends FormRequest
                         "responses.{$fieldId}",
                         'This field does not belong to this event.',
                     );
+
                     continue;
                 }
 
@@ -245,7 +246,7 @@ class WalkInRegistrationRequest extends FormRequest
 
             // -------- Pass 6: not already registered --------
 
-            $existing = Participant::findByComposite(
+            $existing = Participant::findByComposite('running',
                 $emailClean,
                 $normalized,
                 is_string($this->input('first_name')) ? $this->input('first_name') : null,

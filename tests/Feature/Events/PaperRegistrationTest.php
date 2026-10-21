@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Event;
+use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
@@ -41,4 +42,13 @@ test('paper encoding enforces public required fields and church isolation', func
     expect(Registration::count())->toBe(0);
     $this->event->forceFill(['event_kind' => 'church'])->save();
     $this->post(route('events.attendance.encode-paper', $this->event), $this->paper)->assertForbidden();
+});
+
+test('paper encoding holds an additive name match without recording attendance', function () {
+    $person = Participant::create(['pool' => 'running', 'first_name' => 'Maria', 'middle_name' => 'Reyes', 'last_name' => 'Santos', 'email' => 'maria@example.com']);
+    $master = Registration::create(['event_id' => $this->event->id, 'participant_id' => $person->id, 'registration_status' => 'confirmed', 'source' => 'form']);
+    $this->post(route('events.attendance.encode-paper', $this->event), $this->paper)->assertSessionHasNoErrors();
+    $held = Registration::held()->sole();
+    expect($held->held_candidate_registration_id)->toBe($master->id)->and($held->attendance)->toBeNull()
+        ->and($held->encoded_by)->toBe($this->staff->id)->and(Registration::active()->count())->toBe(1);
 });

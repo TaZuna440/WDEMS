@@ -18,7 +18,6 @@ uses(RefreshDatabase::class);
  * Helpers are prefixed att2_ to avoid Pest function collisions with
  * AttendanceDateGateTest (attgate_) and RegistrationFormTest (regform_).
  */
-
 function att2_staff(): User
 {
     return User::factory()->create([
@@ -34,7 +33,7 @@ function att2_staff(): User
  * identity check cares about email, and only the "no identity"
  * test needs both to be off (which it overrides).
  *
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function att2_event(array $overrides = []): Event
 {
@@ -54,11 +53,11 @@ function att2_event(array $overrides = []): Event
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function att2_participant(array $overrides = []): Participant
 {
-    return Participant::create(array_merge([
+    return Participant::create(array_merge(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'age' => 28,
@@ -67,7 +66,7 @@ function att2_participant(array $overrides = []): Participant
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function att2_registration(Event $event, ?Participant $participant = null, array $overrides = []): Registration
 {

@@ -53,84 +53,84 @@ table.
 
 ### Documentation created
 
-| File | Lines | Purpose |
-|---|---|---|
-| `docs/AI-CONTEXT.md` | ~230 | Paste-me-at-chat-start file for new AI sessions |
-| `docs/authentication.md` | 714 | Auth subsystem — login, 2FA, trusted devices |
-| `docs/event-creation.md` | 736 | Event code reference — creation, options, workflow |
-| `docs/event-creation-wizard.md` | 910 | Wizard feature doc — was truncated to 140 lines, rewritten |
-| `docs/event-deletion.md` | 595 | Deletion subsystem — admin direct path + staff OTP path |
-| `docs/known-issues.md` | 521 | Backlog — ISSUE-001 through ISSUE-006 |
-| `docs/demo-email.md` | ~250 | Repeatable Resend email demo procedure |
-| `docs/dev-workflow/README.md` | ~200 | Project workflow rules and failure modes |
-| `docs/progress.md` | this file | Structured dated changelog |
+| File                            | Lines     | Purpose                                                    |
+| ------------------------------- | --------- | ---------------------------------------------------------- |
+| `docs/AI-CONTEXT.md`            | ~230      | Paste-me-at-chat-start file for new AI sessions            |
+| `docs/authentication.md`        | 714       | Auth subsystem — login, 2FA, trusted devices               |
+| `docs/event-creation.md`        | 736       | Event code reference — creation, options, workflow         |
+| `docs/event-creation-wizard.md` | 910       | Wizard feature doc — was truncated to 140 lines, rewritten |
+| `docs/event-deletion.md`        | 595       | Deletion subsystem — admin direct path + staff OTP path    |
+| `docs/known-issues.md`          | 521       | Backlog — ISSUE-001 through ISSUE-006                      |
+| `docs/demo-email.md`            | ~250      | Repeatable Resend email demo procedure                     |
+| `docs/dev-workflow/README.md`   | ~200      | Project workflow rules and failure modes                   |
+| `docs/progress.md`              | this file | Structured dated changelog                                 |
 
 ### Documentation corrected
 
 All corrections are append-only — the original text stays, a
 `## Corrections` block revokes it.
 
-| File | Change |
-|---|---|
-| `docs/architecture.md` | Fixed 4 factual errors in the auth section (cache key, enum list, device-token hash, test count). Added pointer to `authentication.md` |
-| `docs/event-creation.md` | §12 item 3 corrected — wizard doc is a live companion, not a historical record |
-| `docs/development-log.md` | Appended "What was added since September 18" narrative + a corrections table for stale claims |
-| `docs/authentication.md` | Appended `## Corrections` block for ISSUE-006 |
-| `docs/AI-CONTEXT.md` | §13 (never run `config:cache` in local dev), §14 (pre-test checklist), §15 (workflow pointer) |
+| File                      | Change                                                                                                                                 |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/architecture.md`    | Fixed 4 factual errors in the auth section (cache key, enum list, device-token hash, test count). Added pointer to `authentication.md` |
+| `docs/event-creation.md`  | §12 item 3 corrected — wizard doc is a live companion, not a historical record                                                         |
+| `docs/development-log.md` | Appended "What was added since September 18" narrative + a corrections table for stale claims                                          |
+| `docs/authentication.md`  | Appended `## Corrections` block for ISSUE-006                                                                                          |
+| `docs/AI-CONTEXT.md`      | §13 (never run `config:cache` in local dev), §14 (pre-test checklist), §15 (workflow pointer)                                          |
 
 ### Code changes
 
-| File | Change | Rationale |
-|---|---|---|
-| `app/Models/User.php` | Added `use Illuminate\Contracts\Auth\MustVerifyEmail;` + `implements MustVerifyEmail` | The `verified` middleware only enforces when the model implements this interface. It was not — the entire email verification gate was a silent no-op (ISSUE-005) |
-| `app/Http/Middleware/EnsureEmailIsVerifiedOrAdmin.php` | **New file** | Admin bypass for email verification, mirroring the existing 2FA admin bypass in `EnsureDeviceIsTrusted` |
-| `bootstrap/app.php` | Registered `verified.or.admin` alias | Points at the new middleware |
-| `routes/web.php` | Main protected group changed from `'verified'` to `'verified.or.admin'`. Device-verification group kept strict `'verified'` | Admins bypass email verification on the main group. Unverified users still must verify before the 2FA challenge |
-| `routes/settings.php` | Settings group changed from `'verified'` to `'verified.or.admin'` | Same rationale |
-| `app/Providers/AppServiceProvider.php` | Removed `configureLogoutCleanup()` method, its call in `boot()`, and four unused imports | The listener cleared the trusted-device cookie on every logout, forcing re-2FA on the next login (ISSUE-006). Per-user trust list already provides the security it claimed to |
-| `resources/js/components/app-logo-icon.tsx` | Replaced hardcoded Laravel logo SVG path with WDEMS three-bar mark | Every auth page except login was rendering the Laravel mark because `auth-simple-layout` imports this component |
+| File                                                   | Change                                                                                                                      | Rationale                                                                                                                                                                     |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/Models/User.php`                                  | Added `use Illuminate\Contracts\Auth\MustVerifyEmail;` + `implements MustVerifyEmail`                                       | The `verified` middleware only enforces when the model implements this interface. It was not — the entire email verification gate was a silent no-op (ISSUE-005)              |
+| `app/Http/Middleware/EnsureEmailIsVerifiedOrAdmin.php` | **New file**                                                                                                                | Admin bypass for email verification, mirroring the existing 2FA admin bypass in `EnsureDeviceIsTrusted`                                                                       |
+| `bootstrap/app.php`                                    | Registered `verified.or.admin` alias                                                                                        | Points at the new middleware                                                                                                                                                  |
+| `routes/web.php`                                       | Main protected group changed from `'verified'` to `'verified.or.admin'`. Device-verification group kept strict `'verified'` | Admins bypass email verification on the main group. Unverified users still must verify before the 2FA challenge                                                               |
+| `routes/settings.php`                                  | Settings group changed from `'verified'` to `'verified.or.admin'`                                                           | Same rationale                                                                                                                                                                |
+| `app/Providers/AppServiceProvider.php`                 | Removed `configureLogoutCleanup()` method, its call in `boot()`, and four unused imports                                    | The listener cleared the trusted-device cookie on every logout, forcing re-2FA on the next login (ISSUE-006). Per-user trust list already provides the security it claimed to |
+| `resources/js/components/app-logo-icon.tsx`            | Replaced hardcoded Laravel logo SVG path with WDEMS three-bar mark                                                          | Every auth page except login was rendering the Laravel mark because `auth-simple-layout` imports this component                                                               |
 
 ### Test changes
 
-| File | Change | Result |
-|---|---|---|
-| `tests/Feature/Auth/EmailVerificationGatingTest.php` | **New** — 6 tests: unverified staff blocked from dashboard and events; verified staff reach both; unverified admin reaches both | Pass |
-| `tests/Feature/Auth/LogoutDeviceTrustTest.php` | Assertion inverted — from `assertCookieExpired` to `assertCookieMissing`. Test name changed to "does not forget the device trust cookie on logout" | Pass |
-| Full auth suite | Re-run after all changes | **44 passed, 120 assertions, ~4.5s** |
+| File                                                 | Change                                                                                                                                             | Result                               |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `tests/Feature/Auth/EmailVerificationGatingTest.php` | **New** — 6 tests: unverified staff blocked from dashboard and events; verified staff reach both; unverified admin reaches both                    | Pass                                 |
+| `tests/Feature/Auth/LogoutDeviceTrustTest.php`       | Assertion inverted — from `assertCookieExpired` to `assertCookieMissing`. Test name changed to "does not forget the device trust cookie on logout" | Pass                                 |
+| Full auth suite                                      | Re-run after all changes                                                                                                                           | **44 passed, 120 assertions, ~4.5s** |
 
 ### Database changes
 
-| File | Change |
-|---|---|
+| File                                   | Change                                                                                                                                                                                                               |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `database/seeders/DemoUsersSeeder.php` | **New** — creates two accounts: `admin@wdems.test` (admin, verified, 2FA off) and `pomasinejboy@gmail.com` (staff, unverified, 2FA on). Idempotent — skips existing accounts. Guarded against production environment |
-| `database/seeders/DatabaseSeeder.php` | Rewritten. Calls `DemoUsersSeeder`. The previous `test@example.com` factory call was removed — it was a leftover from the Laravel starter kit with no purpose |
+| `database/seeders/DatabaseSeeder.php`  | Rewritten. Calls `DemoUsersSeeder`. The previous `test@example.com` factory call was removed — it was a leftover from the Laravel starter kit with no purpose                                                        |
 
 ### Environment changes
 
-| Change | Reason |
-|---|---|
+| Change                                                   | Reason                                                                                                         |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `.env` line 50: `MAIL_MAILER=log` → `MAIL_MAILER=resend` | Live email delivery via Resend was already configured but the mailer was writing to `storage/logs/laravel.log` |
-| `bootstrap/cache/config.php` removed | Config cache in local dev overrode `phpunit.xml` env vars. Root cause of the database wipe |
+| `bootstrap/cache/config.php` removed                     | Config cache in local dev overrode `phpunit.xml` env vars. Root cause of the database wipe                     |
 
 ### Bugs fixed
 
-| # | Bug | Severity | Fix | Evidence |
-|---|---|---|---|---|
-| ISSUE-005 | `User` did not implement `MustVerifyEmail` — the `verified` middleware was a no-op. Any unverified user could reach the dashboard, events, settings | **High** | Added the interface to the `User` class | Test written first: 2 of 4 tests failed on unfixed code. After fix: all 4 passed |
-| ISSUE-006 | Logout cleared the trusted-device cookie, forcing 2FA on every login even on trusted browsers | Low | Removed `configureLogoutCleanup()` and its dependencies from `AppServiceProvider` | Manual browser verification: logged in, trusted device, logged out, logged back in — no 2FA challenge |
-| — | Email verification gate applied to admins after ISSUE-005 fix. Admin could not reach `/admin/dashboard` if unverified | Medium | New `EnsureEmailIsVerifiedOrAdmin` middleware. Routes switched to `verified.or.admin` alias | 2 new tests: unverified admin reaches `/dashboard` and `/admin/dashboard` |
-| — | Auth pages showed the Laravel logo instead of the WDEMS mark | Cosmetic | Rewrote `app-logo-icon.tsx` to render the WDEMS SVG | Manual browser verification on `/verify-device`, `/verify-email`, `/forgot-password`, `/reset-password`, `/confirm-password` |
+| #         | Bug                                                                                                                                                 | Severity | Fix                                                                                         | Evidence                                                                                                                     |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| ISSUE-005 | `User` did not implement `MustVerifyEmail` — the `verified` middleware was a no-op. Any unverified user could reach the dashboard, events, settings | **High** | Added the interface to the `User` class                                                     | Test written first: 2 of 4 tests failed on unfixed code. After fix: all 4 passed                                             |
+| ISSUE-006 | Logout cleared the trusted-device cookie, forcing 2FA on every login even on trusted browsers                                                       | Low      | Removed `configureLogoutCleanup()` and its dependencies from `AppServiceProvider`           | Manual browser verification: logged in, trusted device, logged out, logged back in — no 2FA challenge                        |
+| —         | Email verification gate applied to admins after ISSUE-005 fix. Admin could not reach `/admin/dashboard` if unverified                               | Medium   | New `EnsureEmailIsVerifiedOrAdmin` middleware. Routes switched to `verified.or.admin` alias | 2 new tests: unverified admin reaches `/dashboard` and `/admin/dashboard`                                                    |
+| —         | Auth pages showed the Laravel logo instead of the WDEMS mark                                                                                        | Cosmetic | Rewrote `app-logo-icon.tsx` to render the WDEMS SVG                                         | Manual browser verification on `/verify-device`, `/verify-email`, `/forgot-password`, `/reset-password`, `/confirm-password` |
 
 ### Bugs found but not fixed
 
-| # | Bug | Where documented |
-|---|---|---|
-| ISSUE-001 | Sidebar is not role-aware — admin and staff see identical navigation | `known-issues.md` |
-| ISSUE-002 | Dashboard content is not role-aware — both roles render the same page | `known-issues.md` |
-| ISSUE-003 | `admin/dashboard.tsx` is dead code — no controller renders it | `known-issues.md` |
-| ISSUE-004 | No authorization policy on event edit — any authenticated staff can edit any event | `known-issues.md` |
-| — | `README.md` Tinker snippet uses `User::create()` but `email_verified_at` is not fillable — silently produces unverified users | `README.md`, needs correction |
-| — | Migration `2026_09_21_093134_add_event_metadata_to_events_table` takes ~4 minutes on this machine. Not diagnosed | Unexplained |
+| #         | Bug                                                                                                                           | Where documented              |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| ISSUE-001 | Sidebar is not role-aware — admin and staff see identical navigation                                                          | `known-issues.md`             |
+| ISSUE-002 | Dashboard content is not role-aware — both roles render the same page                                                         | `known-issues.md`             |
+| ISSUE-003 | `admin/dashboard.tsx` is dead code — no controller renders it                                                                 | `known-issues.md`             |
+| ISSUE-004 | No authorization policy on event edit — any authenticated staff can edit any event                                            | `known-issues.md`             |
+| —         | `README.md` Tinker snippet uses `User::create()` but `email_verified_at` is not fillable — silently produces unverified users | `README.md`, needs correction |
+| —         | Migration `2026_09_21_093134_add_event_metadata_to_events_table` takes ~4 minutes on this machine. Not diagnosed              | Unexplained                   |
 
 ### Failures during the session
 
@@ -182,32 +182,32 @@ the same address land in Inbox.
 
 All changes at end of session were confirmed with:
 
-| Check | Result |
-|---|---|
-| `php artisan test tests/Feature/Auth` | 44 passed, 120 assertions, 4.57s |
-| Manual browser: login → email verify → 2FA → dashboard | Works |
-| Manual browser: logout → login again on same device | No 2FA challenge |
-| Manual browser: admin logs in unverified | Reaches `/admin/dashboard` |
-| Resend dashboard: verification email | Delivered |
-| Resend dashboard: 2FA email | Delivered |
-| Gmail: 2FA code entered, accepted | Works |
-| `php artisan db:seed` twice in a row | Idempotent — skips on second run |
-| Account count after cleanup | 2 (`admin@wdems.test` + `pomasinejboy@gmail.com`) |
+| Check                                                  | Result                                            |
+| ------------------------------------------------------ | ------------------------------------------------- |
+| `php artisan test tests/Feature/Auth`                  | 44 passed, 120 assertions, 4.57s                  |
+| Manual browser: login → email verify → 2FA → dashboard | Works                                             |
+| Manual browser: logout → login again on same device    | No 2FA challenge                                  |
+| Manual browser: admin logs in unverified               | Reaches `/admin/dashboard`                        |
+| Resend dashboard: verification email                   | Delivered                                         |
+| Resend dashboard: 2FA email                            | Delivered                                         |
+| Gmail: 2FA code entered, accepted                      | Works                                             |
+| `php artisan db:seed` twice in a row                   | Idempotent — skips on second run                  |
+| Account count after cleanup                            | 2 (`admin@wdems.test` + `pomasinejboy@gmail.com`) |
 
 ### Cross-reference
 
-| Subsystem | Primary doc |
-|---|---|
-| Authentication (login, 2FA, trusted devices) | `docs/authentication.md` |
-| Event creation (code reference) | `docs/event-creation.md` |
-| Event creation wizard (feature view) | `docs/event-creation-wizard.md` |
-| Event deletion (two paths) | `docs/event-deletion.md` |
-| Backlog and open issues | `docs/known-issues.md` |
-| Live email demo procedure | `docs/demo-email.md` |
-| Development workflow rules | `docs/dev-workflow/README.md` |
-| Whole-system overview | `docs/architecture.md` |
-| Chronological narrative | `docs/development-log.md` |
-| AI session context | `docs/AI-CONTEXT.md` |
+| Subsystem                                    | Primary doc                     |
+| -------------------------------------------- | ------------------------------- |
+| Authentication (login, 2FA, trusted devices) | `docs/authentication.md`        |
+| Event creation (code reference)              | `docs/event-creation.md`        |
+| Event creation wizard (feature view)         | `docs/event-creation-wizard.md` |
+| Event deletion (two paths)                   | `docs/event-deletion.md`        |
+| Backlog and open issues                      | `docs/known-issues.md`          |
+| Live email demo procedure                    | `docs/demo-email.md`            |
+| Development workflow rules                   | `docs/dev-workflow/README.md`   |
+| Whole-system overview                        | `docs/architecture.md`          |
+| Chronological narrative                      | `docs/development-log.md`       |
+| AI session context                           | `docs/AI-CONTEXT.md`            |
 
 ### Files touched this date — full inventory
 
@@ -307,21 +307,21 @@ No code changes in this entry. Documentation only.
 
 ### Documentation created
 
-| File | Lines | Purpose |
-|---|---|---|
-| `docs/fixes.md` | 472 (+ append) | Consolidated "what has been fixed" reference, FIX-001 through FIX-007 |
-| `docs/event-creation-issues.md` | 713 | EC-01 through EC-11 — event creation problems in priority order |
-| `docs/dev-workflow/README.md` | ~200 | How we work — protocols, failure modes |
+| File                            | Lines          | Purpose                                                               |
+| ------------------------------- | -------------- | --------------------------------------------------------------------- |
+| `docs/fixes.md`                 | 472 (+ append) | Consolidated "what has been fixed" reference, FIX-001 through FIX-007 |
+| `docs/event-creation-issues.md` | 713            | EC-01 through EC-11 — event creation problems in priority order       |
+| `docs/dev-workflow/README.md`   | ~200           | How we work — protocols, failure modes                                |
 
 ### Documentation appended
 
-| File | Change |
-|---|---|
-| `docs/authentication.md` | `## Corrections — Email Verification` block — records FIX-002 and FIX-003 |
-| `docs/architecture.md` | `## Authentication — Middleware Update` block — records the `verified.or.admin` alias and `MustVerifyEmail` interface |
-| `docs/AI-CONTEXT.md` | §16 — never-touch additions for the middleware and interface |
-| `docs/fixes.md` | Gap closure note — records that GAP-001 through GAP-003 are resolved |
-| `docs/progress.md` | This entry |
+| File                     | Change                                                                                                                |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `docs/authentication.md` | `## Corrections — Email Verification` block — records FIX-002 and FIX-003                                             |
+| `docs/architecture.md`   | `## Authentication — Middleware Update` block — records the `verified.or.admin` alias and `MustVerifyEmail` interface |
+| `docs/AI-CONTEXT.md`     | §16 — never-touch additions for the middleware and interface                                                          |
+| `docs/fixes.md`          | Gap closure note — records that GAP-001 through GAP-003 are resolved                                                  |
+| `docs/progress.md`       | This entry                                                                                                            |
 
 ### Event creation issues recorded
 
@@ -358,11 +358,11 @@ Final line counts:
 
 ### Cross-reference
 
-| Subsystem | Primary doc |
-|---|---|
-| Fixed problems reference | `docs/fixes.md` |
+| Subsystem                  | Primary doc                     |
+| -------------------------- | ------------------------------- |
+| Fixed problems reference   | `docs/fixes.md`                 |
 | Open event-creation issues | `docs/event-creation-issues.md` |
-| Development workflow rules | `docs/dev-workflow/README.md` |
+| Development workflow rules | `docs/dev-workflow/README.md`   |
 
 ---
 
@@ -396,30 +396,30 @@ None. All docs from the previous session still stand.
 
 ### Documentation appended
 
-| File | Change |
-|---|---|
+| File                            | Change                                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `docs/event-creation-issues.md` | "Fixed items" section — marks six issues as resolved, adds SCH-03, lists the remaining open items |
-| `docs/fixes.md` | FIX-008 through FIX-013 — six full entries with root cause and evidence |
-| `docs/progress.md` | This entry |
+| `docs/fixes.md`                 | FIX-008 through FIX-013 — six full entries with root cause and evidence                           |
+| `docs/progress.md`              | This entry                                                                                        |
 
 ### Code changes
 
-| File | Change | Rationale |
-|---|---|---|
-| `app/Concerns/EventValidationRules.php` | Added `MIN_EVENT_DURATION_MINUTES = 60`. `end_time` gained `after:start_time`. `course_url` swapped `'url'` → regex. New `validateEventDuration()` and `eventMessages()` methods | SCH-01a/b/c, SCH-02/03. Also capped `partners` at `max:20` |
-| `app/Http/Requests/EventRequest.php` | Added `withValidator()` and `messages()` | Wire the min-duration hook and custom messages |
-| `resources/js/lib/event-validation.ts` | **New file.** Four per-step validators mirroring server rules | Client-side validation (EC-11) |
-| `resources/js/components/wizard.tsx` | `WizardStepConfig` gained `validate?`. Error-jump uses prefix matching. `children(stepId, errors)` signature. Live re-validation effect | EC-02, EC-11, FIX-013 |
-| `resources/js/pages/events/step/BasicsStep.tsx` | Heading `Event Basics` → `Event Details`. Removed a dead ternary | Naming consistency + cleanup |
-| `resources/js/pages/events/step/ScheduleStep.tsx` | Wired end_time `clearable`. Added `normalizeCourseUrl()` and `onBlur` handler | FIX-010, FIX-011 |
-| `resources/js/components/time-picker.tsx` | Added `clearable` prop and X button. Pass `''` instead of `undefined` to Radix Select | FIX-010, FIX-012 |
-| `resources/js/pages/events/create.tsx` | Wired the four validators. Render callback signature updated. Pill label `Basics` → `Details` | FIX-009 |
-| `resources/js/pages/events/edit.tsx` | Wired validators. Added `normalizeCoordinate()`. Fixed `venue_latitude.toFixed()` crash. Pill label `Basics` → `Details` | EC-01, FIX-009 |
+| File                                              | Change                                                                                                                                                                           | Rationale                                                  |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `app/Concerns/EventValidationRules.php`           | Added `MIN_EVENT_DURATION_MINUTES = 60`. `end_time` gained `after:start_time`. `course_url` swapped `'url'` → regex. New `validateEventDuration()` and `eventMessages()` methods | SCH-01a/b/c, SCH-02/03. Also capped `partners` at `max:20` |
+| `app/Http/Requests/EventRequest.php`              | Added `withValidator()` and `messages()`                                                                                                                                         | Wire the min-duration hook and custom messages             |
+| `resources/js/lib/event-validation.ts`            | **New file.** Four per-step validators mirroring server rules                                                                                                                    | Client-side validation (EC-11)                             |
+| `resources/js/components/wizard.tsx`              | `WizardStepConfig` gained `validate?`. Error-jump uses prefix matching. `children(stepId, errors)` signature. Live re-validation effect                                          | EC-02, EC-11, FIX-013                                      |
+| `resources/js/pages/events/step/BasicsStep.tsx`   | Heading `Event Basics` → `Event Details`. Removed a dead ternary                                                                                                                 | Naming consistency + cleanup                               |
+| `resources/js/pages/events/step/ScheduleStep.tsx` | Wired end_time `clearable`. Added `normalizeCourseUrl()` and `onBlur` handler                                                                                                    | FIX-010, FIX-011                                           |
+| `resources/js/components/time-picker.tsx`         | Added `clearable` prop and X button. Pass `''` instead of `undefined` to Radix Select                                                                                            | FIX-010, FIX-012                                           |
+| `resources/js/pages/events/create.tsx`            | Wired the four validators. Render callback signature updated. Pill label `Basics` → `Details`                                                                                    | FIX-009                                                    |
+| `resources/js/pages/events/edit.tsx`              | Wired validators. Added `normalizeCoordinate()`. Fixed `venue_latitude.toFixed()` crash. Pill label `Basics` → `Details`                                                         | EC-01, FIX-009                                             |
 
 ### Test changes
 
-| File | Change | Result |
-|---|---|---|
+| File                                              | Change                                                                      | Result   |
+| ------------------------------------------------- | --------------------------------------------------------------------------- | -------- |
 | `tests/Feature/Events/EventScheduleRulesTest.php` | **New** — 13 tests covering time ordering, duration boundaries, URL schemes | All pass |
 
 ### Database changes
@@ -432,26 +432,26 @@ None.
 
 ### Bugs fixed
 
-| # | Bug | Fix | Evidence |
-|---|---|---|---|
-| FIX-008 | Event edit page crashed on coordinates | `normalizeCoordinate()` in `edit.tsx` | Browser: edit page renders |
-| FIX-009 | Client-side validation was emptiness-only; sub-errors mis-routed | `event-validation.ts` + wizard hook + prefix matching | Browser + `tsc` |
-| FIX-010 | No time ordering or duration rule; end_time not clearable | Server rules + `withValidator` + `clearable` prop | 13 feature tests |
-| FIX-011 | URL accepted `data:` / `javascript:`; rejected scheme-less URLs | Regex on both ends + auto-prepend on blur | 5 feature tests |
-| FIX-012 | TimePicker clear button left stale value | Radix Select: pass `''` not `undefined` | Browser |
-| FIX-013 | Errors persisted after user fixed field | Live re-validation effect | Browser |
+| #       | Bug                                                              | Fix                                                   | Evidence                   |
+| ------- | ---------------------------------------------------------------- | ----------------------------------------------------- | -------------------------- |
+| FIX-008 | Event edit page crashed on coordinates                           | `normalizeCoordinate()` in `edit.tsx`                 | Browser: edit page renders |
+| FIX-009 | Client-side validation was emptiness-only; sub-errors mis-routed | `event-validation.ts` + wizard hook + prefix matching | Browser + `tsc`            |
+| FIX-010 | No time ordering or duration rule; end_time not clearable        | Server rules + `withValidator` + `clearable` prop     | 13 feature tests           |
+| FIX-011 | URL accepted `data:` / `javascript:`; rejected scheme-less URLs  | Regex on both ends + auto-prepend on blur             | 5 feature tests            |
+| FIX-012 | TimePicker clear button left stale value                         | Radix Select: pass `''` not `undefined`               | Browser                    |
+| FIX-013 | Errors persisted after user fixed field                          | Live re-validation effect                             | Browser                    |
 
 ### Bugs found but not fixed
 
-| # | Bug | Where documented |
-|---|---|---|
-| EC-03 | Partner errors not displayed in ExtrasStep | `docs/event-creation-issues.md` |
-| EC-07 | No trimming of text inputs | Same |
-| EC-08 | `clear()` fires before submit | Same |
-| EC-09 | No past-date check on `event_date` | Same — needs a decision |
-| EC-10 | `event_name` regexes reject non-ASCII | Same — needs a decision |
-| SCH-04 | Time picker 5-minute snap is invisible | Same — cosmetic |
-| SCH-05 | Distance unit conversion drift | Same — cosmetic |
+| #      | Bug                                        | Where documented                |
+| ------ | ------------------------------------------ | ------------------------------- |
+| EC-03  | Partner errors not displayed in ExtrasStep | `docs/event-creation-issues.md` |
+| EC-07  | No trimming of text inputs                 | Same                            |
+| EC-08  | `clear()` fires before submit              | Same                            |
+| EC-09  | No past-date check on `event_date`         | Same — needs a decision         |
+| EC-10  | `event_name` regexes reject non-ASCII      | Same — needs a decision         |
+| SCH-04 | Time picker 5-minute snap is invisible     | Same — cosmetic                 |
+| SCH-05 | Distance unit conversion drift             | Same — cosmetic                 |
 
 ### Failures during the session
 
@@ -462,25 +462,25 @@ documented in chat and the correction landed clean.
 
 ### Verification
 
-| Check | Result |
-|---|---|
-| `php artisan test tests/Feature/Events/EventScheduleRulesTest.php` | 13 passed, 32 assertions |
-| `npx tsc --noEmit` | Silent |
-| Browser: `/events/{id}/edit` with coordinates | Renders, map loads |
-| Browser: garbage in Event Name | Rejected with "Please enter a valid event name." |
-| Browser: end_time before start | Rejected |
-| Browser: end_time under 60 min | Rejected |
-| Browser: end_time clearable | X button clears all three selects |
-| Browser: scheme-less URL auto-prepend | `maps.app.goo.gl/x` → `https://maps.app.goo.gl/x` |
-| Browser: fix a field → error clears | Confirmed |
+| Check                                                              | Result                                            |
+| ------------------------------------------------------------------ | ------------------------------------------------- |
+| `php artisan test tests/Feature/Events/EventScheduleRulesTest.php` | 13 passed, 32 assertions                          |
+| `npx tsc --noEmit`                                                 | Silent                                            |
+| Browser: `/events/{id}/edit` with coordinates                      | Renders, map loads                                |
+| Browser: garbage in Event Name                                     | Rejected with "Please enter a valid event name."  |
+| Browser: end_time before start                                     | Rejected                                          |
+| Browser: end_time under 60 min                                     | Rejected                                          |
+| Browser: end_time clearable                                        | X button clears all three selects                 |
+| Browser: scheme-less URL auto-prepend                              | `maps.app.goo.gl/x` → `https://maps.app.goo.gl/x` |
+| Browser: fix a field → error clears                                | Confirmed                                         |
 
 ### Cross-reference
 
-| Subsystem | Primary doc |
-|---|---|
-| Fixed problems reference | `docs/fixes.md` |
+| Subsystem                  | Primary doc                     |
+| -------------------------- | ------------------------------- |
+| Fixed problems reference   | `docs/fixes.md`                 |
 | Open event-creation issues | `docs/event-creation-issues.md` |
-| Auth subsystem | `docs/authentication.md` |
+| Auth subsystem             | `docs/authentication.md`        |
 
 ---
 
@@ -514,26 +514,26 @@ None.
 
 ### Documentation appended
 
-| File | Change |
-|---|---|
-| `docs/fixes.md` | FIX-014 and FIX-015 |
+| File                            | Change                                                                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/fixes.md`                 | FIX-014 and FIX-015                                                                                                               |
 | `docs/event-creation-issues.md` | "Additional fixed items" section — marks SCH-04, SCH-06, SCH-06c, SCH-07 as fixed. Adds a consolidated list of every closed issue |
-| `docs/progress.md` | This entry |
+| `docs/progress.md`              | This entry                                                                                                                        |
 
 ### Code changes
 
-| File | Change | Rationale |
-|---|---|---|
-| `app/Concerns/EventValidationRules.php` | Added `MAX_EVENT_YEARS_AHEAD = 2`. `event_date` gained `after_or_equal:today` and `before:+2 years`. New messages | SCH-06, SCH-07 |
-| `resources/js/components/time-picker.tsx` | `MINUTES` reduced to `[0, 15, 30, 45]`. Snap logic updated to `Math.min(45, Math.round(m / 15) * 15)` | SCH-04 |
-| `resources/js/components/date-picker.tsx` | Added `minDate` and `maxDate` props. Out-of-range day cells render disabled. "Today" shortcut disabled when out of range | SCH-06, SCH-07 |
-| `resources/js/lib/event-validation.ts` | Added `MAX_EVENT_YEARS_AHEAD`, `isoToLocalMidnight()`. Date bound checks in `validateSchedule` | SCH-06, SCH-07 |
+| File                                              | Change                                                                                                                                           | Rationale                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- |
+| `app/Concerns/EventValidationRules.php`           | Added `MAX_EVENT_YEARS_AHEAD = 2`. `event_date` gained `after_or_equal:today` and `before:+2 years`. New messages                                | SCH-06, SCH-07                  |
+| `resources/js/components/time-picker.tsx`         | `MINUTES` reduced to `[0, 15, 30, 45]`. Snap logic updated to `Math.min(45, Math.round(m / 15) * 15)`                                            | SCH-04                          |
+| `resources/js/components/date-picker.tsx`         | Added `minDate` and `maxDate` props. Out-of-range day cells render disabled. "Today" shortcut disabled when out of range                         | SCH-06, SCH-07                  |
+| `resources/js/lib/event-validation.ts`            | Added `MAX_EVENT_YEARS_AHEAD`, `isoToLocalMidnight()`. Date bound checks in `validateSchedule`                                                   | SCH-06, SCH-07                  |
 | `resources/js/pages/events/step/ScheduleStep.tsx` | Added `pickerBounds()`, `todayIso()`, `isScheduledForToday`. Wired bounds to `<DatePicker>`. Added amber today warning. Updated date helper text | SCH-04, SCH-06, SCH-06c, SCH-07 |
 
 ### Test changes
 
-| File | Change | Result |
-|---|---|---|
+| File                                          | Change                                                 | Result   |
+| --------------------------------------------- | ------------------------------------------------------ | -------- |
 | `tests/Feature/Events/EventDateRulesTest.php` | **New** — 8 tests covering past and future date bounds | All pass |
 
 ### Database changes
@@ -546,9 +546,9 @@ None.
 
 ### Bugs fixed
 
-| # | Bug | Fix | Evidence |
-|---|---|---|---|
-| FIX-014 | Time picker forced 5-minute snap with no explanation | 15-minute intervals in the dropdown | Browser: 4 options only |
+| #       | Bug                                                   | Fix                                                                  | Evidence                  |
+| ------- | ----------------------------------------------------- | -------------------------------------------------------------------- | ------------------------- |
+| FIX-014 | Time picker forced 5-minute snap with no explanation  | 15-minute intervals in the dropdown                                  | Browser: 4 options only   |
 | FIX-015 | `event_date` had no bounds; calendar allowed any date | Server + client rules and calendar constraints, plus a today warning | 8 feature tests + browser |
 
 ### Bugs found but not fixed
@@ -562,24 +562,24 @@ for the current list.
 
 ### Verification
 
-| Check | Result |
-|---|---|
-| `php artisan test tests/Feature/Events/EventDateRulesTest.php` | 8 passed |
+| Check                                                              | Result                |
+| ------------------------------------------------------------------ | --------------------- |
+| `php artisan test tests/Feature/Events/EventDateRulesTest.php`     | 8 passed              |
 | `php artisan test tests/Feature/Events/EventScheduleRulesTest.php` | 13 passed (unchanged) |
-| `npx tsc --noEmit` | Silent |
-| Browser: minute dropdown | Four options only |
-| Browser: calendar past days | Disabled |
-| Browser: calendar far-future days | Disabled |
-| Browser: pick today | Warning appears |
-| Browser: pick tomorrow | Warning hides |
-| Browser: clear date | Warning hides |
+| `npx tsc --noEmit`                                                 | Silent                |
+| Browser: minute dropdown                                           | Four options only     |
+| Browser: calendar past days                                        | Disabled              |
+| Browser: calendar far-future days                                  | Disabled              |
+| Browser: pick today                                                | Warning appears       |
+| Browser: pick tomorrow                                             | Warning hides         |
+| Browser: clear date                                                | Warning hides         |
 
 ### Cross-reference
 
-| Subsystem | Primary doc |
-|---|---|
-| Fixed problems reference | `docs/fixes.md` |
-| Open event-creation issues | `docs/event-creation-issues.md` |
+| Subsystem                   | Primary doc                     |
+| --------------------------- | ------------------------------- |
+| Fixed problems reference    | `docs/fixes.md`                 |
+| Open event-creation issues  | `docs/event-creation-issues.md` |
 | Schedule step in the wizard | `docs/event-creation-wizard.md` |
 
 ---
@@ -634,31 +634,31 @@ None.
 
 ### Documentation appended
 
-| File | Change |
-|---|---|
-| `docs/fixes.md` | FIX-017 through FIX-021 |
-| `docs/progress.md` | This entry |
-| `docs/dev-workflow/README.md` | §9 — P9, P10, plus P9 verification addendum |
-| `docs/event-creation-issues.md` | EC-03 marked closed, EC-12 opened |
-| `README.md` | Four drift corrections — Map picker row dropped, `forceCreate` in Tinker snippet, middleware list updated, docs index expanded |
-| `docs/event-creation-issues.md` | (also) RSVP + partner section resolutions |
+| File                            | Change                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `docs/fixes.md`                 | FIX-017 through FIX-021                                                                                                        |
+| `docs/progress.md`              | This entry                                                                                                                     |
+| `docs/dev-workflow/README.md`   | §9 — P9, P10, plus P9 verification addendum                                                                                    |
+| `docs/event-creation-issues.md` | EC-03 marked closed, EC-12 opened                                                                                              |
+| `README.md`                     | Four drift corrections — Map picker row dropped, `forceCreate` in Tinker snippet, middleware list updated, docs index expanded |
+| `docs/event-creation-issues.md` | (also) RSVP + partner section resolutions                                                                                      |
 
 ### Code changes
 
-| File | Change | Rationale |
-|---|---|---|
-| `database/migrations/2026_09_25_170000_remove_rsvp_required_from_events_table.php` | **New** | Drops the column. `down()` re-adds at original position |
-| `app/Models/Event.php` | Removed `rsvp_required` from fillable + cast | FIX-017 |
-| `app/Concerns/EventValidationRules.php` | Removed `rsvp_required` rule. Added `humanNameQualityRules()` and `validatePartnerDuplicates()`. Refactored `eventNameRules()`. Expanded `partners.*.name` | FIX-017, FIX-018, FIX-020 |
-| `app/Http/Controllers/EventController.php` | Removed 4 `rsvp_required` references | FIX-017 |
-| `app/Http/Requests/EventRequest.php` | `withValidator()` calls both duration and duplicate validators | FIX-018 |
-| `resources/js/lib/event-validation.ts` | **Restored** after untracked-file corruption. Added `humanNameQualityError()`. Duplicate pass in `validateExtras`. Now git-tracked | FIX-018, FIX-020 |
-| `resources/js/components/accessibility-grid.tsx` | Removed Sensory group, merged into Physical Access | FIX-019 |
-| `resources/js/components/partner-editor.tsx` | Accepts `errors?` prop, renders inline `<InputError>` per row | FIX-021 |
-| `resources/js/pages/events/create.tsx` | Removed `rsvp_required` from fields + defaults | FIX-017 |
-| `resources/js/pages/events/edit.tsx` | Same as create | FIX-017 |
-| `resources/js/pages/events/show.tsx` | Removed `rsvp_required` type field + `<DetailRow>` | FIX-017 |
-| `resources/js/pages/events/step/ExtrasStep.tsx` | Rewrote without Registration section. Added partner counter, cap message, top-level error slot. Passes errors down | FIX-017, FIX-021 |
+| File                                                                               | Change                                                                                                                                                     | Rationale                                               |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `database/migrations/2026_09_25_170000_remove_rsvp_required_from_events_table.php` | **New**                                                                                                                                                    | Drops the column. `down()` re-adds at original position |
+| `app/Models/Event.php`                                                             | Removed `rsvp_required` from fillable + cast                                                                                                               | FIX-017                                                 |
+| `app/Concerns/EventValidationRules.php`                                            | Removed `rsvp_required` rule. Added `humanNameQualityRules()` and `validatePartnerDuplicates()`. Refactored `eventNameRules()`. Expanded `partners.*.name` | FIX-017, FIX-018, FIX-020                               |
+| `app/Http/Controllers/EventController.php`                                         | Removed 4 `rsvp_required` references                                                                                                                       | FIX-017                                                 |
+| `app/Http/Requests/EventRequest.php`                                               | `withValidator()` calls both duration and duplicate validators                                                                                             | FIX-018                                                 |
+| `resources/js/lib/event-validation.ts`                                             | **Restored** after untracked-file corruption. Added `humanNameQualityError()`. Duplicate pass in `validateExtras`. Now git-tracked                         | FIX-018, FIX-020                                        |
+| `resources/js/components/accessibility-grid.tsx`                                   | Removed Sensory group, merged into Physical Access                                                                                                         | FIX-019                                                 |
+| `resources/js/components/partner-editor.tsx`                                       | Accepts `errors?` prop, renders inline `<InputError>` per row                                                                                              | FIX-021                                                 |
+| `resources/js/pages/events/create.tsx`                                             | Removed `rsvp_required` from fields + defaults                                                                                                             | FIX-017                                                 |
+| `resources/js/pages/events/edit.tsx`                                               | Same as create                                                                                                                                             | FIX-017                                                 |
+| `resources/js/pages/events/show.tsx`                                               | Removed `rsvp_required` type field + `<DetailRow>`                                                                                                         | FIX-017                                                 |
+| `resources/js/pages/events/step/ExtrasStep.tsx`                                    | Rewrote without Registration section. Added partner counter, cap message, top-level error slot. Passes errors down                                         | FIX-017, FIX-021                                        |
 
 ### Test changes
 
@@ -669,10 +669,10 @@ no test coverage. Recorded as EC-12.
 
 ### Database changes
 
-| Change | Note |
-|---|---|
-| New migration drops `rsvp_required` | Reversible via `down()` |
-| Base migration `2026_09_21_093134_*` untouched | Per AI-CONTEXT §8 |
+| Change                                         | Note                    |
+| ---------------------------------------------- | ----------------------- |
+| New migration drops `rsvp_required`            | Reversible via `down()` |
+| Base migration `2026_09_21_093134_*` untouched | Per AI-CONTEXT §8       |
 
 ### Environment changes
 
@@ -680,20 +680,20 @@ None.
 
 ### Bugs fixed
 
-| # | Bug | Fix | Evidence |
-|---|---|---|---|
-| FIX-017 | RSVP flag survived two refactor passes; no longer decided anything | Removed column, validation, controller references, wizard field, show page DetailRow | 54/145 stable |
-| FIX-018 | Same partner+role could appear twice | Duplicate rule on client + server, (ii) semantics | `tsc` + `php -l` clean |
-| FIX-019 | Single-item Sensory category header | Merged into Physical Access | Browser: 3 groups render |
-| FIX-020 | Partner names had no quality filter (unlike event_name) | Extracted `humanNameQualityRules()`, applied to both | Browser: garbage name shows "Please enter a valid partner name." |
-| FIX-021 | Partner errors triggered the top banner but rendered nowhere | Added `errors` prop to PartnerEditor, inline `<InputError>` per row | Browser: garbage name shows inline red text (screenshot) |
+| #       | Bug                                                                | Fix                                                                                  | Evidence                                                         |
+| ------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| FIX-017 | RSVP flag survived two refactor passes; no longer decided anything | Removed column, validation, controller references, wizard field, show page DetailRow | 54/145 stable                                                    |
+| FIX-018 | Same partner+role could appear twice                               | Duplicate rule on client + server, (ii) semantics                                    | `tsc` + `php -l` clean                                           |
+| FIX-019 | Single-item Sensory category header                                | Merged into Physical Access                                                          | Browser: 3 groups render                                         |
+| FIX-020 | Partner names had no quality filter (unlike event_name)            | Extracted `humanNameQualityRules()`, applied to both                                 | Browser: garbage name shows "Please enter a valid partner name." |
+| FIX-021 | Partner errors triggered the top banner but rendered nowhere       | Added `errors` prop to PartnerEditor, inline `<InputError>` per row                  | Browser: garbage name shows inline red text (screenshot)         |
 
 ### Bugs found but not fixed
 
-| # | Bug | Where documented |
-|---|---|---|
-| EC-12 | Partner duplicate rule has no test coverage | `docs/event-creation-issues.md` |
-| — | Walk-in messaging vanished from the wizard with the RSVP helper text | `docs/event-creation-issues.md` |
+| #     | Bug                                                                  | Where documented                |
+| ----- | -------------------------------------------------------------------- | ------------------------------- |
+| EC-12 | Partner duplicate rule has no test coverage                          | `docs/event-creation-issues.md` |
+| —     | Walk-in messaging vanished from the wizard with the RSVP helper text | `docs/event-creation-issues.md` |
 
 ### Failures during the session
 
@@ -733,29 +733,28 @@ untracked files into git.
 
 ### Verification
 
-| Check | Result |
-|---|---|
+| Check                                                     | Result                    |
+| --------------------------------------------------------- | ------------------------- |
 | `php artisan test tests/Feature/Events` (after `533658e`) | 54 passed, 145 assertions |
-| `php artisan migrate` (drop rsvp_required) | DONE in 3s |
+| `php artisan migrate` (drop rsvp_required)                | DONE in 3s                |
 | `php artisan test tests/Feature/Events` (after migration) | 54 passed, 145 assertions |
-| `php artisan test tests/Feature/Auth` | 44 passed, 119 assertions |
-| `npx tsc --noEmit` | silent |
-| Browser: Extras step renders without Registration section | confirmed |
-| Browser: partners counter increments on add | confirmed |
-| Browser: garbage partner name shows inline error | confirmed |
-| Browser: empty partner row shows inline error | confirmed |
+| `php artisan test tests/Feature/Auth`                     | 44 passed, 119 assertions |
+| `npx tsc --noEmit`                                        | silent                    |
+| Browser: Extras step renders without Registration section | confirmed                 |
+| Browser: partners counter increments on add               | confirmed                 |
+| Browser: garbage partner name shows inline error          | confirmed                 |
+| Browser: empty partner row shows inline error             | confirmed                 |
 
 ### Cross-reference
 
-| Subsystem | Primary doc |
-|---|---|
-| Fixed problems reference | `docs/fixes.md` (FIX-017 through FIX-021) |
+| Subsystem                  | Primary doc                                               |
+| -------------------------- | --------------------------------------------------------- |
+| Fixed problems reference   | `docs/fixes.md` (FIX-017 through FIX-021)                 |
 | Open event-creation issues | `docs/event-creation-issues.md` (EC-12 new, EC-03 closed) |
-| Workflow protocols | `docs/dev-workflow/README.md` §9 |
-| Event schema and wizard | `docs/event-creation-wizard.md` |
+| Workflow protocols         | `docs/dev-workflow/README.md` §9                          |
+| Event schema and wizard    | `docs/event-creation-wizard.md`                           |
 
 ### Files touched this date — full inventory
-
 
     Documentation (appended):
       docs/fixes.md
@@ -813,6 +812,7 @@ normalization to block lookalike-label spoofing), Selection rename
 from Dropdown, and full FAQ removal.
 
 Two bugs surfaced and were fixed mid-phase:
+
 - Open Registration was enabled on any Draft event, including those
   with no saved form. Now gated on `registration_form_saved_at`.
 - The drop migration for `event_options` / `registration_options`
@@ -826,12 +826,12 @@ None.
 
 ### Documentation appended
 
-| File | Change |
-|---|---|
+| File                                  | Change                                      |
+| ------------------------------------- | ------------------------------------------- |
 | docs/registration-development-plan.md | Phase 2 plan, decisions, corrections, close |
-| docs/dev-workflow/README.md | P11: migration files are live in tests |
-| docs/progress.md | This entry |
-| docs/fixes.md | (not updated this phase -- see note below) |
+| docs/dev-workflow/README.md           | P11: migration files are live in tests      |
+| docs/progress.md                      | This entry                                  |
+| docs/fixes.md                         | (not updated this phase -- see note below)  |
 
 ### Code changes
 
@@ -841,22 +841,23 @@ docs/registration-development-plan.md for the full inventory.
 ### Test changes
 
 New: tests/Feature/Events/RegistrationFormTest.php
-  - 18 tests, 46 assertions
-  - Covers show, save (empty, single field, select, ordering,
-    replacement), validation failures (cap, label quality, duplicates,
-    collisions, choice rules), and the lock-at-Open-Registration rule
+
+- 18 tests, 46 assertions
+- Covers show, save (empty, single field, select, ordering,
+  replacement), validation failures (cap, label quality, duplicates,
+  collisions, choice rules), and the lock-at-Open-Registration rule
 
 Events suite: 71 -> 89 tests, 165 -> 211 assertions.
 Auth suite: unchanged at 44/119.
 
 ### Database changes
 
-| Change | Note |
-|---|---|
-| New migration creates `registration_fields` | 2026_09_25_180000 |
-| New migration drops `event_options` + `registration_options` | 2026_09_25_180100 |
-| New migration adds `events.registration_form_saved_at` | 2026_09_26_090000 |
-| Column `events.faq` retained but unused | Read/write paths removed in f03f450 |
+| Change                                                       | Note                                |
+| ------------------------------------------------------------ | ----------------------------------- |
+| New migration creates `registration_fields`                  | 2026_09_25_180000                   |
+| New migration drops `event_options` + `registration_options` | 2026_09_25_180100                   |
+| New migration adds `events.registration_form_saved_at`       | 2026_09_26_090000                   |
+| Column `events.faq` retained but unused                      | Read/write paths removed in f03f450 |
 
 ### Environment changes
 
@@ -881,11 +882,11 @@ Five fixes, all landed in Phase 2:
 
 ### Bugs found but not fixed
 
-| # | Bug | Where |
-|---|---|---|
-| -- | registration_form_saved_at is not backfilled for Draft events | Migration docblock + this entry |
-| -- | validation_rules JSON shape is freeform | Deferred to Phase 3 |
-| -- | No public submission surface behind Open Registration | Interim state, Phase 3 |
+| #   | Bug                                                           | Where                           |
+| --- | ------------------------------------------------------------- | ------------------------------- |
+| --  | registration_form_saved_at is not backfilled for Draft events | Migration docblock + this entry |
+| --  | validation_rules JSON shape is freeform                       | Deferred to Phase 3             |
+| --  | No public submission surface behind Open Registration         | Interim state, Phase 3          |
 
 ### Failures during the session
 
@@ -910,22 +911,22 @@ future deployment requires it.
 
 ### Verification at close
 
-| Check | Result |
-|---|---|
-| php artisan test tests/Feature/Events | 89 passed / 211 assertions |
-| php artisan test tests/Feature/Auth | 44 passed / 119 assertions |
-| npx tsc --noEmit | silent |
-| Browser: form builder renders, saves, persists | confirmed |
-| Browser: /events/2 Open Registration disabled until form saved | confirmed |
-| Browser: FAQ section gone from event show page | confirmed |
+| Check                                                          | Result                     |
+| -------------------------------------------------------------- | -------------------------- |
+| php artisan test tests/Feature/Events                          | 89 passed / 211 assertions |
+| php artisan test tests/Feature/Auth                            | 44 passed / 119 assertions |
+| npx tsc --noEmit                                               | silent                     |
+| Browser: form builder renders, saves, persists                 | confirmed                  |
+| Browser: /events/2 Open Registration disabled until form saved | confirmed                  |
+| Browser: FAQ section gone from event show page                 | confirmed                  |
 
 ### Cross-reference
 
-| Subsystem | Primary doc |
-|---|---|
-| Registration feature spec | docs/registration.md |
-| Phase plan and close | docs/registration-development-plan.md |
-| Workflow protocols (P1-P11) | docs/dev-workflow/README.md |
+| Subsystem                   | Primary doc                           |
+| --------------------------- | ------------------------------------- |
+| Registration feature spec   | docs/registration.md                  |
+| Phase plan and close        | docs/registration-development-plan.md |
+| Workflow protocols (P1-P11) | docs/dev-workflow/README.md           |
 
 ## Changelog addendum
 
@@ -951,14 +952,14 @@ the detail.
 
 ### Code changes
 
-| File | Change |
-|---|---|
-| `database/migrations/2026_09_26_100000_add_registration_slug_to_events_table.php` | **New** — nullable string(32), unique, after `registration_form_saved_at` |
-| `database/migrations/2026_09_26_100100_create_registration_field_responses_table.php` | **New** — one row per answered custom field |
-| `app/Models/RegistrationFieldResponse.php` | **New** — `#[Fillable]`, two BelongsTo relations |
-| `app/Models/Registration.php` | Added `fieldResponses(): HasMany` |
-| `app/Models/Event.php` | `registration_slug` added to fillable |
-| `app/Http/Controllers/EventController.php` | `generateUniqueSlug()` and `randomSlug()`; `openRegistration()` stamps the slug |
+| File                                                                                  | Change                                                                          |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `database/migrations/2026_09_26_100000_add_registration_slug_to_events_table.php`     | **New** — nullable string(32), unique, after `registration_form_saved_at`       |
+| `database/migrations/2026_09_26_100100_create_registration_field_responses_table.php` | **New** — one row per answered custom field                                     |
+| `app/Models/RegistrationFieldResponse.php`                                            | **New** — `#[Fillable]`, two BelongsTo relations                                |
+| `app/Models/Registration.php`                                                         | Added `fieldResponses(): HasMany`                                               |
+| `app/Models/Event.php`                                                                | `registration_slug` added to fillable                                           |
+| `app/Http/Controllers/EventController.php`                                            | `generateUniqueSlug()` and `randomSlug()`; `openRegistration()` stamps the slug |
 
 ### Bugs fixed during the block
 
@@ -972,10 +973,10 @@ the detail.
 
 ### Test changes
 
-| File | Change | Result |
-|---|---|---|
-| `tests/Feature/Events/RegistrationSlugTest.php` | **New** — 7 tests | Pass |
-| `tests/Feature/Events/EventWorkflowTest.php` | Unchanged | Pass |
+| File                                            | Change            | Result |
+| ----------------------------------------------- | ----------------- | ------ |
+| `tests/Feature/Events/RegistrationSlugTest.php` | **New** — 7 tests | Pass   |
+| `tests/Feature/Events/EventWorkflowTest.php`    | Unchanged         | Pass   |
 
 Events suite: 89 → 96 tests.
 
@@ -1052,12 +1053,12 @@ form builder UI).
 
 ### Bugs fixed
 
-| Bug | Severity | Fix |
-|---|---|---|
-| Duplicate active event names allowed | Medium | `validateEventNameUnique()` in `EventValidationRules`, wired via `EventRequest::withValidator()` |
-| Client validation masked by stale server errors | Medium | Swapped spread order in `wizard.tsx` mergedErrors memo |
-| `contact_number` NOT NULL blocked optional submissions | High (blocked the feature) | Migration `2026_10_02_110000` flips nullability |
-| Unique constraint name too long for MySQL | High (blocked migration) | Explicit name `reg_field_responses_unique` (fixed in Sep 26 block, verified here) |
+| Bug                                                    | Severity                   | Fix                                                                                              |
+| ------------------------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------ |
+| Duplicate active event names allowed                   | Medium                     | `validateEventNameUnique()` in `EventValidationRules`, wired via `EventRequest::withValidator()` |
+| Client validation masked by stale server errors        | Medium                     | Swapped spread order in `wizard.tsx` mergedErrors memo                                           |
+| `contact_number` NOT NULL blocked optional submissions | High (blocked the feature) | Migration `2026_10_02_110000` flips nullability                                                  |
+| Unique constraint name too long for MySQL              | High (blocked migration)   | Explicit name `reg_field_responses_unique` (fixed in Sep 26 block, verified here)                |
 
 ### Bugs found but not fixed
 
@@ -1068,28 +1069,28 @@ form builder UI).
 
 ### Database changes
 
-| Migration | Purpose |
-|---|---|
-| `2026_10_02_100000_add_registration_common_field_requirements_to_events_table.php` | JSON column, nullable, after `registration_slug` |
-| `2026_10_02_110000_make_contact_number_nullable_on_participants_table.php` | `contact_number` NOT NULL → nullable, length preserved at 255 |
+| Migration                                                                          | Purpose                                                       |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `2026_10_02_100000_add_registration_common_field_requirements_to_events_table.php` | JSON column, nullable, after `registration_slug`              |
+| `2026_10_02_110000_make_contact_number_nullable_on_participants_table.php`         | `contact_number` NOT NULL → nullable, length preserved at 255 |
 
 ### Test changes
 
-| File | Change | Result |
-|---|---|---|
-| `tests/Feature/Public/RegistrationSubmissionTest.php` | **New** — 19 tests | Pass |
-| `tests/Feature/Events/EventDuplicateNameTest.php` | **New** — 8 tests | Pass |
-| `tests/Feature/Events/EventCommonFieldRequirementsTest.php` | **New** — 12 tests | Pass |
-| `tests/Feature/Events/RegistrationFormCommonFieldRequirementsTest.php` | **New** — 9 tests | Pass |
+| File                                                                   | Change             | Result |
+| ---------------------------------------------------------------------- | ------------------ | ------ |
+| `tests/Feature/Public/RegistrationSubmissionTest.php`                  | **New** — 19 tests | Pass   |
+| `tests/Feature/Events/EventDuplicateNameTest.php`                      | **New** — 8 tests  | Pass   |
+| `tests/Feature/Events/EventCommonFieldRequirementsTest.php`            | **New** — 12 tests | Pass   |
+| `tests/Feature/Events/RegistrationFormCommonFieldRequirementsTest.php` | **New** — 9 tests  | Pass   |
 
 ### Verification
 
-| Check | Result |
-|---|---|
-| `php artisan test tests/Feature/Public` | 19 passed / 71 assertions |
+| Check                                   | Result                      |
+| --------------------------------------- | --------------------------- |
+| `php artisan test tests/Feature/Public` | 19 passed / 71 assertions   |
 | `php artisan test tests/Feature/Events` | 125 passed / 286 assertions |
-| `php artisan test tests/Feature/Auth` | 44 passed / 119 assertions |
-| `npx tsc --noEmit` | silent |
+| `php artisan test tests/Feature/Auth`   | 44 passed / 119 assertions  |
+| `npx tsc --noEmit`                      | silent                      |
 
 ### Commits
 
@@ -1110,11 +1111,11 @@ form builder UI).
 
 ### Cross-reference
 
-| Subsystem | Primary doc |
-|---|---|
-| Registration feature spec | `docs/registration.md` |
-| Phase plan and close | `docs/registration-development-plan.md` |
-| Backlog additions | `docs/known-issues.md` (ISSUE-007, ISSUE-008) |
+| Subsystem                 | Primary doc                                   |
+| ------------------------- | --------------------------------------------- |
+| Registration feature spec | `docs/registration.md`                        |
+| Phase plan and close      | `docs/registration-development-plan.md`       |
+| Backlog additions         | `docs/known-issues.md` (ISSUE-007, ISSUE-008) |
 
 ## Changelog addendum
 
@@ -1140,21 +1141,21 @@ test file extended.
 
 ### Documentation appended
 
-| File | Change |
-|---|---|
-| `docs/fixes.md` | FIX-023 |
+| File               | Change     |
+| ------------------ | ---------- |
+| `docs/fixes.md`    | FIX-023    |
 | `docs/progress.md` | This entry |
 
 ### Code changes
 
-| File | Change |
-|---|---|
+| File                                                | Change                                                                                                                                                                                        |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `app/Concerns/RegistrationFieldValidationRules.php` | Added `commonFieldSynonyms()`, `editDistanceThreshold()`, `findCommonFieldCollision()`. Rewrote `validateFieldLabelCollisions()`. Rewrote `commonFieldLabelsNormalized()` as a derived helper |
 
 ### Test changes
 
-| File | Change | Result |
-|---|---|---|
+| File                                            | Change                                                                                           | Result               |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------- |
 | `tests/Feature/Events/RegistrationFormTest.php` | 7 new data-driven tests covering synonyms, misspellings, formatting variants, and negative cases | Pending verification |
 
 ### Database changes
@@ -1167,8 +1168,8 @@ None.
 
 ### Bugs fixed
 
-| # | Bug | Fix | Evidence |
-|---|---|---|---|
+| #       | Bug                                                                        | Fix                                                     | Evidence            |
+| ------- | -------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------- |
 | FIX-023 | Collision detection was exact-match only; synonyms and misspellings passed | Three-layer detection (exact → synonym → edit distance) | New tests + browser |
 
 ### Verification
@@ -1180,10 +1181,10 @@ None.
 
 ### Cross-reference
 
-| Subsystem | Primary doc |
-|---|---|
+| Subsystem                | Primary doc               |
+| ------------------------ | ------------------------- |
 | Fixed problems reference | `docs/fixes.md` (FIX-023) |
-| Registration spec | `docs/registration.md` |
+| Registration spec        | `docs/registration.md`    |
 
 ---
 
@@ -1389,6 +1390,7 @@ checkbox column and a bulk-mark toolbar for paper-sheet
 reconciliation.
 
 Two request shapes to the new endpoint:
+
 - Explicit list of registration IDs — all-or-nothing, cross-event
   IDs reject the whole batch.
 - Mark-all-visible with the current filter + search — server
@@ -1560,39 +1562,39 @@ assertions. Up from 476 at Phase 8 close (+14 net new tests).
 
 ### Documentation created
 
-| File | Lines | Purpose |
-|---|---|---|
-| `docs/attendance-encoding-and-reporting.md` | 835 | Spec for encoding workspace, finalize event, and end-of-event report |
+| File                                        | Lines | Purpose                                                              |
+| ------------------------------------------- | ----- | -------------------------------------------------------------------- |
+| `docs/attendance-encoding-and-reporting.md` | 835   | Spec for encoding workspace, finalize event, and end-of-event report |
 
 ### Documentation appended
 
-| File | Change |
-|---|---|
+| File                                               | Change                                                                                                  |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `docs/participant-identity-and-monitoring-plan.md` | `## Phase 9 complete (2026-10-12)` block — deliverables, three deviations, file inventory, verification |
-| `docs/progress.md` | This entry |
+| `docs/progress.md`                                 | This entry                                                                                              |
 
 ### Code changes
 
-| File | Change | Rationale |
-|---|---|---|
-| `app/Http/Controllers/RegistrationDeletionController.php` | **New** — three actions: `destroy` (admin only), `requestOtp`, `verifyOtp` (staff only). Event status gate on `registration_open` / `registration_closed` | Phase 9 |
-| `app/Services/EventDeletion/RegistrationDeletionOtpService.php` | **New** — fork of `EventDeletionOtpService`, keyed on `registration_id`. Uses the shared `OtpCode` helper instead of duplicating the HMAC logic | Phase 9 |
-| `app/Services/EventDeletion/RegistrationDeletionService.php` | **New** — single DELETE. Relies on schema CASCADE from `registration_field_responses` and `attendances`. Participant preserved | Phase 9 |
-| `app/Mail/RegistrationDeletionOtpMail.php` | **New** — adds `participantName` alongside `eventName`. Synchronous, no `ShouldQueue` | Phase 9 |
-| `resources/views/emails/registration-deletion-otp.blade.php` | **New** — email body. Names the participant | Phase 9 |
-| `app/Providers/AppServiceProvider.php` | Two new rate limiters: `registration-deletion-otp-request` (3/min), `registration-deletion-otp-verify` (10/min). Keyed on `user|registration` | Phase 9 |
-| `routes/web.php` | Three new routes: `DELETE /registrations/{registration}`, `POST /registrations/{registration}/deletion/request-otp`, `POST /registrations/{registration}/deletion/verify-otp` | Phase 9 |
-| `app/Http/Controllers/RegistrationMonitorController.php` | `show()` passes `is_admin` for frontend delete routing | Phase 9 |
-| `resources/js/components/registration-deletion-otp-dialog.tsx` | **New** — fork of `event-deletion-otp-dialog.tsx`, keyed on `registrationId` | Phase 9 |
-| `resources/js/pages/registrations/monitor/show.tsx` | Delete action added to the card's ⋯ menu. Admin → `router.delete`. Staff → OTP dialog. Effect auto-closes the dialog when the row disappears from the feed | Phase 9 |
-| `config/app.php` | `timezone` now reads `env('APP_TIMEZONE', 'Asia/Manila')`. Default changed from `'UTC'` | Timezone fix |
+| File                                                            | Change                                                                                                                                                                        | Rationale     |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| `app/Http/Controllers/RegistrationDeletionController.php`       | **New** — three actions: `destroy` (admin only), `requestOtp`, `verifyOtp` (staff only). Event status gate on `registration_open` / `registration_closed`                     | Phase 9       |
+| `app/Services/EventDeletion/RegistrationDeletionOtpService.php` | **New** — fork of `EventDeletionOtpService`, keyed on `registration_id`. Uses the shared `OtpCode` helper instead of duplicating the HMAC logic                               | Phase 9       |
+| `app/Services/EventDeletion/RegistrationDeletionService.php`    | **New** — single DELETE. Relies on schema CASCADE from `registration_field_responses` and `attendances`. Participant preserved                                                | Phase 9       |
+| `app/Mail/RegistrationDeletionOtpMail.php`                      | **New** — adds `participantName` alongside `eventName`. Synchronous, no `ShouldQueue`                                                                                         | Phase 9       |
+| `resources/views/emails/registration-deletion-otp.blade.php`    | **New** — email body. Names the participant                                                                                                                                   | Phase 9       |
+| `app/Providers/AppServiceProvider.php`                          | Two new rate limiters: `registration-deletion-otp-request` (3/min), `registration-deletion-otp-verify` (10/min). Keyed on `user                                               | registration` | Phase 9 |
+| `routes/web.php`                                                | Three new routes: `DELETE /registrations/{registration}`, `POST /registrations/{registration}/deletion/request-otp`, `POST /registrations/{registration}/deletion/verify-otp` | Phase 9       |
+| `app/Http/Controllers/RegistrationMonitorController.php`        | `show()` passes `is_admin` for frontend delete routing                                                                                                                        | Phase 9       |
+| `resources/js/components/registration-deletion-otp-dialog.tsx`  | **New** — fork of `event-deletion-otp-dialog.tsx`, keyed on `registrationId`                                                                                                  | Phase 9       |
+| `resources/js/pages/registrations/monitor/show.tsx`             | Delete action added to the card's ⋯ menu. Admin → `router.delete`. Staff → OTP dialog. Effect auto-closes the dialog when the row disappears from the feed                    | Phase 9       |
+| `config/app.php`                                                | `timezone` now reads `env('APP_TIMEZONE', 'Asia/Manila')`. Default changed from `'UTC'`                                                                                       | Timezone fix  |
 
 ### Test changes
 
-| File | Change | Result |
-|---|---|---|
+| File                                                | Change                                                                                                           | Result                    |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------- |
 | `tests/Feature/Events/RegistrationDeletionTest.php` | **New** — 14 tests covering staff OTP path, admin direct path, cascade preservation, status gate, guest blocking | 14 passed / 47 assertions |
-| `tests/Feature/Events/EventDateRulesTest.php` | The "today" test now pins the clock with `travelTo(09:00)` | 8 passed / 19 assertions |
+| `tests/Feature/Events/EventDateRulesTest.php`       | The "today" test now pins the clock with `travelTo(09:00)`                                                       | 8 passed / 19 assertions  |
 
 ### Database changes
 
@@ -1602,17 +1604,17 @@ No new migrations.
 
 ### Environment changes
 
-| Change | Reason |
-|---|---|
-| `.env` line appended — `APP_TIMEZONE=Asia/Manila` | Local instance picks up the new default without a config:clear |
-| `.env.example` line appended — `APP_TIMEZONE=Asia/Manila` | Fresh clones get the correct value on copy |
+| Change                                                    | Reason                                                         |
+| --------------------------------------------------------- | -------------------------------------------------------------- |
+| `.env` line appended — `APP_TIMEZONE=Asia/Manila`         | Local instance picks up the new default without a config:clear |
+| `.env.example` line appended — `APP_TIMEZONE=Asia/Manila` | Fresh clones get the correct value on copy                     |
 
 ### Bugs fixed
 
-| Bug | Severity | Fix | Evidence |
-|---|---|---|---|
-| Start-time validation used UTC while the browser used Manila time. A Manila user entering a today-event whose local start had already passed was silently accepted | Medium | `APP_TIMEZONE` default → `Asia/Manila` | 490 passed; `php artisan tinker` confirms `Asia/Manila` for `config('app.timezone')`, `now()->timezoneName`, and `date_default_timezone_get()` |
-| `EventDateRulesTest` "today's date" case failed after 18:00 local | Low | `travelTo(09:00)` pins the clock for that one test | 8 passed deterministically |
+| Bug                                                                                                                                                                | Severity | Fix                                                | Evidence                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start-time validation used UTC while the browser used Manila time. A Manila user entering a today-event whose local start had already passed was silently accepted | Medium   | `APP_TIMEZONE` default → `Asia/Manila`             | 490 passed; `php artisan tinker` confirms `Asia/Manila` for `config('app.timezone')`, `now()->timezoneName`, and `date_default_timezone_get()` |
+| `EventDateRulesTest` "today's date" case failed after 18:00 local                                                                                                  | Low      | `travelTo(09:00)` pins the clock for that one test | 8 passed deterministically                                                                                                                     |
 
 ### Bugs found but not fixed
 
@@ -1642,17 +1644,17 @@ and (pending) `docs/issues-inventory.md`.
 
 ### Verification
 
-| Check | Result |
-|---|---|
-| `php artisan test tests/Feature/Events/RegistrationDeletionTest.php` | 14 passed / 47 assertions |
-| `php artisan test` (full suite) | 3 skipped, 490 passed / 1472 assertions |
-| `php artisan route:list --name=registrations.destroy` | 1 route registered |
-| `php artisan route:list --name=registrations.deletion` | 2 routes registered |
-| `npx tsc --noEmit` | silent |
-| `php artisan tinker` — `config('app.timezone')` | `Asia/Manila` |
-| `php artisan tinker` — `now()->timezoneName` | `Asia/Manila` |
-| `php artisan tinker` — `date_default_timezone_get()` | `Asia/Manila` |
-| `git push origin main` | `7a2fa9e..703ced0 main -> main` |
+| Check                                                                | Result                                  |
+| -------------------------------------------------------------------- | --------------------------------------- |
+| `php artisan test tests/Feature/Events/RegistrationDeletionTest.php` | 14 passed / 47 assertions               |
+| `php artisan test` (full suite)                                      | 3 skipped, 490 passed / 1472 assertions |
+| `php artisan route:list --name=registrations.destroy`                | 1 route registered                      |
+| `php artisan route:list --name=registrations.deletion`               | 2 routes registered                     |
+| `npx tsc --noEmit`                                                   | silent                                  |
+| `php artisan tinker` — `config('app.timezone')`                      | `Asia/Manila`                           |
+| `php artisan tinker` — `now()->timezoneName`                         | `Asia/Manila`                           |
+| `php artisan tinker` — `date_default_timezone_get()`                 | `Asia/Manila`                           |
+| `git push origin main`                                               | `7a2fa9e..703ced0 main -> main`         |
 
 ### Commits
 
@@ -1664,12 +1666,12 @@ and (pending) `docs/issues-inventory.md`.
 
 ### Cross-reference
 
-| Subsystem | Primary doc |
-|---|---|
-| Identity + monitoring plan, Phase 9 | `docs/participant-identity-and-monitoring-plan.md` |
-| Attendance encoding + finalize + report spec | `docs/attendance-encoding-and-reporting.md` |
-| Event deletion pattern (mirrored) | `docs/event-deletion.md` |
-| Backlog | `docs/known-issues.md` |
+| Subsystem                                    | Primary doc                                        |
+| -------------------------------------------- | -------------------------------------------------- |
+| Identity + monitoring plan, Phase 9          | `docs/participant-identity-and-monitoring-plan.md` |
+| Attendance encoding + finalize + report spec | `docs/attendance-encoding-and-reporting.md`        |
+| Event deletion pattern (mirrored)            | `docs/event-deletion.md`                           |
+| Backlog                                      | `docs/known-issues.md`                             |
 
 ---
 
@@ -1746,14 +1748,14 @@ future session that pulls a commit with new migrations knows to run
 
 ### Documentation drift corrected
 
-| Ref | Where | Claim | Reality |
-|---|---|---|---|
-| DD-1 | `participant-identity-and-monitoring-plan.md` Phase 11 | "not yet shipped" | Shipped in `4394986` |
-| DD-2 | Same doc, files list | `2026_10_13_180000_*` | Actual is `2026_10_13_100000_*` |
-| DD-3 | `registration.md` §Status | "live end-to-end" | Two-phase flow: submit → verify → finalize |
-| DD-4 | `progress.md` | No entry for `4394986` | This entry |
-| DD-5 | `AI-CONTEXT.md` §7 | Reading-order table lists 6 subsystem docs | Missing `registration-contact-verification.md` |
-| DD-6 | `README.md` status table | Registration is a single-phase flow | Two-phase flow |
+| Ref  | Where                                                  | Claim                                      | Reality                                        |
+| ---- | ------------------------------------------------------ | ------------------------------------------ | ---------------------------------------------- |
+| DD-1 | `participant-identity-and-monitoring-plan.md` Phase 11 | "not yet shipped"                          | Shipped in `4394986`                           |
+| DD-2 | Same doc, files list                                   | `2026_10_13_180000_*`                      | Actual is `2026_10_13_100000_*`                |
+| DD-3 | `registration.md` §Status                              | "live end-to-end"                          | Two-phase flow: submit → verify → finalize     |
+| DD-4 | `progress.md`                                          | No entry for `4394986`                     | This entry                                     |
+| DD-5 | `AI-CONTEXT.md` §7                                     | Reading-order table lists 6 subsystem docs | Missing `registration-contact-verification.md` |
+| DD-6 | `README.md` status table                               | Registration is a single-phase flow        | Two-phase flow                                 |
 
 ### Verification
 
@@ -1854,56 +1856,56 @@ assertions. Duration ~35s. Up from 510 passed at session start
 
 ### Documentation created
 
-| File | Lines | Purpose |
-|---|---|---|
-| `docs/attendance-code.md` | 490 | Reference for the code, lookup, verification semantics, and encoding modes |
+| File                      | Lines | Purpose                                                                    |
+| ------------------------- | ----- | -------------------------------------------------------------------------- |
+| `docs/attendance-code.md` | 490   | Reference for the code, lookup, verification semantics, and encoding modes |
 
 ### Documentation appended
 
-| File | Change |
-|---|---|
+| File                                        | Change                                         |
+| ------------------------------------------- | ---------------------------------------------- |
 | `docs/attendance-encoding-and-reporting.md` | Pointer section to the new attendance-code doc |
-| `docs/progress.md` | This entry |
+| `docs/progress.md`                          | This entry                                     |
 
 ### Code changes
 
 Backend:
 
-| File | Change |
-|---|---|
-| `app/Services/RegistrationVerification/RegistrationVerificationService.php` | Issues the code in `finalize()`, dispatches `RegistrationConfirmationMail` via `DB::afterCommit()` |
-| `app/Http/Controllers/AttendanceController.php` | `show()` accepts `?code=` and normalizes five variants; `mark()` sets `verified_at`; `walkIn()` and `bulkWalkIn()` honor `encoding_mode` |
-| `app/Http/Requests/WalkInRegistrationRequest.php` | Accepts `encoding_mode` and `arrival_time`; Pass 3 requires arrival time when deferred |
-| `app/Http/Requests/BulkWalkInRegistrationRequest.php` | Same shape at the batch level, per-row arrival time |
-| `app/Models/Registration.php` | `attendance_code` added to fillable |
-| `app/Models/Attendance.php` | `verified_at` added to fillable and casts |
-| `app/Mail/RegistrationConfirmationMail.php` | **New** — one-shot mailable; code + event name; subject `WDEMS — Your {event_name} attendance code` |
+| File                                                                        | Change                                                                                                                                   |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/Services/RegistrationVerification/RegistrationVerificationService.php` | Issues the code in `finalize()`, dispatches `RegistrationConfirmationMail` via `DB::afterCommit()`                                       |
+| `app/Http/Controllers/AttendanceController.php`                             | `show()` accepts `?code=` and normalizes five variants; `mark()` sets `verified_at`; `walkIn()` and `bulkWalkIn()` honor `encoding_mode` |
+| `app/Http/Requests/WalkInRegistrationRequest.php`                           | Accepts `encoding_mode` and `arrival_time`; Pass 3 requires arrival time when deferred                                                   |
+| `app/Http/Requests/BulkWalkInRegistrationRequest.php`                       | Same shape at the batch level, per-row arrival time                                                                                      |
+| `app/Models/Registration.php`                                               | `attendance_code` added to fillable                                                                                                      |
+| `app/Models/Attendance.php`                                                 | `verified_at` added to fillable and casts                                                                                                |
+| `app/Mail/RegistrationConfirmationMail.php`                                 | **New** — one-shot mailable; code + event name; subject `WDEMS — Your {event_name} attendance code`                                      |
 
 Frontend:
 
-| File | Change |
-|---|---|
-| `resources/js/pages/events/attendance.tsx` | Code lookup input; batch-mode encoding toggle; verified-code pass-through on mark |
-| `resources/js/pages/registrations/verify.tsx` | Attendance code panel with copy button on the finalized state |
-| `resources/js/components/walk-in-dialog.tsx` | Encoding mode toggle and arrival time input |
-| `resources/js/components/bulk-walk-in-table.tsx` | Per-row arrival time input in deferred mode |
-| `resources/js/lib/attendance-bulk-validation.ts` | Client mirror of the deferred arrival-time requirement |
+| File                                             | Change                                                                            |
+| ------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `resources/js/pages/events/attendance.tsx`       | Code lookup input; batch-mode encoding toggle; verified-code pass-through on mark |
+| `resources/js/pages/registrations/verify.tsx`    | Attendance code panel with copy button on the finalized state                     |
+| `resources/js/components/walk-in-dialog.tsx`     | Encoding mode toggle and arrival time input                                       |
+| `resources/js/components/bulk-walk-in-table.tsx` | Per-row arrival time input in deferred mode                                       |
+| `resources/js/lib/attendance-bulk-validation.ts` | Client mirror of the deferred arrival-time requirement                            |
 
 ### Test changes
 
-| File | Change | Result |
-|---|---|---|
-| `tests/Feature/Events/AttendanceVerificationTest.php` | **New** — 10 tests | All pass |
-| `tests/Feature/Events/AttendanceEncodingModeTest.php` | **New** — 7 tests | All pass |
-| `tests/Feature/Events/AttendanceBulkEncodingModeTest.php` | **New** — 7 tests | All pass |
-| `tests/Feature/Public/RegistrationConfirmationMailTest.php` | **New** — 3 tests | All pass |
+| File                                                        | Change             | Result   |
+| ----------------------------------------------------------- | ------------------ | -------- |
+| `tests/Feature/Events/AttendanceVerificationTest.php`       | **New** — 10 tests | All pass |
+| `tests/Feature/Events/AttendanceEncodingModeTest.php`       | **New** — 7 tests  | All pass |
+| `tests/Feature/Events/AttendanceBulkEncodingModeTest.php`   | **New** — 7 tests  | All pass |
+| `tests/Feature/Public/RegistrationConfirmationMailTest.php` | **New** — 3 tests  | All pass |
 
 ### Database changes
 
-| Migration | Purpose |
-|---|---|
+| Migration                                                          | Purpose                                                                             |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
 | `2026_10_14_100000_add_attendance_code_to_registrations_table.php` | Adds `registrations.attendance_code`, varchar(16), nullable, unique with `event_id` |
-| `2026_10_14_100001_add_verified_at_to_attendances_table.php` | Adds `attendances.verified_at`, timestamp nullable, indexed |
+| `2026_10_14_100001_add_verified_at_to_attendances_table.php`       | Adds `attendances.verified_at`, timestamp nullable, indexed                         |
 
 Both additive. No backfill required.
 
@@ -1927,7 +1929,7 @@ None new. The full open list remains in `docs/known-issues.md`.
    verification.** Theoretically risky — the callback might not fire
    inside `RefreshDatabase`'s test wrapper. Empirically fine: the
    `RegistrationConfirmationMailTest::sends the confirmation mail on
-   successful finalize` test passed on the first run. No code change
+successful finalize` test passed on the first run. No code change
    needed.
 
 2. **Block 4a `Attendance` model missing `verified_at` from fillable.**
@@ -1951,14 +1953,14 @@ None new. The full open list remains in `docs/known-issues.md`.
 
 ### Verification
 
-| Check | Result |
-|---|---|
-| `php artisan test` | 3 skipped, 537 passed, 1957 assertions |
-| `npx tsc --noEmit` | silent |
-| `npm run build` | succeeds; `verify-*.js` chunk grew 2.35 kB |
-| Manual browser: public form → verify → finalize → code panel | confirmed |
-| Manual browser: code lookup narrows to one row | confirmed |
-| Manual browser: mark Present with matching code sets `verified_at` | confirmed |
+| Check                                                              | Result                                     |
+| ------------------------------------------------------------------ | ------------------------------------------ |
+| `php artisan test`                                                 | 3 skipped, 537 passed, 1957 assertions     |
+| `npx tsc --noEmit`                                                 | silent                                     |
+| `npm run build`                                                    | succeeds; `verify-*.js` chunk grew 2.35 kB |
+| Manual browser: public form → verify → finalize → code panel       | confirmed                                  |
+| Manual browser: code lookup narrows to one row                     | confirmed                                  |
+| Manual browser: mark Present with matching code sets `verified_at` | confirmed                                  |
 
 ### Commits
 
@@ -1966,12 +1968,12 @@ None new. The full open list remains in `docs/known-issues.md`.
 
 ### Cross-reference
 
-| Subsystem | Primary doc |
-|---|---|
-| Attendance code reference | `docs/attendance-code.md` |
-| Original three-feature spec | `docs/attendance-encoding-and-reporting.md` |
-| Registration verification flow | `docs/registration-contact-verification.md` |
-| Slug constants (alphabet source) | `docs/implementation-notes.md` section 3 |
+| Subsystem                        | Primary doc                                 |
+| -------------------------------- | ------------------------------------------- |
+| Attendance code reference        | `docs/attendance-code.md`                   |
+| Original three-feature spec      | `docs/attendance-encoding-and-reporting.md` |
+| Registration verification flow   | `docs/registration-contact-verification.md` |
+| Slug constants (alphabet source) | `docs/implementation-notes.md` section 3    |
 
 ### Files touched this date — full inventory
 
@@ -2032,27 +2034,27 @@ None.
 
 ### Documentation appended
 
-| File | Change |
-|---|---|
+| File                                        | Change                                                                                 |
+| ------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `docs/attendance-encoding-and-reporting.md` | Pointer section noting Feature B is shipped; corrections to Sections 3.7, 4.4, and 4.6 |
-| `docs/progress.md` | This entry |
+| `docs/progress.md`                          | This entry                                                                             |
 
 ### Code changes
 
-| File | Change |
-|---|---|
-| `app/Http/Middleware/AdvanceEventStatus.php` | **New** — auto-advances RegistrationClosed to Ongoing once start moment has passed |
-| `bootstrap/app.php` | Registered `event.advance` alias |
-| `routes/web.php` | Added `POST /events/{event}/finalize` with `RequirePassword`; attached `event.advance` to the main group |
-| `app/Models/Event.php` | Added `canFinalize()` guard |
-| `app/Http/Controllers/EventController.php` | Added `finalize()` action; exposed `can_finalize` in the show payload |
-| `resources/js/pages/events/show.tsx` | Finalize Event button and confirmation modal |
+| File                                         | Change                                                                                                   |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `app/Http/Middleware/AdvanceEventStatus.php` | **New** — auto-advances RegistrationClosed to Ongoing once start moment has passed                       |
+| `bootstrap/app.php`                          | Registered `event.advance` alias                                                                         |
+| `routes/web.php`                             | Added `POST /events/{event}/finalize` with `RequirePassword`; attached `event.advance` to the main group |
+| `app/Models/Event.php`                       | Added `canFinalize()` guard                                                                              |
+| `app/Http/Controllers/EventController.php`   | Added `finalize()` action; exposed `can_finalize` in the show payload                                    |
+| `resources/js/pages/events/show.tsx`         | Finalize Event button and confirmation modal                                                             |
 
 ### Test changes
 
-| File | Change | Result |
-|---|---|---|
-| `tests/Feature/Events/EventFinalizeTest.php` | **New** — 10 tests | All pass |
+| File                                            | Change             | Result   |
+| ----------------------------------------------- | ------------------ | -------- |
+| `tests/Feature/Events/EventFinalizeTest.php`    | **New** — 10 tests | All pass |
 | `tests/Feature/Events/EventAutoAdvanceTest.php` | **New** — 10 tests | All pass |
 
 ### Database changes
@@ -2090,12 +2092,12 @@ consider whether the auto-advance middleware will fire first.
 
 ### Verification
 
-| Check | Result |
-|---|---|
-| `php artisan test` | 377 passed, 1169 assertions |
+| Check                                           | Result                                    |
+| ----------------------------------------------- | ----------------------------------------- |
+| `php artisan test`                              | 377 passed, 1169 assertions               |
 | `php artisan route:list --name=events.finalize` | 1 route with RequirePassword in the chain |
-| `npx tsc --noEmit` | silent |
-| `npm run build` | succeeds; new `check-circle-*.js` chunk |
+| `npx tsc --noEmit`                              | silent                                    |
+| `npm run build`                                 | succeeds; new `check-circle-*.js` chunk   |
 
 ### Commits
 
@@ -2103,12 +2105,12 @@ consider whether the auto-advance middleware will fire first.
 
 ### Cross-reference
 
-| Subsystem | Primary doc |
-|---|---|
-| Feature B spec | `docs/attendance-encoding-and-reporting.md` section 4 |
-| Auto-advance design and SPEC-GAP-1 | Same doc, sections 4.3 and Corrections |
-| Attendance code (already shipped) | `docs/attendance-code.md` |
-| Event lifecycle and workflow service | `docs/event-creation.md` section 7 |
+| Subsystem                            | Primary doc                                           |
+| ------------------------------------ | ----------------------------------------------------- |
+| Feature B spec                       | `docs/attendance-encoding-and-reporting.md` section 4 |
+| Auto-advance design and SPEC-GAP-1   | Same doc, sections 4.3 and Corrections                |
+| Attendance code (already shipped)    | `docs/attendance-code.md`                             |
+| Event lifecycle and workflow service | `docs/event-creation.md` section 7                    |
 
 ### Files touched this date — full inventory
 
@@ -2172,34 +2174,34 @@ refresh in `19bb809` was made redundant by the removal in `bd11474`
 
 ### Code changes
 
-| File | Change |
-|---|---|
-| `app/Models/Event.php` | `contact_number` moved between constants |
-| `app/Services/RegistrationVerification/RegistrationVerificationService.php` | `assertNoDuplicateRegistration()` called from `begin()` |
-| `resources/js/pages/events/registration-form.tsx` | `toggleable: false` → `true` on phone |
-| `resources/js/components/firebase-phone-verifier.tsx` | `phoneRequired` prop, `recaptchaEpoch`, epoch in layout effect deps |
-| `resources/js/pages/registrations/verify.tsx` | `phoneIsRequired`, `emailNeedsWork`, `phoneNeedsWork` guards |
-| `resources/js/pages/registrations/public.tsx` | `consentAccepted` state, blur validation, placeholders |
-| `resources/js/pages/events/step/BasicsStep.tsx` | AccessibilityGrid added |
-| `resources/js/pages/events/step/ExtrasStep.tsx` | AccessibilityGrid removed |
-| `resources/js/pages/events/create.tsx` | Step config fields updated |
-| `resources/js/pages/events/edit.tsx` | Step config fields updated |
-| `resources/css/app.css` | `color-scheme` on `:root` / `.dark`, `#age` spinner hide |
-| `README.md` | `docs/TinkerManual.md` row dropped |
-| `docs/TinkerManual.md` | Removed |
-| `app/Http/Controllers/EventController.php` | Finalize redirects to `events.report` (Feature C) |
-| `routes/web.php` | `events.report`, `events.report.export` routes (Feature C) |
-| `resources/js/pages/events/show.tsx` | View Report button (Feature C) |
+| File                                                                        | Change                                                              |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `app/Models/Event.php`                                                      | `contact_number` moved between constants                            |
+| `app/Services/RegistrationVerification/RegistrationVerificationService.php` | `assertNoDuplicateRegistration()` called from `begin()`             |
+| `resources/js/pages/events/registration-form.tsx`                           | `toggleable: false` → `true` on phone                               |
+| `resources/js/components/firebase-phone-verifier.tsx`                       | `phoneRequired` prop, `recaptchaEpoch`, epoch in layout effect deps |
+| `resources/js/pages/registrations/verify.tsx`                               | `phoneIsRequired`, `emailNeedsWork`, `phoneNeedsWork` guards        |
+| `resources/js/pages/registrations/public.tsx`                               | `consentAccepted` state, blur validation, placeholders              |
+| `resources/js/pages/events/step/BasicsStep.tsx`                             | AccessibilityGrid added                                             |
+| `resources/js/pages/events/step/ExtrasStep.tsx`                             | AccessibilityGrid removed                                           |
+| `resources/js/pages/events/create.tsx`                                      | Step config fields updated                                          |
+| `resources/js/pages/events/edit.tsx`                                        | Step config fields updated                                          |
+| `resources/css/app.css`                                                     | `color-scheme` on `:root` / `.dark`, `#age` spinner hide            |
+| `README.md`                                                                 | `docs/TinkerManual.md` row dropped                                  |
+| `docs/TinkerManual.md`                                                      | Removed                                                             |
+| `app/Http/Controllers/EventController.php`                                  | Finalize redirects to `events.report` (Feature C)                   |
+| `routes/web.php`                                                            | `events.report`, `events.report.export` routes (Feature C)          |
+| `resources/js/pages/events/show.tsx`                                        | View Report button (Feature C)                                      |
 
 ### Documentation appended
 
-| File | Change |
-|---|---|
-| `docs/registration-contact-verification.md` | `## Corrections (2026-10-15)` |
-| `docs/registration.md` | `## Status addendum (2026-10-15)` |
-| `docs/event-creation-wizard.md` | (see Cross-reference — pending) |
-| `docs/attendance-encoding-and-reporting.md` | (see Cross-reference — pending) |
-| `docs/progress.md` | This entry |
+| File                                        | Change                            |
+| ------------------------------------------- | --------------------------------- |
+| `docs/registration-contact-verification.md` | `## Corrections (2026-10-15)`     |
+| `docs/registration.md`                      | `## Status addendum (2026-10-15)` |
+| `docs/event-creation-wizard.md`             | (see Cross-reference — pending)   |
+| `docs/attendance-encoding-and-reporting.md` | (see Cross-reference — pending)   |
+| `docs/progress.md`                          | This entry                        |
 
 ### Test changes
 
@@ -2215,21 +2217,21 @@ None.
 
 ### Bugs fixed
 
-| Bug | Fix | Evidence |
-|---|---|---|
-| HTML5 `required` on consent swallowed submit | React-controlled checkbox + `InputError` slot | Browser: submit fires |
-| reCAPTCHA widget empty after failed send | `recaptchaEpoch` bump in layout effect deps | Browser: fresh widget on retry |
-| reCAPTCHA card unmounted during send | Container always mounted, `hidden` class | Browser: widget survives stages |
-| Duplicate only caught at finalize | `assertNoDuplicateRegistration()` in `begin()` | Browser: error on second submission |
-| Accessibility grid lived in Extras step | Moved to Basics step | Browser: step 1 shows grid |
-| No placeholders on public fields | Six placeholders added | Browser: hint text renders |
-| Age input showed native steppers | CSS rule scoped to `#age` | Browser: no arrows |
+| Bug                                          | Fix                                            | Evidence                            |
+| -------------------------------------------- | ---------------------------------------------- | ----------------------------------- |
+| HTML5 `required` on consent swallowed submit | React-controlled checkbox + `InputError` slot  | Browser: submit fires               |
+| reCAPTCHA widget empty after failed send     | `recaptchaEpoch` bump in layout effect deps    | Browser: fresh widget on retry      |
+| reCAPTCHA card unmounted during send         | Container always mounted, `hidden` class       | Browser: widget survives stages     |
+| Duplicate only caught at finalize            | `assertNoDuplicateRegistration()` in `begin()` | Browser: error on second submission |
+| Accessibility grid lived in Extras step      | Moved to Basics step                           | Browser: step 1 shows grid          |
+| No placeholders on public fields             | Six placeholders added                         | Browser: hint text renders          |
+| Age input showed native steppers             | CSS rule scoped to `#age`                      | Browser: no arrows                  |
 
 ### Bugs found but not fixed
 
-| # | Bug | Where documented |
-|---|---|---|
-| — | Email-only events show decorative reCAPTCHA (not server-enforced) | This entry |
+| #   | Bug                                                               | Where documented |
+| --- | ----------------------------------------------------------------- | ---------------- |
+| —   | Email-only events show decorative reCAPTCHA (not server-enforced) | This entry       |
 
 ### Failures during the session
 
@@ -2253,18 +2255,18 @@ None.
 
 ### Verification
 
-| Check | Result |
-|---|---|
-| Browser: public form, consent unchecked | Inline error, no POST |
-| Browser: public form, consent checked | POST fires, redirects to verification |
+| Check                                      | Result                                       |
+| ------------------------------------------ | -------------------------------------------- |
+| Browser: public form, consent unchecked    | Inline error, no POST                        |
+| Browser: public form, consent checked      | POST fires, redirects to verification        |
 | Browser: duplicate submission (same email) | Error under `identity`, no challenge created |
-| Browser: reCAPTCHA on email-only event | Widget renders above email card |
-| Browser: reCAPTCHA after failed phone send | Fresh widget, retry works |
-| Browser: phone verified | reCAPTCHA card hides |
-| Browser: phone optional | Phone card hides |
-| `npx tsc --noEmit` | silent after each block |
-| `php -l app/Models/Event.php` | No syntax errors detected |
-| `git push origin main` | `e8841d4..bd11474 main -> main` |
+| Browser: reCAPTCHA on email-only event     | Widget renders above email card              |
+| Browser: reCAPTCHA after failed phone send | Fresh widget, retry works                    |
+| Browser: phone verified                    | reCAPTCHA card hides                         |
+| Browser: phone optional                    | Phone card hides                             |
+| `npx tsc --noEmit`                         | silent after each block                      |
+| `php -l app/Models/Event.php`              | No syntax errors detected                    |
+| `git push origin main`                     | `e8841d4..bd11474 main -> main`              |
 
 ### Commits
 
@@ -2275,12 +2277,12 @@ None.
 
 ### Cross-reference
 
-| Subsystem | Primary doc |
-|---|---|
+| Subsystem                         | Primary doc                                 |
+| --------------------------------- | ------------------------------------------- |
 | Registration contact verification | `docs/registration-contact-verification.md` |
-| Registration feature spec | `docs/registration.md` |
-| End-of-event report | `docs/attendance-encoding-and-reporting.md` |
-| Event creation wizard | `docs/event-creation-wizard.md` |
+| Registration feature spec         | `docs/registration.md`                      |
+| End-of-event report               | `docs/attendance-encoding-and-reporting.md` |
+| Event creation wizard             | `docs/event-creation-wizard.md`             |
 
 ---
 
@@ -2306,23 +2308,23 @@ per-event required flags.
 
 ### Code changes
 
-| File | Change |
-|---|---|
-| `database/migrations/2026_10_15_100000_add_code_acknowledged_at_to_registration_verification_challenges_table.php` | **New** — column |
-| `resources/js/pages/registrations/confirmed.tsx` | **New** — code-free completion page |
-| `app/Services/RegistrationVerification/RegistrationVerificationService.php` | `acknowledgeCode()`; `'acknowledged'` in `publicState()` |
-| `app/Http/Controllers/RegistrationVerificationController.php` | `acknowledge()`; `show()` redirect on acknowledged |
-| `app/Http/Controllers/PublicRegistrationController.php` | `confirmed()`; `eventPayload()` extended |
-| `app/Models/RegistrationVerificationChallenge.php` | Cast + property |
-| `app/Mail/RegistrationConfirmationMail.php` | Subject reworded |
-| `resources/views/emails/registration-confirmation.blade.php` | Reworded |
-| `routes/registration-verification.php` | `acknowledge-code` route |
-| `routes/web.php` | `/r/{slug}/registered` route |
-| `resources/js/app.tsx` | `registrations/confirmed` layout case |
-| `resources/js/layouts/public/public-layout.tsx` | Docblock |
-| `resources/js/lib/public-registration-validation.ts` | At-least-one aligned to required flags |
-| `resources/js/pages/registrations/public.tsx` | Event summary |
-| `resources/js/pages/registrations/verify.tsx` | `RegistrationCodePanel`; ack button |
+| File                                                                                                               | Change                                                   |
+| ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| `database/migrations/2026_10_15_100000_add_code_acknowledged_at_to_registration_verification_challenges_table.php` | **New** — column                                         |
+| `resources/js/pages/registrations/confirmed.tsx`                                                                   | **New** — code-free completion page                      |
+| `app/Services/RegistrationVerification/RegistrationVerificationService.php`                                        | `acknowledgeCode()`; `'acknowledged'` in `publicState()` |
+| `app/Http/Controllers/RegistrationVerificationController.php`                                                      | `acknowledge()`; `show()` redirect on acknowledged       |
+| `app/Http/Controllers/PublicRegistrationController.php`                                                            | `confirmed()`; `eventPayload()` extended                 |
+| `app/Models/RegistrationVerificationChallenge.php`                                                                 | Cast + property                                          |
+| `app/Mail/RegistrationConfirmationMail.php`                                                                        | Subject reworded                                         |
+| `resources/views/emails/registration-confirmation.blade.php`                                                       | Reworded                                                 |
+| `routes/registration-verification.php`                                                                             | `acknowledge-code` route                                 |
+| `routes/web.php`                                                                                                   | `/r/{slug}/registered` route                             |
+| `resources/js/app.tsx`                                                                                             | `registrations/confirmed` layout case                    |
+| `resources/js/layouts/public/public-layout.tsx`                                                                    | Docblock                                                 |
+| `resources/js/lib/public-registration-validation.ts`                                                               | At-least-one aligned to required flags                   |
+| `resources/js/pages/registrations/public.tsx`                                                                      | Event summary                                            |
+| `resources/js/pages/registrations/verify.tsx`                                                                      | `RegistrationCodePanel`; ack button                      |
 
 ### Test changes
 
@@ -2373,27 +2375,27 @@ pattern as the FAQ removal in `f03f450`.
 
 ### Code changes
 
-| File | Change |
-|---|---|
-| `accessibility-grid.tsx` | `quiet_space_available` removed from union + grid |
-| `BasicsStep.tsx` | Fields array, helper text |
-| `ScheduleStep.tsx` | Course Link block removed |
-| `create.tsx` | Defaults flipped to true, quiet_space + course_url removed |
-| `edit.tsx` | quiet_space + course_url removed from type, fields, data |
-| `show.tsx` | Venue map link added, course + quiet_space sections removed |
-| `public.tsx` | course_url removed from type and header |
-| `event-validation.ts` | course_url removed from validateSchedule |
-| `EventValidationRules.php` | course_url rule + message removed; quiet_space rule removed |
-| `EventController.php` | store/update/edit/show payloads cleaned |
-| `PublicRegistrationController.php` | eventPayload trimmed |
+| File                               | Change                                                      |
+| ---------------------------------- | ----------------------------------------------------------- |
+| `accessibility-grid.tsx`           | `quiet_space_available` removed from union + grid           |
+| `BasicsStep.tsx`                   | Fields array, helper text                                   |
+| `ScheduleStep.tsx`                 | Course Link block removed                                   |
+| `create.tsx`                       | Defaults flipped to true, quiet_space + course_url removed  |
+| `edit.tsx`                         | quiet_space + course_url removed from type, fields, data    |
+| `show.tsx`                         | Venue map link added, course + quiet_space sections removed |
+| `public.tsx`                       | course_url removed from type and header                     |
+| `event-validation.ts`              | course_url removed from validateSchedule                    |
+| `EventValidationRules.php`         | course_url rule + message removed; quiet_space rule removed |
+| `EventController.php`              | store/update/edit/show payloads cleaned                     |
+| `PublicRegistrationController.php` | eventPayload trimmed                                        |
 
 ### Test changes
 
-| File | Change |
-|---|---|
-| `EventScheduleRulesTest.php` | 6 course_url tests removed |
-| `EventUrlRulesTest.php` | 8 course_url tests removed; venue_map_url untouched |
-| `RegistrationSubmissionTest.php` | Summary assertions aligned to removed fields |
+| File                             | Change                                              |
+| -------------------------------- | --------------------------------------------------- |
+| `EventScheduleRulesTest.php`     | 6 course_url tests removed                          |
+| `EventUrlRulesTest.php`          | 8 course_url tests removed; venue_map_url untouched |
+| `RegistrationSubmissionTest.php` | Summary assertions aligned to removed fields        |
 
 Full suite at close: **477 passed, 0 failed (1989 assertions)**.
 Down from 491 because 14 course_url tests were removed.
@@ -2616,10 +2618,10 @@ Frontend:
 
 - Sidebar entry (`GraduationCap`, between Fellowship and Events).
 - 2 pages under `resources/js/pages/discipleship/`:
-  - `index.tsx` — six program cards.
-  - `show.tsx` — program header with an empty batches state.
-    The empty state is honest: no batches exist yet because
-    batches are 5B.
+    - `index.tsx` — six program cards.
+    - `show.tsx` — program header with an empty batches state.
+      The empty state is honest: no batches exist yet because
+      batches are 5B.
 
 ### Seeder decision
 
@@ -2903,14 +2905,14 @@ Frontend:
   added with participant, contact, batch, status badge, enrolled
   date, and action buttons.
 - Three dialogs added:
-  - **Add Enrollment** — live participant search (debounced
-    fetch to the JSON endpoint), optional batch dropdown,
-    optional enrollment date, notes. Already-enrolled
-    participants render disabled in the result list.
-  - **Edit Enrollment** — status dropdown (5 options), batch
-    dropdown, notes.
-  - **Withdraw** — confirm dialog that explains the
-    row-survives semantics.
+    - **Add Enrollment** — live participant search (debounced
+      fetch to the JSON endpoint), optional batch dropdown,
+      optional enrollment date, notes. Already-enrolled
+      participants render disabled in the result list.
+    - **Edit Enrollment** — status dropdown (5 options), batch
+      dropdown, notes.
+    - **Withdraw** — confirm dialog that explains the
+      row-survives semantics.
 - Status badge palette: enrolled (lime), in_progress (accent),
   completed (green), withdrawn (destructive), on_hold (navy in
   light, yellow in dark).
@@ -3230,7 +3232,7 @@ absence treated as a soft-present matches how most church
 discipleship programs work. The service computes it either way
 from the same data; changing the policy is a one-line edit.
 
-The progress *service* is separable from the criteria storage.
+The progress _service_ is separable from the criteria storage.
 `attended / applicable / percentage` computes from attendance
 data alone. Applicable means "sessions in the batch between the
 enrollment's enrolled_at date and today." If the client wants a
@@ -3336,15 +3338,15 @@ Backend:
   list and in `casts()`.
 - `App\Services\Discipleship\DiscipleshipProgressService` with
   three methods:
-  - `progress(DiscipleshipEnrollment): array` — attended,
-    applicable, percentage, required_sessions, is_complete for
-    one enrollment.
-  - `batchSummary(DiscipleshipBatch): array` — one row per
-    enrollment visible on the batch detail page.
-  - `programOverview(DiscipleshipProgram): array` — total,
-    completed, in_progress, not_started, withdrawn, on_hold,
-    completion_rate. Counts statuses; does not compute
-    per-enrollment progress.
+    - `progress(DiscipleshipEnrollment): array` — attended,
+      applicable, percentage, required_sessions, is_complete for
+      one enrollment.
+    - `batchSummary(DiscipleshipBatch): array` — one row per
+      enrollment visible on the batch detail page.
+    - `programOverview(DiscipleshipProgram): array` — total,
+      completed, in_progress, not_started, withdrawn, on_hold,
+      completion_rate. Counts statuses; does not compute
+      per-enrollment progress.
 - `DiscipleshipController::show()` payload extended with
   `overview` (from `programOverview`) and a `progress` object
   on each enrollment row.
@@ -3424,10 +3426,10 @@ Backend:
 - `DiscipleshipController::show()` accepts `?q`, `?status`,
   `?batch` query params. Three private helpers keep the query
   logic centralized:
-  - `buildFilteredQuery()` — q and batch, no status.
-  - `buildEnrollmentsQuery()` — q, status, batch.
-  - `buildCounts()` — per-status counts under the q + batch
-    scope, ignoring the current status filter.
+    - `buildFilteredQuery()` — q and batch, no status.
+    - `buildEnrollmentsQuery()` — q, status, batch.
+    - `buildCounts()` — per-status counts under the q + batch
+      scope, ignoring the current status filter.
 - `DiscipleshipController::exportCsv()` streams a CSV of the
   filtered enrollment list. Same query builder as show();
   respects q, status, and batch. Columns: Participant,
@@ -3440,20 +3442,20 @@ Backend:
 Frontend:
 
 - `discipleship/show.tsx` gains:
-  - Debounced search input (300ms, matching the running-event
-    attendance page).
-  - Status filter chips with counts per status.
-  - Batch dropdown filter with "All batches" and "Unassigned"
-    options.
-  - "Clear filters" link when any filter is active.
-  - A result count next to the batch filter.
-  - Export CSV button that carries the current filter query
-    via a plain `<a href>` (browser downloads directly, no
-    Inertia visit).
-  - Quick Actions panel: View program details, Manage batches
-    (anchor scroll), Add enrollment.
-  - `ProgramDetailsDialog` — read-only summary of description,
-    counts, and completion criteria placeholder text.
+    - Debounced search input (300ms, matching the running-event
+      attendance page).
+    - Status filter chips with counts per status.
+    - Batch dropdown filter with "All batches" and "Unassigned"
+      options.
+    - "Clear filters" link when any filter is active.
+    - A result count next to the batch filter.
+    - Export CSV button that carries the current filter query
+      via a plain `<a href>` (browser downloads directly, no
+      Inertia visit).
+    - Quick Actions panel: View program details, Manage batches
+      (anchor scroll), Add enrollment.
+    - `ProgramDetailsDialog` — read-only summary of description,
+      counts, and completion criteria placeholder text.
 
 ### Design decisions
 
@@ -3547,16 +3549,16 @@ sub-phases (5A–5H), one module shipped end to end.
 
 ### Phase 5 summary
 
-| Sub-phase | Content | Code commit | Doc commit |
-|---|---|---|---|
-| 5A | Programs (seeded) | `979e0de` | `f3e4fc6` |
-| 5B | Batches | `3e57104` | `69ade42` |
-| 5C | Enrollments | `4a239f5` | `e859fe1` |
-| 5D | Sessions | `79e98d9` | `9a74b4c` |
-| 5E | Attendance matrix | `935ba21` | `7779a38` |
-| 5F | Progress + completion | `9b107a4` | `3164d07` |
-| 5G | Dashboard, filter, CSV | `d20fa3f` | `c217cac` |
-| 5H | Closure + coverage audit | (this entry) | — |
+| Sub-phase | Content                  | Code commit  | Doc commit |
+| --------- | ------------------------ | ------------ | ---------- |
+| 5A        | Programs (seeded)        | `979e0de`    | `f3e4fc6`  |
+| 5B        | Batches                  | `3e57104`    | `69ade42`  |
+| 5C        | Enrollments              | `4a239f5`    | `e859fe1`  |
+| 5D        | Sessions                 | `79e98d9`    | `9a74b4c`  |
+| 5E        | Attendance matrix        | `935ba21`    | `7779a38`  |
+| 5F        | Progress + completion    | `9b107a4`    | `3164d07`  |
+| 5G        | Dashboard, filter, CSV   | `d20fa3f`    | `c217cac`  |
+| 5H        | Closure + coverage audit | (this entry) | —          |
 
 **Total:** 7 code commits, 7 doc commits, 14 commits on `main`.
 
@@ -3593,15 +3595,15 @@ Services (Phase 3), Fellowship (Phase 4), Discipleship
 Every public controller action and service method has at least
 one test. Audit summary:
 
-| Layer | Tests | Coverage |
-|---|---|---|
-| Programs (model, controller, seeder) | 6 | full |
-| Batches (model, controller) | 12 | full |
-| Enrollments (model, controller, search) | 23 | full |
-| Sessions (model, controller) | 13 | full |
-| Attendance (model, controller, bulk) | 15 | full |
-| Progress service | 13 | full |
-| Filters, CSV export, counts | 15 | full |
+| Layer                                   | Tests | Coverage |
+| --------------------------------------- | ----- | -------- |
+| Programs (model, controller, seeder)    | 6     | full     |
+| Batches (model, controller)             | 12    | full     |
+| Enrollments (model, controller, search) | 23    | full     |
+| Sessions (model, controller)            | 13    | full     |
+| Attendance (model, controller, bulk)    | 15    | full     |
+| Progress service                        | 13    | full     |
+| Filters, CSV export, counts             | 15    | full     |
 
 **Four non-covered methods, all cosmetic:**
 
@@ -3845,51 +3847,51 @@ phase-level summary, not the diff):
 
 ### Documentation created
 
-| File | Lines | Purpose |
-|---|---|---|
-| `docs/composite-identity.md` | ~404 | Authoritative reference for the composite identity rule. Reverses `participant-identity.md` §3, §4.1, §5, §6 |
-| `docs/registration-wizard.md` | ~490 | The 5-step public wizard, per-phase status, case-coverage matrix |
-| `docs/audit-2026-10-19.md` | ~448 | Static audit at `2d19a5d` with per-finding current status |
+| File                          | Lines | Purpose                                                                                                      |
+| ----------------------------- | ----- | ------------------------------------------------------------------------------------------------------------ |
+| `docs/composite-identity.md`  | ~404  | Authoritative reference for the composite identity rule. Reverses `participant-identity.md` §3, §4.1, §5, §6 |
+| `docs/registration-wizard.md` | ~490  | The 5-step public wizard, per-phase status, case-coverage matrix                                             |
+| `docs/audit-2026-10-19.md`    | ~448  | Static audit at `2d19a5d` with per-finding current status                                                    |
 
 ### Documentation corrected / appended
 
-| File | Change |
-|---|---|
+| File                           | Change                                                                                                                                                                                                                                                                        |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `docs/participant-identity.md` | `## Corrections — Composite identity (2026-10-19)` appended. §3 (name as identifier), §4.1 (unique email dropped), §5 (name normalization), §6 (resolution rule) reversed. `resolveFrom` docblock flagged as stale. Birthdate correction's closing line flagged as superseded |
-| `docs/known-issues.md` | `## Later additions — audit 2026-10-19` appended. ISSUE-014 through ISSUE-025 added. M5 and P5 explicitly excluded as superseded |
-| `docs/progress.md` | This entry |
-| `docs/AI-CONTEXT.md` | §23 reading-order additions (next block) |
+| `docs/known-issues.md`         | `## Later additions — audit 2026-10-19` appended. ISSUE-014 through ISSUE-025 added. M5 and P5 explicitly excluded as superseded                                                                                                                                              |
+| `docs/progress.md`             | This entry                                                                                                                                                                                                                                                                    |
+| `docs/AI-CONTEXT.md`           | §23 reading-order additions (next block)                                                                                                                                                                                                                                      |
 
 ### Code changes (as reported)
 
-| Area | Change | Phase |
-|---|---|---|
-| Schema | `participants.middle_name`, `participants.suffix` (nullable) | W1 |
-| Schema | `registrations.emergency_contact_name`, `.emergency_contact_relationship`, `.emergency_contact_number` (nullable at DB, required at finalize) | W1 |
-| Schema | `email_device_verifications` new table | W1 |
-| Schema | `registration_verification_challenges.chosen_channel` | W5.1 |
-| Schema | `DROP UNIQUE` on `participants.email` and `contact_number_normalized` | W7 |
-| Schema | `participants.first_name_normalized`, `participants.last_name_normalized` (nullable) | W7 |
-| Model | `Participant::normalizeName()` helper | W7 |
-| Model | `setFirstNameAttribute` / `setLastNameAttribute` mutators | W7 |
-| Model | `Participant::resolveFrom()` rewritten for composite key | W7 |
-| Service | `RegistrationVerificationService::assertNoDuplicateRegistration()` requires name + contact | W7 |
-| Service | `RESEND_COOLDOWN_SECONDS` 60 → 100 (PHP + TS) | W5.1 |
-| Service | `begin()` duplicate message made non-revealing | W5.1 |
-| Service | Consent columns written at finalize | W2 |
-| Frontend | `public.tsx` 3-step wizard shell, WizardProgress on verify/confirmed, DatePicker year drill-down, PH phone input | W3a, W6 |
-| Frontend | Emergency contact block with same-number warning | W4 |
-| Frontend | Channel-choice UI | W5.2 |
-| Frontend | Device-trust OTP skip | W5.3 |
+| Area     | Change                                                                                                                                        | Phase   |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| Schema   | `participants.middle_name`, `participants.suffix` (nullable)                                                                                  | W1      |
+| Schema   | `registrations.emergency_contact_name`, `.emergency_contact_relationship`, `.emergency_contact_number` (nullable at DB, required at finalize) | W1      |
+| Schema   | `email_device_verifications` new table                                                                                                        | W1      |
+| Schema   | `registration_verification_challenges.chosen_channel`                                                                                         | W5.1    |
+| Schema   | `DROP UNIQUE` on `participants.email` and `contact_number_normalized`                                                                         | W7      |
+| Schema   | `participants.first_name_normalized`, `participants.last_name_normalized` (nullable)                                                          | W7      |
+| Model    | `Participant::normalizeName()` helper                                                                                                         | W7      |
+| Model    | `setFirstNameAttribute` / `setLastNameAttribute` mutators                                                                                     | W7      |
+| Model    | `Participant::resolveFrom()` rewritten for composite key                                                                                      | W7      |
+| Service  | `RegistrationVerificationService::assertNoDuplicateRegistration()` requires name + contact                                                    | W7      |
+| Service  | `RESEND_COOLDOWN_SECONDS` 60 → 100 (PHP + TS)                                                                                                 | W5.1    |
+| Service  | `begin()` duplicate message made non-revealing                                                                                                | W5.1    |
+| Service  | Consent columns written at finalize                                                                                                           | W2      |
+| Frontend | `public.tsx` 3-step wizard shell, WizardProgress on verify/confirmed, DatePicker year drill-down, PH phone input                              | W3a, W6 |
+| Frontend | Emergency contact block with same-number warning                                                                                              | W4      |
+| Frontend | Channel-choice UI                                                                                                                             | W5.2    |
+| Frontend | Device-trust OTP skip                                                                                                                         | W5.3    |
 
 Full detail is in `docs/composite-identity.md` and
 `docs/registration-wizard.md`, not here.
 
 ### Test changes (as reported)
 
-| File | Change |
-|---|---|
-| `tests/Feature/Participants/ParticipantIdentityResolverTest.php` | Rewritten for composite matching; added "name variant = different person" test |
+| File                                                                | Change                                                                                 |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `tests/Feature/Participants/ParticipantIdentityResolverTest.php`    | Rewritten for composite matching; added "name variant = different person" test         |
 | `tests/Feature/Participants/ParticipantIdentityConstraintsTest.php` | Two UNIQUE-constraint tests rewritten — duplicates now allowed and verified to coexist |
 
 **Full suite at W7 close (as reported):** 833 passed, 3 skipped
@@ -3905,12 +3907,12 @@ authoritative for the identity rule.
 
 ### Database changes
 
-| Migration | Purpose |
-|---|---|
-| `2026_10_19_170000_drop_unique_email_from_participants` | Composite identity prerequisite |
-| `2026_10_19_170100_drop_unique_normalized_phone_from_participants` | Composite identity prerequisite |
-| `2026_10_19_170200_add_normalized_name_columns_to_participants` | Composite identity prerequisite; backfilled in PHP |
-| (earlier W1 migrations — same calendar day) | `middle_name`, `suffix`, emergency contact, device trust table, `chosen_channel` |
+| Migration                                                          | Purpose                                                                          |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `2026_10_19_170000_drop_unique_email_from_participants`            | Composite identity prerequisite                                                  |
+| `2026_10_19_170100_drop_unique_normalized_phone_from_participants` | Composite identity prerequisite                                                  |
+| `2026_10_19_170200_add_normalized_name_columns_to_participants`    | Composite identity prerequisite; backfilled in PHP                               |
+| (earlier W1 migrations — same calendar day)                        | `middle_name`, `suffix`, emergency contact, device trust table, `chosen_channel` |
 
 All three composite-identity migrations ran clean on dev DB. The
 backfill is chunked in PHP because MySQL `LOWER()` is not reliably
@@ -3922,11 +3924,11 @@ None.
 
 ### Bugs fixed
 
-| Bug | Closed by | Known-issues |
-|---|---|---|
-| Anonymous registration-state enumeration oracle (begin-time message revealed duplicate status) | W5.1 | (recorded in `audit-2026-10-19.md` §9, not re-filed) |
-| Consent columns never written at finalize | W2 | (recorded in `audit-2026-10-19.md` §2.3, not re-filed) |
-| Global unique email blocked family registrations | W7 | (motivating bug for composite rule) |
+| Bug                                                                                            | Closed by | Known-issues                                           |
+| ---------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------ |
+| Anonymous registration-state enumeration oracle (begin-time message revealed duplicate status) | W5.1      | (recorded in `audit-2026-10-19.md` §9, not re-filed)   |
+| Consent columns never written at finalize                                                      | W2        | (recorded in `audit-2026-10-19.md` §2.3, not re-filed) |
+| Global unique email blocked family registrations                                               | W7        | (motivating bug for composite rule)                    |
 
 ### Bugs found but not fixed
 
@@ -3974,14 +3976,14 @@ Both are recorded as process additions to
 
 ### Verification
 
-| Check | Result |
-|---|---|
-| `php artisan test` (as reported by developer) | 833 passed, 3 skipped, 0 failed |
-| `npx tsc --noEmit` (as reported by developer) | silent |
-| `php artisan migrate` (as reported by developer) | all migrations ran clean |
-| `php -l` on modified files (as reported by developer) | clean |
-| `grep -cE "^##+ ISSUE-" docs/known-issues.md` | 25 |
-| `grep -q "WDEMS.*_EOF"` on each new/amended doc | clean (no delimiter leaks) |
+| Check                                                 | Result                          |
+| ----------------------------------------------------- | ------------------------------- |
+| `php artisan test` (as reported by developer)         | 833 passed, 3 skipped, 0 failed |
+| `npx tsc --noEmit` (as reported by developer)         | silent                          |
+| `php artisan migrate` (as reported by developer)      | all migrations ran clean        |
+| `php -l` on modified files (as reported by developer) | clean                           |
+| `grep -cE "^##+ ISSUE-" docs/known-issues.md`         | 25                              |
+| `grep -q "WDEMS.*_EOF"` on each new/amended doc       | clean (no delimiter leaks)      |
 
 **Live verification not yet run** (deferred to next session):
 `./scripts/audit-design.sh` (should be exit 0),
@@ -3989,16 +3991,16 @@ Both are recorded as process additions to
 
 ### Cross-reference
 
-| Subsystem | Document |
-|---|---|
-| Composite identity | `docs/composite-identity.md` |
-| Public wizard | `docs/registration-wizard.md` |
-| Audit 2026-10-19 | `docs/audit-2026-10-19.md` |
-| Backlog (ISSUE-014..025) | `docs/known-issues.md` |
-| Original identity spec (superseded) | `docs/participant-identity.md` |
-| Original registration spec (pre-wizard) | `docs/registration.md` |
-| Verification subsystem | `docs/registration-contact-verification.md` |
-| Phase plan (pre-wizard) | `docs/registration-development-plan.md` |
+| Subsystem                               | Document                                    |
+| --------------------------------------- | ------------------------------------------- |
+| Composite identity                      | `docs/composite-identity.md`                |
+| Public wizard                           | `docs/registration-wizard.md`               |
+| Audit 2026-10-19                        | `docs/audit-2026-10-19.md`                  |
+| Backlog (ISSUE-014..025)                | `docs/known-issues.md`                      |
+| Original identity spec (superseded)     | `docs/participant-identity.md`              |
+| Original registration spec (pre-wizard) | `docs/registration.md`                      |
+| Verification subsystem                  | `docs/registration-contact-verification.md` |
+| Phase plan (pre-wizard)                 | `docs/registration-development-plan.md`     |
 
 ### Files touched this date — full inventory
 
@@ -4028,8 +4030,6 @@ Both are recorded as process additions to
       tests/Feature/Participants/ParticipantIdentityResolverTest.php
       tests/Feature/Participants/ParticipantIdentityConstraintsTest.php
       Plus any other files the W1–W7 phases touched
-
-
 
 ## Running Events audit addendum — 2026-10-21
 

@@ -94,15 +94,15 @@ The `google_form_response_id` column on `registrations` and the `source` / `regi
 
 ## Foreign Key Rules
 
-| Relationship | On delete |
-|---|---|
-| `events.created_by` → `users` | RESTRICT |
-| `event_options.event_id` → `events` | CASCADE |
-| `registrations.event_id` → `events` | CASCADE |
-| `registrations.participant_id` → `participants` | **RESTRICT** |
-| `registration_options.registration_id` → `registrations` | CASCADE |
+| Relationship                                             | On delete    |
+| -------------------------------------------------------- | ------------ |
+| `events.created_by` → `users`                            | RESTRICT     |
+| `event_options.event_id` → `events`                      | CASCADE      |
+| `registrations.event_id` → `events`                      | CASCADE      |
+| `registrations.participant_id` → `participants`          | **RESTRICT** |
+| `registration_options.registration_id` → `registrations` | CASCADE      |
 | `registration_options.event_option_id` → `event_options` | **RESTRICT** |
-| `attendances.registration_id` → `registrations` | CASCADE |
+| `attendances.registration_id` → `registrations`          | CASCADE      |
 
 The **RESTRICT** on `registration_options.event_option_id` is the reason we cannot rely on cascade alone when deleting an event. See "Deletion algorithm" below.
 
@@ -257,12 +257,12 @@ A 4-step wizard for creating and editing events, implemented in React with a Lar
 
 ### Steps
 
-| Step | Fields |
-|---|---|
-| 1 — Basics | `event_type`, `event_name`, `description` |
+| Step         | Fields                                                                                  |
+| ------------ | --------------------------------------------------------------------------------------- |
+| 1 — Basics   | `event_type`, `event_name`, `description`                                               |
 | 2 — Schedule | `event_date`, `start_time`, `end_time`, `distance_value`, `distance_unit`, `course_url` |
-| 3 — Venue | `venue`, `venue_address`, `venue_latitude`, `venue_longitude` |
-| 4 — Extras | `rsvp_required`, `partners`, 9 accessibility flags |
+| 3 — Venue    | `venue`, `venue_address`, `venue_latitude`, `venue_longitude`                           |
+| 4 — Extras   | `rsvp_required`, `partners`, 9 accessibility flags                                      |
 
 ### Key files
 
@@ -480,7 +480,6 @@ was never added.
 This is the same stale-claim pattern recorded as D-3 in
 `docs/participant-identity-and-monitoring-plan.md` Phase 0
 findings. Both docs are now corrected.
-
 
 ## Running Events audit addendum — 2026-10-21
 

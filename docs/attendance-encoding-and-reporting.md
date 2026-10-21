@@ -12,6 +12,7 @@ current code except where explicitly named as "existing."
 **Status:** Spec. No code exists yet for any of the three features.
 
 **Related:**
+
 - `docs/attendance-redesign.md` — the three-mode attendance workspace
   this supersedes for day-of operations
 - `docs/registration.md` — the participant registration flow
@@ -48,11 +49,11 @@ work.
 
 ## 2. The three features
 
-| Feature | Purpose | Pain it solves |
-|---|---|---|
-| **A — Encoding workspace** | A fast grid for entering both paper artifacts | Excel is slow; the current batch table does one type of paper at a time |
-| **B — Finalize event** | A password-gated close after which the event is immutable | Events currently sit at `registration_closed` forever; no terminal action |
-| **C — End-of-event report** | A single page showing the event's outcome and participant history | No consolidated view of attendance vs registration; no cross-event view |
+| Feature                     | Purpose                                                           | Pain it solves                                                            |
+| --------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **A — Encoding workspace**  | A fast grid for entering both paper artifacts                     | Excel is slow; the current batch table does one type of paper at a time   |
+| **B — Finalize event**      | A password-gated close after which the event is immutable         | Events currently sit at `registration_closed` forever; no terminal action |
+| **C — End-of-event report** | A single page showing the event's outcome and participant history | No consolidated view of attendance vs registration; no cross-event view   |
 
 The features build on each other: **B** produces the terminal state
 that **C** reports on. **A** produces the clean data that **C**
@@ -98,13 +99,13 @@ which mode handles which paper.
 
 **Attendance tab** — one row per pre-registered participant. Columns:
 
-| Column | Content |
-|---|---|
-| Checkbox | For bulk actions (see §3.4) |
-| Name | First + last |
-| Contact | Email if present, else phone |
-| Status | Dropdown: Present / Absent / Late / Excused / Unmarked |
-| ⋯ | Row actions (edit participant, view history, delete) |
+| Column   | Content                                                |
+| -------- | ------------------------------------------------------ |
+| Checkbox | For bulk actions (see §3.4)                            |
+| Name     | First + last                                           |
+| Contact  | Email if present, else phone                           |
+| Status   | Dropdown: Present / Absent / Late / Excused / Unmarked |
+| ⋯        | Row actions (edit participant, view history, delete)   |
 
 **Walk-ins tab** — one row per walk-in registration. New walk-ins
 are added via an "Add walk-in" button that opens a form identical to
@@ -154,9 +155,10 @@ What this means in practice:
 - Any row already POSTed is safe.
 
 **Why Tier 1 and not higher.** True offline (Tier 3, service worker
-+ IndexedDB) is 3–6 weeks of additional work. The venue for most
-community runs has some phone signal. The encoding session happens
-after the event when the organizer is back at a table with wifi.
+
+- IndexedDB) is 3–6 weeks of additional work. The venue for most
+  community runs has some phone signal. The encoding session happens
+  after the event when the organizer is back at a table with wifi.
 
 If a specific venue proves to need true offline, that is a separate
 feature, not an extension of this one.
@@ -186,11 +188,13 @@ by the participant directly — except `source` is `walk_in` vs
 **Guard:** `Event::canEncode()`
 
 Returns true when:
+
 - The event status is `ongoing`
 - The attendance window is open (already enforced by
   `canRecordAttendanceNow()`)
 
 Returns false when:
+
 - The event is `draft`, `registration_open`, or `registration_closed`
 - The event is `completed`
 - The event is `cancelled`
@@ -208,11 +212,11 @@ matching the existing pattern on `mark`, `walkIn`, and `bulkWalkIn`.
 
 The three current modes on the attendance page are removed:
 
-| Removed | Reason |
-|---|---|
-| Mark mode | Covered by Attendance tab's inline status dropdown |
-| Confirm mode | Covered by Attendance tab's bulk selection |
-| Add mode | Covered by Walk-ins tab |
+| Removed      | Reason                                             |
+| ------------ | -------------------------------------------------- |
+| Mark mode    | Covered by Attendance tab's inline status dropdown |
+| Confirm mode | Covered by Attendance tab's bulk selection         |
+| Add mode     | Covered by Walk-ins tab                            |
 
 The `walk-in-dialog.tsx` component is retained — the Walk-ins tab's
 "Add walk-in" button opens it. The `bulk-walk-in-table.tsx` component
@@ -239,13 +243,13 @@ and available to both admin and staff roles.
 
 No shortcuts. Each transition has one trigger:
 
-| Transition | Trigger | Who |
-|---|---|---|
-| `draft → registration_open` | "Open registration" button | Admin or staff |
-| `registration_open → registration_closed` | "Close registration" button | Admin or staff |
-| `registration_closed → ongoing` | Auto — middleware fires when the event's `start_time` arrives | System |
-| `ongoing → completed` | "Finalize event" button, password-gated | Admin or staff |
-| `* → cancelled` | "Cancel event" button, password-gated | Admin only |
+| Transition                                | Trigger                                                       | Who            |
+| ----------------------------------------- | ------------------------------------------------------------- | -------------- |
+| `draft → registration_open`               | "Open registration" button                                    | Admin or staff |
+| `registration_open → registration_closed` | "Close registration" button                                   | Admin or staff |
+| `registration_closed → ongoing`           | Auto — middleware fires when the event's `start_time` arrives | System         |
+| `ongoing → completed`                     | "Finalize event" button, password-gated                       | Admin or staff |
+| `* → cancelled`                           | "Cancel event" button, password-gated                         | Admin only     |
 
 ### 4.3 The auto-advance mechanism
 
@@ -255,6 +259,7 @@ request in the main route group:
     auth, verified.or.admin, device.trusted
 
 It checks `$request->route('event')`. If an `Event` is bound and
+
 - the event's status is `registration_closed`
 - `event_date + start_time` is in the past
 
@@ -332,18 +337,18 @@ settings action.
 When the event reaches `completed`, the following surfaces reject
 further writes:
 
-| Surface | Enforcement |
-|---|---|
-| Attendance mark | `AttendanceController::mark` — window gate (already rejects) |
-| Single walk-in | `AttendanceController::walkIn` — window gate (already rejects) |
-| Bulk walk-in | `AttendanceController::bulkWalkIn` — window gate (already rejects) |
-| Bulk mark | `AttendanceController::bulkMark` — window gate (already rejects) |
-| Monitor actions (edit/flag/note) | `RegistrationMonitorController::ensureEditableRegistration` (already rejects) |
-| Registration deletion | `RegistrationDeletionController::ensureManageable` (already rejects) |
-| Event edit | `EventController::edit` / `::update` — `canEdit()` already excludes `completed` |
-| Registration form builder | `RegistrationFormController` — already rejects non-`draft` |
-| **Encoding page** | **New** — `Event::canEncode()` returns false |
-| **Event deletion** | **Unchanged** — admin may still delete a completed event |
+| Surface                          | Enforcement                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------------- |
+| Attendance mark                  | `AttendanceController::mark` — window gate (already rejects)                    |
+| Single walk-in                   | `AttendanceController::walkIn` — window gate (already rejects)                  |
+| Bulk walk-in                     | `AttendanceController::bulkWalkIn` — window gate (already rejects)              |
+| Bulk mark                        | `AttendanceController::bulkMark` — window gate (already rejects)                |
+| Monitor actions (edit/flag/note) | `RegistrationMonitorController::ensureEditableRegistration` (already rejects)   |
+| Registration deletion            | `RegistrationDeletionController::ensureManageable` (already rejects)            |
+| Event edit                       | `EventController::edit` / `::update` — `canEdit()` already excludes `completed` |
+| Registration form builder        | `RegistrationFormController` — already rejects non-`draft`                      |
+| **Encoding page**                | **New** — `Event::canEncode()` returns false                                    |
+| **Event deletion**               | **Unchanged** — admin may still delete a completed event                        |
 
 Every lock except the encoding page already exists. The one new guard
 is `Event::canEncode()`.
@@ -396,6 +401,7 @@ print-optimized stylesheet.
 meaningful "how did it go" answer.
 
 **Entry points:**
+
 - A "View report" link on the event show page (visible when status
   is `ongoing` or `completed`)
 - After a successful finalize, the redirect target is the report
@@ -405,14 +411,14 @@ meaningful "how did it go" answer.
 
 Top of the page. Cards or a small table:
 
-| Metric | Meaning |
-|---|---|
-| Registered | Count of registrations with `source = form` |
-| Attended | Count of those marked Present or Late |
-| Walk-ins | Count of registrations with `source = walk_in` or `paper` |
-| Total attendance | Attended + Walk-ins marked present |
-| Show rate | Attended / Registered, as a percentage |
-| No-shows | Registered − Attended |
+| Metric           | Meaning                                                   |
+| ---------------- | --------------------------------------------------------- |
+| Registered       | Count of registrations with `source = form`               |
+| Attended         | Count of those marked Present or Late                     |
+| Walk-ins         | Count of registrations with `source = walk_in` or `paper` |
+| Total attendance | Attended + Walk-ins marked present                        |
+| Show rate        | Attended / Registered, as a percentage                    |
+| No-shows         | Registered − Attended                                     |
 
 Below the cards, a small line chart or simple table showing the
 distribution:
@@ -432,14 +438,14 @@ one glance.
 A table of every event of the same `event_type` as the current event,
 all-time, sorted by date descending.
 
-| Column | Content |
-|---|---|
-| Event | Name |
-| Date | `event_date` |
-| Registered | Count at finalize |
-| Attended | Count Present + Late |
-| Show rate | Attended / Registered |
-| Δ vs avg | Show rate − type's average show rate |
+| Column     | Content                              |
+| ---------- | ------------------------------------ |
+| Event      | Name                                 |
+| Date       | `event_date`                         |
+| Registered | Count at finalize                    |
+| Attended   | Count Present + Late                 |
+| Show rate  | Attended / Registered                |
+| Δ vs avg   | Show rate − type's average show rate |
 
 Above the table, a summary strip:
 
@@ -458,13 +464,13 @@ fun run it's a different counting."
 A table of every participant with a registration for this event,
 across all sources (form, walk_in, paper).
 
-| Column | Content |
-|---|---|
-| Name | Full name |
-| Contact | Email or phone |
-| Attendance | Status at this event (Present / Late / etc.) |
+| Column            | Content                                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| Name              | Full name                                                                                                       |
+| Contact           | Email or phone                                                                                                  |
+| Attendance        | Status at this event (Present / Late / etc.)                                                                    |
 | Total appearances | Count of this participant's registrations across **events of this type** where they were marked Present or Late |
-| Last appearance | Date of the most recent prior event they attended |
+| Last appearance   | Date of the most recent prior event they attended                                                               |
 
 **Expandable rows.** Clicking a row expands a nested list of every
 prior event this participant attended, in this type, date descending.
@@ -487,6 +493,7 @@ Triggered by a "Print summary" button. Uses `@media print` on the
 same page — no separate route, no duplicate data assembly.
 
 **Print stylesheet rules:**
+
 - Hide the app shell (sidebar, header, tabs)
 - Hide interactive controls (buttons, checkboxes, sort indicators)
 - Hide the CSV download button
@@ -548,13 +555,13 @@ the main route group:
    `config('app.timezone')`).
 4. If `$startAt` is null or `$startAt > now()`, pass through.
 5. Otherwise, transition: `$event->status = EventStatus::Ongoing;
-   $event->save();` and log `event.status.auto_advanced`.
+$event->save();` and log `event.status.auto_advanced`.
 6. Pass through.
 
 **Idempotent.** A second request in the same state does nothing —
 the status check on step 2 fails and the middleware exits early.
 
-**Order matters.** `event.advance` runs *after* `auth` and
+**Order matters.** `event.advance` runs _after_ `auth` and
 `device.trusted` — an unauthenticated request never flips a status.
 This is deliberate: auto-advance is a side effect of app usage, not
 of the public internet hitting a route.
@@ -677,13 +684,13 @@ mode-based branching.
 
 **What changes:**
 
-| File | Change |
-|---|---|
-| `resources/js/pages/events/attendance.tsx` | Becomes the encoding workspace. Two tabs. No mode toggle. |
-| `resources/js/components/bulk-mark-toolbar.tsx` | Retained — folded into the Attendance tab |
-| `resources/js/components/walk-in-dialog.tsx` | Retained — opened from the Walk-ins tab |
-| `resources/js/components/bulk-walk-in-table.tsx` | Removed — replaced by the Walk-ins tab |
-| `resources/js/components/attendance-filter-chips.tsx` | Retained — reused in the Attendance tab |
+| File                                                  | Change                                                    |
+| ----------------------------------------------------- | --------------------------------------------------------- |
+| `resources/js/pages/events/attendance.tsx`            | Becomes the encoding workspace. Two tabs. No mode toggle. |
+| `resources/js/components/bulk-mark-toolbar.tsx`       | Retained — folded into the Attendance tab                 |
+| `resources/js/components/walk-in-dialog.tsx`          | Retained — opened from the Walk-ins tab                   |
+| `resources/js/components/bulk-walk-in-table.tsx`      | Removed — replaced by the Walk-ins tab                    |
+| `resources/js/components/attendance-filter-chips.tsx` | Retained — reused in the Attendance tab                   |
 
 **What does NOT change:**
 
@@ -739,7 +746,7 @@ participant page. That page is GAP-002 in the issues inventory.
 
 A participant who registers online five minutes before the event
 starts appears in the Attendance tab as a new row. The tab refreshes
-on load. There is no live push. If they register *during* the event,
+on load. There is no live push. If they register _during_ the event,
 the operator needs to reload the tab. This is acceptable for v1.
 
 ### 7.6 Report on an ongoing event
@@ -800,10 +807,10 @@ this ships.
 **Estimate:**
 
 | Feature | Blocks | Sessions |
-|---|---|---|
-| B | 1 | 1 |
-| A | 1 | 2–3 |
-| C | 1 | 2 |
+| ------- | ------ | -------- |
+| B       | 1      | 1        |
+| A       | 1      | 2–3      |
+| C       | 1      | 2        |
 
 Total: 5–6 sessions.
 
@@ -811,18 +818,18 @@ Total: 5–6 sessions.
 
 ## 10. Glossary
 
-| Term | Meaning |
-|---|---|
-| **Encoding** | The act of transcribing a paper artifact (attendance sheet or walk-in registration form) into WDEMS |
-| **Attendance sheet** | The paper pre-registered participants sign on arrival. Not generated by WDEMS. |
-| **Registration paper** | The paper walk-ins fill on arrival. Mirrors the online form. Not generated by WDEMS. |
-| **Show rate** | Attended / Registered, as a percentage |
-| **Attended** | A registration whose attendance status is Present or Late |
-| **Walk-in** | A registration with `source = walk_in` or `source = paper` |
-| **Type** | The `event_type` value: `community_run` or `fun_run` |
-| **Total appearances** | A participant's count of Present + Late attendances across events of a single type |
-| **Force open** | The admin-only `?force_open=1` bypass that skips time-window gates |
-| **RequirePassword** | Laravel middleware forcing password re-entry; 3-hour grace window |
+| Term                   | Meaning                                                                                             |
+| ---------------------- | --------------------------------------------------------------------------------------------------- |
+| **Encoding**           | The act of transcribing a paper artifact (attendance sheet or walk-in registration form) into WDEMS |
+| **Attendance sheet**   | The paper pre-registered participants sign on arrival. Not generated by WDEMS.                      |
+| **Registration paper** | The paper walk-ins fill on arrival. Mirrors the online form. Not generated by WDEMS.                |
+| **Show rate**          | Attended / Registered, as a percentage                                                              |
+| **Attended**           | A registration whose attendance status is Present or Late                                           |
+| **Walk-in**            | A registration with `source = walk_in` or `source = paper`                                          |
+| **Type**               | The `event_type` value: `community_run` or `fun_run`                                                |
+| **Total appearances**  | A participant's count of Present + Late attendances across events of a single type                  |
+| **Force open**         | The admin-only `?force_open=1` bypass that skips time-window gates                                  |
+| **RequirePassword**    | Laravel middleware forcing password re-entry; 3-hour grace window                                   |
 
 ---
 
@@ -966,16 +973,16 @@ Feature C — the end-of-event report — shipped in commit `95c79a5`.
 
 ### What shipped
 
-| Deliverable | Status |
-|---|---|
-| `app/Http/Controllers/ReportController.php` | ✅ |
-| `app/Services/Reporting/ReportService.php` | ✅ |
-| Route `GET /events/{event}/report` (`events.report`) | ✅ |
-| Route `GET /events/{event}/report/export` (`events.report.export`) | ✅ |
-| `resources/js/pages/events/report.tsx` | ✅ |
-| View Report button on the event show page (ongoing / completed) | ✅ |
-| `tests/Feature/Events/ReportControllerTest.php` | ✅ |
-| `tests/Feature/Events/ReportServiceTest.php` | ✅ |
+| Deliverable                                                        | Status |
+| ------------------------------------------------------------------ | ------ |
+| `app/Http/Controllers/ReportController.php`                        | ✅     |
+| `app/Services/Reporting/ReportService.php`                         | ✅     |
+| Route `GET /events/{event}/report` (`events.report`)               | ✅     |
+| Route `GET /events/{event}/report/export` (`events.report.export`) | ✅     |
+| `resources/js/pages/events/report.tsx`                             | ✅     |
+| View Report button on the event show page (ongoing / completed)    | ✅     |
+| `tests/Feature/Events/ReportControllerTest.php`                    | ✅     |
+| `tests/Feature/Events/ReportServiceTest.php`                       | ✅     |
 
 ### Corrections to the Feature B status block
 
@@ -1049,7 +1056,6 @@ is not null. After acknowledgement, `show()` redirects to
 
 Full flow: `docs/registration-contact-verification.md` "Code
 acknowledgement (2026-10-15)".
-
 
 ## Running Events audit addendum — 2026-10-21
 

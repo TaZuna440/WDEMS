@@ -20,10 +20,10 @@ and moved through a workflow of statuses (see §7).
 
 There are two entry points:
 
-| Action | Route | What happens |
-|---|---|---|
-| Create | `GET /events/create` → `POST /events` | New `draft` event |
-| Edit | `GET /events/{id}/edit` → `PUT /events/{id}` | Update an existing event |
+| Action | Route                                        | What happens             |
+| ------ | -------------------------------------------- | ------------------------ |
+| Create | `GET /events/create` → `POST /events`        | New `draft` event        |
+| Edit   | `GET /events/{id}/edit` → `PUT /events/{id}` | Update an existing event |
 
 Both use the **same four step components** — `BasicsStep`, `ScheduleStep`,
 `VenueStep`, `ExtrasStep` — via a shared `Wizard` shell.
@@ -43,70 +43,70 @@ Both use the **same four step components** — `BasicsStep`, `ScheduleStep`,
 
 ### Backend
 
-| File | What it does |
-|---|---|
+| File                                       | What it does                                                                                          |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
 | `app/Http/Controllers/EventController.php` | All eight event actions: index, show, create, store, edit, update, configure, open/close registration |
-| `app/Http/Requests/EventRequest.php` | FormRequest that pulls rules from the trait below |
-| `app/Concerns/EventValidationRules.php` | The single source of truth for what makes an event valid |
-| `app/Enums/EventType.php` | `community_run` \| `fun_run`, with `label()` |
-| `app/Enums/EventStatus.php` | Seven states + `allowedTransitions()` + `canTransitionTo()` |
-| `app/Models/Event.php` | Fillable list, casts, `distanceLabel()`, `canEdit()`, `canConfigure()`, etc. |
-| `app/Services/EventWorkflow.php` | The status transition service |
+| `app/Http/Requests/EventRequest.php`       | FormRequest that pulls rules from the trait below                                                     |
+| `app/Concerns/EventValidationRules.php`    | The single source of truth for what makes an event valid                                              |
+| `app/Enums/EventType.php`                  | `community_run` \| `fun_run`, with `label()`                                                          |
+| `app/Enums/EventStatus.php`                | Seven states + `allowedTransitions()` + `canTransitionTo()`                                           |
+| `app/Models/Event.php`                     | Fillable list, casts, `distanceLabel()`, `canEdit()`, `canConfigure()`, etc.                          |
+| `app/Services/EventWorkflow.php`           | The status transition service                                                                         |
 
 ### Backend — adjacent flows (not part of the wizard)
 
-| File | What it does |
-|---|---|
-| `app/Http/Controllers/EventOptionController.php` | CRUD for event options (separate route prefix) |
-| `app/Services/EventDeletion/EventDeletionService.php` | Deletes an event and its related records |
+| File                                                  | What it does                                   |
+| ----------------------------------------------------- | ---------------------------------------------- |
+| `app/Http/Controllers/EventOptionController.php`      | CRUD for event options (separate route prefix) |
+| `app/Services/EventDeletion/EventDeletionService.php` | Deletes an event and its related records       |
 
 ### Frontend — the wizard shell
 
-| File | What it does |
-|---|---|
-| `resources/js/components/wizard.tsx` | Step state, validation, error jumping, submit |
-| `resources/js/components/wizard-progress.tsx` | The progress bar with clickable visited steps |
-| `resources/js/hooks/use-wizard-persistence.ts` | localStorage save/restore |
+| File                                           | What it does                                  |
+| ---------------------------------------------- | --------------------------------------------- |
+| `resources/js/components/wizard.tsx`           | Step state, validation, error jumping, submit |
+| `resources/js/components/wizard-progress.tsx`  | The progress bar with clickable visited steps |
+| `resources/js/hooks/use-wizard-persistence.ts` | localStorage save/restore                     |
 
 ### Frontend — pages
 
-| File | What it does |
-|---|---|
-| `resources/js/pages/events/create.tsx` | The create wizard page |
-| `resources/js/pages/events/edit.tsx` | The edit wizard page |
-| `resources/js/pages/events/index.tsx` | Event list |
-| `resources/js/pages/events/show.tsx` | Single event view + workflow actions |
-| `resources/js/pages/events/options.tsx` | Event options CRUD page |
+| File                                    | What it does                         |
+| --------------------------------------- | ------------------------------------ |
+| `resources/js/pages/events/create.tsx`  | The create wizard page               |
+| `resources/js/pages/events/edit.tsx`    | The edit wizard page                 |
+| `resources/js/pages/events/index.tsx`   | Event list                           |
+| `resources/js/pages/events/show.tsx`    | Single event view + workflow actions |
+| `resources/js/pages/events/options.tsx` | Event options CRUD page              |
 
 ### Frontend — step components
 
-| File | Fields it owns |
-|---|---|
-| `resources/js/pages/events/step/BasicsStep.tsx` | `event_type`, `event_name`, `description` |
+| File                                              | Fields it owns                                                                          |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `resources/js/pages/events/step/BasicsStep.tsx`   | `event_type`, `event_name`, `description`                                               |
 | `resources/js/pages/events/step/ScheduleStep.tsx` | `event_date`, `start_time`, `end_time`, `distance_value`, `distance_unit`, `course_url` |
-| `resources/js/pages/events/step/VenueStep.tsx` | `venue`, `venue_address`, `venue_latitude`, `venue_longitude` |
-| `resources/js/pages/events/step/ExtrasStep.tsx` | `rsvp_required`, `partners`, 9 accessibility flags |
+| `resources/js/pages/events/step/VenueStep.tsx`    | `venue`, `venue_address`, `venue_latitude`, `venue_longitude`                           |
+| `resources/js/pages/events/step/ExtrasStep.tsx`   | `rsvp_required`, `partners`, 9 accessibility flags                                      |
 
 ### Frontend — field-level components
 
-| File | What it does |
-|---|---|
-| `resources/js/components/date-picker.tsx` | Custom calendar popover, "Today" shortcut, clear button |
-| `resources/js/components/time-picker.tsx` | Hour/min/AM-PM selects. **Minutes snap to 5-minute intervals** |
-| `resources/js/components/distance-picker.tsx` | Whole + decimal comboboxes, KM/Miles toggle with live conversion |
-| `resources/js/components/map-picker.tsx` | Dialog wrapper; lazy-loads the Leaflet map |
-| `resources/js/components/map-picker-leaflet.tsx` | Actual map + Nominatim reverse geocoding |
-| `resources/js/components/partner-editor.tsx` | Add/remove partner rows (name + type) |
-| `resources/js/components/accessibility-grid.tsx` | 9 checkboxes in 4 groups |
+| File                                             | What it does                                                     |
+| ------------------------------------------------ | ---------------------------------------------------------------- |
+| `resources/js/components/date-picker.tsx`        | Custom calendar popover, "Today" shortcut, clear button          |
+| `resources/js/components/time-picker.tsx`        | Hour/min/AM-PM selects. **Minutes snap to 5-minute intervals**   |
+| `resources/js/components/distance-picker.tsx`    | Whole + decimal comboboxes, KM/Miles toggle with live conversion |
+| `resources/js/components/map-picker.tsx`         | Dialog wrapper; lazy-loads the Leaflet map                       |
+| `resources/js/components/map-picker-leaflet.tsx` | Actual map + Nominatim reverse geocoding                         |
+| `resources/js/components/partner-editor.tsx`     | Add/remove partner rows (name + type)                            |
+| `resources/js/components/accessibility-grid.tsx` | 9 checkboxes in 4 groups                                         |
 
 ### Database
 
-| File | What it does |
-|---|---|
-| `database/migrations/2026_09_16_160221_create_events_table.php` | Base events table |
-| `database/migrations/2026_09_16_160308_create_event_options_table.php` | Event options |
-| `database/migrations/2026_09_17_181907_add_event_type_to_events_table.php` | Adds `event_type` column |
-| `database/migrations/2026_09_21_093134_add_event_metadata_to_events_table.php` | Adds venue, partners, FAQ, accessibility, etc. |
+| File                                                                                             | What it does                                                    |
+| ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| `database/migrations/2026_09_16_160221_create_events_table.php`                                  | Base events table                                               |
+| `database/migrations/2026_09_16_160308_create_event_options_table.php`                           | Event options                                                   |
+| `database/migrations/2026_09_17_181907_add_event_type_to_events_table.php`                       | Adds `event_type` column                                        |
+| `database/migrations/2026_09_21_093134_add_event_metadata_to_events_table.php`                   | Adds venue, partners, FAQ, accessibility, etc.                  |
 | `database/migrations/2026_09_21_110517_replace_distance_label_with_value_and_unit_on_events.php` | Drops `distance_label`, adds `distance_value` + `distance_unit` |
 
 ---
@@ -187,31 +187,31 @@ Identical, except:
 
 ### Step 1 — Basics
 
-| Field | Required? | Notes |
-|---|---|---|
-| `event_type` | Yes | Dropdown: Community Run / Fun Run. **Locked in edit mode.** |
-| `event_name` | Yes | 3–100 chars. Custom rules — see §5. |
-| `description` | No | Max 2000 chars. Textarea. |
+| Field         | Required? | Notes                                                       |
+| ------------- | --------- | ----------------------------------------------------------- |
+| `event_type`  | Yes       | Dropdown: Community Run / Fun Run. **Locked in edit mode.** |
+| `event_name`  | Yes       | 3–100 chars. Custom rules — see §5.                         |
+| `description` | No        | Max 2000 chars. Textarea.                                   |
 
 ### Step 2 — Schedule
 
-| Field | Required? | Notes |
-|---|---|---|
-| `event_date` | Yes | Custom date picker. |
-| `start_time` | Yes | Custom time picker. 24-hour storage. |
-| `end_time` | No | Same picker. Optional. |
-| `distance_value` | Yes | 0.01 – 9999.99. Combo of whole + decimal. |
-| `distance_unit` | Yes | `km` or `mi`. Toggle. Auto-converts when switched. |
-| `course_url` | No | Valid URL. Max 500 chars. |
+| Field            | Required? | Notes                                              |
+| ---------------- | --------- | -------------------------------------------------- |
+| `event_date`     | Yes       | Custom date picker.                                |
+| `start_time`     | Yes       | Custom time picker. 24-hour storage.               |
+| `end_time`       | No        | Same picker. Optional.                             |
+| `distance_value` | Yes       | 0.01 – 9999.99. Combo of whole + decimal.          |
+| `distance_unit`  | Yes       | `km` or `mi`. Toggle. Auto-converts when switched. |
+| `course_url`     | No        | Valid URL. Max 500 chars.                          |
 
 ### Step 3 — Venue
 
-| Field | Required? | Notes |
-|---|---|---|
-| `venue` | Yes | Short name. Max 255. |
-| `venue_address` | Yes | Full address. Max 500. |
-| `venue_latitude` | Yes | -90 to 90. Set via map picker. |
-| `venue_longitude` | Yes | -180 to 180. Set via map picker. |
+| Field             | Required? | Notes                            |
+| ----------------- | --------- | -------------------------------- |
+| `venue`           | Yes       | Short name. Max 255.             |
+| `venue_address`   | Yes       | Full address. Max 500.           |
+| `venue_latitude`  | Yes       | -90 to 90. Set via map picker.   |
+| `venue_longitude` | Yes       | -180 to 180. Set via map picker. |
 
 The map picker:
 
@@ -222,11 +222,11 @@ The map picker:
 
 ### Step 4 — Extras
 
-| Field | Required? | Notes |
-|---|---|---|
-| `rsvp_required` | No | Boolean checkbox. |
-| `partners` | No | Array of `{name, type}`. See below. |
-| 9 accessibility flags | No | Booleans, all default false. |
+| Field                 | Required? | Notes                               |
+| --------------------- | --------- | ----------------------------------- |
+| `rsvp_required`       | No        | Boolean checkbox.                   |
+| `partners`            | No        | Array of `{name, type}`. See below. |
+| 9 accessibility flags | No        | Booleans, all default false.        |
 
 Partner types (from `EventValidationRules::partnerTypes()`):
 
@@ -235,12 +235,12 @@ Partner types (from `EventValidationRules::partnerTypes()`):
 
 Accessibility flags, grouped in the UI:
 
-| Group | Flags |
-|---|---|
-| Pace & Ability | `walkers_welcome`, `all_paces_welcome`, `all_ages_welcome`, `sweeper_present` |
-| Physical Access | `stroller_friendly`, `wheelchair_accessible` |
-| Companion & Support | `service_animals_allowed`, `leashed_pets_allowed` |
-| Sensory | `quiet_space_available` |
+| Group               | Flags                                                                         |
+| ------------------- | ----------------------------------------------------------------------------- |
+| Pace & Ability      | `walkers_welcome`, `all_paces_welcome`, `all_ages_welcome`, `sweeper_present` |
+| Physical Access     | `stroller_friendly`, `wheelchair_accessible`                                  |
+| Companion & Support | `service_animals_allowed`, `leashed_pets_allowed`                             |
+| Sensory             | `quiet_space_available`                                                       |
 
 ---
 
@@ -250,37 +250,37 @@ All rules live in `app/Concerns/EventValidationRules.php`. This is the
 **single source of truth**. The wizard validates only field emptiness
 client-side; everything else is server-side.
 
-| Field | Rule |
-|---|---|
-| `event_type` | `required`, enum `EventType` |
-| `event_name` | `required`, 3–100 chars, plus custom rules (below) |
-| `description` | `nullable`, string, max 2000 |
-| `event_date` | `required`, valid date |
-| `start_time` | `required`, format `H:i` |
-| `end_time` | `nullable`, format `H:i` |
-| `distance_value` | `required`, numeric, 0.01 – 9999.99 |
-| `distance_unit` | `required`, in `km`,`mi` |
-| `course_url` | `nullable`, URL, max 500 |
-| `venue` | `required`, string, max 255 |
-| `venue_address` | `required`, string, max 500 |
-| `venue_latitude` | `required`, numeric, -90 to 90 |
-| `venue_longitude` | `required`, numeric, -180 to 180 |
-| `rsvp_required` | boolean |
-| `partners` | nullable array |
-| `partners.*.name` | required when partners present, string, max 255 |
-| `partners.*.type` | required when partners present, in the 9-value list |
-| 9 accessibility flags | boolean |
+| Field                 | Rule                                                |
+| --------------------- | --------------------------------------------------- |
+| `event_type`          | `required`, enum `EventType`                        |
+| `event_name`          | `required`, 3–100 chars, plus custom rules (below)  |
+| `description`         | `nullable`, string, max 2000                        |
+| `event_date`          | `required`, valid date                              |
+| `start_time`          | `required`, format `H:i`                            |
+| `end_time`            | `nullable`, format `H:i`                            |
+| `distance_value`      | `required`, numeric, 0.01 – 9999.99                 |
+| `distance_unit`       | `required`, in `km`,`mi`                            |
+| `course_url`          | `nullable`, URL, max 500                            |
+| `venue`               | `required`, string, max 255                         |
+| `venue_address`       | `required`, string, max 500                         |
+| `venue_latitude`      | `required`, numeric, -90 to 90                      |
+| `venue_longitude`     | `required`, numeric, -180 to 180                    |
+| `rsvp_required`       | boolean                                             |
+| `partners`            | nullable array                                      |
+| `partners.*.name`     | required when partners present, string, max 255     |
+| `partners.*.type`     | required when partners present, in the 9-value list |
+| 9 accessibility flags | boolean                                             |
 
 ### The `event_name` rules (custom — do not simplify)
 
 Five regexes layered on top of `required`, `min:3`, `max:100`:
 
-| Rule | Rejects |
-|---|---|
-| `^[A-Za-z0-9]` | Names starting with punctuation or space |
-| `[aeiouyAEIOUY]` | Names with no vowel — "dfdsfdsfd" |
-| `[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]` | Names with no consonant — "aeiou" |
-| `not_regex:/(.)\1\1/` | 3+ identical characters in a row — "aaaa" |
+| Rule                                         | Rejects                                   |
+| -------------------------------------------- | ----------------------------------------- |
+| `^[A-Za-z0-9]`                               | Names starting with punctuation or space  |
+| `[aeiouyAEIOUY]`                             | Names with no vowel — "dfdsfdsfd"         |
+| `[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]` | Names with no consonant — "aeiou"         |
+| `not_regex:/(.)\1\1/`                        | 3+ identical characters in a row — "aaaa" |
 
 These exist to catch keyboard mashing before it becomes a real event.
 They are deliberately inclusive (Y counts as a vowel, letter case is
@@ -313,7 +313,7 @@ a user who refreshes the page does not lose their work.
 
 - TTL: 24 hours. Older snapshots are ignored.
 - Version guard: bumping `STORAGE_VERSION` invalidates every existing draft.
-- The stored `currentStep` is actually the *furthest* step reached
+- The stored `currentStep` is actually the _furthest_ step reached
   (`maxStep`), not the currently viewed step. This is deliberate — see
   Trap #5.
 - The snapshot is **cleared** when the user successfully submits. It is
@@ -336,13 +336,13 @@ an event record and change it — but they are not the Event Creation flow.
 
 Each option has:
 
-| Field | Notes |
-|---|---|
-| `option_type` | Free-form string, e.g. `distance`, `shirt`, `add-on` |
-| `option_name` | e.g. `5 KM`, `Large`, `Red` |
-| `option_value` | Optional metadata |
-| `is_required` | Boolean |
-| `is_available` | Boolean, default true |
+| Field          | Notes                                                |
+| -------------- | ---------------------------------------------------- |
+| `option_type`  | Free-form string, e.g. `distance`, `shirt`, `add-on` |
+| `option_name`  | e.g. `5 KM`, `Large`, `Red`                          |
+| `option_value` | Optional metadata                                    |
+| `is_required`  | Boolean                                              |
+| `is_available` | Boolean, default true                                |
 
 Options can only be added, edited, or removed while
 `$event->canConfigure()` is true — i.e. while the event is in `draft`
@@ -374,14 +374,14 @@ an illegal transition throws `InvalidArgumentException` from
 
 **Where each transition is triggered:**
 
-| Transition | Triggered by |
-|---|---|
-| `draft → configured` | `POST /events/{id}/configure` (from options page) |
-| `configured → registration_open` | `POST /events/{id}/open-registration` (from event show page) |
-| `registration_open → registration_closed` | `POST /events/{id}/close-registration` |
-| `registration_closed → ongoing` | Not yet wired to any route |
-| `ongoing → completed` | Not yet wired to any route |
-| `* → cancelled` | Not yet wired to any route |
+| Transition                                | Triggered by                                                 |
+| ----------------------------------------- | ------------------------------------------------------------ |
+| `draft → configured`                      | `POST /events/{id}/configure` (from options page)            |
+| `configured → registration_open`          | `POST /events/{id}/open-registration` (from event show page) |
+| `registration_open → registration_closed` | `POST /events/{id}/close-registration`                       |
+| `registration_closed → ongoing`           | Not yet wired to any route                                   |
+| `ongoing → completed`                     | Not yet wired to any route                                   |
+| `* → cancelled`                           | Not yet wired to any route                                   |
 
 **Guards on the Event model:**
 
@@ -483,9 +483,11 @@ for the eventual participant registration model.
 **Why it's right, but be careful:** The current code is:
 
 ```tsx
-{isEdit
-    ? 'Event type cannot be changed after creation.'
-    : 'Event type cannot be changed after creation.'}
+{
+    isEdit
+        ? 'Event type cannot be changed after creation.'
+        : 'Event type cannot be changed after creation.';
+}
 ```
 
 Both branches are identical — leftover from an earlier version. It is
@@ -623,21 +625,21 @@ Raise it separately.
 
 ## 10. Glossary
 
-| Term | Plain meaning |
-|---|---|
-| **Wizard** | The 4-step create/edit flow. Not a Laravel Wizard — the component is `resources/js/components/wizard.tsx`. |
-| **Step** | One page of the wizard. There are four. |
-| **Checkpoint / maxStep** | The furthest step the user has reached. Saved in localStorage. |
-| **Draft** | The initial status of a new event. |
-| **Options** | Configurable choices the organizer defines for an event (shirt size, distance, etc.). Separate flow. |
-| **FAQ** | Six hardcoded Q&A entries seeded on create. Not editable in any UI. |
-| **`canEdit()`** | Event method. True while status is draft, configured, registration_open, or registration_closed. |
-| **`canConfigure()`** | Event method. True only in draft and configured. |
-| **Workflow** | The status transition service (`EventWorkflow`). |
-| **Wayfinder** | Same as in `authentication.md` — generates `resources/js/routes/**` from PHP routes. Do not edit those files. |
-| **Inertia** | Same as in `authentication.md` — bridge between Laravel and React. |
-| **Leaflet** | The open-source map library. Lazy-loaded only when the map picker opens. |
-| **Nominatim** | OpenStreetMap's free reverse-geocoding service. 1 request/sec. |
+| Term                     | Plain meaning                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| **Wizard**               | The 4-step create/edit flow. Not a Laravel Wizard — the component is `resources/js/components/wizard.tsx`.    |
+| **Step**                 | One page of the wizard. There are four.                                                                       |
+| **Checkpoint / maxStep** | The furthest step the user has reached. Saved in localStorage.                                                |
+| **Draft**                | The initial status of a new event.                                                                            |
+| **Options**              | Configurable choices the organizer defines for an event (shirt size, distance, etc.). Separate flow.          |
+| **FAQ**                  | Six hardcoded Q&A entries seeded on create. Not editable in any UI.                                           |
+| **`canEdit()`**          | Event method. True while status is draft, configured, registration_open, or registration_closed.              |
+| **`canConfigure()`**     | Event method. True only in draft and configured.                                                              |
+| **Workflow**             | The status transition service (`EventWorkflow`).                                                              |
+| **Wayfinder**            | Same as in `authentication.md` — generates `resources/js/routes/**` from PHP routes. Do not edit those files. |
+| **Inertia**              | Same as in `authentication.md` — bridge between Laravel and React.                                            |
+| **Leaflet**              | The open-source map library. Lazy-loaded only when the map picker opens.                                      |
+| **Nominatim**            | OpenStreetMap's free reverse-geocoding service. 1 request/sec.                                                |
 
 ---
 
@@ -646,14 +648,14 @@ Raise it separately.
 The scope document titled "Event Creation — Current/Documented Scope"
 contains several claims that the code contradicts. Corrections:
 
-| Scope doc says | Code says |
-|---|---|
-| Partners have "contact information, role/responsibility" | Only `{name, type}` — see `PartnerEditor` and `EventValidationRules::partnerTypes()` |
-| FAQ is part of event creation UI | FAQ is seeded server-side by `EventController::defaultFaq()`. No UI. |
-| Event Options is part of event creation | Separate controller, page, and route prefix. |
-| Registration Setup (Google Forms) is part of event creation | Removed from the project. See `docs/archive/`. |
-| "Community Run + Fun Run workflows" | Only Community Run is implemented. Fun Run exists as a data value, no separate workflow. |
-| `distance_label` was "outdated" | Correct — it was dropped by migration. The current columns are `distance_value` and `distance_unit`. |
+| Scope doc says                                              | Code says                                                                                            |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Partners have "contact information, role/responsibility"    | Only `{name, type}` — see `PartnerEditor` and `EventValidationRules::partnerTypes()`                 |
+| FAQ is part of event creation UI                            | FAQ is seeded server-side by `EventController::defaultFaq()`. No UI.                                 |
+| Event Options is part of event creation                     | Separate controller, page, and route prefix.                                                         |
+| Registration Setup (Google Forms) is part of event creation | Removed from the project. See `docs/archive/`.                                                       |
+| "Community Run + Fun Run workflows"                         | Only Community Run is implemented. Fun Run exists as a data value, no separate workflow.             |
+| `distance_label` was "outdated"                             | Correct — it was dropped by migration. The current columns are `distance_value` and `distance_unit`. |
 
 Use `docs/event-creation.md` (this file) as the source of truth. Where
 the older scope doc disagrees, this file wins.
@@ -703,10 +705,10 @@ of features still to build.
 The relationship between the two docs is a division of labor, not a
 hierarchy:
 
-| Doc | Covers |
-|---|---|
-| `event-creation-wizard.md` | The wizard as a **feature** — what each step does, how the checkpoint persists, what each field component is, what is still to build |
-| `event-creation.md` (this file) | The **code reference** — file map, validation rules table, list of things AI will break, corrections to the outdated scope doc |
+| Doc                             | Covers                                                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `event-creation-wizard.md`      | The wizard as a **feature** — what each step does, how the checkpoint persists, what each field component is, what is still to build |
+| `event-creation.md` (this file) | The **code reference** — file map, validation rules table, list of things AI will break, corrections to the outdated scope doc       |
 
 Read both. Neither is subordinate to the other. Where they overlap,
 they describe the same code from different angles.
@@ -774,7 +776,6 @@ For historical context only: `docs/church-events/07-scope-and-
 task-division.md` §7.1 was the source of the original claim.
 That doc was written before the registration-form rebuild and
 has not been updated.
-
 
 ## Running Events audit addendum — 2026-10-21
 

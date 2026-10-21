@@ -22,7 +22,7 @@ export default function AuthLoginLayout({
     }, []);
 
     return (
-        <div className="grid min-h-svh bg-background lg:grid-cols-2">
+        <div className="bg-background grid min-h-svh lg:grid-cols-2">
             {/* Left: Brand panel with background image (hidden on mobile) */}
             <div className="relative hidden flex-col items-center justify-center overflow-hidden lg:flex">
                 {/* Background image */}
@@ -37,28 +37,27 @@ export default function AuthLoginLayout({
                 <div className="absolute inset-0 backdrop-blur-sm" />
 
                 {/* Dark overlay so the logo and tagline read clearly */}
-                <div className="absolute inset-0 bg-navy-900/75" />
+                <div className="bg-navy-900/75 absolute inset-0" />
 
                 {/* Soft theme-adaptive accent glows */}
                 <div
                     className="pointer-events-none absolute inset-0"
                     aria-hidden="true"
                 >
-                    <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
-                    <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
+                    <div className="bg-primary/20 absolute -top-40 -left-40 h-96 w-96 rounded-full blur-3xl" />
+                    <div className="bg-accent/20 absolute -right-40 -bottom-40 h-96 w-96 rounded-full blur-3xl" />
                 </div>
 
                 {/* Content */}
                 <div className="relative z-10 flex max-w-lg flex-col items-center px-12 text-center">
                     <Link href={home()} className="flex items-center gap-4">
-
                         <WdemsLogo className="h-20" variant="on-dark" />
 
                         <div className="text-left">
-                            <div className="text-2xl font-semibold leading-tight text-white">
+                            <div className="text-2xl leading-tight font-semibold text-white">
                                 Workflow-Driven
                             </div>
-                            <div className="text-lg leading-tight text-lime-brand">
+                            <div className="text-lime-brand text-lg leading-tight">
                                 Event Management System
                             </div>
                         </div>
@@ -85,10 +84,10 @@ export default function AuthLoginLayout({
                         <WdemsLogo className="h-14" />
 
                         <div className="text-center">
-                            <div className="text-base font-semibold leading-tight text-foreground">
+                            <div className="text-foreground text-base leading-tight font-semibold">
                                 Workflow-Driven
                             </div>
-                            <div className="text-sm leading-tight text-lime-brand">
+                            <div className="text-lime-brand text-sm leading-tight">
                                 Event Management System
                             </div>
                         </div>
@@ -96,11 +95,11 @@ export default function AuthLoginLayout({
 
                     <div className="glass-panel rounded-xl p-8 shadow-xl">
                         <div className="mb-6">
-                            <h1 className="text-2xl font-semibold text-foreground">
+                            <h1 className="text-foreground text-2xl font-semibold">
                                 {title}
                             </h1>
                             {description && (
-                                <p className="mt-1 text-sm text-muted-foreground">
+                                <p className="text-muted-foreground mt-1 text-sm">
                                     {description}
                                 </p>
                             )}

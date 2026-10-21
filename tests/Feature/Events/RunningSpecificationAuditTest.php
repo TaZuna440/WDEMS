@@ -4,6 +4,7 @@ use App\Models\Event;
 use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 
 it('defaults the event index to running and never mixes kinds', function () {
     $staff = User::factory()->create(['role' => 'admin']);
@@ -19,7 +20,7 @@ it('keeps the live attendance totals independent of a full-name search', functio
     $staff = User::factory()->create(['role' => 'admin']);
     $event = Event::create(['event_name' => 'Run', 'event_type' => 'community_run', 'status' => 'ongoing', 'event_date' => today(), 'created_by' => $staff->id]);
     foreach (['Maria', 'Juan'] as $name) {
-        $person = Participant::create(['first_name' => $name, 'middle_name' => 'Reyes', 'last_name' => 'Santos', 'suffix' => 'Jr.']);
+        $person = Participant::create(['pool' => 'running', 'first_name' => $name, 'middle_name' => 'Reyes', 'last_name' => 'Santos', 'suffix' => 'Jr.']);
         $r = Registration::create(['event_id' => $event->id, 'participant_id' => $person->id, 'registration_status' => 'confirmed', 'source' => 'form']);
         $r->attendance()->create(['attendance_status' => 'present', 'attendance_time' => now(), 'recorded_by' => $staff->id]);
     }
@@ -36,7 +37,7 @@ it('keeps church events out of the registration queue', function () {
 });
 
 it('shows a next-day run once its attendance window opens before midnight', function () {
-    $this->travelTo(\Illuminate\Support\Carbon::parse('2026-10-21 23:45:00'));
+    $this->travelTo(Carbon::parse('2026-10-21 23:45:00'));
     $staff = User::factory()->create(['role' => 'admin']);
     $event = Event::create(['event_name' => 'Midnight Run', 'event_type' => 'community_run', 'status' => 'registration_open', 'event_date' => '2026-10-22', 'start_time' => '00:30', 'created_by' => $staff->id]);
     expect($event->canViewAttendance())->toBeTrue();
@@ -44,7 +45,6 @@ it('shows a next-day run once its attendance window opens before midnight', func
         ->assertInertia(fn ($page) => $page->has('today', 1)->where('today.0.id', $event->id));
     $this->travelBack();
 });
-
 
 it('does not offer running dashboard actions or statuses for church events', function () {
     $staff = User::factory()->create(['role' => 'admin']);

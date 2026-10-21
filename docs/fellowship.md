@@ -13,6 +13,7 @@ entries in `docs/progress.md` are the chronological record;
 this file is the consolidated reference.
 
 **Related:**
+
 - `docs/church-events/07-scope-and-task-division.md` §3.5 — the
   task breakdown this module implements
 - `docs/church-events/09-mockup-scope-inventory.md` — what the
@@ -66,18 +67,18 @@ attendance rows with no linking enrollment record.
 
 ### Database tables
 
-| Table | Purpose |
-|---|---|
-| `fellowship_events` | One gathering, FK to created_by user |
-| `fellowship_groups` | Event-specific groups, FK to event |
+| Table                    | Purpose                                                         |
+| ------------------------ | --------------------------------------------------------------- |
+| `fellowship_events`      | One gathering, FK to created_by user                            |
+| `fellowship_groups`      | Event-specific groups, FK to event                              |
 | `fellowship_attendances` | Participant × event, FK to event + participant + optional group |
 
 ### Models
 
-| Model | File |
-|---|---|
-| `FellowshipEvent` | `app/Models/FellowshipEvent.php` |
-| `FellowshipGroup` | `app/Models/FellowshipGroup.php` |
+| Model                  | File                                  |
+| ---------------------- | ------------------------------------- |
+| `FellowshipEvent`      | `app/Models/FellowshipEvent.php`      |
+| `FellowshipGroup`      | `app/Models/FellowshipGroup.php`      |
 | `FellowshipAttendance` | `app/Models/FellowshipAttendance.php` |
 
 The `Participant` model carries a `fellowshipAttendances()`
@@ -85,8 +86,8 @@ relation.
 
 ### Enums
 
-| Enum | Values |
-|---|---|
+| Enum             | Values                                         |
+| ---------------- | ---------------------------------------------- |
 | `FellowshipType` | family, church, pastors, leaders, womens, mens |
 
 `FellowshipType` has a `label()` method and a `values()` helper.
@@ -99,11 +100,11 @@ a fourth status.
 
 ### Controllers
 
-| Controller | Actions |
-|---|---|
-| `FellowshipController` | index, show, store, update, destroy |
-| `FellowshipGroupController` | store, update, destroy |
-| `FellowshipAttendanceController` | show, store, mark, destroy |
+| Controller                       | Actions                             |
+| -------------------------------- | ----------------------------------- |
+| `FellowshipController`           | index, show, store, update, destroy |
+| `FellowshipGroupController`      | store, update, destroy              |
+| `FellowshipAttendanceController` | show, store, mark, destroy          |
 
 ### FormRequests
 
@@ -118,11 +119,11 @@ All under `app/Http/Requests/Fellowship/`:
 
 ### Frontend
 
-| Page | File |
-|---|---|
-| Landing | `resources/js/pages/fellowship/index.tsx` |
-| Per-type event list | `resources/js/pages/fellowship/show.tsx` |
-| Attendance | `resources/js/pages/fellowship/attendance.tsx` |
+| Page                | File                                           |
+| ------------------- | ---------------------------------------------- |
+| Landing             | `resources/js/pages/fellowship/index.tsx`      |
+| Per-type event list | `resources/js/pages/fellowship/show.tsx`       |
+| Attendance          | `resources/js/pages/fellowship/attendance.tsx` |
 
 Sidebar entry in `app-sidebar.tsx` — `HeartHandshake` icon,
 between Services and Events.
@@ -267,19 +268,19 @@ All under the `/fellowship` prefix, in the main authenticated
 group (`auth`, `verified.or.admin`, `device.trusted`,
 `event.advance`).
 
-| Method | URL | Controller action | Route name |
-|---|---|---|---|
-| GET | `/fellowship` | `FellowshipController@index` | `fellowship.index` |
-| GET | `/fellowship/{type}` | `FellowshipController@show` | `fellowship.show` |
-| POST | `/fellowship/{type}/events` | `FellowshipController@store` | `fellowship.events.store` |
-| PUT | `/fellowship/events/{event}` | `FellowshipController@update` | `fellowship.events.update` |
-| DELETE | `/fellowship/events/{event}` | `FellowshipController@destroy` | `fellowship.events.destroy` |
-| POST | `/fellowship/events/{event}/groups` | `FellowshipGroupController@store` | `fellowship.groups.store` |
-| PUT | `/fellowship/events/{event}/groups/{group}` | `FellowshipGroupController@update` | `fellowship.groups.update` |
-| DELETE | `/fellowship/events/{event}/groups/{group}` | `FellowshipGroupController@destroy` | `fellowship.groups.destroy` |
-| GET | `/fellowship/events/{event}/attendance` | `FellowshipAttendanceController@show` | `fellowship.attendance.show` |
-| POST | `/fellowship/events/{event}/attendance` | `FellowshipAttendanceController@store` | `fellowship.attendance.store` |
-| PUT | `/fellowship/events/{event}/attendance/{attendance}` | `FellowshipAttendanceController@mark` | `fellowship.attendance.mark` |
+| Method | URL                                                  | Controller action                        | Route name                      |
+| ------ | ---------------------------------------------------- | ---------------------------------------- | ------------------------------- |
+| GET    | `/fellowship`                                        | `FellowshipController@index`             | `fellowship.index`              |
+| GET    | `/fellowship/{type}`                                 | `FellowshipController@show`              | `fellowship.show`               |
+| POST   | `/fellowship/{type}/events`                          | `FellowshipController@store`             | `fellowship.events.store`       |
+| PUT    | `/fellowship/events/{event}`                         | `FellowshipController@update`            | `fellowship.events.update`      |
+| DELETE | `/fellowship/events/{event}`                         | `FellowshipController@destroy`           | `fellowship.events.destroy`     |
+| POST   | `/fellowship/events/{event}/groups`                  | `FellowshipGroupController@store`        | `fellowship.groups.store`       |
+| PUT    | `/fellowship/events/{event}/groups/{group}`          | `FellowshipGroupController@update`       | `fellowship.groups.update`      |
+| DELETE | `/fellowship/events/{event}/groups/{group}`          | `FellowshipGroupController@destroy`      | `fellowship.groups.destroy`     |
+| GET    | `/fellowship/events/{event}/attendance`              | `FellowshipAttendanceController@show`    | `fellowship.attendance.show`    |
+| POST   | `/fellowship/events/{event}/attendance`              | `FellowshipAttendanceController@store`   | `fellowship.attendance.store`   |
+| PUT    | `/fellowship/events/{event}/attendance/{attendance}` | `FellowshipAttendanceController@mark`    | `fellowship.attendance.mark`    |
 | DELETE | `/fellowship/events/{event}/attendance/{attendance}` | `FellowshipAttendanceController@destroy` | `fellowship.attendance.destroy` |
 
 12 routes.
@@ -313,14 +314,14 @@ event date. Clicking a card navigates to the per-type view.
 
 Icons:
 
-| Type | Icon |
-|---|---|
-| Family | `Home` |
-| Church | `Church` |
-| Pastors | `BookOpen` |
-| Leaders | `Award` |
+| Type    | Icon        |
+| ------- | ----------- |
+| Family  | `Home`      |
+| Church  | `Church`    |
+| Pastors | `BookOpen`  |
+| Leaders | `Award`     |
 | Women's | `UserRound` |
-| Men's | `UserRound` |
+| Men's   | `UserRound` |
 
 Women's and Men's deliberately share `UserRound` — distinct
 icons for a gender pair would imply a ranking the data does not
@@ -449,6 +450,7 @@ route's event. A mismatch aborts with 404. Rationale: URL
 tampering across events is not a legitimate use case.
 
 ### Attendance destroy deletes the row, unlike enrollment
+
 withdraw
 
 Enrollment withdraw sets a status; attendance destroy removes
@@ -508,9 +510,9 @@ rediscover them.
    `created_by`), `FellowshipAttendance::recorder()`. Not
    called by any controller, service, or view. Cosmetic.
 
-   Actually `FellowshipGroup` has no `created_by` column —
-   groups are event-scoped, not user-attributed. Only Event
-   and Attendance have user FKs.
+    Actually `FellowshipGroup` has no `created_by` column —
+    groups are event-scoped, not user-attributed. Only Event
+    and Attendance have user FKs.
 
 2. **No `attendance_count` on the attendance page header.**
    The per-type view shows counts; the attendance page shows
@@ -528,14 +530,14 @@ rediscover them.
 
 ## 10. Cross-references
 
-| Document | Purpose |
-|---|---|
-| `docs/church-events/07-scope-and-task-division.md` §3.5 | Phase 4 task breakdown |
-| `docs/church-events/09-mockup-scope-inventory.md` | What the client mockups show beyond this module |
-| `docs/progress.md` 2026-10-16 Phase 4 entries | The sub-phase records |
-| `docs/discipleship.md` | The parallel church-events module — more layers, more depth |
-| `docs/participant-identity.md` | Participant identity model |
-| `docs/architecture.md` | Whole-system overview |
+| Document                                                | Purpose                                                     |
+| ------------------------------------------------------- | ----------------------------------------------------------- |
+| `docs/church-events/07-scope-and-task-division.md` §3.5 | Phase 4 task breakdown                                      |
+| `docs/church-events/09-mockup-scope-inventory.md`       | What the client mockups show beyond this module             |
+| `docs/progress.md` 2026-10-16 Phase 4 entries           | The sub-phase records                                       |
+| `docs/discipleship.md`                                  | The parallel church-events module — more layers, more depth |
+| `docs/participant-identity.md`                          | Participant identity model                                  |
+| `docs/architecture.md`                                  | Whole-system overview                                       |
 
 ---
 

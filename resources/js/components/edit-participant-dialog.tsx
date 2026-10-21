@@ -62,7 +62,7 @@ export default function EditParticipantDialog({
     // participant. Without this, opening the dialog on card B after
     // editing card A shows card A's values.
     useEffect(() => {
-        if (! open) {
+        if (!open) {
             return;
         }
 
@@ -134,9 +134,7 @@ export default function EditParticipantDialog({
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="edit-participant-email">
-                            Email
-                        </Label>
+                        <Label htmlFor="edit-participant-email">Email</Label>
                         <Input
                             id="edit-participant-email"
                             type="email"
@@ -158,10 +156,7 @@ export default function EditParticipantDialog({
                             type="tel"
                             value={form.data.contact_number}
                             onChange={(e) =>
-                                form.setData(
-                                    'contact_number',
-                                    e.target.value,
-                                )
+                                form.setData('contact_number', e.target.value)
                             }
                             autoComplete="off"
                         />

@@ -25,19 +25,19 @@ append-only for fixes; the entry body is not rewritten.
 
 Fix in this order. Each item lists why it comes before the next.
 
-| # | ID | Title | Severity | Blocks |
-|---|---|---|---|---|
-| 1 | EC-01 | `venue_latitude.toFixed()` crashes on edit | **High** | Editing any event with coordinates set |
-| 2 | EC-02 | Partner sub-errors never route to Step 4 | **High** | Saving any event with a partially-filled partner row |
-| 3 | EC-03 | Partner errors never displayed in ExtrasStep | **Medium** | — (blocks EC-02's UX fix) |
-| 4 | EC-04 | No `end_time > start_time` check | **Medium** | — |
-| 5 | EC-05 | `course_url` rule rejects scheme-less URLs | **Medium** | — |
-| 6 | EC-06 | No cap on `partners` array size | **Low** | — |
-| 7 | EC-07 | No trimming of text inputs | **Low** | — |
-| 8 | EC-08 | `clear()` fires before submit — draft lost on server rejection | **Low** | — |
-| 9 | EC-09 | No past-date check on `event_date` | **Low** (needs decision) | — |
-| 10 | EC-10 | `event_name` regexes reject non-ASCII names | **Low** (likely intentional) | — |
-| 11 | EC-11 | Client-side validation is emptiness-only | **Note** (documented as deliberate) | — |
+| #   | ID    | Title                                                          | Severity                            | Blocks                                               |
+| --- | ----- | -------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------- |
+| 1   | EC-01 | `venue_latitude.toFixed()` crashes on edit                     | **High**                            | Editing any event with coordinates set               |
+| 2   | EC-02 | Partner sub-errors never route to Step 4                       | **High**                            | Saving any event with a partially-filled partner row |
+| 3   | EC-03 | Partner errors never displayed in ExtrasStep                   | **Medium**                          | — (blocks EC-02's UX fix)                            |
+| 4   | EC-04 | No `end_time > start_time` check                               | **Medium**                          | —                                                    |
+| 5   | EC-05 | `course_url` rule rejects scheme-less URLs                     | **Medium**                          | —                                                    |
+| 6   | EC-06 | No cap on `partners` array size                                | **Low**                             | —                                                    |
+| 7   | EC-07 | No trimming of text inputs                                     | **Low**                             | —                                                    |
+| 8   | EC-08 | `clear()` fires before submit — draft lost on server rejection | **Low**                             | —                                                    |
+| 9   | EC-09 | No past-date check on `event_date`                             | **Low** (needs decision)            | —                                                    |
+| 10  | EC-10 | `event_name` regexes reject non-ASCII names                    | **Low** (likely intentional)        | —                                                    |
+| 11  | EC-11 | Client-side validation is emptiness-only                       | **Note** (documented as deliberate) | —                                                    |
 
 ### Why this order
 
@@ -60,12 +60,12 @@ Fix in this order. Each item lists why it comes before the next.
 
 ## Severity definitions
 
-| Level | Meaning |
-|---|---|
-| **High** | Breaks a core flow, or causes silent data loss |
+| Level      | Meaning                                          |
+| ---------- | ------------------------------------------------ |
+| **High**   | Breaks a core flow, or causes silent data loss   |
 | **Medium** | Noticeable UX problem, or a missing safety check |
-| **Low** | Polish, or an edge case unlikely to be hit |
-| **Note** | Recorded for completeness — no fix expected |
+| **Low**    | Polish, or an edge case unlikely to be hit       |
+| **Note**   | Recorded for completeness — no fix expected      |
 
 ---
 
@@ -225,7 +225,7 @@ Recommendation: **Approach A**. It is the correct general fix.
 3. Click Create Event
 4. Confirm: wizard jumps back to Step 4
 5. Confirm: the server error message appears (this requires EC-03 to
-   also be fixed for it to be *visible*, but the jump should work
+   also be fixed for it to be _visible_, but the jump should work
    independently)
 6. Fill in the name, submit again, confirm the event is created
 
@@ -721,14 +721,14 @@ reflect the state when the file was created. The items below are the
 ones that have since been fixed. Where an entry above says "Open" and
 appears here as fixed, this section is authoritative.
 
-| # | Title | Fixed by | Evidence |
-|---|---|---|---|
-| EC-01 | `venue_latitude.toFixed()` crashes on edit | `normalizeCoordinate()` in `edit.tsx` | Browser: edit page renders for a coordinate-bearing event |
-| EC-02 | Partner sub-errors never route to Step 4 | Prefix matching in the wizard's error-jump effect | Code review; browser test pending final confirmation |
-| EC-04 | No `end_time > start_time` check | Server rule + `withValidator` hook + client mirror | 13 feature tests in `EventScheduleRulesTest` |
-| EC-05 | `course_url` rejects scheme-less URLs | Auto-prepend `https://` on blur + strict scheme regex on both ends | 5 feature tests + browser test |
-| EC-06 | No cap on `partners` array size | `max:20` added to server rule + client already capped | Same test file |
-| EC-11 | Client-side validation is emptiness-only | New `event-validation.ts` + `validate?` hook in the wizard | Browser: `fdhgfhgfhgfhfgfhdfgfr` rejected with a professional message |
+| #     | Title                                      | Fixed by                                                           | Evidence                                                              |
+| ----- | ------------------------------------------ | ------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| EC-01 | `venue_latitude.toFixed()` crashes on edit | `normalizeCoordinate()` in `edit.tsx`                              | Browser: edit page renders for a coordinate-bearing event             |
+| EC-02 | Partner sub-errors never route to Step 4   | Prefix matching in the wizard's error-jump effect                  | Code review; browser test pending final confirmation                  |
+| EC-04 | No `end_time > start_time` check           | Server rule + `withValidator` hook + client mirror                 | 13 feature tests in `EventScheduleRulesTest`                          |
+| EC-05 | `course_url` rejects scheme-less URLs      | Auto-prepend `https://` on blur + strict scheme regex on both ends | 5 feature tests + browser test                                        |
+| EC-06 | No cap on `partners` array size            | `max:20` added to server rule + client already capped              | Same test file                                                        |
+| EC-11 | Client-side validation is emptiness-only   | New `event-validation.ts` + `validate?` hook in the wizard         | Browser: `fdhgfhgfhgfhfgfhdfgfr` rejected with a professional message |
 
 ### New problem found and fixed during the session
 
@@ -742,15 +742,15 @@ Not listed above because it was not in the original eleven:
 
 ### Still open
 
-| # | Title | Status |
-|---|---|---|
-| EC-03 | Partner errors not displayed in ExtrasStep | Open — wizard now routes to the step, but the step does not show per-row errors |
-| EC-07 | No trimming of text inputs | Open — client trims for validation; server stores raw |
-| EC-08 | `clear()` fires before submit | Open |
-| EC-09 | No past-date check on `event_date` | Open — needs a product decision |
-| EC-10 | `event_name` regexes reject non-ASCII | Open — needs a decision |
-| SCH-04 | Time picker 5-minute snap is invisible | Open — cosmetic |
-| SCH-05 | Distance unit conversion drift | Open — cosmetic |
+| #      | Title                                      | Status                                                                          |
+| ------ | ------------------------------------------ | ------------------------------------------------------------------------------- |
+| EC-03  | Partner errors not displayed in ExtrasStep | Open — wizard now routes to the step, but the step does not show per-row errors |
+| EC-07  | No trimming of text inputs                 | Open — client trims for validation; server stores raw                           |
+| EC-08  | `clear()` fires before submit              | Open                                                                            |
+| EC-09  | No past-date check on `event_date`         | Open — needs a product decision                                                 |
+| EC-10  | `event_name` regexes reject non-ASCII      | Open — needs a decision                                                         |
+| SCH-04 | Time picker 5-minute snap is invisible     | Open — cosmetic                                                                 |
+| SCH-05 | Distance unit conversion drift             | Open — cosmetic                                                                 |
 
 ## Change log addendum
 
@@ -766,22 +766,22 @@ The `## Fixed items` section above was written at the end of the first
 development block. The Schedule step was completed in a second block
 after that. This section records the additional closures.
 
-| # | Title | Fixed by | Evidence |
-|---|---|---|---|
-| SCH-04 | Time picker 5-minute snap is invisible | `MINUTES` array reduced to 15-minute intervals. No snap message needed — the dropdown only offers the four valid options | Browser: minute dropdown shows `00`, `15`, `30`, `45` |
-| SCH-06 | No past-date check on `event_date` | `after_or_equal:today` on the server, mirrored on the client and in the calendar grid | 8 tests in `EventDateRulesTest` |
-| SCH-06c | Today allowed but no heads-up about lack of advance registration | Amber warning in `ScheduleStep` shown only when `event_date === todayIso()` | Browser: warning appears on today, hides on tomorrow or on clear |
-| SCH-07 | No future bound on `event_date` | `before:+2 years` on the server, mirrored on the client and in the calendar grid | 8 tests in `EventDateRulesTest` |
+| #       | Title                                                            | Fixed by                                                                                                                 | Evidence                                                         |
+| ------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| SCH-04  | Time picker 5-minute snap is invisible                           | `MINUTES` array reduced to 15-minute intervals. No snap message needed — the dropdown only offers the four valid options | Browser: minute dropdown shows `00`, `15`, `30`, `45`            |
+| SCH-06  | No past-date check on `event_date`                               | `after_or_equal:today` on the server, mirrored on the client and in the calendar grid                                    | 8 tests in `EventDateRulesTest`                                  |
+| SCH-06c | Today allowed but no heads-up about lack of advance registration | Amber warning in `ScheduleStep` shown only when `event_date === todayIso()`                                              | Browser: warning appears on today, hides on tomorrow or on clear |
+| SCH-07  | No future bound on `event_date`                                  | `before:+2 years` on the server, mirrored on the client and in the calendar grid                                         | 8 tests in `EventDateRulesTest`                                  |
 
 ### Still open
 
-| # | Title | Status |
-|---|---|---|
-| EC-03 | Partner errors not displayed in ExtrasStep | Open — wizard routes to the step, but the step does not show per-row errors |
-| EC-07 | No trimming of text inputs | Open — needs `TrimStrings` middleware check before any fix is proposed |
-| EC-08 | `clear()` fires before submit | Open |
-| EC-10 | `event_name` regexes reject non-ASCII | Open — needs a decision |
-| SCH-05 | Distance unit conversion drift | Open — needs a decision |
+| #      | Title                                      | Status                                                                      |
+| ------ | ------------------------------------------ | --------------------------------------------------------------------------- |
+| EC-03  | Partner errors not displayed in ExtrasStep | Open — wizard routes to the step, but the step does not show per-row errors |
+| EC-07  | No trimming of text inputs                 | Open — needs `TrimStrings` middleware check before any fix is proposed      |
+| EC-08  | `clear()` fires before submit              | Open                                                                        |
+| EC-10  | `event_name` regexes reject non-ASCII      | Open — needs a decision                                                     |
+| SCH-05 | Distance unit conversion drift             | Open — needs a decision                                                     |
 
 ### Closed since the file was created
 
@@ -874,6 +874,7 @@ the pattern in `EventUrlRulesTest.php` — local `payload()` and
 Cases to cover:
 
 **Duplicate rule:**
+
 - Two identical name+type pairs → rejected with `partners.N.name`
 - `nike/sponsor` + `Nike/sponsor` → rejected (case-insensitive)
 - `Nike /sponsor` + `Nike/sponsor` → rejected (trim)
@@ -883,6 +884,7 @@ Cases to cover:
 - Two rows with missing name → shape errors, no duplicate error fires
 
 **Quality rule:**
+
 - `dfdffdfd` (no vowels) → rejected
 - `aeiou` (no consonants) → rejected
 - `aaaa` (3+ repeats) → rejected

@@ -14,7 +14,6 @@ use App\Enums\ChurchEventStatus;
  * See docs/audit-2026-10-19.md ISSUE-014 for the reason Phase A
  * ships this guard.
  */
-
 test('Upcoming transitions to Ongoing and Cancelled', function () {
     expect(ChurchEventStatus::Upcoming->allowedTransitions())
         ->toBe([ChurchEventStatus::Ongoing, ChurchEventStatus::Cancelled]);
@@ -73,7 +72,7 @@ test('canTransitionTo rejects every illegal pair', function () {
 
             expect($from->canTransitionTo($to))->toBe(
                 $expected,
-                "Transition {$key} should be " . ($expected ? 'legal' : 'illegal'),
+                "Transition {$key} should be ".($expected ? 'legal' : 'illegal'),
             );
         }
     }

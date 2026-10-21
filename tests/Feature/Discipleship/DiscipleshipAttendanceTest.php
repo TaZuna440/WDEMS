@@ -75,7 +75,7 @@ beforeEach(function () {
         'created_by' => $this->staff->id,
     ]);
 
-    $this->participant = Participant::create([
+    $this->participant = Participant::create(['pool' => 'church',
         'first_name' => 'Juan',
         'last_name' => 'Dela Cruz',
         'email' => 'juan.'.uniqid().'@example.com',
@@ -212,7 +212,7 @@ test('bulk upsert rejects a session that belongs to a different batch', function
 });
 
 test('bulk upsert rejects an enrollment from a different program', function () {
-    $foreignParticipant = Participant::create([
+    $foreignParticipant = Participant::create(['pool' => 'church',
         'first_name' => 'Foreign',
         'last_name' => 'Enrollee',
         'email' => 'foreign.'.uniqid().'@example.com',
@@ -243,7 +243,7 @@ test('bulk upsert rejects an enrollment from a different program', function () {
 });
 
 test('bulk upsert accepts a program-level enrollment with a null batch pointer', function () {
-    $unassignedParticipant = Participant::create([
+    $unassignedParticipant = Participant::create(['pool' => 'church',
         'first_name' => 'Unassigned',
         'last_name' => 'Enrollee',
         'email' => 'unassigned.'.uniqid().'@example.com',

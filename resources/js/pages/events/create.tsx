@@ -51,8 +51,19 @@ const RUNNING_STEPS: WizardStepConfig[] = [
     {
         id: 'schedule',
         label: 'Schedule',
-        fields: ['event_date', 'start_time', 'end_time', 'distance_value', 'distance_unit'],
-        requiredFields: ['event_date', 'start_time', 'distance_value', 'distance_unit'],
+        fields: [
+            'event_date',
+            'start_time',
+            'end_time',
+            'distance_value',
+            'distance_unit',
+        ],
+        requiredFields: [
+            'event_date',
+            'start_time',
+            'distance_value',
+            'distance_unit',
+        ],
         validate: validateSchedule,
     },
     {
@@ -139,12 +150,17 @@ export default function EventsCreate({
     const steps = isChurch ? CHURCH_STEPS : RUNNING_STEPS;
 
     const setData = (key: string, value: unknown) => {
-        (inertiaSetData as unknown as (key: string, value: unknown) => void)(key, value);
+        (inertiaSetData as unknown as (key: string, value: unknown) => void)(
+            key,
+            value,
+        );
         const matching = Object.keys(errors).filter(
             (k) => k === key || k.startsWith(`${key}.`),
         );
         if (matching.length > 0) {
-            (clearErrors as unknown as (...fields: string[]) => void)(...matching);
+            (clearErrors as unknown as (...fields: string[]) => void)(
+                ...matching,
+            );
         }
     };
 
@@ -159,7 +175,7 @@ export default function EventsCreate({
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
                 <Link
                     href="/events/create"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back
@@ -170,7 +186,8 @@ export default function EventsCreate({
                         Create Event
                     </h1>
                     <p className="text-muted-foreground mt-1 text-sm">
-                        Your progress is saved automatically — you can leave and come back.
+                        Your progress is saved automatically — you can leave and
+                        come back.
                     </p>
                 </div>
 

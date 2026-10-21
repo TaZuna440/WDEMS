@@ -20,20 +20,18 @@ type Props = {
  */
 export default function PublicLayout({ children }: Props) {
     return (
-        <div className="flex min-h-svh flex-col bg-background">
+        <div className="bg-background flex min-h-svh flex-col">
             <header className="border-b border-white/5">
                 <div className="mx-auto flex w-full max-w-2xl items-center gap-3 px-6 py-4">
                     <AppLogoIcon className="h-6 w-6" />
-                    <span className="text-sm font-semibold tracking-tight text-foreground">
+                    <span className="text-foreground text-sm font-semibold tracking-tight">
                         WDEMS
                     </span>
                 </div>
             </header>
 
             <main className="flex-1 py-10">
-                <div className="mx-auto w-full max-w-2xl px-6">
-                    {children}
-                </div>
+                <div className="mx-auto w-full max-w-2xl px-6">{children}</div>
             </main>
         </div>
     );

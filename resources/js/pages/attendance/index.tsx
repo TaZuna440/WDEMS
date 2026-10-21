@@ -1,5 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
-import { CalendarDays, ChevronRight, ClipboardCheck, MapPin } from 'lucide-react';
+import {
+    CalendarDays,
+    ChevronRight,
+    ClipboardCheck,
+    MapPin,
+} from 'lucide-react';
 
 type EventRow = {
     id: number;
@@ -19,7 +24,8 @@ type Props = {
 
 const statusStyles: Record<string, string> = {
     registration_open: 'bg-lime-brand/20 text-lime-brand',
-    registration_closed: 'bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500',
+    registration_closed:
+        'bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500',
     ongoing: 'bg-accent/20 text-accent',
 };
 
@@ -27,23 +33,24 @@ function EventCard({ event }: { event: EventRow }) {
     return (
         <Link
             href={`/events/${event.id}/attendance`}
-            className="glass-panel group flex items-center gap-4 rounded-xl p-4 transition-colors hover:border-lime-brand/30"
+            className="glass-panel group hover:border-lime-brand/30 flex items-center gap-4 rounded-xl p-4 transition-colors"
         >
-            <div className="flex-1 flex flex-col gap-1">
+            <div className="flex flex-1 flex-col gap-1">
                 <div className="flex items-center gap-3">
-                    <h3 className="text-sm font-semibold text-foreground">
+                    <h3 className="text-foreground text-sm font-semibold">
                         {event.event_name}
                     </h3>
                     <span
                         className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                            statusStyles[event.status] ?? statusStyles.registration_closed
+                            statusStyles[event.status] ??
+                            statusStyles.registration_closed
                         }`}
                     >
                         {event.status_label}
                     </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                     {event.event_date !== null && (
                         <span className="flex items-center gap-1.5">
                             <CalendarDays className="h-3.5 w-3.5" />
@@ -58,15 +65,15 @@ function EventCard({ event }: { event: EventRow }) {
                     )}
                 </div>
 
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="text-muted-foreground flex items-center gap-4 text-xs">
                     <span>
-                        <span className="font-medium text-foreground">
+                        <span className="text-foreground font-medium">
                             {event.registered_count}
                         </span>{' '}
                         registered
                     </span>
                     <span>
-                        <span className="font-medium text-foreground">
+                        <span className="text-foreground font-medium">
                             {event.marked_count}
                         </span>{' '}
                         marked
@@ -74,7 +81,7 @@ function EventCard({ event }: { event: EventRow }) {
                 </div>
             </div>
 
-            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+            <ChevronRight className="text-muted-foreground group-hover:text-foreground h-4 w-4 shrink-0 transition-colors" />
         </Link>
     );
 }
@@ -82,15 +89,15 @@ function EventCard({ event }: { event: EventRow }) {
 function EmptyState() {
     return (
         <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-12 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
-                <ClipboardCheck className="h-6 w-6 text-muted-foreground" />
+            <div className="bg-secondary mb-4 flex h-14 w-14 items-center justify-center rounded-full">
+                <ClipboardCheck className="text-muted-foreground h-6 w-6" />
             </div>
-            <h2 className="text-base font-semibold text-foreground">
+            <h2 className="text-foreground text-base font-semibold">
                 No events to record attendance for.
             </h2>
-            <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-                Events appear here on the day they are scheduled. Come back
-                when an event is happening.
+            <p className="text-muted-foreground mt-2 max-w-sm text-sm">
+                Events appear here on the day they are scheduled. Come back when
+                an event is happening.
             </p>
         </div>
     );
@@ -120,12 +127,15 @@ export default function AttendanceIndex({ today, recent }: Props) {
                     <>
                         {today.length > 0 && (
                             <section className="flex flex-col gap-3">
-                                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                                <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                                     Today
                                 </h2>
                                 <div className="flex flex-col gap-2">
                                     {today.map((event) => (
-                                        <EventCard key={event.id} event={event} />
+                                        <EventCard
+                                            key={event.id}
+                                            event={event}
+                                        />
                                     ))}
                                 </div>
                             </section>
@@ -133,12 +143,15 @@ export default function AttendanceIndex({ today, recent }: Props) {
 
                         {recent.length > 0 && (
                             <section className="flex flex-col gap-3">
-                                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                                <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                                     Recent
                                 </h2>
                                 <div className="flex flex-col gap-2">
                                     {recent.map((event) => (
-                                        <EventCard key={event.id} event={event} />
+                                        <EventCard
+                                            key={event.id}
+                                            event={event}
+                                        />
                                     ))}
                                 </div>
                             </section>
@@ -151,7 +164,5 @@ export default function AttendanceIndex({ today, recent }: Props) {
 }
 
 AttendanceIndex.layout = {
-    breadcrumbs: [
-        { title: 'Attendance', href: '/attendance' },
-    ],
+    breadcrumbs: [{ title: 'Attendance', href: '/attendance' }],
 };

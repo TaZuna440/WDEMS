@@ -15,6 +15,7 @@ are the chronological record; this file is the consolidated
 reference.
 
 **Related:**
+
 - `docs/church-events/07-scope-and-task-division.md` §3.6 — the
   task breakdown this module implements
 - `docs/church-events/09-mockup-scope-inventory.md` — what the
@@ -51,8 +52,8 @@ Parallel to those, two records:
 
 - An **enrollment** says "this participant is pursuing this
   program." Keyed on (participant, program), one row per
-  participant per program for life. Has a nullable *batch
-  pointer* that says which cohort they are currently attending.
+  participant per program for life. Has a nullable _batch
+  pointer_ that says which cohort they are currently attending.
 - An **attendance** row says "this enrollment was present (or
   not) at this session." Keyed on (enrollment, session).
 
@@ -66,22 +67,22 @@ participant attended. See §6.
 
 ### Database tables
 
-| Table | Purpose |
-|---|---|
-| `discipleship_programs` | The six seeded programs |
-| `discipleship_batches` | Cohorts, FK to program |
-| `discipleship_enrollments` | Participant × program |
-| `discipleship_sessions` | Meetings, FK to batch |
-| `discipleship_attendances` | Enrollment × session |
+| Table                      | Purpose                 |
+| -------------------------- | ----------------------- |
+| `discipleship_programs`    | The six seeded programs |
+| `discipleship_batches`     | Cohorts, FK to program  |
+| `discipleship_enrollments` | Participant × program   |
+| `discipleship_sessions`    | Meetings, FK to batch   |
+| `discipleship_attendances` | Enrollment × session    |
 
 ### Models
 
-| Model | File |
-|---|---|
-| `DiscipleshipProgram` | `app/Models/DiscipleshipProgram.php` |
-| `DiscipleshipBatch` | `app/Models/DiscipleshipBatch.php` |
+| Model                    | File                                    |
+| ------------------------ | --------------------------------------- |
+| `DiscipleshipProgram`    | `app/Models/DiscipleshipProgram.php`    |
+| `DiscipleshipBatch`      | `app/Models/DiscipleshipBatch.php`      |
 | `DiscipleshipEnrollment` | `app/Models/DiscipleshipEnrollment.php` |
-| `DiscipleshipSession` | `app/Models/DiscipleshipSession.php` |
+| `DiscipleshipSession`    | `app/Models/DiscipleshipSession.php`    |
 | `DiscipleshipAttendance` | `app/Models/DiscipleshipAttendance.php` |
 
 The `Participant` model carries a `discipleshipEnrollments()`
@@ -89,10 +90,10 @@ relation.
 
 ### Enums
 
-| Enum | Values |
-|---|---|
+| Enum                           | Values                                               |
+| ------------------------------ | ---------------------------------------------------- |
 | `DiscipleshipEnrollmentStatus` | enrolled, in_progress, completed, withdrawn, on_hold |
-| `DiscipleshipAttendanceStatus` | present, absent, excused |
+| `DiscipleshipAttendanceStatus` | present, absent, excused                             |
 
 `DiscipleshipEnrollmentStatus` has a `label()` method and two
 helpers: `values()` and `activeValues()` (enrolled +
@@ -100,13 +101,13 @@ in_progress).
 
 ### Controllers
 
-| Controller | Actions |
-|---|---|
-| `DiscipleshipController` | index, show, exportCsv, participantSearch |
-| `DiscipleshipBatchController` | show, store, update, destroy |
+| Controller                         | Actions                                     |
+| ---------------------------------- | ------------------------------------------- |
+| `DiscipleshipController`           | index, show, exportCsv, participantSearch   |
+| `DiscipleshipBatchController`      | show, store, update, destroy                |
 | `DiscipleshipEnrollmentController` | store, update, destroy (destroy = withdraw) |
-| `DiscipleshipSessionController` | store, update, destroy |
-| `DiscipleshipAttendanceController` | bulkUpsert, destroy |
+| `DiscipleshipSessionController`    | store, update, destroy                      |
+| `DiscipleshipAttendanceController` | bulkUpsert, destroy                         |
 
 ### FormRequests
 
@@ -122,8 +123,8 @@ All under `app/Http/Requests/Discipleship/`:
 
 ### Services
 
-| Service | File |
-|---|---|
+| Service                       | File                                                        |
+| ----------------------------- | ----------------------------------------------------------- |
 | `DiscipleshipProgressService` | `app/Services/Discipleship/DiscipleshipProgressService.php` |
 
 ### Seeder
@@ -133,11 +134,11 @@ idempotent via `firstOrCreate` on slug.
 
 ### Frontend
 
-| Page | File |
-|---|---|
-| Landing | `resources/js/pages/discipleship/index.tsx` |
-| Program detail | `resources/js/pages/discipleship/show.tsx` |
-| Batch detail | `resources/js/pages/discipleship/batch-show.tsx` |
+| Page           | File                                             |
+| -------------- | ------------------------------------------------ |
+| Landing        | `resources/js/pages/discipleship/index.tsx`      |
+| Program detail | `resources/js/pages/discipleship/show.tsx`       |
+| Batch detail   | `resources/js/pages/discipleship/batch-show.tsx` |
 
 Sidebar entry in `app-sidebar.tsx` — `GraduationCap` icon,
 between Fellowship and Events.
@@ -194,7 +195,7 @@ A participant holds one enrollment row per program across their
 lifetime. Withdrawn and on_hold are statuses, not deletions.
 Re-enrolling resets the same row.
 
-`batch_id` is the *batch pointer*: which cohort the participant
+`batch_id` is the _batch pointer_: which cohort the participant
 is currently in. Nullable because a participant may be enrolled
 at the program level before a specific batch is chosen. Set to
 NULL on batch delete via `nullOnDelete`.
@@ -281,24 +282,24 @@ All under the `/discipleship` prefix, in the main authenticated
 group (`auth`, `verified.or.admin`, `device.trusted`,
 `event.advance`).
 
-| Method | URL | Controller action | Route name |
-|---|---|---|---|
-| GET | `/discipleship` | `DiscipleshipController@index` | `discipleship.index` |
-| GET | `/discipleship/programs/{program:slug}` | `DiscipleshipController@show` | `discipleship.programs.show` |
-| GET | `/discipleship/programs/{program:slug}/enrollments/export` | `DiscipleshipController@exportCsv` | `discipleship.enrollments.export` |
-| GET | `/discipleship/programs/{program:slug}/participant-search` | `DiscipleshipController@participantSearch` | `discipleship.participants.search` |
-| POST | `/discipleship/programs/{program:slug}/batches` | `DiscipleshipBatchController@store` | `discipleship.batches.store` |
-| GET | `/discipleship/batches/{batch}` | `DiscipleshipBatchController@show` | `discipleship.batches.show` |
-| PUT | `/discipleship/batches/{batch}` | `DiscipleshipBatchController@update` | `discipleship.batches.update` |
-| DELETE | `/discipleship/batches/{batch}` | `DiscipleshipBatchController@destroy` | `discipleship.batches.destroy` |
-| POST | `/discipleship/programs/{program:slug}/enrollments` | `DiscipleshipEnrollmentController@store` | `discipleship.enrollments.store` |
-| PUT | `/discipleship/enrollments/{enrollment}` | `DiscipleshipEnrollmentController@update` | `discipleship.enrollments.update` |
-| DELETE | `/discipleship/enrollments/{enrollment}` | `DiscipleshipEnrollmentController@destroy` | `discipleship.enrollments.withdraw` |
-| POST | `/discipleship/batches/{batch}/sessions` | `DiscipleshipSessionController@store` | `discipleship.sessions.store` |
-| PUT | `/discipleship/sessions/{session}` | `DiscipleshipSessionController@update` | `discipleship.sessions.update` |
-| DELETE | `/discipleship/sessions/{session}` | `DiscipleshipSessionController@destroy` | `discipleship.sessions.destroy` |
-| POST | `/discipleship/batches/{batch}/attendances/bulk` | `DiscipleshipAttendanceController@bulkUpsert` | `discipleship.attendances.bulk` |
-| DELETE | `/discipleship/attendances/{attendance}` | `DiscipleshipAttendanceController@destroy` | `discipleship.attendances.destroy` |
+| Method | URL                                                        | Controller action                             | Route name                          |
+| ------ | ---------------------------------------------------------- | --------------------------------------------- | ----------------------------------- |
+| GET    | `/discipleship`                                            | `DiscipleshipController@index`                | `discipleship.index`                |
+| GET    | `/discipleship/programs/{program:slug}`                    | `DiscipleshipController@show`                 | `discipleship.programs.show`        |
+| GET    | `/discipleship/programs/{program:slug}/enrollments/export` | `DiscipleshipController@exportCsv`            | `discipleship.enrollments.export`   |
+| GET    | `/discipleship/programs/{program:slug}/participant-search` | `DiscipleshipController@participantSearch`    | `discipleship.participants.search`  |
+| POST   | `/discipleship/programs/{program:slug}/batches`            | `DiscipleshipBatchController@store`           | `discipleship.batches.store`        |
+| GET    | `/discipleship/batches/{batch}`                            | `DiscipleshipBatchController@show`            | `discipleship.batches.show`         |
+| PUT    | `/discipleship/batches/{batch}`                            | `DiscipleshipBatchController@update`          | `discipleship.batches.update`       |
+| DELETE | `/discipleship/batches/{batch}`                            | `DiscipleshipBatchController@destroy`         | `discipleship.batches.destroy`      |
+| POST   | `/discipleship/programs/{program:slug}/enrollments`        | `DiscipleshipEnrollmentController@store`      | `discipleship.enrollments.store`    |
+| PUT    | `/discipleship/enrollments/{enrollment}`                   | `DiscipleshipEnrollmentController@update`     | `discipleship.enrollments.update`   |
+| DELETE | `/discipleship/enrollments/{enrollment}`                   | `DiscipleshipEnrollmentController@destroy`    | `discipleship.enrollments.withdraw` |
+| POST   | `/discipleship/batches/{batch}/sessions`                   | `DiscipleshipSessionController@store`         | `discipleship.sessions.store`       |
+| PUT    | `/discipleship/sessions/{session}`                         | `DiscipleshipSessionController@update`        | `discipleship.sessions.update`      |
+| DELETE | `/discipleship/sessions/{session}`                         | `DiscipleshipSessionController@destroy`       | `discipleship.sessions.destroy`     |
+| POST   | `/discipleship/batches/{batch}/attendances/bulk`           | `DiscipleshipAttendanceController@bulkUpsert` | `discipleship.attendances.bulk`     |
+| DELETE | `/discipleship/attendances/{attendance}`                   | `DiscipleshipAttendanceController@destroy`    | `discipleship.attendances.destroy`  |
 
 16 routes. `{program:slug}` binds by slug; `{batch}`,
 `{enrollment}`, `{session}`, `{attendance}` bind by id — none of
@@ -345,6 +346,7 @@ edit inside `progress()`.
 null when applicable is 0.
 
 **is_complete**:
+
 - `required_sessions` set: `attended >= required`
 - `required_sessions` null: `applicable > 0 AND attended === applicable`
 
@@ -528,6 +530,7 @@ UI bug or a tampered request; partial success would hide the
 problem.
 
 ### Program-level enrollments with a null batch pointer are
+
 accepted in the matrix
 
 A participant can be enrolled in a program before being assigned
@@ -572,15 +575,15 @@ enrollees or a batch exceeds ~100, add pagination.
 Phase 5 closure. Full suite at closure: **791 passed, 3
 skipped, 3,080 assertions.**
 
-| File | Tests | Covers |
-|---|---|---|
-| `DiscipleshipProgramTest` | 6 | Landing render, seeded order, per-slug view, 404, seeder idempotency, auth |
-| `DiscipleshipBatchTest` | 12 | Store, update, destroy, validation, duplicates allowed, cascade, ordering, auth |
-| `DiscipleshipEnrollmentTest` | 24 | Store (with/without batch), duplicate prevention, cross-program batch rejection, status transitions, withdraw semantics, three-level cascade, participant-search endpoint, auth |
-| `DiscipleshipSessionTest` | 13 | Store, update, destroy, validation, retroactive logging, same-day allowed, ordering, cascade, auth |
-| `DiscipleshipAttendanceTest` | 15 | Bulk upsert, idempotency, update, cross-batch guards, program-level enrollment acceptance, empty cells, invalid status, destroy, cascade, auth |
-| `DiscipleshipProgressTest` | 13 | Progress (present, excused, absent, mixed, window boundaries), required_sessions set/unset, batchSummary, programOverview |
-| `DiscipleshipProgramReportTest` | 15 | Search (name/last/email), status filter, batch filter, unassigned, combined filters, counts scoping, CSV response and filters, auth |
+| File                            | Tests | Covers                                                                                                                                                                          |
+| ------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DiscipleshipProgramTest`       | 6     | Landing render, seeded order, per-slug view, 404, seeder idempotency, auth                                                                                                      |
+| `DiscipleshipBatchTest`         | 12    | Store, update, destroy, validation, duplicates allowed, cascade, ordering, auth                                                                                                 |
+| `DiscipleshipEnrollmentTest`    | 24    | Store (with/without batch), duplicate prevention, cross-program batch rejection, status transitions, withdraw semantics, three-level cascade, participant-search endpoint, auth |
+| `DiscipleshipSessionTest`       | 13    | Store, update, destroy, validation, retroactive logging, same-day allowed, ordering, cascade, auth                                                                              |
+| `DiscipleshipAttendanceTest`    | 15    | Bulk upsert, idempotency, update, cross-batch guards, program-level enrollment acceptance, empty cells, invalid status, destroy, cascade, auth                                  |
+| `DiscipleshipProgressTest`      | 13    | Progress (present, excused, absent, mixed, window boundaries), required_sessions set/unset, batchSummary, programOverview                                                       |
+| `DiscipleshipProgramReportTest` | 15    | Search (name/last/email), status filter, batch filter, unassigned, combined filters, counts scoping, CSV response and filters, auth                                             |
 
 **Four uncovered relations**, deliberately: `creator()` on
 Batch, Enrollment, and Session; `recorder()` on Attendance. Not
@@ -651,14 +654,14 @@ rediscover them.
 
 ## 12. Cross-references
 
-| Document | Purpose |
-|---|---|
-| `docs/church-events/07-scope-and-task-division.md` §3.6 | Phase 5 task breakdown (5A–5H) |
-| `docs/church-events/09-mockup-scope-inventory.md` | What the client mockups show beyond this module |
-| `docs/progress.md` 2026-10-16 entries | The eight sub-phase records (5A through 5H) |
-| `docs/participant-identity.md` | Participant identity model |
-| `docs/attendance-code.md` | Running-event attendance — structurally distinct from Discipleship attendance |
-| `docs/architecture.md` | Whole-system overview |
+| Document                                                | Purpose                                                                       |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `docs/church-events/07-scope-and-task-division.md` §3.6 | Phase 5 task breakdown (5A–5H)                                                |
+| `docs/church-events/09-mockup-scope-inventory.md`       | What the client mockups show beyond this module                               |
+| `docs/progress.md` 2026-10-16 entries                   | The eight sub-phase records (5A through 5H)                                   |
+| `docs/participant-identity.md`                          | Participant identity model                                                    |
+| `docs/attendance-code.md`                               | Running-event attendance — structurally distinct from Discipleship attendance |
+| `docs/architecture.md`                                  | Whole-system overview                                                         |
 
 ---
 

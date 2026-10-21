@@ -6,6 +6,7 @@ use App\Enums\AttendanceStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Validation\ValidationException;
 
 #[Fillable([
     'registration_id',
@@ -17,6 +18,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class Attendance extends Model
 {
+    protected static function booted(): void
+    {
+        static::saving(function (self $attendance): void {
+            if (! Registration::query()->active()->whereKey($attendance->registration_id)->exists()) {
+                throw ValidationException::withMessages(['registration' => 'This registration is not active.']);
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

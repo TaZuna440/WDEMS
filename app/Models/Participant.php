@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'provisional_event_id',
+    'pool',
     'first_name',
     'first_name_normalized',
     'last_name',
@@ -26,6 +27,20 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 ])]
 class Participant extends Model
 {
+    public static function assertPool(string $pool): void
+    {
+        if (! in_array($pool, ['running', 'church'], true)) {
+            throw new \InvalidArgumentException('An explicit running or church participant pool is required.');
+        }
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $participant): void {
+            self::assertPool((string) $participant->pool);
+        });
+    }
+
     protected function casts(): array
     {
         return [
@@ -260,12 +275,17 @@ class Participant extends Model
         $this->attributes['suffix_normalized'] = self::normalizeName($value) ?? '';
     }
 
-    public function scopeMatchingName(Builder $query, ?string $first, ?string $last, ?string $middle = null, ?string $suffix = null): Builder
+    public function scopeMatchingName(Builder $query, string $pool, ?string $first, ?string $last, ?string $middle = null, ?string $suffix = null): Builder
     {
-        return $query->whereNull('provisional_event_id')->where('first_name_normalized', self::normalizeName($first))
+        $q = $query->whereNull('provisional_event_id')->where('first_name_normalized', self::normalizeName($first))
             ->where('last_name_normalized', self::normalizeName($last))
             ->where('middle_name_normalized', self::normalizeName($middle) ?? '')
             ->where('suffix_normalized', self::normalizeName($suffix) ?? '');
+
+        self::assertPool($pool);
+        $q->where('pool', $pool);
+
+        return $q;
     }
 
     /**
@@ -295,6 +315,7 @@ class Participant extends Model
      * contact field is provided -- there is nothing to match on.
      */
     public static function findByComposite(
+        string $pool,
         ?string $email,
         ?string $rawPhone,
         ?string $firstName,
@@ -302,6 +323,7 @@ class Participant extends Model
         ?string $middleName = null,
         ?string $suffix = null,
     ): ?self {
+        self::assertPool($pool);
         $normalizedFirst = self::normalizeName($firstName);
         $normalizedLast = self::normalizeName($lastName);
 
@@ -316,7 +338,7 @@ class Participant extends Model
             return null;
         }
 
-        $query = self::query()->matchingName($firstName, $lastName, $middleName, $suffix);
+        $query = self::query()->matchingName($pool, $firstName, $lastName, $middleName, $suffix);
 
         if ($trimmedEmail !== '' && $normalizedPhone !== null) {
             $query->where(function ($q) use ($trimmedEmail, $normalizedPhone): void {
@@ -359,11 +381,13 @@ class Participant extends Model
      * @throws IdentityRequiredException
      */
     public static function resolveFrom(
+        string $pool,
         ?string $email,
         ?string $rawPhone,
         array $attributes,
     ): self {
         $existing = self::findByComposite(
+            $pool,
             $email,
             $rawPhone,
             $attributes['first_name'] ?? null,
@@ -408,6 +432,7 @@ class Participant extends Model
         if ($normalizedPhone !== null && ! isset($attributes['contact_number'])) {
             $attributes['contact_number'] = $rawPhone;
         }
+        $attributes['pool'] = $pool;
 
         return self::create($attributes);
     }

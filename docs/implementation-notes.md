@@ -13,6 +13,7 @@ append-only: if a behavior changes, a new entry supersedes the old
 one, and the old one stays as a historical record.
 
 **Related:**
+
 - `docs/architecture.md` — whole-system overview
 - `docs/AI-CONTEXT.md` — paste-me-at-chat-start context
 - Subsystem docs — each covers its own area; this file catches
@@ -212,7 +213,7 @@ when the event is not accepting submissions — not 404, not 403.
 **Why 200 and not 404/403.**
 
 - **404 is wrong** — the URL is valid. The event exists. The
-  participant is supposed to be able to see *why* registration is
+  participant is supposed to be able to see _why_ registration is
   closed.
 - **403 is wrong** — no authentication exists to fail. The route
   is anonymous. There is no user to be forbidden.
@@ -249,13 +250,13 @@ specific route by name.
 
 **The five:**
 
-| Name | Key | Bound | Applied to |
-|---|---|---|---|
-| `event-deletion-otp-request` | `user_id \| event_id` | 3 / minute | `POST /events/{event}/deletion/request-otp` |
-| `event-deletion-otp-verify` | `user_id \| event_id` | 10 / minute | `POST /events/{event}/deletion/verify-otp` |
-| `device-verification-send` | `user_id` | 3 / minute | `POST /verify-device/send-code` |
-| `device-verification-verify` | `user_id` | 10 / minute | `POST /verify-device/verify` |
-| `public-registration-submit` | `ip` | 5 / minute | `POST /r/{event:registration_slug}` |
+| Name                         | Key                   | Bound       | Applied to                                  |
+| ---------------------------- | --------------------- | ----------- | ------------------------------------------- |
+| `event-deletion-otp-request` | `user_id \| event_id` | 3 / minute  | `POST /events/{event}/deletion/request-otp` |
+| `event-deletion-otp-verify`  | `user_id \| event_id` | 10 / minute | `POST /events/{event}/deletion/verify-otp`  |
+| `device-verification-send`   | `user_id`             | 3 / minute  | `POST /verify-device/send-code`             |
+| `device-verification-verify` | `user_id`             | 10 / minute | `POST /verify-device/verify`                |
+| `public-registration-submit` | `ip`                  | 5 / minute  | `POST /r/{event:registration_slug}`         |
 
 **Why it matters.** The bound values were chosen deliberately.
 `public-registration-submit` at 5/min per IP is tight enough to
@@ -406,7 +407,6 @@ registration-verification entries. Both are called from `boot()`.
 The section's guidance about bound values and key selection still
 applies — this correction is only to the count and the method
 reference.
-
 
 ## Running Events audit addendum — 2026-10-21
 

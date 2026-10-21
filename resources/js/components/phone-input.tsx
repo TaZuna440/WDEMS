@@ -89,7 +89,14 @@ export default function PhoneInput({
 
     return (
         <div className="relative">
-            {international && <span className="absolute left-3 top-2.5 text-sm" aria-hidden="true">+63</span>}
+            {international && (
+                <span
+                    className="absolute top-2.5 left-3 text-sm"
+                    aria-hidden="true"
+                >
+                    +63
+                </span>
+            )}
             <Input
                 id={id}
                 type="tel"
@@ -108,17 +115,24 @@ export default function PhoneInput({
                 )}
             />
             {showFeedback && (
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2">
                     {isValid ? (
-                        <Check className="h-4 w-4 text-lime-brand" aria-label="Valid phone number" />
+                        <Check
+                            className="text-lime-brand h-4 w-4"
+                            aria-label="Valid phone number"
+                        />
                     ) : (
-                        <X className="h-4 w-4 text-destructive" aria-label="Invalid phone number" />
+                        <X
+                            className="text-destructive h-4 w-4"
+                            aria-label="Invalid phone number"
+                        />
                     )}
                 </span>
             )}
             {showFeedback && !isValid && (
-                <p className="mt-1 text-xs text-destructive">
-                    Enter a valid PH mobile number (09XXXXXXXXX or +639XXXXXXXXX).
+                <p className="text-destructive mt-1 text-xs">
+                    Enter a valid PH mobile number (09XXXXXXXXX or
+                    +639XXXXXXXXX).
                 </p>
             )}
         </div>

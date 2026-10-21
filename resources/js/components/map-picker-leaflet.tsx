@@ -8,7 +8,8 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 // Fix Vite bundling icon paths for Leaflet default marker
-delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })
+    ._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconUrl: markerIcon,
     iconRetinaUrl: markerIcon2x,
@@ -68,7 +69,7 @@ export default function MapPickerLeaflet({
                 `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
                 { headers: { Accept: 'application/json' } },
             );
-            if (! res.ok) throw new Error('Reverse geocode failed');
+            if (!res.ok) throw new Error('Reverse geocode failed');
             const data = await res.json();
             const address =
                 typeof data.display_name === 'string' ? data.display_name : '';
@@ -97,13 +98,13 @@ export default function MapPickerLeaflet({
             </MapContainer>
 
             {loading && (
-                <div className="pointer-events-none absolute left-3 top-3 rounded-md bg-navy-900/90 px-3 py-1.5 text-xs text-white">
+                <div className="bg-navy-900/90 pointer-events-none absolute top-3 left-3 rounded-md px-3 py-1.5 text-xs text-white">
                     Looking up address...
                 </div>
             )}
 
-            {! marker && (
-                <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-navy-900/90 px-3 py-1.5 text-xs text-white">
+            {!marker && (
+                <div className="bg-navy-900/90 pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md px-3 py-1.5 text-xs text-white">
                     Click anywhere on the map to place the marker
                 </div>
             )}

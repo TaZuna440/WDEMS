@@ -13,6 +13,4 @@ use RuntimeException;
  * defense-in-depth — the resolver is the last gate before a
  * participant row would be created with no identity key.
  */
-class IdentityRequiredException extends RuntimeException
-{
-}
+class IdentityRequiredException extends RuntimeException {}

@@ -13,7 +13,6 @@ use App\Models\User;
  *
  * A NULL column and a missing JSON key both resolve to required.
  */
-
 function reqs_staff(): User
 {
     return User::factory()->create([
@@ -24,7 +23,7 @@ function reqs_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function reqs_event(array $overrides = []): Event
 {

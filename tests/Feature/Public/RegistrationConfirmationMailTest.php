@@ -23,7 +23,6 @@ uses(RefreshDatabase::class);
  *
  * Helpers are prefixed confmail_ to avoid Pest function collisions.
  */
-
 function confmail_staff(): User
 {
     return User::factory()->create([
@@ -34,7 +33,7 @@ function confmail_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function confmail_event(array $overrides = []): Event
 {
@@ -58,7 +57,7 @@ function confmail_event(array $overrides = []): Event
  * A verified challenge ready for finalize. Both required channels are
  * marked verified so allVerified() returns true.
  *
- * @param array<string, mixed> $payload
+ * @param  array<string, mixed>  $payload
  * @return array{0: string, 1: RegistrationVerificationChallenge}
  */
 function confmail_verified_challenge(Event $event, array $payload): array

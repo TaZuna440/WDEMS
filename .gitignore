@@ -60,3 +60,9 @@ yarn-error.log
 # Session docs-dump artifacts (regenerate as needed)
 docs-dump.txt
 structure.txt
+
+# Shell artifacts and ad-hoc files — checked-in by accident (2026-10-21)
+/attendance?-
+/verified_at
+/*.patch
+/Church_Event_Management_Workflow_Specification.docx

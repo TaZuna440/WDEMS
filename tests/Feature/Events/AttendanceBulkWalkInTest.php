@@ -24,7 +24,6 @@ uses(RefreshDatabase::class);
  *
  * Helpers prefixed bwt_ to avoid Pest function collisions.
  */
-
 function bwt_staff(): User
 {
     return User::factory()->create([
@@ -44,7 +43,7 @@ function bwt_admin(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function bwt_event(array $overrides = []): Event
 {
@@ -63,7 +62,7 @@ function bwt_event(array $overrides = []): Event
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function bwt_field(Event $event, array $overrides = []): RegistrationField
 {
@@ -78,7 +77,7 @@ function bwt_field(Event $event, array $overrides = []): RegistrationField
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
  */
 function bwt_row(array $overrides = []): array
@@ -200,13 +199,12 @@ test('bulk walk-in with the same client_uuid twice is idempotent', function () {
 // Per-row business rules (D6)
 // ---------------------------------------------------------------------------
 
-
 test('bulk walk-in rejects a row already registered but keeps the others', function () {
     $staff = bwt_staff();
     $event = bwt_event();
 
     // Pre-existing participant + registration on the same event.
-    $existing = Participant::create([
+    $existing = Participant::create(['pool' => 'running',
         'first_name' => 'Existing',
         'last_name' => 'Person',
         'age' => 28,

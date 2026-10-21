@@ -27,7 +27,10 @@ type Props = {
     upcoming: UpcomingEvent[];
 };
 
-const URGENCY: Record<string, { label: string; dot: string; border: string; text: string; btn: string }> = {
+const URGENCY: Record<
+    string,
+    { label: string; dot: string; border: string; text: string; btn: string }
+> = {
     overdue: {
         label: 'OVERDUE',
         dot: 'bg-destructive',
@@ -76,7 +79,9 @@ export default function Dashboard({ actionItems, upcoming }: Props) {
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <div className="pl-10">
-                    <h1 className="text-2xl font-semibold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.55),0_0_24px_rgba(0,0,0,0.35)]">Dashboard</h1>
+                    <h1 className="text-2xl font-semibold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.55),0_0_24px_rgba(0,0,0,0.35)]">
+                        Dashboard
+                    </h1>
                     <p className="mt-1 text-sm text-white/90 [text-shadow:0_1px_2px_rgba(0,0,0,0.55),0_0_24px_rgba(0,0,0,0.35)]">
                         What needs your attention right now.
                     </p>
@@ -85,50 +90,59 @@ export default function Dashboard({ actionItems, upcoming }: Props) {
                 {/* Action Feed */}
                 <div className="glass-panel rounded-xl p-6">
                     <div className="mb-4 flex items-center justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                             Needs Attention
                         </h2>
-                        <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        <span className="text-muted-foreground rounded-full bg-white/5 px-2 py-0.5 text-xs font-medium">
                             {actionItems.length}
                         </span>
                     </div>
 
                     {actionItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <Inbox className="h-10 w-10 text-muted-foreground/40" />
-                            <p className="mt-3 text-sm text-foreground">All clear.</p>
-                            <p className="mt-1 text-xs text-muted-foreground">
+                            <Inbox className="text-muted-foreground/40 h-10 w-10" />
+                            <p className="text-foreground mt-3 text-sm">
+                                All clear.
+                            </p>
+                            <p className="text-muted-foreground mt-1 text-xs">
                                 Nothing requires your attention right now.
                             </p>
                         </div>
                     ) : (
                         <ul className="flex flex-col gap-3">
                             {actionItems.map((item) => {
-                                const u = URGENCY[item.urgency] ?? URGENCY.waiting;
+                                const u =
+                                    URGENCY[item.urgency] ?? URGENCY.waiting;
                                 const showHeader = item.urgency !== lastUrgency;
                                 lastUrgency = item.urgency;
 
                                 return (
                                     <li key={item.id}>
                                         {showHeader && (
-                                            <div className="mb-2 mt-2 flex items-center gap-2 first:mt-0">
-                                                <div className={`h-1.5 w-1.5 rounded-full ${u.dot}`} />
-                                                <span className={`text-xs font-semibold tracking-wider ${u.text}`}>
+                                            <div className="mt-2 mb-2 flex items-center gap-2 first:mt-0">
+                                                <div
+                                                    className={`h-1.5 w-1.5 rounded-full ${u.dot}`}
+                                                />
+                                                <span
+                                                    className={`text-xs font-semibold tracking-wider ${u.text}`}
+                                                >
                                                     {u.label}
                                                 </span>
                                             </div>
                                         )}
 
-                                        <div className={`rounded-lg border ${u.border} bg-white/[0.02] p-3 transition-colors hover:bg-white/[0.04]`}>
+                                        <div
+                                            className={`rounded-lg border ${u.border} bg-white/[0.02] p-3 transition-colors hover:bg-white/[0.04]`}
+                                        >
                                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                                 <div className="flex-1">
                                                     <Link
                                                         href={`/events/${item.id}`}
-                                                        className="text-sm font-medium text-foreground hover:underline"
+                                                        className="text-foreground text-sm font-medium hover:underline"
                                                     >
                                                         {item.event_name}
                                                     </Link>
-                                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                                    <p className="text-muted-foreground mt-0.5 text-xs">
                                                         {item.reason}
                                                     </p>
                                                 </div>
@@ -152,38 +166,45 @@ export default function Dashboard({ actionItems, upcoming }: Props) {
                 {/* Coming Up */}
                 <div className="glass-panel rounded-xl p-6">
                     <div className="mb-4 flex items-center justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                             Coming Up
                         </h2>
                         <Link
                             href="/events"
-                            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                            className="text-muted-foreground hover:text-foreground text-xs transition-colors"
                         >
                             View all →
                         </Link>
                     </div>
 
                     {upcoming.length === 0 ? (
-                        <p className="py-6 text-center text-xs text-muted-foreground">
+                        <p className="text-muted-foreground py-6 text-center text-xs">
                             No upcoming events.
                         </p>
                     ) : (
                         <ul className="flex flex-col">
                             {upcoming.map((e) => (
-                                <li key={e.id} className="border-b border-white/5 last:border-b-0">
+                                <li
+                                    key={e.id}
+                                    className="border-b border-white/5 last:border-b-0"
+                                >
                                     <Link
                                         href={`/events/${e.id}`}
                                         className="flex items-center justify-between gap-3 py-2.5 transition-colors hover:bg-white/[0.02]"
                                     >
                                         <div className="flex-1">
-                                            <p className="text-sm text-foreground">{e.event_name}</p>
-                                            <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                                            <p className="text-foreground text-sm">
+                                                {e.event_name}
+                                            </p>
+                                            <p className="text-muted-foreground mt-0.5 flex items-center gap-2 text-xs">
                                                 <Calendar className="h-3 w-3" />
                                                 {e.event_date}
-                                                <span className="text-lime-brand">{daysText(e.days_until)}</span>
+                                                <span className="text-lime-brand">
+                                                    {daysText(e.days_until)}
+                                                </span>
                                             </p>
                                         </div>
-                                        <span className="shrink-0 text-xs text-muted-foreground">
+                                        <span className="text-muted-foreground shrink-0 text-xs">
                                             {e.status_label}
                                         </span>
                                     </Link>

@@ -10,6 +10,7 @@ converts to a reference (like `authentication.md`).
 **Status:** Planned. No code exists yet.
 
 **Related:**
+
 - `docs/participant-identity-and-monitoring-plan.md` — the phased build plan
 - `docs/registration.md` — the registration feature this sits behind
 - `docs/known-issues.md` — ISSUE-008 (predecessor)
@@ -43,12 +44,12 @@ current model.
 
 WDEMS adopts a two-key identity model:
 
-| Field | Role |
-|---|---|
-| Email | Primary identity key |
-| Contact number (normalized) | Secondary identity key |
-| Name | Descriptive only — never used for identity |
-| Age, address | Descriptive only |
+| Field                       | Role                                       |
+| --------------------------- | ------------------------------------------ |
+| Email                       | Primary identity key                       |
+| Contact number (normalized) | Secondary identity key                     |
+| Name                        | Descriptive only — never used for identity |
+| Age, address                | Descriptive only                           |
 
 **Rule:** at least one of email or contact number must be provided.
 Email wins when both are present.
@@ -195,8 +196,8 @@ Enforced in two places:
 error. The rejection runs after format validation, so a malformed
 email or phone would already have failed.
 
-Message: *"Please provide at least an email address or a contact
-number."*
+Message: _"Please provide at least an email address or a contact
+number."_
 
 **Form builder** — `RegistrationFieldRequest::withValidator()`. If
 `common_field_requirements.email === false` AND
@@ -204,7 +205,7 @@ number."*
 An organizer cannot configure a form where both identity fields are
 optional.
 
-Message: *"At least one of email or contact number must be required."*
+Message: _"At least one of email or contact number must be required."_
 
 ## 8. What "duplicate" means — and what it does not
 
@@ -588,8 +589,8 @@ Body reads:
 > 2. Else if `normalize($rawPhone)` returns a value →
 >    `firstOrCreate(['contact_number_normalized' => $normalized], $attributes)`.
 >    Match on phone only.
-> ...
-> On existing match, `$attributes` are **discarded**. First-write-wins.
+>    ...
+>    On existing match, `$attributes` are **discarded**. First-write-wins.
 
 Correction. `resolveFrom()` is now composite. It matches on
 `(normalized first name, normalized last name, email)` OR
@@ -688,7 +689,6 @@ Similar normalized full names require a shared birthdate or contact to appear in
 the audit. Staff name lookup is advisory and permits an encoder to review an
 existing registration instead of creating another. A family sharing a contact
 remains valid when the full names identify different people.
-
 
 ## Running Events audit addendum — 2026-10-21
 

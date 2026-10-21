@@ -83,8 +83,8 @@ export default function Login({ status, canResetPassword }: Props) {
                             </div>
                         )}
 
-                        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs">
-                            <p className="mb-1 font-semibold text-destructive">
+                        <div className="border-destructive/30 bg-destructive/10 rounded-md border p-3 text-xs">
+                            <p className="text-destructive mb-1 font-semibold">
                                 Security notice
                             </p>
                             <p className="text-muted-foreground">

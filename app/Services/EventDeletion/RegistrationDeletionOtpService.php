@@ -32,7 +32,9 @@ use Illuminate\Support\Facades\Mail;
 class RegistrationDeletionOtpService
 {
     public const CODE_TTL_SECONDS = 600;       // 10 minutes
+
     public const RESEND_COOLDOWN_SECONDS = 60; // 1 minute
+
     public const MAX_ATTEMPTS = 5;
 
     /**
@@ -46,7 +48,7 @@ class RegistrationDeletionOtpService
     public function issue(User $user, Registration $registration): int
     {
         if (Cache::has($this->resendKey($user, $registration))) {
-            throw new OtpResendTooSoonException();
+            throw new OtpResendTooSoonException;
         }
 
         $code = OtpCode::generate();
@@ -90,6 +92,7 @@ class RegistrationDeletionOtpService
 
         if (($payload['expires_at'] ?? 0) < now()->timestamp) {
             $this->forgetOtp($user, $registration);
+
             return OtpVerificationResult::Expired;
         }
 
@@ -97,6 +100,7 @@ class RegistrationDeletionOtpService
 
         if ($attempts >= self::MAX_ATTEMPTS) {
             $this->forgetOtp($user, $registration);
+
             return OtpVerificationResult::Locked;
         }
 
@@ -106,6 +110,7 @@ class RegistrationDeletionOtpService
 
             if ($attempts >= self::MAX_ATTEMPTS) {
                 $this->forgetOtp($user, $registration);
+
                 return OtpVerificationResult::Locked;
             }
 

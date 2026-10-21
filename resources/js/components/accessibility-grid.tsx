@@ -90,7 +90,7 @@ export default function AccessibilityGrid({ value, onChange }: Props) {
         <div className="flex flex-col gap-5">
             {GROUPS.map((group) => (
                 <div key={group.title} className="flex flex-col gap-3">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <h3 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                         {group.title}
                     </h3>
 
@@ -116,12 +116,12 @@ export default function AccessibilityGrid({ value, onChange }: Props) {
                                     <div className="flex flex-1 flex-col">
                                         <Label
                                             htmlFor={id}
-                                            className="cursor-pointer text-sm font-medium leading-tight"
+                                            className="cursor-pointer text-sm leading-tight font-medium"
                                         >
                                             {feature.label}
                                         </Label>
                                         {feature.hint && (
-                                            <p className="mt-0.5 text-xs text-muted-foreground">
+                                            <p className="text-muted-foreground mt-0.5 text-xs">
                                                 {feature.hint}
                                             </p>
                                         )}

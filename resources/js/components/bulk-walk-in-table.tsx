@@ -75,7 +75,6 @@ export default function BulkWalkInTable({
     maxRows,
     deferred = false,
 }: Props) {
-
     // Birthday picker bounds, computed once per mount and shared
     // across all rows. Same bounds the client validator enforces
     // (age 3-120).
@@ -145,7 +144,7 @@ export default function BulkWalkInTable({
                         }`}
                     >
                         <div className="mb-3 flex items-center justify-between">
-                            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            <span className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                                 Row {i + 1}
                             </span>
                             <Button
@@ -154,7 +153,7 @@ export default function BulkWalkInTable({
                                 variant="ghost"
                                 onClick={() => removeRow(i)}
                                 disabled={disabled || rows.length <= 1}
-                                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                                className="text-muted-foreground hover:text-destructive h-7 w-7 p-0"
                                 aria-label={`Remove row ${i + 1}`}
                             >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -204,10 +203,26 @@ export default function BulkWalkInTable({
 
                             {(['middle_name', 'suffix'] as const).map((key) => (
                                 <div key={key} className="grid gap-1.5">
-                                    <Label htmlFor={`rows.${i}.${key}`}>{key === 'middle_name' ? 'Middle name' : 'Suffix'} (optional)</Label>
-                                    <Input id={`rows.${i}.${key}`} value={row[key] ?? ''} disabled={disabled}
-                                        maxLength={key === 'suffix' ? 10 : 50} onChange={(e) => updateRow(i, { [key]: e.target.value })} />
-                                    <InputError message={errors[`rows.${i}.${key}`]} />
+                                    <Label htmlFor={`rows.${i}.${key}`}>
+                                        {key === 'middle_name'
+                                            ? 'Middle name'
+                                            : 'Suffix'}{' '}
+                                        (optional)
+                                    </Label>
+                                    <Input
+                                        id={`rows.${i}.${key}`}
+                                        value={row[key] ?? ''}
+                                        disabled={disabled}
+                                        maxLength={key === 'suffix' ? 10 : 50}
+                                        onChange={(e) =>
+                                            updateRow(i, {
+                                                [key]: e.target.value,
+                                            })
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors[`rows.${i}.${key}`]}
+                                    />
                                 </div>
                             ))}
 
@@ -254,7 +269,8 @@ export default function BulkWalkInTable({
                             <div className="grid gap-1.5">
                                 <Label htmlFor={`rows.${i}.contact_number`}>
                                     Contact number
-                                    {requirements.contact_number && requiredMark}
+                                    {requirements.contact_number &&
+                                        requiredMark}
                                 </Label>
                                 <Input
                                     id={`rows.${i}.contact_number`}
@@ -269,9 +285,7 @@ export default function BulkWalkInTable({
                                     disabled={disabled}
                                 />
                                 <InputError
-                                    message={
-                                        errors[`rows.${i}.contact_number`]
-                                    }
+                                    message={errors[`rows.${i}.contact_number`]}
                                 />
                             </div>
 
@@ -323,7 +337,7 @@ export default function BulkWalkInTable({
                                             !!errors[`rows.${i}.arrival_time`]
                                         }
                                     />
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="text-muted-foreground text-xs">
                                         The time on the paper form, not the
                                         current time.
                                     </p>
@@ -338,7 +352,7 @@ export default function BulkWalkInTable({
 
                         {fields.length > 0 && (
                             <div className="mt-4 flex flex-col gap-3 border-t border-white/5 pt-4">
-                                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                                     Additional information
                                 </p>
 
@@ -379,7 +393,7 @@ export default function BulkWalkInTable({
                                                     }
                                                     rows={3}
                                                     disabled={disabled}
-                                                    className="flex min-h-[60px] w-full rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-foreground focus:border-lime-brand/50 focus:outline-none focus:ring-1 focus:ring-lime-brand/50"
+                                                    className="text-foreground focus:border-lime-brand/50 focus:ring-lime-brand/50 flex min-h-[60px] w-full rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm focus:ring-1 focus:outline-none"
                                                 />
                                             )}
 
@@ -400,7 +414,7 @@ export default function BulkWalkInTable({
                                                         )
                                                     }
                                                     disabled={disabled}
-                                                    className="h-9 w-full rounded-md border border-white/10 bg-white/[0.02] px-3 text-sm text-foreground focus:border-lime-brand/50 focus:outline-none disabled:opacity-50"
+                                                    className="text-foreground focus:border-lime-brand/50 h-9 w-full rounded-md border border-white/10 bg-white/[0.02] px-3 text-sm focus:outline-none disabled:opacity-50"
                                                 >
                                                     <option value="">
                                                         Choose…
@@ -424,7 +438,7 @@ export default function BulkWalkInTable({
                                                         (option) => (
                                                             <label
                                                                 key={option}
-                                                                className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+                                                                className="text-foreground flex cursor-pointer items-center gap-2 text-sm"
                                                             >
                                                                 <input
                                                                     type="radio"
@@ -468,10 +482,8 @@ export default function BulkWalkInTable({
                                                                     : [];
                                                             return (
                                                                 <label
-                                                                    key={
-                                                                        option
-                                                                    }
-                                                                    className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+                                                                    key={option}
+                                                                    className="text-foreground flex cursor-pointer items-center gap-2 text-sm"
                                                                 >
                                                                     <input
                                                                         type="checkbox"
@@ -499,10 +511,8 @@ export default function BulkWalkInTable({
                                             )}
 
                                             {(field.field_type === 'text' ||
-                                                field.field_type ===
-                                                    'number' ||
-                                                field.field_type ===
-                                                    'email' ||
+                                                field.field_type === 'number' ||
+                                                field.field_type === 'email' ||
                                                 field.field_type ===
                                                     'date') && (
                                                 <Input
@@ -559,7 +569,7 @@ export default function BulkWalkInTable({
                     Add row
                 </Button>
 
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                     {rows.length} of {maxRows} rows
                 </p>
             </div>

@@ -27,7 +27,6 @@ uses(RefreshDatabase::class);
  *
  * Helpers are prefixed finalize_ to avoid Pest function collisions.
  */
-
 function finalize_staff(): User
 {
     return User::factory()->create([
@@ -46,7 +45,7 @@ function finalize_admin(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function finalize_event(array $overrides = []): Event
 {

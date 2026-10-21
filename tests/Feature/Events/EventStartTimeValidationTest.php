@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Date;
  *
  * Helpers prefixed start_future_ to avoid Pest collisions.
  */
-
 function start_future_staff(): User
 {
     return User::factory()->create([
@@ -25,7 +24,7 @@ function start_future_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
  */
 function start_future_payload(array $overrides = []): array

@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Models\Participant;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class PublicRegistrationRequest extends FormRequest
 {
@@ -32,7 +33,6 @@ class PublicRegistrationRequest extends FormRequest
         }
         $this->merge($normalized);
     }
-
 
     /**
      * Reuse the public form contract against the current event at finalization.
@@ -110,8 +110,8 @@ class PublicRegistrationRequest extends FormRequest
             'birthday' => [
                 'nullable',
                 'date',
-                'before_or_equal:' . now()->subYears(3)->toDateString(),
-                'after_or_equal:' . now()->subYears(120)->toDateString(),
+                'before_or_equal:'.now()->subYears(3)->toDateString(),
+                'after_or_equal:'.now()->subYears(120)->toDateString(),
             ],
             'address' => $this->commonFieldRules('address', [
                 'string',
@@ -138,13 +138,13 @@ class PublicRegistrationRequest extends FormRequest
             $rules['emergency_contact_name'] = ['nullable', 'string', 'max:101'];
             $rules['emergency_contact_first_name'] = $name;
             $rules['emergency_contact_last_name'] = $name;
-            $rules['emergency_contact_relationship'] = ['required', \Illuminate\Validation\Rule::in(['Parent', 'Sibling', 'Spouse', 'Friend', 'Guardian', 'Other'])];
+            $rules['emergency_contact_relationship'] = ['required', Rule::in(['Parent', 'Sibling', 'Spouse', 'Friend', 'Guardian', 'Other'])];
             $rules['emergency_contact_relationship_other'] = ['exclude_unless:emergency_contact_relationship,Other', 'required', 'string', 'min:2', 'max:15', "regex:/\\A(?=.*[\\p{L}])[\\p{L}\\p{M} '\\-]+\\z/u"];
         }
 
         $tshirt = $event instanceof Event ? $event->registration_tshirt : null;
         $rules['tshirt_choice'] = $tshirt
-            ? [$tshirt['required'] ? 'required' : 'nullable', 'string', \Illuminate\Validation\Rule::in($tshirt['choices'])]
+            ? [$tshirt['required'] ? 'required' : 'nullable', 'string', Rule::in($tshirt['choices'])]
             : ['prohibited'];
 
         return $rules;

@@ -10,7 +10,6 @@ use App\Models\User;
  *
  * See docs/event-creation-issues.md.
  */
-
 function date_payload(array $overrides = []): array
 {
     return array_merge([

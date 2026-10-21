@@ -52,7 +52,6 @@ use App\Models\User;
  *
  * Helpers prefixed edge_ to avoid Pest collisions.
  */
-
 function edge_staff(): User
 {
     return User::factory()->create([

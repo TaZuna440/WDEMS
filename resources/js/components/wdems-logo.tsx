@@ -10,10 +10,7 @@ type Props = {
     variant?: 'auto' | 'on-dark' | 'on-light';
 };
 
-export default function WdemsLogo({
-    className,
-    variant = 'auto',
-}: Props) {
+export default function WdemsLogo({ className, variant = 'auto' }: Props) {
     const colorClass =
         variant === 'on-dark'
             ? 'text-white'

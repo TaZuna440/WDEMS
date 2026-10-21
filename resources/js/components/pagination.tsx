@@ -48,13 +48,13 @@ export default function Pagination({
 
     return (
         <div className="flex flex-col items-center justify-between gap-3 border-t border-white/5 pt-4 sm:flex-row">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
                 Showing{' '}
-                <span className="font-medium text-foreground">{from}</span>
+                <span className="text-foreground font-medium">{from}</span>
                 {' – '}
-                <span className="font-medium text-foreground">{to}</span>
+                <span className="text-foreground font-medium">{to}</span>
                 {' of '}
-                <span className="font-medium text-foreground">{total}</span>
+                <span className="text-foreground font-medium">{total}</span>
             </p>
 
             <div className="flex items-center gap-2">
@@ -69,13 +69,13 @@ export default function Pagination({
                     Previous
                 </Button>
 
-                <span className="text-xs text-muted-foreground">
+                <span className="text-muted-foreground text-xs">
                     Page{' '}
-                    <span className="font-medium text-foreground">
+                    <span className="text-foreground font-medium">
                         {currentPage}
                     </span>
                     {' of '}
-                    <span className="font-medium text-foreground">
+                    <span className="text-foreground font-medium">
                         {lastPage}
                     </span>
                 </span>

@@ -20,7 +20,6 @@ uses(RefreshDatabase::class);
  *
  * Helpers prefixed rma_ to avoid Pest function collisions.
  */
-
 function rma_staff(): User
 {
     return User::factory()->create([
@@ -31,7 +30,7 @@ function rma_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function rma_event(array $overrides = []): Event
 {
@@ -48,11 +47,11 @@ function rma_event(array $overrides = []): Event
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function rma_participant(array $overrides = []): Participant
 {
-    return Participant::create(array_merge([
+    return Participant::create(array_merge(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'age' => 28,

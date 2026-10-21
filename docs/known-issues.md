@@ -330,10 +330,10 @@ This is the biggest RBAC gap in the system and the one the sidebar
 work does not address.
 
 1. **Decide the ownership model.** Options:
-   - Any staff can edit any event (current behavior — deliberate?)
-   - Only the creator can edit their own events
-   - Only the creator or an admin can edit
-   - Staff can edit their own; admins can edit anyone's
+    - Any staff can edit any event (current behavior — deliberate?)
+    - Only the creator can edit their own events
+    - Only the creator or an admin can edit
+    - Staff can edit their own; admins can edit anyone's
 
 2. **Implement the chosen model.** The natural place is a Laravel
    policy (`EventPolicy`) registered in `AppServiceProvider`. The
@@ -375,24 +375,24 @@ These are documented in full in their subsystem guides. Listed here so
 this file works as a master index. If you fix one, add a pointer entry
 under it or move it up into a full entry.
 
-| # | Title | Where | Severity |
-|---|---|---|---|
-| A-1 | SecurityTest.php skips 3 tests silently | `docs/authentication.md` Trap #6 | Low |
-| A-2 | Flash `status` not shared to Inertia | `docs/authentication.md` Open #3 | Cosmetic |
-| A-3 | Device-token hash claim in architecture.md wrong | Fixed via `architecture.md` corrections | — |
-| A-4 | Mail queued class sent synchronously | `docs/authentication.md` Trap #9 | Low |
-| E-1 | Dead `isEdit` ternary in BasicsStep | `docs/event-creation.md` Trap #3 | Cosmetic |
-| E-2 | Workflow transitions not wired to routes | `docs/event-creation.md` Open #4 | Low |
-| E-3 | No test coverage on event CRUD controllers | `docs/event-creation.md` §8.2 | Low |
-| D-1 | No try/catch in `EventDeletionController::destroy()` | `docs/event-deletion.md` Open #1 | Low |
-| D-2 | `locked` detection uses string-match on error text | `docs/event-deletion.md` Trap #1 | Medium |
-| D-3 | `RESEND_COOLDOWN_SECONDS` duplicated across PHP/TS | `docs/event-deletion.md` Trap #3 | Cosmetic |
-| D-4 | No autoFocus on OTP input in deletion dialog | `docs/event-deletion.md` Open #4 | Cosmetic |
-| W-1 | Checkpoint has no "resume draft" prompt | `docs/event-creation-wizard.md` §11.1 | Low |
-| W-2 | Checkpoint `clear()` fires before submit | `docs/event-creation-wizard.md` §11.1 | Low |
-| W-3 | FAQ entries cannot be edited through any UI | `docs/event-creation-wizard.md` §11.2 | Medium |
-| W-4 | Partner contact info not stored | `docs/event-creation-wizard.md` §11.4 | Low |
-| W-5 | No server-side draft persistence | `docs/event-creation-wizard.md` §11.5 | Low |
+| #   | Title                                                | Where                                   | Severity |
+| --- | ---------------------------------------------------- | --------------------------------------- | -------- |
+| A-1 | SecurityTest.php skips 3 tests silently              | `docs/authentication.md` Trap #6        | Low      |
+| A-2 | Flash `status` not shared to Inertia                 | `docs/authentication.md` Open #3        | Cosmetic |
+| A-3 | Device-token hash claim in architecture.md wrong     | Fixed via `architecture.md` corrections | —        |
+| A-4 | Mail queued class sent synchronously                 | `docs/authentication.md` Trap #9        | Low      |
+| E-1 | Dead `isEdit` ternary in BasicsStep                  | `docs/event-creation.md` Trap #3        | Cosmetic |
+| E-2 | Workflow transitions not wired to routes             | `docs/event-creation.md` Open #4        | Low      |
+| E-3 | No test coverage on event CRUD controllers           | `docs/event-creation.md` §8.2           | Low      |
+| D-1 | No try/catch in `EventDeletionController::destroy()` | `docs/event-deletion.md` Open #1        | Low      |
+| D-2 | `locked` detection uses string-match on error text   | `docs/event-deletion.md` Trap #1        | Medium   |
+| D-3 | `RESEND_COOLDOWN_SECONDS` duplicated across PHP/TS   | `docs/event-deletion.md` Trap #3        | Cosmetic |
+| D-4 | No autoFocus on OTP input in deletion dialog         | `docs/event-deletion.md` Open #4        | Cosmetic |
+| W-1 | Checkpoint has no "resume draft" prompt              | `docs/event-creation-wizard.md` §11.1   | Low      |
+| W-2 | Checkpoint `clear()` fires before submit             | `docs/event-creation-wizard.md` §11.1   | Low      |
+| W-3 | FAQ entries cannot be edited through any UI          | `docs/event-creation-wizard.md` §11.2   | Medium   |
+| W-4 | Partner contact info not stored                      | `docs/event-creation-wizard.md` §11.4   | Low      |
+| W-5 | No server-side draft persistence                     | `docs/event-creation-wizard.md` §11.5   | Low      |
 
 ---
 
@@ -494,7 +494,7 @@ security — only friction.
 - Removed the four now-unused imports (`EmailTwoFactorService`,
   `Logout`, `Cookie`, `Event`)
 - Inverted `tests/Feature/Auth/LogoutDeviceTrustTest.php` — it now
-  asserts the cookie is *not* cleared on logout
+  asserts the cookie is _not_ cleared on logout
 
 **No changes to:** `EnsureDeviceIsTrusted`, `EmailTwoFactorService`,
 the settings page, or any route. The trust-list-based check was always
@@ -1151,6 +1151,7 @@ through a workflow method that enforces it — same pattern as
 ### Verification when fixed
 
 New feature test file `tests/Feature/Events/ChurchEventKindGuardTest.php`:
+
 - `POST open-registration` on a church event → 403
 - `PUT update` on a church event cannot bypass a legal → illegal
   `church_status` transition
@@ -1252,6 +1253,7 @@ it never transitions `timestamp → null` via `mark()`.
 ### Verification when fixed
 
 New test in `tests/Feature/Events/AttendanceVerificationTest.php`:
+
 - Mark Present with code → `verified_at` set
 - Re-mark Present (no code) → `verified_at` still set
 - Re-mark Absent → `verified_at` still set (absence doesn't clear
@@ -1682,16 +1684,17 @@ Three coordinated changes plus a data migration:
    applicable = every session in the batch.
 3. **Data migration:** existing attendance rows with `excused` status
    need a decision. Options:
-   - Convert to `absent` (preserves history as absence; recommended)
-   - Delete the rows
-   - Leave orphaned (breaks the enum constraint)
-   Follow-up question already on the client: confirm the conversion
-   choice and confirm mid-batch joiners show partial progress under
-   the new rule.
+    - Convert to `absent` (preserves history as absence; recommended)
+    - Delete the rows
+    - Leave orphaned (breaks the enum constraint)
+      Follow-up question already on the client: confirm the conversion
+      choice and confirm mid-batch joiners show partial progress under
+      the new rule.
 
 ### Verification when fixed
 
 New test in `tests/Feature/Discipleship/DiscipleshipProgressTest.php`:
+
 - Excused status no longer accepted (validation error)
 - Applicable includes pre-enrollment sessions
 - Attended counts Present only, ignores Absent
@@ -1706,7 +1709,6 @@ New test in `tests/Feature/Discipleship/DiscipleshipProgressTest.php`:
   one from client Q14. M5 and P5 excluded — both closed by
   shipped W-phase work (W5.1 and W2 respectively).
 
-
 ## Running Events audit addendum — 2026-10-21
 
 Status correction: ISSUE-014 running/church lifecycle isolation, ISSUE-016 verified_at preservation, and ISSUE-017 dateless deferred attendance are fixed with regression coverage. This does not close unrelated church authorization, other OTP services, concurrency, or design-system findings. Live CAPTCHA and physical camera/scanner validation remain acceptance checks. The earlier reCAPTCHA-key blocker is resolved locally.
@@ -1714,3 +1716,84 @@ Status correction: ISSUE-014 running/church lifecycle isolation, ISSUE-016 verif
 Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
 This dated addendum supersedes conflicting Running Events statements above;
 historical entries are retained under the append-only documentation policy.
+
+---
+
+## ISSUE-026 — PHPStan level 7 / Pint baseline debt
+
+**Severity:** Low
+
+**Status:** Open (baseline captured 2026-10-21)
+
+**Problem:** PHPStan level 7 has never been green on `main` — 469 errors at
+`5755c75`, +69 from the HOLD/pool work = 538 total. Pint (`laravel` preset)
+has 68 style issues, all pre-existing files. None of the current work's files
+fail Pint; the +69 PHPStan errors are annotation debt (missing generics,
+missing `@property` docblocks, iterable value types).
+
+**Impact:** CI cannot gate on PHPStan or Pint. Every PR adds debt without a
+signal. Baseline was generated on 2026-10-21 to unblock the HOLD/pool PR; the
+baseline must shrink, not grow.
+
+**Action taken:** `phpstan-baseline.neon` generated and wired into
+`phpstan.neon`. New code cannot add errors without updating the baseline.
+Pint debt deferred to a separate chore PR.
+
+**Follow-up priorities for the cleanup PR:**
+
+1. `missingType.generics` on Model relations (~60 errors) — mechanical, high count.
+2. `Access to undefined property ... Model::$xxx` (~150 errors) — add `@property` docblocks.
+3. `Cannot call method toDateString() on string` (~40 errors) — date casts need typed PHPDoc.
+4. Then run `./vendor/bin/pint` (safe auto-fix, ~68 files).
+
+**Rule:** Do not run `pint` or un-baseline PHPStan as part of a feature PR —
+the diff would bury the feature work.
+
+---
+
+## ISSUE-027 — Repair migration leaves `duplicate_of_registration_id` NULL in the interrupted-implementation branch
+
+**Severity:** Low
+
+**Status:** Open (logged 2026-10-21)
+
+**Problem:** `2026_10_22_100200_repair_participant_pools_and_preserve_review_audits`
+rewrites any `resolution_action = 'confirm_duplicate'` + `registration_status = 'cancelled'`
+row to `registration_status = 'duplicate'` with
+`duplicate_of_registration_id = held_candidate_registration_id`.
+
+If `held_candidate_registration_id` was NULL at the time of the interrupted write,
+the repaired row has status `duplicate` but no master pointer.
+
+**Impact:** Zero rows on live. Live DB had 4 registrations, no shared history —
+audit found no affected data. But other environments migrating from a mid-flight
+interrupted state could produce orphan duplicate-status rows.
+
+**Action taken:** None.
+
+**Follow-up:** A NULL-guard query — count rows where
+`registration_status = 'duplicate' AND duplicate_of_registration_id IS NULL` —
+should be added to the next migration's pre-check.
+
+---
+
+## ISSUE-028 — Master §9.1 workspace-path references are stale after `docs/specs/` promotion
+
+**Severity:** Low
+
+**Status:** Open (logged 2026-10-21)
+
+**Problem:** Master §9.1 references workspace paths like
+`user/files/Church_Events_Update.md`, `wdems-composite-rule/RUNNING_EVENTS_UPDATE.md`.
+Those files now live at `docs/specs/` in the repo. Master §9.1 was written
+assuming the workspace layout; the promotion to `docs/specs/` (AI-CONTEXT §24,
+2026-10-21) makes those paths wrong.
+
+**Impact:** An AI session reading the Master doc will look for files in the
+wrong location.
+
+**Action taken:** None. Master doc is append-only. AI-CONTEXT §24 notes the
+staleness for future readers.
+
+**Follow-up:** Append a dated correction note to Master §9.1 in the next
+docs-sync PR; do not silently rewrite §9.1.

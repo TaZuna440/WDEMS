@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\DiscipleshipProgram;
 use App\Models\User;
 use Database\Seeders\DiscipleshipProgramSeeder;
 
@@ -83,7 +84,7 @@ test('the per-program view returns 404 for an unknown slug', function () {
 test('the seeder is idempotent -- a second run does not duplicate programs', function () {
     $this->seed(DiscipleshipProgramSeeder::class);
 
-    expect(\App\Models\DiscipleshipProgram::count())->toBe(6);
+    expect(DiscipleshipProgram::count())->toBe(6);
 });
 
 // ----------------------------------------------------------------

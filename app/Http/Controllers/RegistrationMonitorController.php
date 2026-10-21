@@ -37,7 +37,7 @@ class RegistrationMonitorController extends Controller
             ->whereIn('status', [EventStatus::RegistrationOpen, EventStatus::Ongoing])
             ->get();
 
-        $stats = Registration::query()
+        $stats = Registration::query()->active()
             ->whereIn('event_id', $events->pluck('id'))
             ->selectRaw('event_id, MAX(created_at) as most_recent, COUNT(*) as total')
             ->groupBy('event_id')
@@ -51,7 +51,7 @@ class RegistrationMonitorController extends Controller
                 $row = $stats->get($event->id);
                 $mostRecent = $row?->most_recent;
 
-                $lastHour = Registration::where('event_id', $event->id)
+                $lastHour = Registration::active()->where('event_id', $event->id)
                     ->where('created_at', '>=', $cutoff)
                     ->count();
 
@@ -131,22 +131,22 @@ class RegistrationMonitorController extends Controller
         $cutoffHour = $now->subHour();
         $cutoff15 = $now->subMinutes(15);
 
-        $total = Registration::where('event_id', $event->id)->count();
+        $total = Registration::active()->where('event_id', $event->id)->count();
 
-        $lastHour = Registration::where('event_id', $event->id)
+        $lastHour = Registration::active()->where('event_id', $event->id)
             ->where('created_at', '>=', $cutoffHour)
             ->count();
 
-        $last15Min = Registration::where('event_id', $event->id)
+        $last15Min = Registration::active()->where('event_id', $event->id)
             ->where('created_at', '>=', $cutoff15)
             ->count();
 
-        $registrations = Registration::query()
+        $registrations = Registration::query()->active()
             ->where('event_id', $event->id)
             ->with(['participant' => function ($q) use ($event) {
                 $q->withCount([
                     'registrations as other_events_count' => function ($q) use ($event) {
-                        $q->where('event_id', '!=', $event->id)->whereHas('event', fn ($eventQuery) => $eventQuery->where('event_kind', Event::KIND_RUNNING));
+                        $q->active()->where('event_id', '!=', $event->id)->whereHas('event', fn ($eventQuery) => $eventQuery->where('event_kind', Event::KIND_RUNNING));
                     },
                 ]);
             }])
@@ -161,7 +161,7 @@ class RegistrationMonitorController extends Controller
         $sharedPhoneIds = [];
 
         if ($participantIds !== []) {
-            $phoneGroups = Participant::query()
+            $phoneGroups = Participant::query()->where('pool', 'running')
                 ->whereIn('id', $participantIds)
                 ->whereNotNull('contact_number')
                 ->where('contact_number', '!=', '')
@@ -379,7 +379,7 @@ class RegistrationMonitorController extends Controller
             ->orderBy('display_order')
             ->get();
 
-        $registrations = Registration::query()
+        $registrations = Registration::query()->active()
             ->where('event_id', $event->id)
             ->with(['participant', 'fieldResponses'])
             ->orderBy('id')
@@ -466,6 +466,7 @@ class RegistrationMonitorController extends Controller
      */
     private function ensureEditableRegistration(Registration $registration): void
     {
+        abort_unless($registration->isActive() && $registration->participant?->pool === 'running', 422, 'Use organizer review for inactive submissions.');
         $event = $registration->event;
 
         if ($event === null || ! $event->isRunningEvent()) {

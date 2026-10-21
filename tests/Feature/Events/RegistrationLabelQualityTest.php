@@ -14,7 +14,6 @@ uses(RefreshDatabase::class);
  *   - consonant required for 3+ character labels
  *   - short-label exemption list
  */
-
 function labelq_staff(): User
 {
     return User::factory()->create([

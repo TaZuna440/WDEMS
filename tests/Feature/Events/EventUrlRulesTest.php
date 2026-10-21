@@ -12,7 +12,6 @@ use App\Models\User;
  * The course_url tests were removed on 2026-10-15 when the field was
  * dropped from the Schedule step and its validation rules.
  */
-
 function url_payload(array $overrides = []): array
 {
     return array_merge([

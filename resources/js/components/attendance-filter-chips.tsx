@@ -1,11 +1,7 @@
 import { router } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
 
-export type AttendanceFilter =
-    | 'all'
-    | 'unmarked'
-    | 'present'
-    | 'absent';
+export type AttendanceFilter = 'all' | 'unmarked' | 'present' | 'absent';
 
 type Props = {
     active: AttendanceFilter;
@@ -15,11 +11,7 @@ type Props = {
     disabled?: boolean;
 };
 
-const ORDER: AttendanceFilter[] = [
-    'all',
-    'present',
-    'absent',
-];
+const ORDER: AttendanceFilter[] = ['all', 'present', 'absent'];
 
 const LABELS: Record<AttendanceFilter, string> = {
     all: 'All',
@@ -31,7 +23,8 @@ const LABELS: Record<AttendanceFilter, string> = {
 const ACTIVE_STYLES: Record<AttendanceFilter, string> = {
     all: 'bg-secondary text-foreground border-border',
     unmarked: 'bg-secondary text-foreground border-border',
-    present: 'bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400',
+    present:
+        'bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400',
     absent: 'bg-destructive/15 text-destructive border-destructive/30',
 };
 
@@ -76,7 +69,7 @@ export default function AttendanceFilterChips({
                             'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
                             isActive
                                 ? ACTIVE_STYLES[filter]
-                                : 'border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground',
+                                : 'text-muted-foreground hover:text-foreground border-white/10 hover:border-white/20',
                             disabled && 'cursor-not-allowed opacity-50',
                         )}
                     >
@@ -86,7 +79,7 @@ export default function AttendanceFilterChips({
                                 'rounded-full px-1.5 py-0.5 text-[10px] tabular-nums',
                                 isActive
                                     ? 'bg-black/20'
-                                    : 'bg-white/5 text-muted-foreground',
+                                    : 'text-muted-foreground bg-white/5',
                             )}
                         >
                             {count}

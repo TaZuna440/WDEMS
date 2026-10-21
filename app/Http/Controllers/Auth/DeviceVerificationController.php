@@ -16,8 +16,7 @@ class DeviceVerificationController extends Controller
 {
     public function __construct(
         private readonly EmailTwoFactorService $service,
-    ) {
-    }
+    ) {}
 
     public function show(Request $request): Response|RedirectResponse
     {

@@ -5,7 +5,7 @@ use App\Models\Participant;
 use Illuminate\Database\UniqueConstraintViolationException;
 
 beforeEach(function () {
-    $this->participant = Participant::create([
+    $this->participant = Participant::create(['pool' => 'church',
         'first_name' => 'Juan',
         'last_name' => 'Dela Cruz',
         'email' => 'member-test-'.uniqid().'@example.com',

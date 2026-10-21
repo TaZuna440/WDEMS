@@ -22,7 +22,6 @@ use App\Models\User;
  *
  * Helpers prefixed attgate_ to avoid Pest collisions.
  */
-
 function attgate_staff(): User
 {
     return User::factory()->create([
@@ -33,7 +32,7 @@ function attgate_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function attgate_event(array $overrides = []): Event
 {
@@ -48,7 +47,7 @@ function attgate_event(array $overrides = []): Event
 
 function attgate_registration(Event $event): Registration
 {
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'age' => 28,

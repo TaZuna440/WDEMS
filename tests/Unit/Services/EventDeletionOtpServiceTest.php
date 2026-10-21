@@ -9,8 +9,9 @@ use App\Services\EventDeletion\OtpVerificationResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Tests\TestCase;
 
-uses(Tests\TestCase::class, RefreshDatabase::class);
+uses(TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
     Cache::flush();
@@ -55,6 +56,7 @@ it('does not store the plaintext code in cache', function () {
 
     Mail::assertSent(EventDeletionOtpMail::class, function (EventDeletionOtpMail $mail) use ($joined) {
         expect(str_contains($joined, $mail->code))->toBeFalse();
+
         return true;
     });
 });
@@ -74,6 +76,7 @@ it('verifies the correct code and clears the OTP key', function () {
     $service->issue($user, $event);
     Mail::assertSent(EventDeletionOtpMail::class, function (EventDeletionOtpMail $mail) use (&$captured) {
         $captured = $mail->code;
+
         return true;
     });
 

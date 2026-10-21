@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\RegistrationStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -32,15 +33,32 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'emergency_contact_relationship_other',
     'emergency_contact_relationship',
     'emergency_contact_number',
+    'duplicate_of_registration_id',
+    'held_reason',
+    'held_candidate_registration_id',
+    'resolved_by',
+    'resolved_at',
+    'resolution_action',
 ])]
 class Registration extends Model
 {
+    protected static function booted(): void
+    {
+        static::updating(function (self $registration): void {
+            if (in_array($registration->getRawOriginal('registration_status'), ['duplicate', 'removed'], true)
+                && $registration->isDirty('registration_status')) {
+                throw new \DomainException('A terminal registration cannot be reactivated.');
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [
             'registration_date' => 'datetime',
             'registered_at' => 'datetime',
             'flagged_at' => 'datetime',
+            'resolved_at' => 'datetime',
             'registration_status' => RegistrationStatus::class,
         ];
     }
@@ -83,5 +101,45 @@ class Registration extends Model
     public function isFlagged(): bool
     {
         return $this->flagged_at !== null;
+    }
+
+    public function heldCandidate(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'held_candidate_registration_id');
+    }
+
+    public function resolver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'resolved_by');
+    }
+
+    public function isHeld(): bool
+    {
+        return $this->registration_status === RegistrationStatus::Held;
+    }
+
+    public function isConfirmed(): bool
+    {
+        return $this->registration_status === RegistrationStatus::Confirmed;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->registration_status === RegistrationStatus::Confirmed;
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where($query->qualifyColumn('registration_status'), RegistrationStatus::Confirmed);
+    }
+
+    public function scopeConfirmed(Builder $query): Builder
+    {
+        return $query->where('registration_status', RegistrationStatus::Confirmed);
+    }
+
+    public function scopeHeld(Builder $query): Builder
+    {
+        return $query->where('registration_status', RegistrationStatus::Held);
     }
 }

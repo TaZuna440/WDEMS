@@ -26,7 +26,7 @@ function fwParticipantGroup(array $overrides = []): Participant
     static $counter = 0;
     $counter++;
 
-    return Participant::create(array_merge([
+    return Participant::create(array_merge(['pool' => 'church',
         'first_name' => 'Test',
         'last_name' => 'Participant'.$counter,
         'email' => 'group-test-'.$counter.'-'.uniqid().'@example.com',

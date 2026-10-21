@@ -18,25 +18,25 @@ export default function RegistrationClosed({ event }: Props) {
         <>
             <Head title={`Registration closed — ${event.event_name}`} />
 
-            <div className="rounded-xl border border-border bg-card/40 p-10 text-center">
-                <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
-                    <CalendarDays className="h-6 w-6 text-muted-foreground" />
+            <div className="border-border bg-card/40 rounded-xl border p-10 text-center">
+                <div className="bg-secondary mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full">
+                    <CalendarDays className="text-muted-foreground h-6 w-6" />
                 </div>
 
-                <h1 className="text-xl font-semibold text-foreground">
+                <h1 className="text-foreground text-xl font-semibold">
                     {event.event_name}
                 </h1>
 
                 {event.event_date !== null && (
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="text-muted-foreground mt-1 text-sm">
                         {event.event_date}
                     </p>
                 )}
 
-                <p className="mt-8 text-base text-foreground">
+                <p className="text-foreground mt-8 text-base">
                     Registration for this event is closed.
                 </p>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-2 text-sm">
                     If you believe this is a mistake, contact the event
                     organizer directly.
                 </p>

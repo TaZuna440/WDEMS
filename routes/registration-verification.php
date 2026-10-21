@@ -32,4 +32,3 @@ Route::middleware([ProtectRegistrationVerification::class])
             ->middleware('throttle:registration-verification-attempt')
             ->name('public-registration.verification.verify');
     });
-

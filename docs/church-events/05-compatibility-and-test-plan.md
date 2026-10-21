@@ -15,6 +15,7 @@ criteria in document 04 into a test plan and adds migration and
 rollback analysis that document 04 does not cover.
 
 **Related:**
+
 - `docs/church-events/01-current-system-audit.md`
 - `docs/church-events/02-product-scope-and-requirements.md`
 - `docs/church-events/03-domain-model-and-workflows.md`
@@ -35,14 +36,14 @@ contents are marked PENDING-DATA.
 
 ### 0.1 Tags
 
-| Tag | Meaning |
-|---|---|
-| **MUST-PASS** | A test that must pass unchanged before any phase is merged. |
-| **NEW** | A test that must be written as part of a phase. |
-| **CONDITIONAL** | A test whose existence depends on a decision from doc 03 section 16. |
-| **PENDING-DATA** | A claim that requires reading a file the auditor has not seen. |
-| **RISK** | A named failure mode and its mitigation. |
-| **ROLLBACK** | A defined path to undo a change. |
+| Tag              | Meaning                                                              |
+| ---------------- | -------------------------------------------------------------------- |
+| **MUST-PASS**    | A test that must pass unchanged before any phase is merged.          |
+| **NEW**          | A test that must be written as part of a phase.                      |
+| **CONDITIONAL**  | A test whose existence depends on a decision from doc 03 section 16. |
+| **PENDING-DATA** | A claim that requires reading a file the auditor has not seen.       |
+| **RISK**         | A named failure mode and its mitigation.                             |
+| **ROLLBACK**     | A defined path to undo a change.                                     |
 
 ### 0.2 Traceability
 
@@ -74,10 +75,10 @@ listed in section 12.
 - `phpunit.xml` sets `DB_CONNECTION=sqlite` and
   `DB_DATABASE=:memory:`.
 - `composer.json` scripts:
-  - `test` -> `@lint:check` -> `@types:check` ->
-    `@php artisan test`.
-  - `ci:check` -> `npm run check` -> `npm run types:check` ->
-    `@test`.
+    - `test` -> `@lint:check` -> `@types:check` ->
+      `@php artisan test`.
+    - `ci:check` -> `npm run check` -> `npm run types:check` ->
+      `@test`.
 - Pint and PHPStan are in the CI chain via `lint:check` and
   `types:check`.
 
@@ -1065,12 +1066,12 @@ The following must be closed before this test plan is complete:
 1. Run `php artisan test` and record the baseline pass count.
 2. Cat `tests/Pest.php` to confirm the database binding.
 3. Run `grep -rn "payment|stripe|paymongo|checkout|paid_at|
-   amount_paid" app/ resources/js/ database/ routes/ tests/` to
+amount_paid" app/ resources/js/ database/ routes/ tests/` to
    confirm section 5.
 4. Run `grep -rn "EventType::" app/ resources/js/ database/
-   routes/ tests/` to confirm the full consumer list.
+routes/ tests/` to confirm the full consumer list.
 5. Run `grep -rn "EventStatus::" app/ resources/js/ database/
-   routes/ tests/` to confirm the full consumer list.
+routes/ tests/` to confirm the full consumer list.
 
 Until those are run, sections 1.2, 5.1, 6.2 (partially), and
 8.8 remain marked PENDING-DATA.
@@ -1098,4 +1099,3 @@ Until those are run, sections 1.2, 5.1, 6.2 (partially), and
   preservation requirement. Section 12 lists the PENDING-DATA
   closures required before this plan is complete. No code,
   migrations, tests, or configuration changed.
-

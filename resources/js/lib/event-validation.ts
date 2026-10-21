@@ -1,3 +1,4 @@
+/* eslint-disable no-control-regex */
 /**
  * Client-side validation for the event creation wizard.
  *
@@ -70,13 +71,13 @@ const GOOGLE_MAPS_URL_PATTERN =
  * input is still checked strictly.
  */
 const NAME_START_PATTERN = /^[\p{L}\p{N}]/u;
-const NAME_VOWEL_OR_NON_ASCII_PATTERN = /([aeiouyAEIOUY]|[^\x00-\x7F])/u;
+const NAME_VOWEL_OR_NON_ASCII_PATTERN = /([aeiouyAEIOUY]|[^\u0000-\u007F])/u;
 const NAME_CONSONANT_OR_NON_ASCII_PATTERN =
-    /([bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]|[^\x00-\x7F])/u;
+    /([bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]|[^\u0000-\u007F])/u;
 const NAME_TRIPLE_CHAR_PATTERN = /(.)\1\1/u;
 
 function asString(value: unknown): string {
-    return typeof value === 'string' ? value : String(value ?? '');
+    return typeof value === 'string' ? value : String((value as any) ?? '');
 }
 
 function asNumber(value: unknown): number | null {
@@ -169,7 +170,9 @@ export function validateBasics(
 
     if (!eventType) {
         errors.event_type = 'Event type is required.';
-    } else if (!EVENT_TYPES.includes(eventType as (typeof EVENT_TYPES)[number])) {
+    } else if (
+        !EVENT_TYPES.includes(eventType as (typeof EVENT_TYPES)[number])
+    ) {
         errors.event_type = 'Invalid event type.';
     }
 
@@ -273,14 +276,15 @@ export function validateSchedule(
     if (distanceValue === null) {
         errors.distance_value = 'Distance is required.';
     } else if (distanceValue < 0.01 || distanceValue > 9999.99) {
-        errors.distance_value =
-            'Distance must be between 0.01 and 9999.99.';
+        errors.distance_value = 'Distance must be between 0.01 and 9999.99.';
     }
 
     if (!distanceUnit) {
         errors.distance_unit = 'Distance unit is required.';
     } else if (
-        !DISTANCE_UNITS.includes(distanceUnit as (typeof DISTANCE_UNITS)[number])
+        !DISTANCE_UNITS.includes(
+            distanceUnit as (typeof DISTANCE_UNITS)[number],
+        )
     ) {
         errors.distance_unit = 'Distance unit must be KM or Miles.';
     }
@@ -316,8 +320,7 @@ export function validateVenue(
 
     if (venueMapUrl) {
         if (venueMapUrl.length > 500) {
-            errors.venue_map_url =
-                'Map link must not exceed 500 characters.';
+            errors.venue_map_url = 'Map link must not exceed 500 characters.';
         } else if (!GOOGLE_MAPS_URL_PATTERN.test(venueMapUrl)) {
             errors.venue_map_url =
                 'Map link must be a Google Maps URL, like https://www.google.com/maps/place/... or https://maps.app.goo.gl/...';

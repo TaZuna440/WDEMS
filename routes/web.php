@@ -2,29 +2,31 @@
 
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Auth\DeviceVerificationController;
+use App\Http\Controllers\ChurchCategoryPlaceholderController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\YouthController;
+use App\Http\Controllers\DiscipleshipAttendanceController;
 use App\Http\Controllers\DiscipleshipBatchController;
 use App\Http\Controllers\DiscipleshipController;
 use App\Http\Controllers\DiscipleshipEnrollmentController;
 use App\Http\Controllers\DiscipleshipSessionController;
-use App\Http\Controllers\ChurchCategoryPlaceholderController;
-use App\Http\Controllers\DiscipleshipAttendanceController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventDeletionController;
 use App\Http\Controllers\FellowshipAttendanceController;
 use App\Http\Controllers\FellowshipController;
 use App\Http\Controllers\FellowshipGroupController;
+use App\Http\Controllers\ParticipantReviewController;
 use App\Http\Controllers\PublicRegistrationController;
 use App\Http\Controllers\RegistrationController;
-use App\Http\Controllers\ReportIndexController;
 use App\Http\Controllers\RegistrationDeletionController;
 use App\Http\Controllers\RegistrationFormController;
 use App\Http\Controllers\RegistrationMonitorController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ReportIndexController;
 use App\Http\Controllers\ServiceAttendanceController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\YouthController;
 use App\Http\Middleware\EnsureRegistrationIsOpen;
+use App\Http\Middleware\ProtectRegistrationVerification;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
@@ -66,7 +68,7 @@ Route::middleware([EnsureRegistrationIsOpen::class])->group(function () {
 // Code-free completion destination remains available after registration closes.
 Route::get('r/{event:registration_slug}/registered', [PublicRegistrationController::class, 'confirmed'])
     ->middleware([
-        App\Http\Middleware\ProtectRegistrationVerification::class,
+        ProtectRegistrationVerification::class,
         'throttle:registration-verification-view',
     ])
     ->name('public-registration.confirmed');
@@ -205,8 +207,9 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     // sit. The paths have different segment counts (`walk-in` is 4
     // segments, `{registration}/mark` is 5), so they cannot collide.
     // Listing walk-in first keeps the pattern obvious to a reader.
-    Route::get('events/{event}/participant-review/search', [\App\Http\Controllers\ParticipantReviewController::class, 'search'])->middleware('throttle:60,1')->name('events.participant-review.search');
-    Route::get('events/{event}/possible-duplicates', [\App\Http\Controllers\ParticipantReviewController::class, 'audit'])->name('events.possible-duplicates');
+    Route::get('events/{event}/participant-review/search', [ParticipantReviewController::class, 'search'])->middleware('throttle:60,1')->name('events.participant-review.search');
+    Route::get('events/{event}/possible-duplicates', [ParticipantReviewController::class, 'audit'])->name('events.possible-duplicates');
+    Route::post('events/{event}/possible-duplicates/{registration}/resolve', [ParticipantReviewController::class, 'resolve'])->name('events.possible-duplicates.resolve');
     Route::get('events/{event}/attendance', [AttendanceController::class, 'show'])->name('events.attendance');
     Route::post('events/{event}/attendance/walk-in', [AttendanceController::class, 'walkIn'])->name('events.attendance.walk-in');
     Route::post('events/{event}/attendance/encode-paper', [AttendanceController::class, 'encodePaper'])
@@ -221,178 +224,177 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     // ============================================================
     // Church modules nested under /events/church. Names unchanged.
     Route::prefix('events/church')->group(function () {
-    // Services (church) — Phase 3 of the church-events plan.
-    //
-    // Route ordering: literal segments appear before parameterized
-    // ones at the same position so `services/occurrences/...` routes
-    // resolve before `services/{type}` can match. The {type} route
-    // also constrains the segment to the four ServiceType values, so
-    // a URL like `services/occurrences` cannot match `show()`.
-    // ============================================================
+        // Services (church) — Phase 3 of the church-events plan.
+        //
+        // Route ordering: literal segments appear before parameterized
+        // ones at the same position so `services/occurrences/...` routes
+        // resolve before `services/{type}` can match. The {type} route
+        // also constrains the segment to the four ServiceType values, so
+        // a URL like `services/occurrences` cannot match `show()`.
+        // ============================================================
 
-    // Attendance actions on one occurrence (5-6 segments) — most specific.
-    Route::delete('services/occurrences/{occurrence}/attendance/members/{attendance}', [ServiceAttendanceController::class, 'destroyMember'])
-        ->name('services.attendance.destroy-member');
-    Route::delete('services/occurrences/{occurrence}/attendance/first-timers/{attendance}', [ServiceAttendanceController::class, 'destroyFirstTimer'])
-        ->name('services.attendance.destroy-first-timer');
-    Route::put('services/occurrences/{occurrence}/attendance/members/{attendance}', [ServiceAttendanceController::class, 'markMember'])
-        ->name('services.attendance.mark-member');
-    Route::put('services/occurrences/{occurrence}/attendance/first-timers/{attendance}', [ServiceAttendanceController::class, 'markFirstTimer'])
-        ->name('services.attendance.mark-first-timer');
+        // Attendance actions on one occurrence (5-6 segments) — most specific.
+        Route::delete('services/occurrences/{occurrence}/attendance/members/{attendance}', [ServiceAttendanceController::class, 'destroyMember'])
+            ->name('services.attendance.destroy-member');
+        Route::delete('services/occurrences/{occurrence}/attendance/first-timers/{attendance}', [ServiceAttendanceController::class, 'destroyFirstTimer'])
+            ->name('services.attendance.destroy-first-timer');
+        Route::put('services/occurrences/{occurrence}/attendance/members/{attendance}', [ServiceAttendanceController::class, 'markMember'])
+            ->name('services.attendance.mark-member');
+        Route::put('services/occurrences/{occurrence}/attendance/first-timers/{attendance}', [ServiceAttendanceController::class, 'markFirstTimer'])
+            ->name('services.attendance.mark-first-timer');
 
-    // Attendance show/store on one occurrence (4 segments).
-    Route::get('services/occurrences/{occurrence}/attendance', [ServiceAttendanceController::class, 'show'])
-        ->name('services.attendance.show');
-    Route::post('services/occurrences/{occurrence}/attendance', [ServiceAttendanceController::class, 'store'])
-        ->name('services.attendance.store');
+        // Attendance show/store on one occurrence (4 segments).
+        Route::get('services/occurrences/{occurrence}/attendance', [ServiceAttendanceController::class, 'show'])
+            ->name('services.attendance.show');
+        Route::post('services/occurrences/{occurrence}/attendance', [ServiceAttendanceController::class, 'store'])
+            ->name('services.attendance.store');
 
-    // Occurrence deletion (3 segments).
-    Route::delete('services/occurrences/{occurrence}', [ServiceController::class, 'destroyOccurrence'])
-        ->name('services.occurrences.destroy');
+        // Occurrence deletion (3 segments).
+        Route::delete('services/occurrences/{occurrence}', [ServiceController::class, 'destroyOccurrence'])
+            ->name('services.occurrences.destroy');
 
-    // Recurring batch creation (4 segments, but the literal
-    // 'occurrences' + 'recurring' segments disambiguate from
-    // anything above).
-    Route::post('services/{type}/occurrences/recurring', [ServiceController::class, 'storeRecurring'])
-        ->whereIn('type', ['morning', 'midweek', 'youth', 'other'])
-        ->middleware('throttle:service-recurring-batch')
-        ->name('services.occurrences.store-recurring');
+        // Recurring batch creation (4 segments, but the literal
+        // 'occurrences' + 'recurring' segments disambiguate from
+        // anything above).
+        Route::post('services/{type}/occurrences/recurring', [ServiceController::class, 'storeRecurring'])
+            ->whereIn('type', ['morning', 'midweek', 'youth', 'other'])
+            ->middleware('throttle:service-recurring-batch')
+            ->name('services.occurrences.store-recurring');
 
-    // Single manual occurrence creation (3 segments).
-    Route::post('services/{type}/occurrences', [ServiceController::class, 'storeOccurrence'])
-        ->whereIn('type', ['morning', 'midweek', 'youth', 'other'])
-        ->name('services.occurrences.store');
+        // Single manual occurrence creation (3 segments).
+        Route::post('services/{type}/occurrences', [ServiceController::class, 'storeOccurrence'])
+            ->whereIn('type', ['morning', 'midweek', 'youth', 'other'])
+            ->name('services.occurrences.store');
 
-    // Landing and per-type view (1-2 segments) — least specific.
-    Route::get('services', [ServiceController::class, 'index'])
-        ->name('services.index');
-    Route::get('services/{type}', [ServiceController::class, 'show'])
-        ->whereIn('type', ['morning', 'midweek', 'youth', 'other'])
-        ->name('services.show');
+        // Landing and per-type view (1-2 segments) — least specific.
+        Route::get('services', [ServiceController::class, 'index'])
+            ->name('services.index');
+        Route::get('services/{type}', [ServiceController::class, 'show'])
+            ->whereIn('type', ['morning', 'midweek', 'youth', 'other'])
+            ->name('services.show');
 
+        // ============================================================
+        // Fellowship module (M4) -- Phase 4.
+        //
+        // Route registration order matters: most specific first, least
+        // specific last. Laravel matches in declaration order, so
+        // `fellowship/events/{event}/groups` must be registered before
+        // `fellowship/{type}` can match the "events" segment. The {type}
+        // route also constrains the segment to the six FellowshipType
+        // values, so a URL like `fellowship/events` cannot match show().
+        //
+        // {event} binds to FellowshipEvent via controller type-hint.
+        // {attendance} binds to FellowshipAttendance.
+        // {group} binds to FellowshipGroup.
+        // ============================================================
 
-    // ============================================================
-    // Fellowship module (M4) -- Phase 4.
-    //
-    // Route registration order matters: most specific first, least
-    // specific last. Laravel matches in declaration order, so
-    // `fellowship/events/{event}/groups` must be registered before
-    // `fellowship/{type}` can match the "events" segment. The {type}
-    // route also constrains the segment to the six FellowshipType
-    // values, so a URL like `fellowship/events` cannot match show().
-    //
-    // {event} binds to FellowshipEvent via controller type-hint.
-    // {attendance} binds to FellowshipAttendance.
-    // {group} binds to FellowshipGroup.
-    // ============================================================
+        Route::prefix('fellowship')->name('fellowship.')->group(function () {
+            // Group CRUD -- 4 segments, literal 'events' + 'groups'.
+            Route::post('events/{event}/groups', [FellowshipGroupController::class, 'store'])
+                ->name('groups.store');
+            Route::put('events/{event}/groups/{group}', [FellowshipGroupController::class, 'update'])
+                ->name('groups.update');
+            Route::delete('events/{event}/groups/{group}', [FellowshipGroupController::class, 'destroy'])
+                ->name('groups.destroy');
 
-    Route::prefix('fellowship')->name('fellowship.')->group(function () {
-        // Group CRUD -- 4 segments, literal 'events' + 'groups'.
-        Route::post('events/{event}/groups', [FellowshipGroupController::class, 'store'])
-            ->name('groups.store');
-        Route::put('events/{event}/groups/{group}', [FellowshipGroupController::class, 'update'])
-            ->name('groups.update');
-        Route::delete('events/{event}/groups/{group}', [FellowshipGroupController::class, 'destroy'])
-            ->name('groups.destroy');
+            // Attendance actions -- 4 segments, literal 'events' + 'attendance'.
+            Route::get('events/{event}/attendance', [FellowshipAttendanceController::class, 'show'])
+                ->name('attendance.show');
+            Route::post('events/{event}/attendance', [FellowshipAttendanceController::class, 'store'])
+                ->name('attendance.store');
+            Route::put('events/{event}/attendance/{attendance}', [FellowshipAttendanceController::class, 'mark'])
+                ->name('attendance.mark');
+            Route::delete('events/{event}/attendance/{attendance}', [FellowshipAttendanceController::class, 'destroy'])
+                ->name('attendance.destroy');
 
-        // Attendance actions -- 4 segments, literal 'events' + 'attendance'.
-        Route::get('events/{event}/attendance', [FellowshipAttendanceController::class, 'show'])
-            ->name('attendance.show');
-        Route::post('events/{event}/attendance', [FellowshipAttendanceController::class, 'store'])
-            ->name('attendance.store');
-        Route::put('events/{event}/attendance/{attendance}', [FellowshipAttendanceController::class, 'mark'])
-            ->name('attendance.mark');
-        Route::delete('events/{event}/attendance/{attendance}', [FellowshipAttendanceController::class, 'destroy'])
-            ->name('attendance.destroy');
+            // Event update/delete -- 3 segments, literal 'events'.
+            Route::put('events/{event}', [FellowshipController::class, 'update'])
+                ->name('events.update');
+            Route::delete('events/{event}', [FellowshipController::class, 'destroy'])
+                ->name('events.destroy');
 
-        // Event update/delete -- 3 segments, literal 'events'.
-        Route::put('events/{event}', [FellowshipController::class, 'update'])
-            ->name('events.update');
-        Route::delete('events/{event}', [FellowshipController::class, 'destroy'])
-            ->name('events.destroy');
+            // Event creation under a type -- 3 segments, {type} constrained.
+            Route::post('{type}/events', [FellowshipController::class, 'store'])
+                ->whereIn('type', ['family', 'church', 'pastors', 'leaders', 'womens', 'mens'])
+                ->name('events.store');
 
-        // Event creation under a type -- 3 segments, {type} constrained.
-        Route::post('{type}/events', [FellowshipController::class, 'store'])
-            ->whereIn('type', ['family', 'church', 'pastors', 'leaders', 'womens', 'mens'])
-            ->name('events.store');
+            // Landing and per-type view -- least specific, last.
+            Route::get('/', [FellowshipController::class, 'index'])
+                ->name('index');
+            Route::get('{type}', [FellowshipController::class, 'show'])
+                ->whereIn('type', ['family', 'church', 'pastors', 'leaders', 'womens', 'mens'])
+                ->name('show');
+        });
 
-        // Landing and per-type view -- least specific, last.
-        Route::get('/', [FellowshipController::class, 'index'])
-            ->name('index');
-        Route::get('{type}', [FellowshipController::class, 'show'])
-            ->whereIn('type', ['family', 'church', 'pastors', 'leaders', 'womens', 'mens'])
-            ->name('show');
-    });
+        // ============================================================
+        // Discipleship module (M5) -- Phase 5A.
+        //
+        // Two routes at 5A. Later sub-phases extend this block:
+        // 5B adds /programs/{program}/batches, 5C adds enrollment,
+        // 5D adds sessions, 5E adds session attendance.
+        //
+        // {program:slug} binds by slug, not ID. The slug is the
+        // stable public identifier (life-class, school-of-leaders-1).
+        // Reuse the same {program:slug} binding in 5B+ routes for
+        // consistency.
+        // ============================================================
 
-    // ============================================================
-    // Discipleship module (M5) -- Phase 5A.
-    //
-    // Two routes at 5A. Later sub-phases extend this block:
-    // 5B adds /programs/{program}/batches, 5C adds enrollment,
-    // 5D adds sessions, 5E adds session attendance.
-    //
-    // {program:slug} binds by slug, not ID. The slug is the
-    // stable public identifier (life-class, school-of-leaders-1).
-    // Reuse the same {program:slug} binding in 5B+ routes for
-    // consistency.
-    // ============================================================
+        Route::prefix('discipleship')->name('discipleship.')->group(function () {
 
-    Route::prefix('discipleship')->name('discipleship.')->group(function () {
+            // CSV export of the program's enrollment list (Phase 5G).
+            // Mirrors the same q/status/batch filters as the show page.
+            Route::get('programs/{program:slug}/enrollments/export', [DiscipleshipController::class, 'exportCsv'])
+                ->name('enrollments.export');
 
-        // CSV export of the program's enrollment list (Phase 5G).
-        // Mirrors the same q/status/batch filters as the show page.
-        Route::get('programs/{program:slug}/enrollments/export', [DiscipleshipController::class, 'exportCsv'])
-            ->name('enrollments.export');
+            // Attendance (Phase 5E). Bulk upsert for the batch matrix;
+            // single destroy for a cell the operator clears.
+            Route::post('batches/{batch}/attendances/bulk', [DiscipleshipAttendanceController::class, 'bulkUpsert'])
+                ->name('attendances.bulk');
+            Route::delete('attendances/{attendance}', [DiscipleshipAttendanceController::class, 'destroy'])
+                ->name('attendances.destroy');
 
-        // Attendance (Phase 5E). Bulk upsert for the batch matrix;
-        // single destroy for a cell the operator clears.
-        Route::post('batches/{batch}/attendances/bulk', [DiscipleshipAttendanceController::class, 'bulkUpsert'])
-            ->name('attendances.bulk');
-        Route::delete('attendances/{attendance}', [DiscipleshipAttendanceController::class, 'destroy'])
-            ->name('attendances.destroy');
+            // Batch detail + Session CRUD (Phase 5D). Batches have no
+            // slug -- {batch} binds by id. Sessions belong to a batch
+            // and cascade-delete with it.
+            Route::get('batches/{batch}', [DiscipleshipBatchController::class, 'show'])
+                ->name('batches.show');
+            Route::post('batches/{batch}/sessions', [DiscipleshipSessionController::class, 'store'])
+                ->name('sessions.store');
+            Route::put('sessions/{session}', [DiscipleshipSessionController::class, 'update'])
+                ->name('sessions.update');
+            Route::delete('sessions/{session}', [DiscipleshipSessionController::class, 'destroy'])
+                ->name('sessions.destroy');
 
-        // Batch detail + Session CRUD (Phase 5D). Batches have no
-        // slug -- {batch} binds by id. Sessions belong to a batch
-        // and cascade-delete with it.
-        Route::get('batches/{batch}', [DiscipleshipBatchController::class, 'show'])
-            ->name('batches.show');
-        Route::post('batches/{batch}/sessions', [DiscipleshipSessionController::class, 'store'])
-            ->name('sessions.store');
-        Route::put('sessions/{session}', [DiscipleshipSessionController::class, 'update'])
-            ->name('sessions.update');
-        Route::delete('sessions/{session}', [DiscipleshipSessionController::class, 'destroy'])
-            ->name('sessions.destroy');
+            // Enrollment CRUD (Phase 5C). The destroy route is
+            // semantically a "withdraw" -- it sets status = withdrawn
+            // and keeps the row for history. See the controller
+            // docblock.
+            Route::post('programs/{program:slug}/enrollments', [DiscipleshipEnrollmentController::class, 'store'])
+                ->name('enrollments.store');
+            Route::put('enrollments/{enrollment}', [DiscipleshipEnrollmentController::class, 'update'])
+                ->name('enrollments.update');
+            Route::delete('enrollments/{enrollment}', [DiscipleshipEnrollmentController::class, 'destroy'])
+                ->name('enrollments.withdraw');
 
-        // Enrollment CRUD (Phase 5C). The destroy route is
-        // semantically a "withdraw" -- it sets status = withdrawn
-        // and keeps the row for history. See the controller
-        // docblock.
-        Route::post('programs/{program:slug}/enrollments', [DiscipleshipEnrollmentController::class, 'store'])
-            ->name('enrollments.store');
-        Route::put('enrollments/{enrollment}', [DiscipleshipEnrollmentController::class, 'update'])
-            ->name('enrollments.update');
-        Route::delete('enrollments/{enrollment}', [DiscipleshipEnrollmentController::class, 'destroy'])
-            ->name('enrollments.withdraw');
+            // Batch CRUD (Phase 5B). More specific than the program
+            // routes below, so declared first.
+            Route::post('programs/{program:slug}/batches', [DiscipleshipBatchController::class, 'store'])
+                ->name('batches.store');
+            Route::put('batches/{batch}', [DiscipleshipBatchController::class, 'update'])
+                ->name('batches.update');
+            Route::delete('batches/{batch}', [DiscipleshipBatchController::class, 'destroy'])
+                ->name('batches.destroy');
 
-        // Batch CRUD (Phase 5B). More specific than the program
-        // routes below, so declared first.
-        Route::post('programs/{program:slug}/batches', [DiscipleshipBatchController::class, 'store'])
-            ->name('batches.store');
-        Route::put('batches/{batch}', [DiscipleshipBatchController::class, 'update'])
-            ->name('batches.update');
-        Route::delete('batches/{batch}', [DiscipleshipBatchController::class, 'destroy'])
-            ->name('batches.destroy');
-
-        // Participant search for the Add Enrollment picker.
-        // JSON, not Inertia -- a debounced type-ahead cannot use
-        // the partial-reload pattern. Returns up to 20 matches.
-        Route::get('programs/{program:slug}/participant-search', [DiscipleshipController::class, 'participantSearch'])
-            ->name('participants.search');
-        Route::get('/', [DiscipleshipController::class, 'index'])
-            ->name('index');
-        Route::get('programs/{program:slug}', [DiscipleshipController::class, 'show'])
-            ->name('programs.show');
-    });
+            // Participant search for the Add Enrollment picker.
+            // JSON, not Inertia -- a debounced type-ahead cannot use
+            // the partial-reload pattern. Returns up to 20 matches.
+            Route::get('programs/{program:slug}/participant-search', [DiscipleshipController::class, 'participantSearch'])
+                ->name('participants.search');
+            Route::get('/', [DiscipleshipController::class, 'index'])
+                ->name('index');
+            Route::get('programs/{program:slug}', [DiscipleshipController::class, 'show'])
+                ->name('programs.show');
+        });
         // Placeholder landing for the six unbuilt church categories.
         // Phase 4 replaces each with a real module page.
 

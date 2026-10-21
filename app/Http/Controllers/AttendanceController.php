@@ -7,17 +7,21 @@ use App\Enums\EventStatus;
 use App\Enums\RegistrationStatus;
 use App\Http\Requests\BulkMarkAttendanceRequest;
 use App\Http\Requests\BulkWalkInRegistrationRequest;
+use App\Http\Requests\PublicRegistrationRequest;
 use App\Http\Requests\WalkInRegistrationRequest;
 use App\Models\Event;
 use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\RegistrationFieldResponse;
+use App\Services\Participants\DuplicateReview;
+use App\Support\RegistrationLegalText;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -49,8 +53,8 @@ class AttendanceController extends Controller
             'venue' => $event->venue,
             'status' => $event->status->value,
             'status_label' => $event->status->label(),
-            'registered_count' => $event->registrations()->count(),
-            'marked_count' => $event->registrations()
+            'registered_count' => $event->registrations()->active()->count(),
+            'marked_count' => $event->registrations()->active()
                 ->whereHas('attendance')
                 ->count(),
         ];
@@ -98,8 +102,9 @@ class AttendanceController extends Controller
         $codeActive = $code !== '';
 
         $baseQuery = function () use ($event, $search, $code, $codeActive) {
-            $q = Registration::query()
+            $q = Registration::query()->active()
                 ->where('registrations.event_id', $event->id)
+                ->where('registrations.registration_status', '!=', RegistrationStatus::Held)
                 ->join('participants', 'participants.id', '=', 'registrations.participant_id')
                 ->select('registrations.*');
 
@@ -212,9 +217,9 @@ class AttendanceController extends Controller
                 'total' => $paginator->total(),
             ],
             'check_in_summary' => [
-                'total' => $event->registrations()->count(),
-                'present' => $event->registrations()->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'present'))->count(),
-                'recent' => $event->registrations()->with(['participant', 'attendance'])
+                'total' => $event->registrations()->active()->where('registration_status', '!=', RegistrationStatus::Held)->count(),
+                'present' => $event->registrations()->active()->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'present'))->count(),
+                'recent' => $event->registrations()->active()->with(['participant', 'attendance'])
                     ->join('attendances', 'attendances.registration_id', '=', 'registrations.id')
                     ->where('attendances.attendance_status', 'present')
                     ->orderByDesc('attendances.updated_at')->limit(8)->select('registrations.*')->get()
@@ -267,6 +272,10 @@ class AttendanceController extends Controller
 
         if ($registration->event_id !== $event->id) {
             abort(404);
+        }
+
+        if (! $registration->isActive()) {
+            abort(422, 'Only active registrations can be marked for attendance.');
         }
 
         $validated = $request->validate([
@@ -357,7 +366,7 @@ class AttendanceController extends Controller
         $count = 0;
 
         DB::transaction(function () use ($ids, $user, &$count): void {
-            $registrations = Registration::whereIn('id', $ids)->get();
+            $registrations = Registration::active()->whereIn('id', $ids)->get();
 
             foreach ($registrations as $registration) {
                 $registration->attendance()->updateOrCreate(
@@ -402,7 +411,7 @@ class AttendanceController extends Controller
         $explicit = $validated['registration_ids'] ?? null;
 
         if (is_array($explicit) && count($explicit) > 0) {
-            $ownedIds = Registration::where('event_id', $event->id)
+            $ownedIds = Registration::active()->where('event_id', $event->id)
                 ->whereIn('id', $explicit)
                 ->pluck('id')
                 ->all();
@@ -430,8 +439,9 @@ class AttendanceController extends Controller
      */
     private function buildFilteredRegistrationIds(Event $event, string $search, string $filter): array
     {
-        $q = Registration::query()
+        $q = Registration::query()->active()
             ->where('registrations.event_id', $event->id)
+            ->where('registrations.registration_status', '!=', RegistrationStatus::Held)
             ->join('participants', 'participants.id', '=', 'registrations.participant_id')
             ->select('registrations.id');
 
@@ -517,6 +527,7 @@ class AttendanceController extends Controller
 
             if (Cache::has($cacheKey)) {
                 $skippedCount++;
+
                 continue;
             }
 
@@ -545,6 +556,7 @@ class AttendanceController extends Controller
 
             if (! $rowHasAge && ! $rowHasBirthday) {
                 $errors["rows.{$i}.birthday"] = 'Please provide your date of birth.';
+
                 continue;
             }
 
@@ -558,6 +570,7 @@ class AttendanceController extends Controller
 
             if ($error !== null) {
                 $errors["rows.{$i}.identity"] = $error;
+
                 continue;
             }
 
@@ -597,10 +610,9 @@ class AttendanceController extends Controller
      * CarbonInterface.
      *
      * @param  array<string, mixed>  $row
-     * @param  \Carbon\CarbonInterface  $attendanceTime
      * @param  array<int, int>  $seenParticipantIds  Mutable, accumulates
-     *                                                participants already
-     *                                                seen in this batch.
+     *                                               participants already
+     *                                               seen in this batch.
      */
     private function persistBulkWalkInRow(
         array $row,
@@ -618,9 +630,13 @@ class AttendanceController extends Controller
             return 'Please provide at least an email address or a contact number.';
         }
 
+        if (app(DuplicateReview::class)->findExact($event, $row)) {
+            return 'This person is already registered for this event.';
+        }
+
         // Read-only lookup. If the identity already exists, we know
         // the row will resolve to it. No write yet.
-        $existing = Participant::findByComposite(
+        $existing = Participant::findByComposite('running',
             $email,
             $phone,
             $row['first_name'] ?? null,
@@ -636,7 +652,7 @@ class AttendanceController extends Controller
 
         // Already registered for this event?
         if ($existing !== null) {
-            $alreadyRegistered = Registration::where('event_id', $event->id)
+            $alreadyRegistered = Registration::query()->where('event_id', $event->id)
                 ->where('participant_id', $existing->id)
                 ->exists();
 
@@ -647,7 +663,7 @@ class AttendanceController extends Controller
 
         // All checks passed. Persist.
         DB::transaction(function () use ($row, $event, $user, $attendanceTime, &$seenParticipantIds, $email, $phone): void {
-            $participant = Participant::resolveFrom(
+            $participant = Participant::resolveFrom('running',
                 $email !== '' ? $email : null,
                 $phone,
                 [
@@ -672,11 +688,14 @@ class AttendanceController extends Controller
 
             $seenParticipantIds[] = $participant->id;
 
+            $candidate = app(DuplicateReview::class)->findCandidate($event, $row);
             $registration = Registration::create([
                 'event_id' => $event->id,
                 'participant_id' => $participant->id,
                 'registration_date' => now(),
-                'registration_status' => RegistrationStatus::Confirmed,
+                'registration_status' => ($candidate ? RegistrationStatus::Held : RegistrationStatus::Confirmed),
+                'held_reason' => $candidate ? implode(', ', $candidate['reasons']) : null,
+                'held_candidate_registration_id' => $candidate['registration']->id ?? null,
                 'source' => 'paper',
                 'registered_at' => now(),
             ]);
@@ -689,6 +708,9 @@ class AttendanceController extends Controller
                 ]);
             }
 
+            if (! $registration->isActive()) {
+                return;
+            }
             $registration->attendance()->create([
                 'attendance_status' => AttendanceStatus::Present,
                 'attendance_time' => $attendanceTime,
@@ -756,21 +778,27 @@ class AttendanceController extends Controller
             'encoding_mode' => ['required', 'in:live,deferred'],
             'arrival_time' => ['required_if:encoding_mode,deferred', 'nullable', 'date_format:H:i'],
         ]);
-        DB::transaction(function () use ($event, $request, $timing, $forceOpen): void {
+        $held = DB::transaction(function () use ($event, $request, $timing, $forceOpen): bool {
             $event = Event::query()->lockForUpdate()->findOrFail($event->id);
             abort_unless($event->isRunningEvent() && ($forceOpen || $event->canRecordAttendanceNow()), 403);
-            $data = \App\Http\Requests\PublicRegistrationRequest::validatePending($event, $request->all());
-            $participant = Participant::resolveFrom($data['email'] ?? null, $data['contact_number'] ?? null,
+            $data = PublicRegistrationRequest::validatePending($event, $request->all());
+            if (app(DuplicateReview::class)->findExact($event, $data)) {
+                throw ValidationException::withMessages(['identity' => 'This person already has a submission for this event.']);
+            }
+            $participant = Participant::resolveFrom('running', $data['email'] ?? null, $data['contact_number'] ?? null,
                 array_intersect_key($data, array_flip(['first_name', 'middle_name', 'last_name', 'suffix', 'birthday', 'age', 'address'])));
             if ($event->registrations()->where('participant_id', $participant->id)->exists()) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['identity' => 'This person is already registered for this event. Use Check-in instead.']);
+                throw ValidationException::withMessages(['identity' => 'This person is already registered for this event. Use Check-in instead.']);
             }
+            $candidate = app(DuplicateReview::class)->findCandidate($event, $data);
             $registration = Registration::create([
                 'event_id' => $event->id, 'participant_id' => $participant->id,
                 'registration_date' => now(), 'registered_at' => now(),
-                'registration_status' => RegistrationStatus::Confirmed, 'source' => 'form',
+                'registration_status' => $candidate ? RegistrationStatus::Held : RegistrationStatus::Confirmed, 'source' => 'form',
+                'held_reason' => $candidate ? implode(', ', $candidate['reasons']) : null,
+                'held_candidate_registration_id' => $candidate['registration']->id ?? null,
                 'encoded_by' => $request->user()->id, 'contact_attested_at' => now(),
-                'consent_accepted_at' => now(), 'privacy_notice_version' => \App\Support\RegistrationLegalText::PRIVACY_NOTICE_VERSION,
+                'consent_accepted_at' => now(), 'privacy_notice_version' => RegistrationLegalText::PRIVACY_NOTICE_VERSION,
                 'submitted_email' => $data['email'] ?? null, 'submitted_contact_number' => $data['contact_number'] ?? null,
                 'emergency_contact_name' => $event->usesEmailOnlyRegistration()
                     ? $data['emergency_contact_first_name'].' '.$data['emergency_contact_last_name'] : $data['emergency_contact_name'],
@@ -784,13 +812,18 @@ class AttendanceController extends Controller
             foreach ($data['responses'] ?? [] as $fieldId => $value) {
                 $registration->fieldResponses()->create(['registration_field_id' => $fieldId, 'value' => is_array($value) ? json_encode($value) : (string) $value]);
             }
+            if ($candidate) {
+                return true;
+            }
             $time = $timing['encoding_mode'] === 'deferred' && $event->event_date !== null
                 ? $event->event_date->copy()->setTimeFromTimeString($timing['arrival_time']) : now();
             $registration->attendance()->create(['attendance_status' => AttendanceStatus::Present,
                 'attendance_time' => $time, 'recorded_by' => $request->user()->id]);
+
+            return false;
         });
 
-        return redirect()->route('events.attendance', $event)->with('success', 'Paper registration saved and marked present.');
+        return redirect()->route('events.attendance', $event)->with('success', $held ? 'Paper submission held for organizer review; no attendance recorded.' : 'Paper registration saved and marked present.');
     }
 
     public function quickWalkIn(Request $request, Event $event): RedirectResponse
@@ -806,7 +839,7 @@ class AttendanceController extends Controller
         ]);
         DB::transaction(function () use ($event, $validated, $request): void {
             // A name alone cannot establish identity. Never resolve or merge it.
-            $participant = Participant::create([...$validated, 'provisional_event_id' => $event->id]);
+            $participant = Participant::create(['pool' => 'running', ...$validated, 'provisional_event_id' => $event->id]);
             $registration = Registration::create([
                 'event_id' => $event->id, 'participant_id' => $participant->id,
                 'registration_date' => now(), 'registered_at' => now(),
@@ -852,7 +885,11 @@ class AttendanceController extends Controller
         }
 
         DB::transaction(function () use ($validated, $event, $user, $attendanceTime): void {
-            $participant = Participant::resolveFrom(
+            Event::whereKey($event->id)->lockForUpdate()->firstOrFail();
+            if (app(DuplicateReview::class)->findExact($event, $validated)) {
+                throw ValidationException::withMessages(['identity' => 'This person already has a submission for this event.']);
+            }
+            $participant = Participant::resolveFrom('running',
                 $validated['email'] ?? null,
                 $validated['contact_number'] ?? null,
                 [
@@ -882,11 +919,14 @@ class AttendanceController extends Controller
                 ],
             );
 
+            $candidate = app(DuplicateReview::class)->findCandidate($event, $validated);
             $registration = Registration::create([
                 'event_id' => $event->id,
                 'participant_id' => $participant->id,
                 'registration_date' => now(),
-                'registration_status' => RegistrationStatus::Confirmed,
+                'registration_status' => ($candidate ? RegistrationStatus::Held : RegistrationStatus::Confirmed),
+                'held_reason' => $candidate ? implode(', ', $candidate['reasons']) : null,
+                'held_candidate_registration_id' => $candidate['registration']->id ?? null,
                 'source' => 'walk_in',
                 'registered_at' => now(),
             ]);
@@ -899,7 +939,7 @@ class AttendanceController extends Controller
                 ]);
             }
 
-            if ($validated['mark_present'] ?? true) {
+            if ($registration->isActive() && ($validated['mark_present'] ?? true)) {
                 $registration->attendance()->create([
                     'attendance_status' => AttendanceStatus::Present,
                     'attendance_time' => $attendanceTime,

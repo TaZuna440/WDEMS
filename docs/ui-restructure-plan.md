@@ -16,14 +16,14 @@ Corrections 2026-10-17).
 
 ## 0. Progress
 
-| Phase | Status | Commit | Notes |
-|---|---|---|---|
-| 1 — Sidebar restructure | Complete | `42e9930` | 7 items → 5; church modules under `/events/church/*` |
-| 2 — Events page + category cards | Complete | `dfecbad` | Church tab shows the nine category cards |
-| 3 — Create Event branching | Complete | `fd0be9e` | Entry page splits by event kind |
-| — | Fix: card links, back nav | Complete | `5373ec5` | Phase 1 sweep missed template literals |
-| 4 — Six new church modules | In progress | `676d725` | Youth hub + Youth Service shipped; 5 more categories |
-| 5 — Dashboard rebuild | Not started | — | 2 sessions |
+| Phase                            | Status                    | Commit    | Notes                                                |
+| -------------------------------- | ------------------------- | --------- | ---------------------------------------------------- |
+| 1 — Sidebar restructure          | Complete                  | `42e9930` | 7 items → 5; church modules under `/events/church/*` |
+| 2 — Events page + category cards | Complete                  | `dfecbad` | Church tab shows the nine category cards             |
+| 3 — Create Event branching       | Complete                  | `fd0be9e` | Entry page splits by event kind                      |
+| —                                | Fix: card links, back nav | Complete  | `5373ec5`                                            | Phase 1 sweep missed template literals |
+| 4 — Six new church modules       | In progress               | `676d725` | Youth hub + Youth Service shipped; 5 more categories |
+| 5 — Dashboard rebuild            | Not started               | —         | 2 sessions                                           |
 
 **Phases 1-3** shipped the coherent visual arc the client
 asked for: sidebar → Events → Church cards → category landing
@@ -52,13 +52,13 @@ already isolated with `wdems-wizard-edit-{id}`.
 Youth is five sub-modules, not one. Each is its own domain.
 Only Youth Service is unblocked.
 
-| Sub-module | Status | Blocked by |
-|---|---|---|
-| Youth Service | Complete | — |
-| Youth Camp | Blocked | Payments removed by client Q10; needs a redesign decision |
-| Huddle | Blocked | Groups concept (Phase B) not built |
-| Campus Ministry | Blocked | Global grade column on `participants` (Q16 answer, not built) |
-| Timothy Class | Blocked | Discipleship 5D (sessions) + 5E (attendance) not built |
+| Sub-module      | Status   | Blocked by                                                    |
+| --------------- | -------- | ------------------------------------------------------------- |
+| Youth Service   | Complete | —                                                             |
+| Youth Camp      | Blocked  | Payments removed by client Q10; needs a redesign decision     |
+| Huddle          | Blocked  | Groups concept (Phase B) not built                            |
+| Campus Ministry | Blocked  | Global grade column on `participants` (Q16 answer, not built) |
+| Timothy Class   | Blocked  | Discipleship 5D (sessions) + 5E (attendance) not built        |
 
 **Phase 4 revised estimate.** The original "6 sessions, one per
 module" assumed each of the six church categories was one
@@ -93,11 +93,11 @@ Three visible changes:
 
 ### 1.1 Sidebar — seven items become five
 
-| Removed as top-level | New home |
-|---|---|
-| Services | Events → Church → Services |
-| Fellowship | Events → Church → Fellowship |
-| Discipleship | Events → Church → Discipleship |
+| Removed as top-level | New home                       |
+| -------------------- | ------------------------------ |
+| Services             | Events → Church → Services     |
+| Fellowship           | Events → Church → Fellowship   |
+| Discipleship         | Events → Church → Discipleship |
 
 New sidebar:
 
@@ -154,6 +154,7 @@ extend the shape.
 Discipleship entry points into Events → Church.
 
 **Changes:**
+
 - `app-sidebar.tsx` — remove the three top-level entries
 - New routes: `/events/church/services`, `/events/church/fellowship`,
   `/events/church/discipleship` — each renders the existing landing
@@ -164,6 +165,7 @@ Discipleship entry points into Events → Church.
 - Wayfinder regenerated after route changes
 
 **What does NOT change:**
+
 - The landing page components themselves
 - The three modules' internal pages (`/services/attendance`,
   `/fellowship/attendance`, `/discipleship/programs/{slug}`, etc.)
@@ -178,17 +180,19 @@ Discipleship entry points into Events → Church.
 cards.
 
 **Changes:**
+
 - `events/index.tsx` — the Church tab content becomes the nine
   cards. The existing filter chips (`All | Running | Church`)
   stay.
 - Nine cards, each routing to:
-  - Services / Fellowship / Discipleship → the moved landing pages
-    from Phase 1
-  - Youth / Kids / Young Adult / Worship & Prayer / Special
-    Occasions / Church Administration → placeholder list pages
-    (Phase 4 fills these in)
+    - Services / Fellowship / Discipleship → the moved landing pages
+      from Phase 1
+    - Youth / Kids / Young Adult / Worship & Prayer / Special
+      Occasions / Church Administration → placeholder list pages
+      (Phase 4 fills these in)
 
 **What does NOT change:**
+
 - The running-event list (Community Run tab)
 - The event table rendering
 
@@ -199,18 +203,20 @@ cards.
 **Goal:** `/events/create` becomes a two-step flow.
 
 **Changes:**
+
 - New first screen: two large cards, "Community Run" and "Church
   Event"
 - Community Run → renders the existing wizard unchanged
 - Church Event → renders the nine category cards
-  - Services / Fellowship / Discipleship → redirect to their
-    existing creation flows (occurrence dialog, fellowship event
-    dialog, batch dialog)
-  - Six unbuilt categories → render the unified church event
-    wizard (already built in the last session) with
-    `church_category` preset
+    - Services / Fellowship / Discipleship → redirect to their
+      existing creation flows (occurrence dialog, fellowship event
+      dialog, batch dialog)
+    - Six unbuilt categories → render the unified church event
+      wizard (already built in the last session) with
+      `church_category` preset
 
 **What does NOT change:**
+
 - The wizard internals (4-step for Community Run, 3-step for Church)
 - The `ChurchCategory` enum
 - `EventRequest` derivation logic
@@ -224,9 +230,10 @@ Special Occasions, Church Administration each get a working list
 page and use the unified workflow.
 
 **Unified workflow for each:**
-    Event Details → Registration → Record Participants → Attendance → Reports
+Event Details → Registration → Record Participants → Attendance → Reports
 
 **Per-category work:**
+
 - A list page showing events with that `church_category` value
 - "Create Event" button → the unified church wizard with category
   preset
@@ -238,6 +245,7 @@ page and use the unified workflow.
 **Estimate:** 1 session per category × 6 = 6 sessions.
 
 **Not in this phase** (deferred to keep scope honest):
+
 - Gantt timeline for Special Occasions (Q7)
 - Auto-generated documents for Special Occasions (Q6)
 - Ministry meeting sub-module for Church Administration
@@ -248,16 +256,17 @@ page and use the unified workflow.
 / Attendance / Reports sidebar items get landing pages.
 
 **Changes:**
+
 - `dashboard.tsx` — rebuild with widgets:
-  - 4 stat cards (Total Events, Total Registrations, Total
-    Attendance, Active Categories)
-  - Upcoming Events list
-  - Church Events Categories panel
-  - Recent Events list
-  - Event Statistics chart (Community Run + Church Events only —
-    Fun Run removed)
-  - Calendar widget
-  - Quick Actions panel
+    - 4 stat cards (Total Events, Total Registrations, Total
+      Attendance, Active Categories)
+    - Upcoming Events list
+    - Church Events Categories panel
+    - Recent Events list
+    - Event Statistics chart (Community Run + Church Events only —
+      Fun Run removed)
+    - Calendar widget
+    - Quick Actions panel
 - New page `/registrations` — global list of events with
   registration open (thin wrapper over the existing
   RegistrationMonitorController::index content)
@@ -271,13 +280,13 @@ page and use the unified workflow.
 
 ## 4. Total scope
 
-| Phase | Estimate | Cumulative |
-|---|---|---|
-| 1 — Sidebar | 1 session | 1 |
-| 2 — Events tabs | 1 session | 2 |
-| 3 — Create branching | 1 session | 3 |
-| 4 — Six modules | 6 sessions | 9 |
-| 5 — Dashboard + pages | 2 sessions | 11 |
+| Phase                 | Estimate   | Cumulative |
+| --------------------- | ---------- | ---------- |
+| 1 — Sidebar           | 1 session  | 1          |
+| 2 — Events tabs       | 1 session  | 2          |
+| 3 — Create branching  | 1 session  | 3          |
+| 4 — Six modules       | 6 sessions | 9          |
+| 5 — Dashboard + pages | 2 sessions | 11         |
 
 Phases 1–3 land the visible shape and take 3 sessions. Phase 4
 is the long haul. Phase 5 finishes the client's mockup.
@@ -317,30 +326,29 @@ These are known but not blocking:
 
 As the phases ship, these docs need updating:
 
-| Doc | When | What |
-|---|---|---|
-| `docs/project-definition.md` §7 | After Phase 1 | Sidebar list becomes 5 items |
-| `docs/project-definition.md` §8 | After Phase 4 | Six modules leave the "scoped" list |
-| `docs/project-definition.md` §11 | After Phase 5 | Dashboard open question removed |
-| `docs/architecture.md` | After Phase 1 | Sidebar section updated |
-| `docs/church-events/10-client-decision-log.md` | After Phase 1 | Q1 finalized |
+| Doc                                            | When          | What                                |
+| ---------------------------------------------- | ------------- | ----------------------------------- |
+| `docs/project-definition.md` §7                | After Phase 1 | Sidebar list becomes 5 items        |
+| `docs/project-definition.md` §8                | After Phase 4 | Six modules leave the "scoped" list |
+| `docs/project-definition.md` §11               | After Phase 5 | Dashboard open question removed     |
+| `docs/architecture.md`                         | After Phase 1 | Sidebar section updated             |
+| `docs/church-events/10-client-decision-log.md` | After Phase 1 | Q1 finalized                        |
 
 ---
 
 ## 8. Cross-references
 
-| Document | What it covers |
-|---|---|
-| `docs/project-definition.md` | The overall project definition |
-| `docs/design-system.md` | The visual contract (unchanged by this plan) |
-| `docs/church-events/07-scope-and-task-division.md` | Original church-events task breakdown |
-| `docs/church-events/09-mockup-scope-inventory.md` | Client mockup inventory |
-| `docs/church-events/10-client-decision-log.md` | Answers to Q1–Q21 |
+| Document                                           | What it covers                               |
+| -------------------------------------------------- | -------------------------------------------- |
+| `docs/project-definition.md`                       | The overall project definition               |
+| `docs/design-system.md`                            | The visual contract (unchanged by this plan) |
+| `docs/church-events/07-scope-and-task-division.md` | Original church-events task breakdown        |
+| `docs/church-events/09-mockup-scope-inventory.md`  | Client mockup inventory                      |
+| `docs/church-events/10-client-decision-log.md`     | Answers to Q1–Q21                            |
 
 ---
 
-*End of plan.*
-
+_End of plan._
 
 ## Running Events audit addendum — 2026-10-21
 

@@ -13,7 +13,6 @@ use App\Models\User;
  * All helper names are prefixed slug_ to avoid collisions with helpers
  * in sibling test files (workflow_, regform_).
  */
-
 function slug_staff(): User
 {
     return User::factory()->create([

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Fellowship;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * Add a participant to a Fellowship event's attendance.
@@ -34,7 +35,7 @@ class AddFellowshipAttendanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'participant_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('participants', 'id')->whereNull('provisional_event_id')],
+            'participant_id' => ['nullable', 'integer', Rule::exists('participants', 'id')->where('pool', 'church')->whereNull('provisional_event_id')],
 
             'first_name' => ['nullable', 'required_if:participant_id,null', 'string', 'max:255'],
             'last_name' => ['nullable', 'required_if:participant_id,null', 'string', 'max:255'],

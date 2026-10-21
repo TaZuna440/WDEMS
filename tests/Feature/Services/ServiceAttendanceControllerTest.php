@@ -2,7 +2,6 @@
 
 use App\Enums\ServiceType;
 use App\Models\FirstTimer;
-use App\Models\Member;
 use App\Models\Participant;
 use App\Models\ServiceAttendanceFirstTimer;
 use App\Models\ServiceAttendanceMember;
@@ -29,7 +28,7 @@ function makeParticipant(array $overrides = []): Participant
     static $counter = 0;
     $counter++;
 
-    return Participant::create(array_merge([
+    return Participant::create(array_merge(['pool' => 'church',
         'first_name' => 'Test',
         'last_name' => 'Participant'.$counter,
         'email' => 'test-'.$counter.'-'.uniqid().'@example.com',

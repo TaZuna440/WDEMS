@@ -20,10 +20,10 @@ export default function ExtrasStep({ data, setData, errors }: Props) {
     return (
         <div className="flex flex-col gap-8">
             <div>
-                <h2 className="text-lg font-semibold text-foreground">
+                <h2 className="text-foreground text-lg font-semibold">
                     Extras
                 </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-sm">
                     Optional details. All of this can be edited later.
                 </p>
             </div>
@@ -31,14 +31,14 @@ export default function ExtrasStep({ data, setData, errors }: Props) {
             {/* Partners */}
             <section className="flex flex-col gap-3">
                 <div className="flex items-baseline justify-between">
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                    <h3 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                         Partners
                     </h3>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground text-xs">
                         {partners.length} / {MAX_PARTNERS}
                     </span>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                     Hosts, sponsors, food, beverage, or support organizations
                     involved in this event.
                 </p>
@@ -49,14 +49,12 @@ export default function ExtrasStep({ data, setData, errors }: Props) {
                     errors={errors}
                 />
 
-                {errors.partners && (
-                    <InputError message={errors.partners} />
-                )}
+                {errors.partners && <InputError message={errors.partners} />}
 
                 {atCap && !errors.partners && (
-                    <p className="text-xs text-muted-foreground">
-                        You have reached the maximum of {MAX_PARTNERS}{' '}
-                        partners. Remove one to add another.
+                    <p className="text-muted-foreground text-xs">
+                        You have reached the maximum of {MAX_PARTNERS} partners.
+                        Remove one to add another.
                     </p>
                 )}
             </section>

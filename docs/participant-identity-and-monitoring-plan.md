@@ -11,6 +11,7 @@ first" section, satisfying P1 (read before proposing changes).
 **Status:** Planned. Phase 0 has not been executed.
 
 **Related:**
+
 - `docs/participant-identity.md` — the identity model spec
 - `docs/registration-monitoring.md` — the monitoring feature spec
 - `docs/registration-development-plan.md` — the registration work
@@ -37,19 +38,19 @@ in an addendum at the bottom, not by rewriting the phase body.
 
 ## Phase structure
 
-| Phase | Goal | Sessions |
-|---|---|---|
-| 0 | Reconnaissance — read everything, no changes | 1 |
-| 1 | Identity schema migrations | 1 |
-| 2 | Legacy data backfill + verification | 0.5 |
-| 3 | Participant model — normalizer + resolver | 1 |
-| 4 | At-least-one rule (request + form builder) | 1 |
-| 5 | Controller rewrite + integration tests | 1 |
-| 6 | Attendance sidebar + date gate | 0.5 |
-| 7 | Monitor landing + per-event pages | 1–2 |
-| 8 | Monitor actions (edit, flag, note, export) | 1 |
-| 9 | Delete registration with OTP | 1 |
-| 10 | Docs convert from spec to reference | 0.5 |
+| Phase | Goal                                         | Sessions |
+| ----- | -------------------------------------------- | -------- |
+| 0     | Reconnaissance — read everything, no changes | 1        |
+| 1     | Identity schema migrations                   | 1        |
+| 2     | Legacy data backfill + verification          | 0.5      |
+| 3     | Participant model — normalizer + resolver    | 1        |
+| 4     | At-least-one rule (request + form builder)   | 1        |
+| 5     | Controller rewrite + integration tests       | 1        |
+| 6     | Attendance sidebar + date gate               | 0.5      |
+| 7     | Monitor landing + per-event pages            | 1–2      |
+| 8     | Monitor actions (edit, flag, note, export)   | 1        |
+| 9     | Delete registration with OTP                 | 1        |
+| 10    | Docs convert from spec to reference          | 0.5      |
 
 Rough total: 9–11 sessions.
 
@@ -219,9 +220,9 @@ values.
 One migration with a `DB::table('participants')->orderBy('id')->chunk(...)` loop:
 
 - For each participant with a non-null `contact_number`:
-  - Normalize using the same rules as the model mutator (rules are
-    duplicated in the migration, since it cannot call the model)
-  - Write the result to `contact_number_normalized`
+    - Normalize using the same rules as the model mutator (rules are
+      duplicated in the migration, since it cannot call the model)
+    - Write the result to `contact_number_normalized`
 - Log any rows where normalization returns null
 - Log any rows where two participants normalize to the same value
 
@@ -437,8 +438,8 @@ name, date, registered count, marked count. Clicking goes to
 `canRecordAttendance()` **and** `event_date <= today`. Replaces
 `canRecordAttendance()` in the attendance show method.
 
-Error when gate fails: *"Attendance can only be recorded on the
-event day."*
+Error when gate fails: _"Attendance can only be recorded on the
+event day."_
 
 ### Tests
 
@@ -884,15 +885,15 @@ has shipped.
 
 ### What shipped
 
-| Deliverable | Status |
-|---|---|
-| Migration: `flagged_at`, `notes` | ✅ |
-| Edit participant endpoint | ✅ |
-| Flag toggle endpoint | ✅ |
-| Note save endpoint | ✅ |
-| CSV export endpoint | ✅ |
-| Actions menu on monitor cards | ✅ |
-| Flagged filter chip | ✅ |
+| Deliverable                      | Status |
+| -------------------------------- | ------ |
+| Migration: `flagged_at`, `notes` | ✅     |
+| Edit participant endpoint        | ✅     |
+| Flag toggle endpoint             | ✅     |
+| Note save endpoint               | ✅     |
+| CSV export endpoint              | ✅     |
+| Actions menu on monitor cards    | ✅     |
+| Flagged filter chip              | ✅     |
 
 ### What did not ship
 
@@ -929,15 +930,15 @@ has shipped.
 
 ### What shipped
 
-| Deliverable | Status |
-|---|---|
-| Migration: `flagged_at`, `notes` | ✅ |
-| Edit participant endpoint | ✅ |
-| Flag toggle endpoint | ✅ |
-| Note save endpoint | ✅ |
-| CSV export endpoint | ✅ |
-| Actions menu on monitor cards | ✅ |
-| Flagged filter chip | ✅ |
+| Deliverable                      | Status |
+| -------------------------------- | ------ |
+| Migration: `flagged_at`, `notes` | ✅     |
+| Edit participant endpoint        | ✅     |
+| Flag toggle endpoint             | ✅     |
+| Note save endpoint               | ✅     |
+| CSV export endpoint              | ✅     |
+| Actions menu on monitor cards    | ✅     |
+| Flagged filter chip              | ✅     |
 
 ### What did not ship
 
@@ -974,18 +975,18 @@ plan are now closed except Phase 10 (docs close), which is partial.
 
 ### What shipped
 
-| Deliverable | Status |
-|---|---|
-| `RegistrationDeletionController` | ✅ |
-| `RegistrationDeletionOtpService` | ✅ |
-| `RegistrationDeletionService` | ✅ |
-| `RegistrationDeletionOtpMail` + blade template | ✅ |
-| Two rate limiters | ✅ |
-| Three routes | ✅ |
-| `RegistrationDeletionOtpDialog.tsx` | ✅ |
-| Delete action in monitor ⋯ menu | ✅ |
-| `is_admin` prop on the monitor | ✅ |
-| `RegistrationDeletionTest.php` (14 tests) | ✅ |
+| Deliverable                                    | Status |
+| ---------------------------------------------- | ------ |
+| `RegistrationDeletionController`               | ✅     |
+| `RegistrationDeletionOtpService`               | ✅     |
+| `RegistrationDeletionService`                  | ✅     |
+| `RegistrationDeletionOtpMail` + blade template | ✅     |
+| Two rate limiters                              | ✅     |
+| Three routes                                   | ✅     |
+| `RegistrationDeletionOtpDialog.tsx`            | ✅     |
+| Delete action in monitor ⋯ menu                | ✅     |
+| `is_admin` prop on the monitor                 | ✅     |
+| `RegistrationDeletionTest.php` (14 tests)      | ✅     |
 
 ### Deviations from the plan
 
@@ -1377,7 +1378,6 @@ with no immediate benefit.
 
 Full record: `docs/registration-contact-verification.md`
 `## Corrections (2026-10-14)` block.
-
 
 ## Running Events audit addendum — 2026-10-21
 

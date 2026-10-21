@@ -11,6 +11,7 @@ use App\Models\Event;
 use App\Services\EventWorkflow;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -90,9 +91,9 @@ class EventController extends Controller
         $finalizationSummary = null;
         if ($event->isRunningEvent() && $event->canFinalize()) {
             $finalizationSummary = [
-                'registered' => $event->registrations()->count(),
-                'checked_in' => $event->registrations()->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'present'))->count(),
-                'walk_ins' => $event->registrations()->where('source', 'walk_in')->count(),
+                'registered' => $event->registrations()->active()->count(),
+                'checked_in' => $event->registrations()->active()->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'present'))->count(),
+                'walk_ins' => $event->registrations()->active()->where('source', 'walk_in')->count(),
             ];
         }
 
@@ -488,7 +489,7 @@ class EventController extends Controller
 
     public function openRegistration(Event $event): RedirectResponse
     {
-        \Illuminate\Support\Facades\DB::transaction(function () use ($event): void {
+        DB::transaction(function () use ($event): void {
             $event = Event::query()->lockForUpdate()->findOrFail($event->id);
             abort_unless($event->canOpenRegistration(), 403);
             $event->registration_start = now();
@@ -504,7 +505,7 @@ class EventController extends Controller
     {
         abort_unless($event->canCloseRegistration(), 403);
         $request->validate(['password' => ['required', 'string', 'current_password']]);
-        \Illuminate\Support\Facades\DB::transaction(function () use ($event): void {
+        DB::transaction(function () use ($event): void {
             $event = Event::query()->lockForUpdate()->findOrFail($event->id);
             abort_unless($event->canCloseRegistration(), 403);
             $event->registration_end = now();
@@ -522,7 +523,7 @@ class EventController extends Controller
     {
         abort_unless($event->canReopenRegistration(), 403);
         $request->validate(['password' => ['required', 'string', 'current_password']]);
-        \Illuminate\Support\Facades\DB::transaction(function () use ($event): void {
+        DB::transaction(function () use ($event): void {
             $event = Event::query()->lockForUpdate()->findOrFail($event->id);
             abort_unless($event->canReopenRegistration(), 403);
             $event->registration_end = null;

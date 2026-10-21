@@ -5,7 +5,7 @@ use App\Models\Member;
 use App\Models\Participant;
 
 beforeEach(function () {
-    $this->participant = Participant::create([
+    $this->participant = Participant::create(['pool' => 'church',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'email' => 'first-timer-test-'.uniqid().'@example.com',

@@ -64,13 +64,28 @@ export default function EventsIndex({ events, filters }: Props) {
     const [search, setSearch] = useState('');
     const [columns, setColumns] = useState<Record<string, string>>({});
     const filterColumns = [
-        ['event_name', 'Event Name'], ['event_type_label', 'Type'], ['event_date', 'Date'],
-        ['distance_label', 'Distance'], ['venue', 'Venue'], ['status_label', 'Status'], ['creator', 'Created by'],
+        ['event_name', 'Event Name'],
+        ['event_type_label', 'Type'],
+        ['event_date', 'Date'],
+        ['distance_label', 'Distance'],
+        ['venue', 'Venue'],
+        ['status_label', 'Status'],
+        ['creator', 'Created by'],
     ] as const;
-    const visibleEvents = events.filter(event => {
-        const values = filterColumns.map(([key]) => String(event[key] ?? '').toLowerCase());
-        return values.some(value => value.includes(search.trim().toLowerCase())) &&
-            filterColumns.every(([key], index) => values[index].includes((columns[key] ?? '').trim().toLowerCase()));
+    const visibleEvents = events.filter((event) => {
+        const values = filterColumns.map(([key]) =>
+            String(event[key] ?? '').toLowerCase(),
+        );
+        return (
+            values.some((value) =>
+                value.includes(search.trim().toLowerCase()),
+            ) &&
+            filterColumns.every(([key], index) =>
+                values[index].includes(
+                    (columns[key] ?? '').trim().toLowerCase(),
+                ),
+            )
+        );
     });
 
     return (
@@ -113,7 +128,7 @@ export default function EventsIndex({ events, filters }: Props) {
                                 onClick={() => applyKind(filter.value)}
                                 className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                                     active
-                                        ? 'border-lime-brand/40 bg-lime-brand/25 text-lime-700 dark:bg-lime-brand/20 dark:text-lime-brand'
+                                        ? 'border-lime-brand/40 bg-lime-brand/25 dark:bg-lime-brand/20 dark:text-lime-brand text-lime-700'
                                         : 'border-border bg-card/70 text-foreground hover:bg-card'
                                 }`}
                             >
@@ -126,20 +141,52 @@ export default function EventsIndex({ events, filters }: Props) {
                 {/* Church tab: category cards */}
                 {isChurchTab && <ChurchCategoryCards />}
 
-                {!isChurchTab && <section className="space-y-3" aria-label="Filter running events">
-                    <Input aria-label="Search running events" placeholder="Search running events…" value={search} onChange={e => setSearch(e.target.value)} />
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{filterColumns.map(([key, label]) => <label key={key} className="space-y-1 text-xs text-muted-foreground">{label}<Input aria-label={`Filter ${label}`} placeholder={label} value={columns[key] ?? ''} onChange={e => setColumns({ ...columns, [key]: e.target.value })} /></label>)}</div>
-                    <p className="text-sm text-muted-foreground">{visibleEvents.length} matching events</p>
-                </section>}
+                {!isChurchTab && (
+                    <section
+                        className="space-y-3"
+                        aria-label="Filter running events"
+                    >
+                        <Input
+                            aria-label="Search running events"
+                            placeholder="Search running events…"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                            {filterColumns.map(([key, label]) => (
+                                <label
+                                    key={key}
+                                    className="text-muted-foreground space-y-1 text-xs"
+                                >
+                                    {label}
+                                    <Input
+                                        aria-label={`Filter ${label}`}
+                                        placeholder={label}
+                                        value={columns[key] ?? ''}
+                                        onChange={(e) =>
+                                            setColumns({
+                                                ...columns,
+                                                [key]: e.target.value,
+                                            })
+                                        }
+                                    />
+                                </label>
+                            ))}
+                        </div>
+                        <p className="text-muted-foreground text-sm">
+                            {visibleEvents.length} matching events
+                        </p>
+                    </section>
+                )}
                 {!isChurchTab && visibleEvents.length === 0 && (
                     <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-16 text-center">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-lime-brand/15">
-                            <CalendarDays className="h-8 w-8 text-lime-700 dark:text-lime-brand" />
+                        <div className="bg-lime-brand/15 mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                            <CalendarDays className="dark:text-lime-brand h-8 w-8 text-lime-700" />
                         </div>
-                        <h2 className="mb-2 text-lg font-semibold text-foreground">
+                        <h2 className="text-foreground mb-2 text-lg font-semibold">
                             No events yet
                         </h2>
-                        <p className="mb-6 max-w-sm text-sm text-muted-foreground">
+                        <p className="text-muted-foreground mb-6 max-w-sm text-sm">
                             {filters.kind
                                 ? 'No events match this filter.'
                                 : 'Create your first running or community event to begin configuring registration and attendance.'}
@@ -163,26 +210,26 @@ export default function EventsIndex({ events, filters }: Props) {
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-border text-left">
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    <tr className="border-border border-b text-left">
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Event
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Type
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Date
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Distance
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Venue
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Status
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Created by
                                         </th>
                                     </tr>
@@ -191,17 +238,17 @@ export default function EventsIndex({ events, filters }: Props) {
                                     {visibleEvents.map((event) => (
                                         <tr
                                             key={event.id}
-                                            className="border-b border-border transition-colors last:border-b-0 hover:bg-card/40"
+                                            className="border-border hover:bg-card/40 border-b transition-colors last:border-b-0"
                                         >
                                             <td className="px-6 py-4">
                                                 <Link
                                                     href={`/events/${event.id}`}
-                                                    className="font-medium text-foreground hover:text-lime-brand"
+                                                    className="text-foreground hover:text-lime-brand font-medium"
                                                 >
                                                     {event.event_name}
                                                 </Link>
                                                 {event.church_category && (
-                                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                                    <p className="text-muted-foreground mt-0.5 text-xs">
                                                         {event.church_category}
                                                     </p>
                                                 )}
@@ -209,23 +256,25 @@ export default function EventsIndex({ events, filters }: Props) {
                                             <td className="px-6 py-4">
                                                 <span
                                                     className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                        typeStyles[event.event_type] ??
+                                                        typeStyles[
+                                                            event.event_type
+                                                        ] ??
                                                         'bg-secondary text-foreground'
                                                     }`}
                                                 >
                                                     {event.event_type_label}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground px-6 py-4 text-sm">
                                                 <span className="inline-flex items-center gap-2">
                                                     <Calendar className="h-3.5 w-3.5" />
                                                     {event.event_date ?? '—'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground px-6 py-4 text-sm">
                                                 {event.distance_label ?? '—'}
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground px-6 py-4 text-sm">
                                                 <span className="inline-flex items-center gap-2">
                                                     <MapPin className="h-3.5 w-3.5" />
                                                     {event.venue ?? '—'}
@@ -234,14 +283,15 @@ export default function EventsIndex({ events, filters }: Props) {
                                             <td className="px-6 py-4">
                                                 <span
                                                     className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                        statusStyles[event.status] ??
-                                                        statusStyles.draft
+                                                        statusStyles[
+                                                            event.status
+                                                        ] ?? statusStyles.draft
                                                     }`}
                                                 >
                                                     {event.status_label}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground px-6 py-4 text-sm">
                                                 <span className="inline-flex items-center gap-2">
                                                     <User className="h-3.5 w-3.5" />
                                                     {event.creator ?? '—'}
@@ -260,7 +310,5 @@ export default function EventsIndex({ events, filters }: Props) {
 }
 
 EventsIndex.layout = {
-    breadcrumbs: [
-        { title: 'Events', href: '/events' },
-    ],
+    breadcrumbs: [{ title: 'Events', href: '/events' }],
 };
