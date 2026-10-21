@@ -7,7 +7,7 @@ type Props = {
 };
 
 export default function ChurchCategoryPlaceholder({
-    category,
+    _category,
     categoryLabel,
 }: Props) {
     return (

@@ -117,8 +117,6 @@ const STATUS_STYLES: Record<AttendanceStatus, string> = {
     absent: 'bg-destructive/15 text-destructive border-destructive/30',
 };
 
-const MAX_BULK_ROWS = 100;
-
 function sourceLabel(source: string): string {
     return source === 'walk_in'
         ? 'Walk-in'

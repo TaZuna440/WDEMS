@@ -7,7 +7,7 @@ import {
     phMobileDigits,
 } from '../../resources/js/lib/participant-input.ts';
 
-test('birthdate progresses through month, day and year in one input', () => {
+void test('birthdate progresses through month, day and year in one input', () => {
     assert.equal(formatBirthdateInput('03'), '03');
     assert.equal(formatBirthdateInput('0323'), '03/23');
     assert.equal(formatBirthdateInput('03232006'), '03/23/2006');
@@ -15,7 +15,7 @@ test('birthdate progresses through month, day and year in one input', () => {
     assert.equal(birthdateToIso('03/23/20'), '');
 });
 
-test('invalid month, calendar days and leap days cannot become a submitted date', () => {
+void test('invalid month, calendar days and leap days cannot become a submitted date', () => {
     for (const value of [
         '13/23/2006',
         '00/23/2006',
@@ -29,7 +29,7 @@ test('invalid month, calendar days and leap days cannot become a submitted date'
     assert.equal(birthdateToIso('02/29/2004'), '2004-02-29');
 });
 
-test('local, international and national mobile input share the fixed +63 prefix', () => {
+void test('local, international and national mobile input share the fixed +63 prefix', () => {
     for (const value of [
         '09295501812',
         '+63 929 550 1812',

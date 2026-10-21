@@ -10,7 +10,6 @@ import {
     Trash2,
     UserRound,
     UserPlus,
-    Users,
     X,
 } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';

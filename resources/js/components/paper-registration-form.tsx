@@ -58,7 +58,7 @@ export default function PaperRegistrationForm({
             <Input
                 id={`paper-${key}`}
                 type={type}
-                value={String(form.data[key])}
+                value={String(form.data[key] as any)}
                 onChange={(e) => form.setData(key, e.target.value)}
                 disabled={form.processing}
             />
