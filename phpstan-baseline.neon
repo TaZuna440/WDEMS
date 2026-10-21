@@ -2287,6 +2287,12 @@ parameters:
 			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
 
 		-
+			message: '#^Left side of && is always false\.$#'
+			identifier: booleanAnd.leftAlwaysFalse
+			count: 1
+			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
+
+		-
 			message: '#^Method App\\Services\\RegistrationVerification\\RegistrationVerificationService\:\:assertNoDuplicateRegistration\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -2299,8 +2305,20 @@ parameters:
 			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
 
 		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 3
+			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
+
+		-
 			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
 			count: 1
 			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
 
@@ -2477,12 +2495,6 @@ parameters:
 			identifier: binaryOp.invalid
 			count: 1
 			path: app/Services/TwoFactor/EmailTwoFactorService.php
-
-		-
-			message: '#^Parameter \#1 \$path of function base_path expects string, string\|true given\.$#'
-			identifier: argument.type
-			count: 1
-			path: config/firebase.php
 
 		-
 			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'

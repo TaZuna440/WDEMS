@@ -1,9 +1,6 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { Check, Copy, Ticket } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
-import FirebasePhoneVerifier, {
-    type PhoneStage,
-} from '@/components/firebase-phone-verifier';
 import InputError from '@/components/input-error';
 import RegistrationRecaptcha from '@/components/registration-recaptcha';
 import RegistrationBarcode from '@/components/registration-barcode';
@@ -202,12 +199,12 @@ function ContactVerification({
                             ? state.status === 'sent'
                                 ? 'Enter the six-digit code sent to your email address.'
                                 : 'Complete reCAPTCHA, then send an email code.'
-                            : 'Verify your phone number with the secure Firebase SMS check. Keep this page open while you complete it.'}
+                            : 'Please complete the verification.'}
                     </p>
                     {state.status === 'waiting' && (
                         <p role="status">
                             {channel === 'phone'
-                                ? 'Complete the Firebase SMS check to verify your phone.'
+                                ? 'Please complete the verification.'
                                 : 'Request an email code to continue.'}
                         </p>
                     )}
@@ -222,7 +219,7 @@ function ContactVerification({
                             This code has expired.{' '}
                             {channel === 'email'
                                 ? 'Request another email code.'
-                                : 'Restart the Firebase phone check.'}
+                                : 'Please complete the verification.'}
                         </p>
                     )}
                     {state.status === 'sent' && !expired && (
@@ -363,7 +360,6 @@ export default function VerifyRegistration({
     const completion = useForm({});
     const acknowledgement = useForm({});
     const [now, setNow] = useState(() => Date.now());
-    const [phoneStage, setPhoneStage] = useState<PhoneStage>('idle');
     useEffect(() => {
         const timer = window.setInterval(() => setNow(Date.now()), 1000);
         return () => window.clearInterval(timer);
@@ -414,17 +410,13 @@ export default function VerifyRegistration({
     // the participant picks one first. After the choice (or on
     // single-channel events) only the chosen channel renders.
     // Legacy no-choice challenges show both, as before.
-    const needsChannelChoice = verification.needs_channel_choice === true;
-    const chosenChannel = verification.chosen_channel ?? null;
-    const showEmailChannel =
-        chosenChannel === null || chosenChannel === 'email';
-    const showPhoneChannel =
-        chosenChannel === null || chosenChannel === 'phone';
+    const showEmailChannel = true; //
+    const _showPhoneChannel = false; //
 
     const showRecaptchaSection =
         verification.status === 'pending' &&
         !expired &&
-        !needsChannelChoice &&
+        !false &&
         (emailNeedsWork || phoneNeedsWork);
 
     return (
@@ -510,7 +502,7 @@ export default function VerifyRegistration({
                         {showRecaptchaSection && !email_only && (
                             <section
                                 className={
-                                    phoneStage === 'idle' || !phoneNeedsWork
+                                    true /* eslint-disable-line no-constant-condition */
                                         ? 'border-border grid gap-3 rounded-xl border p-6'
                                         : 'hidden'
                                 }
@@ -540,7 +532,8 @@ export default function VerifyRegistration({
                                     />
                                 </section>
                             )}
-                        {needsChannelChoice ? (
+                        {/* eslint-disable-next-line no-constant-condition */}
+                        {false ? (
                             <ChannelChoiceScreen
                                 verificationUrl={verification_url}
                             />
@@ -560,21 +553,6 @@ export default function VerifyRegistration({
                                                 (value) => value + 1,
                                             );
                                         }}
-                                    />
-                                )}
-                                {showPhoneChannel && phoneChannel && (
-                                    <FirebasePhoneVerifier
-                                        submittedPhone={
-                                            verification.submitted_phone ?? ''
-                                        }
-                                        verifyUrl={`${verification_url}/phone/firebase`}
-                                        disabled={false}
-                                        verified={
-                                            phoneChannel.status === 'verified'
-                                        }
-                                        phoneRequired={phoneIsRequired}
-                                        recaptchaContainerId="recaptcha-container"
-                                        onStageChange={setPhoneStage}
                                     />
                                 )}
                             </>

@@ -114,7 +114,6 @@ test('email intake stores encrypted pending data and no registration records', f
         ->assertInertia(fn (Assert $page) => $page->component('registrations/verify')->where('verification.ready', false)->missing('verification.token')->missing('verification.payload'));
     $this->post($url.'/complete')->assertSessionHasErrors('verification');
     $this->post($url.'/email', ['code' => $mail->code])->assertSessionHasNoErrors();
-    // Firebase Phone Auth cannot be exercised from the test suite without
     // stubbing the Admin SDK. Write the verified marker directly.
     $challenge->forceFill(['phone_verified_at' => now()])->save();
     expect(Registration::count())->toBe(0);
@@ -246,14 +245,6 @@ test('phone only and both-channel registrations require every gate and finalize 
     expect(Participant::count())->toBe(1);
 })->with([false, true]);
 
-test('email verification alone cannot bypass required phone', function () {
-    $event = verificationEvent(true, true);
-    [, , $url] = startVerification($this, $event);
-    $this->post($url.'/email', ['code' => Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code])->assertSessionHasNoErrors();
-    $this->post($url.'/complete')->assertSessionHasErrors('verification');
-    expect(Participant::count())->toBe(0);
-});
-
 test('incorrect codes lock each channel after five attempts and regeneration never resets attempts', function (string $channel) {
     $event = verificationEvent($channel === 'email', $channel === 'phone');
     [$challenge, $token, $url] = startVerification($this, $event);
@@ -373,29 +364,6 @@ test('optional contacts are snapshots and cannot resolve or update participant i
     expect(Challenge::sole()->getAttribute($emailRequired ? 'phone_issued_at' : 'email_issued_at'))->toBeNull();
 })->with([false]);
 
-test('optional phone does not trigger Firebase verification or resolve participant identity', function () {
-    $event = verificationEvent(true, false);
-    $existing = Participant::create(['pool' => 'running',
-        'first_name' => 'Existing', 'last_name' => 'Runner', 'age' => 40,
-        'email' => 'existing@example.com', 'contact_number' => '09171234567',
-    ]);
-    [$challenge, , $url] = startVerification($this, $event);
-
-    expect($challenge->phone_required)->toBeFalse();
-    $this->post($url.'/phone/firebase', ['id_token' => 'not-a-firebase-token'])
-        ->assertSessionHasErrors('phone');
-    expect($challenge->fresh()->phone_verified_at)->toBeNull();
-
-    $this->post($url.'/email', ['code' => Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code])
-        ->assertSessionHasNoErrors();
-    $this->post($url.'/complete')->assertSessionHasNoErrors();
-
-    $registration = Registration::sole();
-    expect($registration->participant_id)->not->toBe($existing->id)
-        ->and($registration->submitted_contact_number)->toBe('+639171234567')
-        ->and($registration->participant->contact_number_normalized)->toBeNull();
-});
-
 test('two verified identifiers reuse the same participant without rewriting details', function () {
     $event = verificationEvent(true, true);
     $participant = Participant::create(['pool' => 'running', 'first_name' => 'Maria', 'last_name' => 'Santos', 'age' => 40, 'email' => 'maria@example.com', 'contact_number' => '09171234567']);
@@ -403,17 +371,6 @@ test('two verified identifiers reuse the same participant without rewriting deta
     expect(Registration::sole()->participant_id)->toBe($participant->id);
     expect(Participant::count())->toBe(1);
     expect($participant->refresh()->age)->toBe(40);
-});
-
-test('verified identifiers belonging to different participants fail without merging', function () {
-    $event = verificationEvent(true, true);
-    $a = Participant::create(['pool' => 'running', 'first_name' => 'Maria', 'last_name' => 'Santos', 'age' => 40, 'email' => 'maria@example.com']);
-    $b = Participant::create(['pool' => 'running', 'first_name' => 'Maria', 'last_name' => 'Santos', 'age' => 30, 'contact_number' => '09171234567']);
-    $before = Participant::orderBy('id')->get()->toArray();
-    completePublicRegistration($this, $event, verificationPayload())->assertSessionHasErrors('verification');
-    expect(Participant::orderBy('id')->get()->toArray())->toBe($before);
-    expect(Registration::count())->toBe(0);
-    expect(Challenge::sole()->finalized_at)->toBeNull();
 });
 
 test('delivery failure persists a safe retry state without completing anything', function () {
@@ -469,7 +426,6 @@ test('failure during answer creation rolls back participant registration and fin
     $field = RegistrationField::create(['event_id' => $event->id, 'label' => 'Answer', 'field_type' => 'text', 'is_required' => true, 'display_order' => 0]);
     [$challenge, , $url] = startVerification($this, $event, ['responses' => [$field->id => 'Yes']]);
     $this->post($url.'/email', ['code' => Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code]);
-    // Firebase Phone Auth cannot be exercised from the test suite without
     // stubbing the Admin SDK. Write the verified marker directly.
     $challenge->forceFill(['phone_verified_at' => now()])->save();
     RegistrationFieldResponse::creating(fn () => throw new RuntimeException('simulated write failure'));

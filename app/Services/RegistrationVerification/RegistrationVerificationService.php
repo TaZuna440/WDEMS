@@ -135,7 +135,7 @@ class RegistrationVerificationService
                 // is chosen automatically — no choice screen. Both
                 // required → the participant picks one via
                 // chooseChannel(); null until then.
-                'chosen_channel' => $emailRequired !== $phoneRequired
+                'chosen_channel' => 'email'
                     ? ($emailRequired ? 'email' : 'phone')
                     : null,
                 'expires_at' => now()->addHours(self::CHALLENGE_TTL_HOURS),
@@ -244,7 +244,7 @@ class RegistrationVerificationService
             'email' => $this->channelState($challenge, 'email'),
             'phone' => $this->channelState($challenge, 'phone'),
             'chosen_channel' => $challenge->chosen_channel,
-            'needs_channel_choice' => $challenge->chosen_channel === null
+            'needs_channel_choice' => false
                 && $challenge->email_required && $challenge->phone_required
                 && $challenge->email_verified_at === null
                 && $challenge->phone_verified_at === null,

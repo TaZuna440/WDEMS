@@ -55,22 +55,6 @@ class RegistrationVerificationController extends Controller
         return $this->withDeviceTrustCookie($request, $response, $deviceToken);
     }
 
-    public function firebasePhone(Request $request, Event $event): RedirectResponse
-    {
-        $validator = Validator::make($request->only('id_token'), [
-            'id_token' => ['required', 'string', 'max:4096'],
-        ]);
-        if ($validator->fails()) {
-            return $this->backToVerification($event)->withErrors([
-                'phone' => 'Missing or invalid verification token.',
-            ]);
-        }
-
-        return $this->publicAction($event, 'phone', fn () => $this->verification->verifyPhoneWithFirebase(
-            $event, $this->token($request, $event), $validator->validated()['id_token'],
-        ));
-    }
-
     public function resendEmail(Request $request, Event $event): RedirectResponse
     {
         $deviceToken = RegistrationVerificationService::deviceToken($request);
