@@ -70,11 +70,9 @@ const GOOGLE_MAPS_URL_PATTERN =
  * input is still checked strictly.
  */
 const NAME_START_PATTERN = /^[\p{L}\p{N}]/u;
-// eslint-disable-next-line no-control-regex
-const NAME_VOWEL_OR_NON_ASCII_PATTERN = /([aeiouyAEIOUY]|[^\x00-\x7F])/u;
-// eslint-disable-next-line no-control-regex
+const NAME_VOWEL_OR_NON_ASCII_PATTERN = /([aeiouyAEIOUY]|[^\u0000-\u007F])/u;
 const NAME_CONSONANT_OR_NON_ASCII_PATTERN =
-    /([bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]|[^\x00-\x7F])/u;
+    /([bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]|[^\u0000-\u007F])/u;
 const NAME_TRIPLE_CHAR_PATTERN = /(.)\1\1/u;
 
 function asString(value: unknown): string {
