@@ -223,6 +223,66 @@ parameters:
 			path: app/Http/Controllers/AttendanceController.php
 
 		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$contact_number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ChurchRegistrationController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ChurchRegistrationController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$event_kind\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/ChurchRegistrationController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$first_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ChurchRegistrationController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$last_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ChurchRegistrationController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ChurchRegistrationController\:\:destroy\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ChurchRegistrationController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ChurchRegistrationController\:\:store\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ChurchRegistrationController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\ChurchRegistrationController\:\:update\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Http/Controllers/ChurchRegistrationController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Registration\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/ChurchRegistrationController.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Registration\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Controllers/ChurchRegistrationController.php
+
+		-
 			message: '#^Call to function in_array\(\) with arguments string, array\{App\\Enums\\EventStatus\:\:Completed, App\\Enums\\EventStatus\:\:Cancelled\} and true will always evaluate to false\.$#'
 			identifier: function.impossibleType
 			count: 1
