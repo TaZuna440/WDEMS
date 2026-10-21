@@ -138,7 +138,7 @@ it('does not advance a draft event', function () {
     Carbon::setTestNow();
 });
 
-it('does not advance a registration_open event', function () {
+it('starts an open event while keeping on-site registration open', function () {
     Carbon::setTestNow('2026-10-14 12:00:00');
 
     $event = advance_event([
@@ -152,7 +152,8 @@ it('does not advance a registration_open event', function () {
         ->get("/events/{$event->id}")
         ->assertOk();
 
-    expect($event->fresh()->status)->toBe(EventStatus::RegistrationOpen);
+    expect($event->fresh()->status)->toBe(EventStatus::Ongoing)
+        ->and($event->fresh()->acceptsPublicRegistration())->toBeTrue();
 
     Carbon::setTestNow();
 });

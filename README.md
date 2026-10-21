@@ -501,3 +501,19 @@ multi-session workstream.
 ## License
 
 Private project. Not for public distribution.
+
+
+## Running Events status update — 2026-10-21
+
+The status tables above are historical. The current full-name composite identity,
+versioned email-only forms, Check-in/Walk-in attendance, on-site intake lifecycle,
+reports, and duplicate-defense implementation are recorded in
+[the Running Events audit](docs/running-events-audit-2026-10-21.md).
+That document includes source traceability and explicitly separates automated
+verification from outstanding live CAPTCHA/camera/scanner acceptance checks.
+Kit claiming remains a staff procedure outside the app. Church expansion has a
+specification, not a completed implementation. No push occurred during this audit.
+
+## Database schema export — 2026-10-21
+
+[Schema-only MySQL SQL file](docs/wdems-schema.sql) contains the 30-table local schema after all project migrations. No records or credentials are included. Import into an empty MySQL database for schema inspection; the migrations table has no history rows, so this is not a replacement for Laravel migrations when setting up the app.

@@ -20,6 +20,21 @@ class PublicRegistrationController extends Controller
         return $this->renderForm($event, $request->session()->pull('success'));
     }
 
+    public function similarity(Request $request, Event $event): \Illuminate\Http\JsonResponse
+    {
+        abort_unless($event->acceptsPublicRegistration(), 404);
+        $payload = $request->validate([
+            'first_name' => ['required', 'string', 'min:2', 'max:255'],
+            'last_name' => ['required', 'string', 'min:2', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:255'], 'suffix' => ['nullable', 'string', 'max:16'],
+            'birthday' => ['nullable', 'date_format:Y-m-d'],
+            'email' => ['nullable', 'email', 'max:255'], 'contact_number' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        return response()->json(['similar' => app(\App\Services\Participants\DuplicateReview::class)->hasSimilar($event, $payload)])
+            ->header('Cache-Control', 'no-store, private');
+    }
+
     public function preview(Event $event): Response
     {
         abort_unless($event->isRunningEvent(), 404);

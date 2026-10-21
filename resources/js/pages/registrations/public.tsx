@@ -1,7 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { CalendarDays, CheckCircle2, ExternalLink, MapPin } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import DatePicker from '@/components/date-picker';
+import { useEffect, useMemo, useState } from 'react';
+import { formatBirthdateInput, birthdateInputError, birthdateToIso } from '@/lib/participant-input';
 import TshirtPhotoGallery from '@/components/tshirt-photo-gallery';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,6 @@ import {
 import Wizard, { type WizardStepConfig } from '@/components/wizard';
 import PhoneInput from '@/components/phone-input';
 import {
-    birthdayPickerBounds,
     emergencyContactWarning,
     validateRegistrationForm,
     type RegistrationFormData,
@@ -102,6 +101,7 @@ export default function PublicRegistration({
     const form = useForm<RegistrationFormData>({
         first_name: preview ? 'Maria' : '',
         tshirt_choice: '',
+        similarity_acknowledged: false,
         last_name: preview ? 'Santos' : '',
         middle_name: '',
         suffix: '',
@@ -109,21 +109,46 @@ export default function PublicRegistration({
         contact_number: preview ? '09171234567' : '',
         age: '',
         birthday: preview ? '2000-01-15' : '',
+        birthday_input: preview ? '01/15/2000' : '',
         address: preview ? 'Sample Barangay, Sample City' : '',
         emergency_contact_name: preview ? 'Juan Santos' : '',
         emergency_contact_first_name: preview ? 'Juan' : '',
         emergency_contact_last_name: preview ? 'Santos' : '',
         emergency_contact_relationship_other: '',
-        emergency_contact_relationship: preview ? 'Sibling' : '',
+        emergency_contact_relationship: preview ? 'Parent' : '',
         emergency_contact_number: preview ? '09179876543' : '',
         consent_accepted: false,
         responses: {},
     });
 
+    const identityKey = JSON.stringify({ first_name: form.data.first_name, middle_name: form.data.middle_name,
+        last_name: form.data.last_name, suffix: form.data.suffix, birthday: form.data.birthday,
+        email: form.data.email, contact_number: form.data.contact_number });
+    const [similarity, setSimilarity] = useState<{ key: string; similar: boolean; failed: boolean } | null>(null);
+    const reviewedIdentity = form.data.similarity_reviewed_identity ?? '';
+    const setReviewedIdentity = (value: string) => form.setData('similarity_reviewed_identity', value);
+    const [retrySimilarity, setRetrySimilarity] = useState(0);
+    useEffect(() => {
+        if (preview || !form.data.consent_accepted || form.data.first_name.trim().length < 2 || form.data.last_name.trim().length < 2) return;
+        const controller = new AbortController();
+        const timer = window.setTimeout(async () => {
+            try {
+                const csrf = document.cookie.split('; ').find(c => c.startsWith('XSRF-TOKEN='))?.slice('XSRF-TOKEN='.length);
+                const response = await fetch(`${submit_url}/similarity`, { method: 'POST', signal: controller.signal,
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': csrf ? decodeURIComponent(csrf) : '' }, body: identityKey });
+                if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('Check failed');
+                const result = await response.json() as { similar: boolean };
+                setSimilarity({ key: identityKey, similar: result.similar, failed: false });
+            } catch {
+                if (!controller.signal.aborted) setSimilarity({ key: identityKey, similar: false, failed: true });
+            }
+        }, 700);
+        return () => { window.clearTimeout(timer); controller.abort(); };
+    }, [identityKey, preview, submit_url, form.data.consent_accepted, retrySimilarity]);
+
     const [privacyOpen, setPrivacyOpen] = useState(false);
     const [termsOpen, setTermsOpen] = useState(false);
 
-    const birthdayBounds = useMemo(() => birthdayPickerBounds(), []);
 
     const isRequired = (field: string): boolean =>
         common_field_requirements[field] ?? true;
@@ -188,6 +213,7 @@ export default function PublicRegistration({
                     'address',
                     'responses',
                     'tshirt_choice',
+                    'similarity_acknowledged',
                 ],
                 validate: (data) => {
                     const all = validateRegistrationForm(
@@ -208,6 +234,8 @@ export default function PublicRegistration({
                         'address',
                     ]);
                     const out: Record<string, string> = {};
+                    if (!preview && (similarity?.key !== identityKey || similarity.failed)) out.similarity_acknowledged = 'Wait for the registration check, or retry it below.';
+                    if (!preview && similarity?.key === identityKey && similarity.similar && reviewedIdentity !== identityKey) out.similarity_acknowledged = 'Review the warning and confirm you want to continue.';
                     if (tshirt?.required && !(data as RegistrationFormData).tshirt_choice) out.tshirt_choice = 'Choose a T-shirt option.';
                     for (const [k, v] of Object.entries(all)) {
                         if (keep.has(k) || k.startsWith('responses.')) {
@@ -245,11 +273,12 @@ export default function PublicRegistration({
                 },
             },
         ],
-        [fields, common_field_requirements, form_version, tshirt],
+        [fields, common_field_requirements, form_version, tshirt, preview, similarity, identityKey, reviewedIdentity],
     );
 
     const submit = () => {
         if (preview) return;
+        form.transform(data => ({ ...data, similarity_acknowledged: reviewedIdentity === identityKey }));
         form.post(submit_url);
     };
 
@@ -350,6 +379,14 @@ export default function PublicRegistration({
 
     const renderPersonalStep = (stepErrors: Record<string, string>) => (
         <>
+            {!preview && <aside className="space-y-2 rounded-xl border p-4 text-sm" aria-live="polite">
+                {similarity?.key === identityKey && similarity.similar ? <>
+                    <p className="font-medium text-amber-700 dark:text-amber-300">A similar registration may already exist. Check your name, birthdate, and contact details. If this is a different person, you can continue.</p>
+                    <label className="flex items-center gap-2"><input type="checkbox" checked={reviewedIdentity === identityKey} onChange={e => { setReviewedIdentity(e.target.checked ? identityKey : ''); clearServerErrors('similarity_acknowledged'); form.setData('similarity_acknowledged', e.target.checked); }} />I reviewed my details and want to continue.</label>
+                </> : <p className="text-muted-foreground">{similarity?.key === identityKey && !similarity.failed ? 'Registration check complete.' : 'Enter valid personal details to check for a similar registration.'}</p>}
+                {similarity?.key === identityKey && similarity.failed && <Button type="button" variant="outline" onClick={() => setRetrySimilarity(value => value + 1)}>Retry registration check</Button>}
+                <InputError message={stepErrors.similarity_acknowledged} />
+            </aside>}
             <section className="flex flex-col gap-4">
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                     Your Details
@@ -436,6 +473,7 @@ export default function PublicRegistration({
                             Contact number{isRequired('contact_number') && ' *'}
                         </Label>
                         <PhoneInput
+                            international
                             id="contact_number"
                             placeholder="09XXXXXXXXX or +639XXXXXXXXX"
                             value={form.data.contact_number}
@@ -445,23 +483,27 @@ export default function PublicRegistration({
                             aria-invalid={!!stepErrors.contact_number}
                         />
                         <p className="text-xs text-muted-foreground">
-                            PH mobile only — e.g. 09171234567 or +639171234567
+                            PH mobile only — +63 9xxxxxxxxx
                         </p>
                         <InputError message={stepErrors.contact_number} />
                     </div>
                     <div className="grid gap-1.5">
                         <Label htmlFor="birthday">Date of birth *</Label>
-                        <DatePicker
+                        <Input
                             id="birthday"
-                            value={form.data.birthday ?? ''}
-                            onChange={(value) =>
-                                onCommonChange('birthday', value)
-                            }
+                            inputMode="numeric"
+                            autoComplete="bday"
                             placeholder="MM/DD/YYYY"
-                            minDate={birthdayBounds.minDate}
-                            maxDate={birthdayBounds.maxDate}
-                            autoFocusTyped
+                            maxLength={10}
+                            value={form.data.birthday_input || (form.data.birthday ? `${form.data.birthday.slice(5, 7)}/${form.data.birthday.slice(8, 10)}/${form.data.birthday.slice(0, 4)}` : '')}
+                            onChange={(e) => {
+                                const value = formatBirthdateInput(e.target.value);
+                                form.setData('birthday_input', value);
+                                onCommonChange('birthday', birthdateToIso(value));
+                            }}
+                            aria-invalid={!!stepErrors.birthday || !!birthdateInputError(form.data.birthday_input ?? '')}
                         />
+                        <InputError message={birthdateInputError(form.data.birthday_input ?? '') ?? undefined} />
                         <InputError message={stepErrors.birthday} />
                     </div>
                     <div className="grid gap-1.5 sm:col-span-2">
@@ -657,11 +699,13 @@ export default function PublicRegistration({
                         <Label htmlFor="emergency_contact_relationship">
                             Relationship *
                         </Label>
-                        {form_version >= 2 ? <Select value={form.data.emergency_contact_relationship ?? ''}
-                            onValueChange={(value) => onCommonChange('emergency_contact_relationship', value)}>
-                            <SelectTrigger id="emergency_contact_relationship"><SelectValue placeholder="Choose relationship" /></SelectTrigger>
-                            <SelectContent>{['Parent', 'Sibling', 'Spouse', 'Friend', 'Guardian', 'Other'].map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent>
-                        </Select> : <Input
+                        {form_version >= 2 ? <div role="radiogroup" aria-label="Relationship" className="grid gap-2">
+                            {['Parent', 'Guardian', 'Other'].map((value) => <label key={value} className="flex items-center gap-2">
+                                <input type="radio" name="emergency_contact_relationship" value={value}
+                                    checked={form.data.emergency_contact_relationship === value}
+                                    onChange={() => onCommonChange('emergency_contact_relationship', value)} />{value}
+                            </label>)}
+                        </div> : <Input
                             id="emergency_contact_relationship"
                             placeholder="Father"
                             value={form.data.emergency_contact_relationship ?? ''}
@@ -692,6 +736,7 @@ export default function PublicRegistration({
                             Contact number *
                         </Label>
                         <PhoneInput
+                            international
                             id="emergency_contact_number"
                             placeholder="09XXXXXXXXX or +639XXXXXXXXX"
                             value={form.data.emergency_contact_number ?? ''}
@@ -704,7 +749,7 @@ export default function PublicRegistration({
                             aria-invalid={!!stepErrors.emergency_contact_number}
                         />
                         <p className="text-xs text-muted-foreground">
-                            PH mobile only — e.g. 09171234567 or +639171234567
+                            PH mobile only — +63 9xxxxxxxxx
                         </p>
                         <InputError
                             message={stepErrors.emergency_contact_number}
@@ -814,12 +859,13 @@ export default function PublicRegistration({
             ) : <Wizard
                 steps={steps}
                 storageKey={`wdems-registration-${event_slug}`}
+                clearOnSubmit={false}
                 data={form.data}
                 setData={form.setData}
                 errors={form.errors}
                 processing={form.processing}
                 onSubmit={submit}
-                submitLabel="Submit Registration"
+                submitLabel="Continue to Email Verification"
             >
                 {(stepId, stepErrors) => {
                     switch (stepId) {

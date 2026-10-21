@@ -1651,3 +1651,12 @@ to be repeated.
     php artisan test tests/Feature/ContactAddressQualityTest.php  (8 passed)
     php artisan test                                              (399 passed)
     npx tsc --noEmit                                              (silent)
+
+
+## Running Events audit addendum — 2026-10-21
+
+Running specification audit: removed mixed event listing, preserved intake across event start, added live check-in totals/recent feed, fixed full-name lookup/display, moved similarity review to Step 2, and replaced remaining monitor contact-only collision validation. Published form save/open races now recheck draft state under an event lock.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

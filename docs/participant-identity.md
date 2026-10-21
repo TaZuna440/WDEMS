@@ -688,3 +688,12 @@ Similar normalized full names require a shared birthdate or contact to appear in
 the audit. Staff name lookup is advisory and permits an encoder to review an
 existing registration instead of creating another. A family sharing a contact
 remains valid when the full names identify different people.
+
+
+## Running Events audit addendum — 2026-10-21
+
+The current key includes normalized first, middle, last, and suffix plus verified contact; empty optional name parts are not wildcards. Staff-attested paper contacts resolve immediately. Quick walk-ins remain provisional/event-local. Monitor editing now follows composite collision checks instead of contact-only uniqueness. Similarity warning is on Step 2 per Mark; kit claiming remains a staff procedure.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

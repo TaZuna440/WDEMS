@@ -649,3 +649,12 @@ through ISSUE-024.
   (birthdate swap + wizard/composite/audit)
 - `docs/known-issues.md` — ISSUE-014 through ISSUE-025 filed from
   the audit and client Q14
+
+
+## Running Events audit addendum — 2026-10-21
+
+Read running-events-audit-2026-10-21.md first for current Running Events behavior. The older first/last-only identity, blocked reCAPTCHA, three attendance modes, and pending P1/P3/P4 statements are superseded. Mark authorized direct edits in ~/WDEMS. Commit 39e554f is local; audit fixes/documentation after it remain local and unpushed.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

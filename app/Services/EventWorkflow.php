@@ -34,6 +34,9 @@ class EventWorkflow
             ));
         }
 
+        if ($target === EventStatus::Ongoing && $current === EventStatus::RegistrationClosed && $event->registration_end === null) {
+            $event->registration_end = now();
+        }
         $event->status = $target;
         $event->save();
 

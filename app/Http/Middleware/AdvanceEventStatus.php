@@ -54,7 +54,7 @@ class AdvanceEventStatus
             return $next($request);
         }
 
-        if ($event->status !== EventStatus::RegistrationClosed) {
+        if (! in_array($event->status, [EventStatus::RegistrationOpen, EventStatus::RegistrationClosed], true)) {
             return $next($request);
         }
 
@@ -75,12 +75,13 @@ class AdvanceEventStatus
             return $next($request);
         }
 
+        $previousStatus = $event->status;
         try {
             app(EventWorkflow::class)->start($event);
 
             Log::info('event.status.auto_advanced', [
                 'event_id' => $event->id,
-                'from' => EventStatus::RegistrationClosed->value,
+                'from' => $previousStatus->value,
                 'to' => EventStatus::Ongoing->value,
                 'fired_at' => now()->toIso8601String(),
             ]);

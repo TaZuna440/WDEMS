@@ -774,3 +774,12 @@ For historical context only: `docs/church-events/07-scope-and-
 task-division.md` §7.1 was the source of the original claim.
 That doc was written before the registration-form rebuild and
 has not been updated.
+
+
+## Running Events audit addendum — 2026-10-21
+
+Events now default to the Running tab; invalid/missing kind cannot request a mixed list. Running/Church remain separate tabs, and the Running table has global and seven column filters. Running lifecycle can move directly from RegistrationOpen to Ongoing at start without closing public intake.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

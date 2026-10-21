@@ -13,6 +13,7 @@ class DashboardController extends Controller
     public function __invoke(Request $request): Response
     {
         $events = Event::with('creator:id,name')
+            ->where('event_kind', Event::KIND_RUNNING)
             ->orderBy('event_date')
             ->orderBy('id')
             ->get();

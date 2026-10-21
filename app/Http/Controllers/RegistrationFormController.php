@@ -125,6 +125,8 @@ class RegistrationFormController extends Controller
             }
 
         DB::transaction(function () use ($event, $fields, $requirements, $disclaimer, $tshirt): void {
+            $event = Event::query()->lockForUpdate()->findOrFail($event->id);
+            abort_unless($event->canEditRegistrationForm(), 403);
             $event->registrationFields()->delete();
 
             foreach ($fields as $index => $field) {

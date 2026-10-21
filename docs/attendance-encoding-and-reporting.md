@@ -1049,3 +1049,12 @@ is not null. After acknowledgement, `show()` redirects to
 
 Full flow: `docs/registration-contact-verification.md` "Code
 acknowledgement (2026-10-15)".
+
+
+## Running Events audit addendum — 2026-10-21
+
+Finalize summary and redesigned report are implemented. Old verification/override/physical-total/breakdown cards and cross-event comparison table are removed. Participant detail, Age/Birthdate, search/filter, and CSV are available. On-site public registration remains available during Ongoing. Existing administrator force_open correction behavior is retained and must not be described as an absolute post-finalize lock.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

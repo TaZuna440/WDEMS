@@ -16,19 +16,19 @@ class RegistrationController extends Controller
      * registration state. Phase 3 adds the "Create Form" and
      * "Open Registration" actions to this page.
      *
-     * Only three statuses appear here. Draft means "form not yet
-     * defined." RegistrationOpen means "public URL is live." Closed
-     * means "ready for attendance." Later statuses (Ongoing, Completed,
-     * Cancelled) are out of scope for this view.
+     * Running events remain in this queue while ongoing. Their intake
+     * state is independent of the event lifecycle and can be toggled.
      */
     public function index(): Response
     {
         $events = Event::query()
+            ->where('event_kind', Event::KIND_RUNNING)
             ->with('creator:id,name')
             ->whereIn('status', [
                 EventStatus::Draft,
                 EventStatus::RegistrationOpen,
                 EventStatus::RegistrationClosed,
+                EventStatus::Ongoing,
             ])
             ->orderBy('event_date')
             ->orderBy('id')
@@ -50,11 +50,11 @@ class RegistrationController extends Controller
                 ->map($map)
                 ->values(),
             'open' => $events
-                ->filter(fn (Event $e) => $e->status === EventStatus::RegistrationOpen)
+                ->filter(fn (Event $e) => $e->acceptsPublicRegistration())
                 ->map($map)
                 ->values(),
             'closed' => $events
-                ->filter(fn (Event $e) => $e->status === EventStatus::RegistrationClosed)
+                ->filter(fn (Event $e) => $e->canReopenRegistration())
                 ->map($map)
                 ->values(),
         ]);

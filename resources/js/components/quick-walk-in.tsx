@@ -23,7 +23,7 @@ export default function QuickWalkIn({ eventId, forceOpen }: { eventId: number; f
                 <InputError message={form.errors[field]} />
             </div>)}
         </div>
-        <EncoderNameSearch eventId={eventId} name={[form.data.first_name, form.data.middle_name, form.data.last_name, form.data.suffix].filter(Boolean).join(' ')} />
+        <EncoderNameSearch eventId={eventId} forceOpen={forceOpen} name={[form.data.first_name, form.data.middle_name, form.data.last_name, form.data.suffix].filter(Boolean).join(' ')} />
         <Button type="submit" disabled={form.processing}>{form.processing ? 'Saving…' : 'Create walk-in and mark present'}</Button>
     </form>;
 }

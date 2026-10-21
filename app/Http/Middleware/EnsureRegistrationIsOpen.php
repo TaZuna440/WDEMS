@@ -39,11 +39,7 @@ class EnsureRegistrationIsOpen
 
         abort_unless($event->isRunningEvent(), 404);
 
-        if ($event->status !== EventStatus::RegistrationOpen) {
-            return $this->closed($request, $event);
-        }
-
-        if ($event->registration_end !== null && now()->isAfter($event->registration_end)) {
+        if (! $event->acceptsPublicRegistration()) {
             return $this->closed($request, $event);
         }
 

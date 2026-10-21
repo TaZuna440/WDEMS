@@ -101,11 +101,11 @@ test('edit participant updates the fields', function () {
     expect($participant->address)->toBe('123 Main St');
 });
 
-test('edit participant rejects an email that belongs to another participant', function () {
+test('edit participant rejects a full-name and email identity collision', function () {
     $staff = rma_staff();
     $event = rma_event();
 
-    $other = rma_participant(['email' => 'taken@example.com']);
+    $other = rma_participant(['first_name' => 'Maria', 'last_name' => 'Santos', 'email' => 'taken@example.com']);
     $registration = rma_registration($event);
 
     $this->actingAs($staff)
@@ -133,11 +133,11 @@ test('edit participant allows keeping the current email', function () {
         ->assertSessionHasNoErrors();
 });
 
-test('edit participant rejects a phone that belongs to another participant', function () {
+test('edit participant rejects a full-name and phone identity collision', function () {
     $staff = rma_staff();
     $event = rma_event();
 
-    $other = rma_participant(['contact_number' => '09171234567']);
+    $other = rma_participant(['first_name' => 'Maria', 'last_name' => 'Santos', 'contact_number' => '09171234567']);
     $registration = rma_registration($event);
 
     $this->actingAs($staff)
@@ -336,4 +336,15 @@ test('csv export joins checkbox arrays with comma', function () {
     $content = $response->streamedContent();
 
     expect($content)->toContain('Vegetarian, Vegan');
+});
+
+test('editing allows a family member to share another persons contact', function () {
+    $staff = rma_staff();
+    $event = rma_event();
+    rma_participant(['first_name' => 'Juan', 'last_name' => 'Santos', 'email' => 'family@example.com', 'contact_number' => '09171234567']);
+    $registration = rma_registration($event);
+    $this->actingAs($staff)->put("/registrations/{$registration->id}/participant", [
+        'first_name' => 'Maria', 'last_name' => 'Santos', 'email' => 'family@example.com', 'contact_number' => '09171234567',
+    ])->assertSessionHasNoErrors();
+    expect($registration->fresh()->participant->email)->toBe('family@example.com');
 });

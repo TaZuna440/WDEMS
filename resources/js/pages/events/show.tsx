@@ -61,6 +61,7 @@ type EventData = {
     can_edit: boolean;
     can_open_registration: boolean;
     can_close_registration: boolean;
+    can_reopen_registration: boolean;
     can_finalize: boolean;
     finalization_summary: { registered: number; checked_in: number; walk_ins: number } | null;
 };
@@ -541,7 +542,7 @@ export default function EventsShow({
                                     <UserPlus className="mr-2 h-4 w-4" />
                                     Open Registration
                                 </Button>
-                            ) : event.can_close_registration || event.status === 'registration_closed' ? (
+                            ) : event.can_close_registration || event.can_reopen_registration ? (
                                 <RegistrationStatusToggle eventId={event.id} isOpen={event.can_close_registration} />
                             ) : (
                                 <Button

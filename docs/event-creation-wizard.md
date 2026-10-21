@@ -1021,3 +1021,12 @@ duplicated the intent of the map link.
     app/Concerns/EventValidationRules.php
     app/Http/Controllers/EventController.php
     app/Http/Controllers/PublicRegistrationController.php
+
+
+## Running Events audit addendum — 2026-10-21
+
+Event creation wizard steps remain unchanged. The event list now uses separate Running/Church tabs and running column filters. Saving a registration form is a separate versioned workflow; see the current audit for its published-form protection and lifecycle rules.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

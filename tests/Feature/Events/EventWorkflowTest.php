@@ -69,12 +69,13 @@ test('Draft does not transition to Ongoing directly', function () {
         ->toBeFalse();
 });
 
-test('RegistrationOpen transitions to RegistrationClosed and Cancelled', function () {
+test('RegistrationOpen transitions to RegistrationClosed, Ongoing and Cancelled', function () {
     $allowed = EventStatus::RegistrationOpen->allowedTransitions();
 
     expect($allowed)->toContain(EventStatus::RegistrationClosed);
     expect($allowed)->toContain(EventStatus::Cancelled);
-    expect($allowed)->toHaveCount(2);
+    expect($allowed)->toContain(EventStatus::Ongoing);
+    expect($allowed)->toHaveCount(3);
 });
 
 test('Completed and Cancelled are terminal', function () {

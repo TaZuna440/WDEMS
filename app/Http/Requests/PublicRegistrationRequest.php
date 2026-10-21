@@ -16,6 +16,24 @@ class PublicRegistrationRequest extends FormRequest
 
     private ?Event $pendingEvent = null;
 
+    protected function prepareForValidation(): void
+    {
+        $normalized = [];
+        foreach (['contact_number', 'emergency_contact_number'] as $field) {
+            $value = $this->input($field);
+            if (is_string($value)) {
+                $digits = preg_replace('/[\s()\-]/', '', $value);
+                if (preg_match('/\A09[0-9]{9}\z/', $digits)) {
+                    $normalized[$field] = '+63'.substr($digits, 1);
+                } elseif (preg_match('/\A\+639[0-9]{9}\z/', $digits)) {
+                    $normalized[$field] = $digits;
+                }
+            }
+        }
+        $this->merge($normalized);
+    }
+
+
     /**
      * Reuse the public form contract against the current event at finalization.
      * The pending payload is decrypted server-side; no client resubmission can
@@ -37,7 +55,8 @@ class PublicRegistrationRequest extends FormRequest
     {
         $request = static::create('/', 'POST', $payload);
         $request->pendingEvent = $event;
-        $validator = Validator::make($payload, $request->rules(), $request->messages());
+        $request->prepareForValidation();
+        $validator = Validator::make($request->all(), $request->rules(), $request->messages());
         $request->withValidator($validator);
 
         return $validator->validate();
@@ -76,6 +95,7 @@ class PublicRegistrationRequest extends FormRequest
         $event = $this->pendingEvent ?? $this->route('event');
         $v2 = $event instanceof Event && $event->usesEmailOnlyRegistration();
         $rules = [
+            'similarity_acknowledged' => ['sometimes', 'boolean'],
             'first_name' => $this->personNameRules(),
             'last_name' => $this->personNameRules(),
             'middle_name' => ['nullable', 'string', 'max:255', ...$this->humanNameQualityRules()],
@@ -112,12 +132,14 @@ class PublicRegistrationRequest extends FormRequest
             $rules['middle_name'] = array_merge(['nullable'], array_slice($name, 1));
             $rules['suffix'] = ['nullable', 'string', 'max:10', 'regex:/\A[\p{L}.]+\z/u'];
             $rules['birthday'][0] = 'required';
+            $rules['contact_number'][] = 'regex:/\A(?:09|\+639)[0-9]{9}\z/';
+            $rules['emergency_contact_number'][] = 'regex:/\A(?:09|\+639)[0-9]{9}\z/';
             $rules['address'] = ['required', 'string', 'min:3', 'max:255'];
             $rules['emergency_contact_name'] = ['nullable', 'string', 'max:101'];
             $rules['emergency_contact_first_name'] = $name;
             $rules['emergency_contact_last_name'] = $name;
             $rules['emergency_contact_relationship'] = ['required', \Illuminate\Validation\Rule::in(['Parent', 'Sibling', 'Spouse', 'Friend', 'Guardian', 'Other'])];
-            $rules['emergency_contact_relationship_other'] = ['exclude_unless:emergency_contact_relationship,Other', 'required', 'string', 'max:15'];
+            $rules['emergency_contact_relationship_other'] = ['exclude_unless:emergency_contact_relationship,Other', 'required', 'string', 'min:2', 'max:15', "regex:/\\A(?=.*[\\p{L}])[\\p{L}\\p{M} '\\-]+\\z/u"];
         }
 
         $tshirt = $event instanceof Event ? $event->registration_tshirt : null;

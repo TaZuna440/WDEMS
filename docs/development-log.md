@@ -271,3 +271,14 @@ sections in. It records what has been built since.
 For a structured, dated changelog of every file changed per session,
 see `progress.md`. This file (`development-log.md`) tells the story;
 `progress.md` provides the audit trail.
+
+
+## Running Events audit addendum — 2026-10-21
+
+Completed a requirement-by-requirement Running Events audit against Mark’s pasted update and later decisions. Fixed code gaps rather than marking stale checklist items done. Documentation updates are appended; existing historical entries and user files are preserved. No remote push occurred.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.
+
+Final audit validation: 935 tests, 932 passed, 3 skipped, 3,815 assertions; TypeScript and whitespace checks passed. Audit changes are local and uncommitted after `39e554f`; nothing pushed. See the current audit for the remaining live-service/device acceptance checks.

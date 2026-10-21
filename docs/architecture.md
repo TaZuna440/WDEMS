@@ -480,3 +480,12 @@ was never added.
 This is the same stale-claim pattern recorded as D-3 in
 `docs/participant-identity-and-monitoring-plan.md` Phase 0
 findings. Both docs are now corrected.
+
+
+## Running Events audit addendum — 2026-10-21
+
+Running and church lifecycle gates are enforced across public intake, attendance, monitor, report, and duplicate review. The participants directory uses full-name/contact composite identity and event-local provisional markers. Running form versions preserve published contracts. The current report/attendance behavior and eight new migrations are documented in the audit.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

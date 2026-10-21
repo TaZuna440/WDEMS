@@ -28,7 +28,7 @@ export default function PaperRegistrationForm({ eventId, forceOpen, version, fie
             onSuccess: () => { const mode = form.data.encoding_mode; form.reset(); form.setData('encoding_mode', mode); },
         });
     }}>
-        <p className="text-sm text-muted-foreground">Enter the completed paper form. Saving attests to its supplied contact details, records your account as encoder, and marks attendance Present. No participant email OTP is sent.</p>
+        <p className="text-sm text-muted-foreground">Enter the completed paper form. Saving attests that the paper form includes agreement to the disclaimer and privacy notice and attests to its supplied contact details, records your account as encoder, and marks attendance Present. No participant email OTP is sent.</p>
         <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1"><Label htmlFor="paper-mode">Encoding mode</Label><select id="paper-mode" className="h-9 w-full rounded-md border bg-background px-3" value={form.data.encoding_mode} onChange={(e) => form.setData('encoding_mode', e.target.value)}><option value="live">Live — arriving now</option><option value="deferred">Deferred — paper submission time</option></select></div>
             {form.data.encoding_mode === 'deferred' && input('arrival_time', 'Submission time', 'time')}
@@ -54,7 +54,7 @@ export default function PaperRegistrationForm({ eventId, forceOpen, version, fie
             <InputError message={errors[`responses.${field.id}`]} />
         </div>)}
         <InputError message={errors.identity} />
-        <EncoderNameSearch eventId={eventId} name={[form.data.first_name, form.data.middle_name, form.data.last_name, form.data.suffix].filter(Boolean).join(' ')} />
+        <EncoderNameSearch eventId={eventId} forceOpen={forceOpen} name={[form.data.first_name, form.data.middle_name, form.data.last_name, form.data.suffix].filter(Boolean).join(' ')} />
         <Button type="submit" disabled={form.processing}>{form.processing ? 'Saving…' : 'Save paper registration and mark present'}</Button>
     </form>;
 }

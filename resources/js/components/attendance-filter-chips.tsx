@@ -17,7 +17,6 @@ type Props = {
 
 const ORDER: AttendanceFilter[] = [
     'all',
-    'unmarked',
     'present',
     'absent',
 ];

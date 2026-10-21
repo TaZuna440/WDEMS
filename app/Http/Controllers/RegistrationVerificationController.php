@@ -86,7 +86,7 @@ class RegistrationVerificationController extends Controller
     public function complete(Request $request, Event $event): RedirectResponse
     {
         return $this->publicAction($event, 'verification', function () use ($request, $event): ?string {
-            $this->verification->finalize($event, $this->token($request, $event), $request->boolean('similarity_acknowledged'));
+            $this->verification->finalize($event, $this->token($request, $event));
 
             return null;
         });
@@ -108,7 +108,7 @@ class RegistrationVerificationController extends Controller
             ]);
         }
 
-        return redirect()->route('public-registration.confirmed', ['event' => $event->registration_slug])
+        return redirect()->route($request->boolean('start_another') ? 'public-registration.show' : 'public-registration.confirmed', ['event' => $event->registration_slug])
             ->withCookie(cookie(
                 RegistrationVerificationService::cookieName($event),
                 '',

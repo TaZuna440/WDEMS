@@ -36,10 +36,11 @@ class AttendanceController extends Controller
         $events = Event::query()
             ->where('event_kind', Event::KIND_RUNNING)
             ->whereIn('status', $statuses)
-            ->whereDate('event_date', '<=', $today)
+            ->whereDate('event_date', '<=', today()->addDay())
             ->orderByDesc('event_date')
             ->orderByDesc('id')
-            ->get();
+            ->get()
+            ->filter(fn (Event $event) => $event->canViewAttendance());
 
         $map = fn (Event $event) => [
             'id' => $event->id,
@@ -58,10 +59,10 @@ class AttendanceController extends Controller
 
         return Inertia::render('attendance/index', [
             'today' => $mapped
-                ->filter(fn (array $row) => $row['event_date'] === $today)
+                ->filter(fn (array $row) => $row['event_date'] >= $today)
                 ->values(),
             'recent' => $mapped
-                ->filter(fn (array $row) => $row['event_date'] !== $today)
+                ->filter(fn (array $row) => $row['event_date'] < $today)
                 ->values(),
         ]);
     }
@@ -109,13 +110,17 @@ class AttendanceController extends Controller
             }
 
             if ($search !== '') {
-                $like = '%'.$search.'%';
-                $q->where(function ($sub) use ($like) {
-                    $sub->where('participants.first_name', 'like', $like)
-                        ->orWhere('participants.last_name', 'like', $like)
-                        ->orWhere('participants.email', 'like', $like)
-                        ->orWhere('participants.contact_number', 'like', $like);
-                });
+                foreach (preg_split('/\s+/u', $search, -1, PREG_SPLIT_NO_EMPTY) as $term) {
+                    $like = '%'.$term.'%';
+                    $q->where(function ($sub) use ($like) {
+                        $sub->where('participants.first_name', 'like', $like)
+                            ->orWhere('participants.middle_name', 'like', $like)
+                            ->orWhere('participants.last_name', 'like', $like)
+                            ->orWhere('participants.suffix', 'like', $like)
+                            ->orWhere('participants.email', 'like', $like)
+                            ->orWhere('participants.contact_number', 'like', $like);
+                    });
+                }
             }
 
             return $q;
@@ -132,7 +137,7 @@ class AttendanceController extends Controller
                 ->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'present'))
                 ->count(),
             'absent' => $baseQuery()
-                ->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'absent'))
+                ->where(fn ($q) => $q->whereDoesntHave('attendance')->orWhereHas('attendance', fn ($a) => $a->where('attendance_status', 'absent')))
                 ->count(),
         ];
 
@@ -147,6 +152,8 @@ class AttendanceController extends Controller
         if (! $codeActive) {
             if ($filter === 'unmarked') {
                 $query->whereDoesntHave('attendance');
+            } elseif ($filter === 'absent') {
+                $query->where(fn ($q) => $q->whereDoesntHave('attendance')->orWhereHas('attendance', fn ($a) => $a->where('attendance_status', 'absent')));
             } elseif ($filter !== 'all') {
                 $query->whereHas('attendance', fn ($q) => $q->where('attendance_status', $filter));
             }
@@ -203,6 +210,15 @@ class AttendanceController extends Controller
                 'last_page' => $paginator->lastPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
+            ],
+            'check_in_summary' => [
+                'total' => $event->registrations()->count(),
+                'present' => $event->registrations()->whereHas('attendance', fn ($q) => $q->where('attendance_status', 'present'))->count(),
+                'recent' => $event->registrations()->with(['participant', 'attendance'])
+                    ->join('attendances', 'attendances.registration_id', '=', 'registrations.id')
+                    ->where('attendances.attendance_status', 'present')
+                    ->orderByDesc('attendances.updated_at')->limit(8)->select('registrations.*')->get()
+                    ->map(fn ($r) => ['id' => $r->id, 'name' => $r->participant->fullName(), 'time' => $r->attendance?->attendance_time?->toIso8601String()])->values(),
             ],
             'counts' => $counts,
             'filters' => [
@@ -754,6 +770,7 @@ class AttendanceController extends Controller
                 'registration_date' => now(), 'registered_at' => now(),
                 'registration_status' => RegistrationStatus::Confirmed, 'source' => 'form',
                 'encoded_by' => $request->user()->id, 'contact_attested_at' => now(),
+                'consent_accepted_at' => now(), 'privacy_notice_version' => \App\Support\RegistrationLegalText::PRIVACY_NOTICE_VERSION,
                 'submitted_email' => $data['email'] ?? null, 'submitted_contact_number' => $data['contact_number'] ?? null,
                 'emergency_contact_name' => $event->usesEmailOnlyRegistration()
                     ? $data['emergency_contact_first_name'].' '.$data['emergency_contact_last_name'] : $data['emergency_contact_name'],

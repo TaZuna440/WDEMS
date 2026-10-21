@@ -402,3 +402,12 @@ That decision was reversed on 2026-10-19. The amendment lands in
   (middle-name/suffix gap, cross-contact conflict, name-variant splits),
   and the open items (name warning UI, checklist I/J/K verification,
   client confirmation on Option A).
+
+
+## Running Events audit addendum — 2026-10-21
+
+The optional middle-name and suffix expansion is implemented and backfilled. Matching remains case-insensitive. Family members may share contacts across public, staff, and monitor-edit paths. Similarity is advisory, separate from the exact composite duplicate guard; no automatic provisional linking is performed.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
 import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Calendar, MapPin, User, CalendarDays } from 'lucide-react';
 import ChurchCategoryCards from '@/components/church-category-cards';
@@ -44,7 +46,6 @@ const typeStyles: Record<string, string> = {
 };
 
 const KIND_FILTERS = [
-    { value: null, label: 'All' },
     { value: 'running', label: 'Running' },
     { value: 'church', label: 'Church' },
 ] as const;
@@ -60,6 +61,17 @@ export default function EventsIndex({ events, filters }: Props) {
     };
 
     const isChurchTab = filters.kind === 'church';
+    const [search, setSearch] = useState('');
+    const [columns, setColumns] = useState<Record<string, string>>({});
+    const filterColumns = [
+        ['event_name', 'Event Name'], ['event_type_label', 'Type'], ['event_date', 'Date'],
+        ['distance_label', 'Distance'], ['venue', 'Venue'], ['status_label', 'Status'], ['creator', 'Created by'],
+    ] as const;
+    const visibleEvents = events.filter(event => {
+        const values = filterColumns.map(([key]) => String(event[key] ?? '').toLowerCase());
+        return values.some(value => value.includes(search.trim().toLowerCase())) &&
+            filterColumns.every(([key], index) => values[index].includes((columns[key] ?? '').trim().toLowerCase()));
+    });
 
     return (
         <>
@@ -75,7 +87,7 @@ export default function EventsIndex({ events, filters }: Props) {
                         <p className="text-muted-foreground mt-1 text-sm">
                             {isChurchTab
                                 ? 'Pick a church event category to see its events'
-                                : 'All events across the WDEMS workflow'}
+                                : 'Running events — registration, attendance, and reporting'}
                         </p>
                     </div>
 
@@ -114,8 +126,12 @@ export default function EventsIndex({ events, filters }: Props) {
                 {/* Church tab: category cards */}
                 {isChurchTab && <ChurchCategoryCards />}
 
-                {/* All / Running tabs: table (unchanged) */}
-                {!isChurchTab && events.length === 0 && (
+                {!isChurchTab && <section className="space-y-3" aria-label="Filter running events">
+                    <Input aria-label="Search running events" placeholder="Search running events…" value={search} onChange={e => setSearch(e.target.value)} />
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{filterColumns.map(([key, label]) => <label key={key} className="space-y-1 text-xs text-muted-foreground">{label}<Input aria-label={`Filter ${label}`} placeholder={label} value={columns[key] ?? ''} onChange={e => setColumns({ ...columns, [key]: e.target.value })} /></label>)}</div>
+                    <p className="text-sm text-muted-foreground">{visibleEvents.length} matching events</p>
+                </section>}
+                {!isChurchTab && visibleEvents.length === 0 && (
                     <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-16 text-center">
                         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-lime-brand/15">
                             <CalendarDays className="h-8 w-8 text-lime-700 dark:text-lime-brand" />
@@ -142,7 +158,7 @@ export default function EventsIndex({ events, filters }: Props) {
                     </div>
                 )}
 
-                {!isChurchTab && events.length > 0 && (
+                {!isChurchTab && visibleEvents.length > 0 && (
                     <div className="glass-panel overflow-hidden rounded-xl">
                         <div className="overflow-x-auto">
                             <table className="w-full">
@@ -172,7 +188,7 @@ export default function EventsIndex({ events, filters }: Props) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {events.map((event) => (
+                                    {visibleEvents.map((event) => (
                                         <tr
                                             key={event.id}
                                             className="border-b border-border transition-colors last:border-b-0 hover:bg-card/40"

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { phMobileDigits } from '@/lib/participant-input';
 import { cn } from '@/lib/utils';
 
 type Props = {
+    international?: boolean;
     id?: string;
     value: string;
     onChange: (value: string) => void;
@@ -47,6 +49,7 @@ export function normalizePHPhone(value: string): string {
 }
 
 export default function PhoneInput({
+    international = false,
     id,
     value,
     onChange,
@@ -67,13 +70,16 @@ export default function PhoneInput({
         const raw = e.target.value;
         // Only allow characters that could be part of a phone number
         const filtered = raw.replace(/[^0-9+\s\-()]/g, '');
-        onChange(filtered);
+        if (international) {
+            const digits = phMobileDigits(filtered);
+            onChange(digits ? '+63' + digits : '');
+        } else onChange(filtered);
     };
 
     const handleBlur = () => {
         setTouched(true);
         // Normalize on blur: +639... -> 09...
-        if (!isEmpty && isValidPHPhone(trimmed)) {
+        if (!international && !isEmpty && isValidPHPhone(trimmed)) {
             const normalized = normalizePHPhone(trimmed);
             if (normalized !== value) {
                 onChange(normalized);
@@ -83,18 +89,20 @@ export default function PhoneInput({
 
     return (
         <div className="relative">
+            {international && <span className="absolute left-3 top-2.5 text-sm" aria-hidden="true">+63</span>}
             <Input
                 id={id}
                 type="tel"
                 inputMode="tel"
-                value={value}
+                value={international ? phMobileDigits(value) : value}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                placeholder={placeholder}
+                placeholder={international ? '9xxxxxxxxx' : placeholder}
                 disabled={disabled}
                 autoComplete={autoComplete}
                 aria-invalid={ariaInvalid || (showFeedback && !isValid)}
                 className={cn(
+                    international && 'pl-12',
                     showFeedback && isValid && 'border-lime-brand/50 pr-9',
                     showFeedback && !isValid && 'border-destructive pr-9',
                 )}

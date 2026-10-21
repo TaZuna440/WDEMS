@@ -590,3 +590,12 @@ joining.
 - Section 10 — the actions menu, minus delete
 - `docs/participant-identity-and-monitoring-plan.md` — Phase 8
 - Phase 9 of the same plan — the delete endpoint
+
+
+## Running Events audit addendum — 2026-10-21
+
+Monitor supports ongoing events and password-protected Close/Reopen. The latest-100 feed is searchable and polls while intake is closed. Returning-history counts exclude church events. Participant edits allow shared contact for different full names; matching full-name/contact collisions require review. The old raw shared-phone badge remains advisory and is not the composite duplicate detector.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

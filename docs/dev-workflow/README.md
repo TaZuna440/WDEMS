@@ -935,3 +935,12 @@ That extends the checklist from five items to seven.
   during the 2026-10-19 doc merge. Both share §11's "pipeline
   boundary" shape. Checklist additions extend §11's checklist to
   seven items.
+
+
+## Direct-workspace session addendum — 2026-10-21
+
+For this session Mark explicitly authorized direct code changes in ~/WDEMS,
+local tests, and local commit 39e554f. The historical draft-only/no-filesystem
+assumptions above do not apply to that authorization. Documentation stays
+append-only; artisan runs are serial; cache/optimize commands remain prohibited
+in development. The subsequent audit changes remain unpushed.

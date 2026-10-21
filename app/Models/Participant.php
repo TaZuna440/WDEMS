@@ -130,7 +130,7 @@ class Participant extends Model
 
     public function fullName(): string
     {
-        return trim("{$this->first_name} {$this->last_name}");
+        return implode(' ', array_filter([$this->first_name, $this->middle_name, $this->last_name, $this->suffix], fn ($part) => $part !== null && $part !== ''));
     }
 
     /**

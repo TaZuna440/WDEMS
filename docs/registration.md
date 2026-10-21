@@ -694,3 +694,12 @@ Decisions: store birthday only and derive age on read
 column for legacy rows); bounds tightened from 1–120 to 3–120.
 Client and server each enforce the bounds. Full phase record:
 `docs/progress.md` "2026-10-19 — Birthdate swap closure".
+
+
+## Running Events audit addendum — 2026-10-21
+
+The current public flow is the five-step wizard. Newly saved draft forms are version 2 (email required, email-only verification); published version 1 forms retain their channel contract. On-site intake remains open during Ongoing until explicitly closed. Step 2 now includes an acknowledged similarity warning.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

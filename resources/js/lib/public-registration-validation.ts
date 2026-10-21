@@ -50,6 +50,9 @@ export type ServerField = {
 };
 
 export type RegistrationFormData = {
+    similarity_reviewed_identity?: string;
+    birthday_input?: string;
+    similarity_acknowledged?: boolean;
     first_name: string;
     last_name: string;
     /**
@@ -448,12 +451,16 @@ export function validateRegistrationForm(
             }
         }
         if ((data.suffix ?? '').length > 10) errors.suffix = 'Suffix must not exceed 10 characters.';
+        for (const key of ['contact_number', 'emergency_contact_number'] as const) {
+            const value = data[key] ?? '';
+            if (value && !/^(?:09|\+639)[0-9]{9}$/.test(value)) errors[key] = 'Enter a valid Philippine mobile number: +63 9xxxxxxxxx.';
+        }
         if (!['Parent', 'Sibling', 'Spouse', 'Friend', 'Guardian', 'Other'].includes(data.emergency_contact_relationship ?? '')) {
             errors.emergency_contact_relationship = 'Choose a relationship.';
         }
         if (data.emergency_contact_relationship === 'Other') {
             const other = (data.emergency_contact_relationship_other ?? '').trim();
-            if (!other || other.length > 15) errors.emergency_contact_relationship_other = 'Specify the relationship using 1–15 characters.';
+            if (!/^[\p{L}\p{M} '\-]{2,15}$/u.test(other) || !/\p{L}/u.test(other)) errors.emergency_contact_relationship_other = 'Specify the relationship using 2–15 letters, spaces, apostrophes or hyphens.';
         }
         if (data.address.trim().length < 3 || data.address.length > 255) errors.address = 'Enter barangay and city using 3–255 characters.';
     }

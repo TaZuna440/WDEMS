@@ -406,3 +406,12 @@ registration-verification entries. Both are called from `boot()`.
 The section's guidance about bound values and key selection still
 applies — this correction is only to the count and the method
 reference.
+
+
+## Running Events audit addendum — 2026-10-21
+
+Current Running Events uses Tiptap and JsBarcode plus server disclaimer sanitization and reCAPTCHA validation. First-open and form-save transactions lock the event. Do not run cache/optimize commands in development or edit generated Wayfinder outputs. No push is authorized by this audit.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

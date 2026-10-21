@@ -7,7 +7,6 @@ use App\Concerns\HumanNameQualityRules;
 use App\Models\Participant;
 use App\Models\Registration;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**
@@ -19,15 +18,9 @@ use Illuminate\Validation\Validator;
  * overridden here — the organizer is correcting a mistake, not
  * resolving a new registration.
  *
- * The email UNIQUE constraint and contact_number_normalized UNIQUE
- * constraint still apply. Editing a value that collides with another
- * participant is rejected. Editing a value back to its current
- * setting is allowed — the ignore() call excludes the current row
- * from the unique check.
- *
- * Uniqueness for phone runs in withValidator() because the value
- * that carries the constraint is derived (normalized from the raw
- * input by Participant::setContactNumberAttribute).
+ * Shared contact details are allowed. Reject collisions only when the
+ * normalized full name and supplied contact identify another participant.
+ * Existing middle name and suffix are preserved during this correction.
  */
 class EditParticipantRequest extends FormRequest
 {
@@ -49,11 +42,6 @@ class EditParticipantRequest extends FormRequest
      */
     public function rules(): array
     {
-        $registration = $this->route('registration');
-        $participantId = $registration instanceof Registration
-            ? $registration->participant_id
-            : null;
-
         return [
             'first_name' => $this->personNameRules(),
             'last_name' => $this->personNameRules(),
@@ -63,7 +51,6 @@ class EditParticipantRequest extends FormRequest
                 'string',
                 'email:rfc',
                 'max:255',
-                Rule::unique('participants', 'email')->ignore($participantId),
             ],
 
             'contact_number' => [
@@ -83,16 +70,7 @@ class EditParticipantRequest extends FormRequest
     }
 
     /**
-     * Post-rules validation. One check:
-     *
-     *   - Phone uniqueness. If the submitted raw phone normalizes to
-     *     a value, that value must not already belong to another
-     *     participant. A phone that does not normalize (landline,
-     *     unparseable) has no identity key and cannot collide under
-     *     the UNIQUE index.
-     *
-     * The error lands under `contact_number` so the modal's field
-     * anchor fires.
+     * Reject full-name plus contact collisions after field validation.
      */
     public function withValidator(Validator $validator): void
     {
@@ -103,27 +81,21 @@ class EditParticipantRequest extends FormRequest
                 return;
             }
 
-            $raw = $this->input('contact_number');
-            $normalized = Participant::normalizeContactNumber(
-                is_string($raw) ? $raw : null,
-            );
-
-            if ($normalized === null) {
+            if ($v->errors()->isNotEmpty()) {
                 return;
             }
-
-            $collision = Participant::where(
-                'contact_number_normalized',
-                $normalized,
-            )
-                ->where('id', '!=', $registration->participant_id)
-                ->exists();
-
-            if ($collision) {
-                $v->errors()->add(
-                    'contact_number',
-                    'This phone number belongs to another participant.',
-                );
+            $person = $registration->participant;
+            $matches = Participant::query()->matchingName(
+                $this->input('first_name'), $this->input('last_name'), $person?->middle_name, $person?->suffix,
+            )->where('id', '!=', $registration->participant_id);
+            $email = mb_strtolower(trim((string) $this->input('email', '')));
+            if ($email !== '' && (clone $matches)->where('email', $email)->exists()) {
+                $v->errors()->add('email', 'Another participant already has this full name and email. Review the records before linking them.');
+            }
+            $raw = $this->input('contact_number');
+            $normalized = Participant::normalizeContactNumber(is_string($raw) ? $raw : null);
+            if ($normalized !== null && (clone $matches)->where('contact_number_normalized', $normalized)->exists()) {
+                $v->errors()->add('contact_number', 'Another participant already has this full name and phone. Review the records before linking them.');
             }
         });
     }
@@ -154,7 +126,6 @@ class EditParticipantRequest extends FormRequest
             'contact_number.regex' => 'Please enter a valid phone number.',
             'address.regex' => 'Please enter a valid address.',
             'address.not_regex' => 'Please enter a valid address.',
-            'email.unique' => 'This email belongs to another participant.',
         ];
     }
 }

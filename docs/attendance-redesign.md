@@ -881,3 +881,12 @@ birth" label) instead of the age number input:
   rule.
 
 The design narrative above is otherwise unchanged.
+
+
+## Running Events audit addendum — 2026-10-21
+
+Visible tabs are Check-in and Walk-in. Walk-in contains event-local provisional Quick entry and full staff-attested Paper entry; Confirm/Batch are removed from the visible UI. Check-in includes live event totals/recent arrivals and direct Present from encoder matches. Present/Absent are the visible running statuses; missing marks display as Absent. Legacy bulk/unmarked endpoints remain compatible.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

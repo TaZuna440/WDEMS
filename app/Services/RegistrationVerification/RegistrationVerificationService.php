@@ -106,6 +106,9 @@ class RegistrationVerificationService
             // whether the contact is required — an optional contact
             // that already belongs to a registration still counts.
             $this->assertNoDuplicateRegistration($event, $payload);
+            if (! ($payload['similarity_acknowledged'] ?? false) && app(\App\Services\Participants\DuplicateReview::class)->hasSimilar($event, $payload)) {
+                throw ValidationException::withMessages(['similarity_acknowledged' => 'Review the similar-registration warning before continuing.']);
+            }
 
             if ($existing !== null && $existing->finalized_at === null) {
                 $existing->forceFill([
@@ -239,7 +242,6 @@ class RegistrationVerificationService
                 && $challenge->email_verified_at === null
                 && $challenge->phone_verified_at === null,
             'ready' => $this->allVerified($challenge),
-            'similarity_warning' => $this->allVerified($challenge) && app(\App\Services\Participants\DuplicateReview::class)->hasSimilar($event, $challenge->payload ?? []),
         ];
     }
 
@@ -452,11 +454,11 @@ class RegistrationVerificationService
      * on the confirmation page immediately; the email is a durable second copy
      * for the case where they close the tab before saving it.
      */
-    public function finalize(Event $event, #[\SensitiveParameter] ?string $token, bool $similarityAcknowledged = false): void
+    public function finalize(Event $event, #[\SensitiveParameter] ?string $token): void
     {
         for ($attempt = 0; $attempt < 3; $attempt++) {
             try {
-                DB::transaction(function () use ($event, $token, $similarityAcknowledged): void {
+                DB::transaction(function () use ($event, $token): void {
                     $event = Event::query()->lockForUpdate()->findOrFail($event->id);
                     $challenge = $this->findChallenge($event, $token, true);
                     $state = $challenge === null ? 'missing' : $this->challengeState($challenge, $event);
@@ -469,9 +471,6 @@ class RegistrationVerificationService
                     }
 
                     $payload = PublicRegistrationRequest::validatePending($event, $challenge->payload ?? []);
-                    if (! $similarityAcknowledged && app(\App\Services\Participants\DuplicateReview::class)->hasSimilar($event, $payload)) {
-                        throw ValidationException::withMessages(['verification' => 'A similar registration may exist. Review your details and acknowledge the warning to continue.']);
-                    }
                     // The verified (chosen) channel is the identity
                     // contact. A required-but-unverified contact is a
                     // snapshot only — stored in submitted_* below, never
@@ -878,8 +877,7 @@ class RegistrationVerificationService
 
     private function isOpen(Event $event): bool
     {
-        return $event->isRunningEvent() && $event->getAttribute('status') === EventStatus::RegistrationOpen
-            && ($event->registration_end === null || now()->lessThan($event->registration_end));
+        return $event->acceptsPublicRegistration();
     }
 
     private function assertOpen(Event $event): void

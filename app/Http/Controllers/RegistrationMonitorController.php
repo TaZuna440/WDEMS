@@ -34,7 +34,7 @@ class RegistrationMonitorController extends Controller
     {
         $events = Event::query()
             ->where('event_kind', Event::KIND_RUNNING)
-            ->where('status', EventStatus::RegistrationOpen)
+            ->whereIn('status', [EventStatus::RegistrationOpen, EventStatus::Ongoing])
             ->get();
 
         $stats = Registration::query()
@@ -120,11 +120,12 @@ class RegistrationMonitorController extends Controller
         if (! in_array($event->status, [
             EventStatus::RegistrationOpen,
             EventStatus::RegistrationClosed,
+            EventStatus::Ongoing,
         ], true)) {
             abort(404);
         }
 
-        $isOpen = $event->status === EventStatus::RegistrationOpen;
+        $isOpen = $event->acceptsPublicRegistration();
 
         $now = CarbonImmutable::now();
         $cutoffHour = $now->subHour();
@@ -145,7 +146,7 @@ class RegistrationMonitorController extends Controller
             ->with(['participant' => function ($q) use ($event) {
                 $q->withCount([
                     'registrations as other_events_count' => function ($q) use ($event) {
-                        $q->where('event_id', '!=', $event->id);
+                        $q->where('event_id', '!=', $event->id)->whereHas('event', fn ($eventQuery) => $eventQuery->where('event_kind', Event::KIND_RUNNING));
                     },
                 ]);
             }])
@@ -369,6 +370,7 @@ class RegistrationMonitorController extends Controller
         if (! in_array($event->status, [
             EventStatus::RegistrationOpen,
             EventStatus::RegistrationClosed,
+            EventStatus::Ongoing,
         ], true)) {
             abort(404);
         }
@@ -473,6 +475,7 @@ class RegistrationMonitorController extends Controller
         if (! in_array($event->status, [
             EventStatus::RegistrationOpen,
             EventStatus::RegistrationClosed,
+            EventStatus::Ongoing,
         ], true)) {
             abort(403, 'This registration can no longer be edited.');
         }

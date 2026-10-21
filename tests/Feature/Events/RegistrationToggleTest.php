@@ -32,3 +32,15 @@ test('church and terminal events cannot use the registration toggle', function (
     $this->event->forceFill(['event_kind' => 'running', 'status' => 'completed'])->save();
     $this->post(route('events.reopen-registration', $this->event), ['password' => 'password'])->assertForbidden();
 });
+
+test('on-site registration can close and reopen without rewinding an ongoing event', function () {
+    $this->event->forceFill(['status' => 'ongoing'])->save();
+    $this->get('/r/toggle-run')->assertInertia(fn ($page) => $page->component('registrations/public'));
+    $this->post(route('events.close-registration', $this->event), ['password' => 'password'])->assertSessionHasNoErrors();
+    expect($this->event->fresh()->status->value)->toBe('ongoing');
+    $this->get('/r/toggle-run')->assertInertia(fn ($page) => $page->component('registrations/closed'));
+    $this->get(route('registration-monitor.show', $this->event))->assertOk();
+    $this->post(route('events.reopen-registration', $this->event), ['password' => 'password'])->assertSessionHasNoErrors();
+    expect($this->event->fresh()->status->value)->toBe('ongoing');
+    $this->get('/r/toggle-run')->assertInertia(fn ($page) => $page->component('registrations/public'));
+});

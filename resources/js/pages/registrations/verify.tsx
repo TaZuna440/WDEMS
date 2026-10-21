@@ -44,7 +44,6 @@ type Props = {
         email?: ChannelState;
         phone?: ChannelState;
         ready?: boolean;
-        similarity_warning?: boolean;
         submitted_phone?: string | null;
         attendance_code?: string | null;
         chosen_channel?: 'email' | 'phone' | null;
@@ -195,7 +194,7 @@ function ContactVerification({
                 <>
                     <p className="text-muted-foreground text-sm">
                         {channel === 'email'
-                            ? 'Enter the six-digit code emailed to your required email address.'
+                            ? (state.status === 'sent' ? 'Enter the six-digit code sent to your email address.' : 'Complete reCAPTCHA, then send an email code.')
                             : 'Verify your phone number with the secure Firebase SMS check. Keep this page open while you complete it.'}
                     </p>
                     {state.status === 'waiting' && (
@@ -227,6 +226,25 @@ function ContactVerification({
                             Codes expire after ten minutes.
                         </p>
                     )}
+                    {channel === 'email' && (!captchaRequired || !!captchaToken) && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={wait > 0 || resend.processing || (captchaRequired && !captchaToken)}
+                            onClick={() => {
+                                resend.transform(() => ({ recaptcha_token: captchaToken }));
+                                resend.post(`${url}/email/resend`, {
+                                    preserveScroll: true,
+                                    onFinish: onSent,
+                                });
+                            }}
+                        >
+                            {wait > 0
+                                ? `Request another code in ${wait}s`
+                                : state.status === 'waiting' ? 'Send code' : 'Send another email code'}
+                        </Button>
+                    )}
+                    {(state.status === 'sent' && !expired) && (
                     <form onSubmit={submit} className="grid gap-3">
                         <Label htmlFor={`${channel}-code`}>{label} code</Label>
                         <Input
@@ -256,28 +274,13 @@ function ContactVerification({
                             Verify {channel}
                         </Button>
                     </form>
+                    )}
+                    <InputError message={errors[channel]} />
                     <p className="text-muted-foreground text-xs">
                         {state.attempts_remaining} attempts remaining. New codes
                         do not reset this limit.
                     </p>
-                    {channel === 'email' && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            disabled={wait > 0 || resend.processing || (captchaRequired && !captchaToken)}
-                            onClick={() => {
-                                resend.transform(() => ({ recaptcha_token: captchaToken }));
-                                resend.post(`${url}/email/resend`, {
-                                    preserveScroll: true,
-                                    onFinish: onSent,
-                                });
-                            }}
-                        >
-                            {wait > 0
-                                ? `Request another code in ${wait}s`
-                                : state.status === 'waiting' ? 'Send Email' : 'Send another email code'}
-                        </Button>
-                    )}
+
                 </>
             )}
         </section>
@@ -344,7 +347,7 @@ export default function VerifyRegistration({
     const [captchaToken, setCaptchaToken] = useState('');
     const [captchaReset, setCaptchaReset] = useState(0);
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
-    const completion = useForm({ similarity_acknowledged: false });
+    const completion = useForm({});
     const acknowledgement = useForm({});
     const [now, setNow] = useState(() => Date.now());
     const [phoneStage, setPhoneStage] = useState<PhoneStage>('idle');
@@ -439,13 +442,18 @@ export default function VerifyRegistration({
                         <Button
                             type="button"
                             disabled={acknowledgement.processing}
-                            onClick={() => acknowledgement.post(
-                                `${verification_url}/acknowledge-code`,
-                            )}
+                            onClick={() => {
+                                try {
+                                    const slug = new URL(form_url, window.location.origin).pathname.split('/').filter(Boolean).at(-1);
+                                    window.localStorage.removeItem(`wdems-registration-${slug}`);
+                                } catch { /* Storage may be unavailable. */ }
+                                acknowledgement.transform(() => ({ start_another: true }));
+                                acknowledgement.post(`${verification_url}/acknowledge-code`);
+                            }}
                         >
                             {acknowledgement.processing
                                 ? 'Finishing…'
-                                : "I've saved my Registration Code — finish"}
+                                : 'Confirm'}
                         </Button>
                     </>
                 )}
@@ -469,8 +477,8 @@ export default function VerifyRegistration({
                                 <div id="recaptcha-container" />
                             </section>
                         )}
-                        {email_only && emailNeedsWork && <section className="rounded-xl border border-border p-6">
-                            <h2 className="mb-3 text-lg font-semibold">Human verification</h2>
+                        {email_only && emailNeedsWork && (emailChannel?.status !== 'sent' || !emailChannel.retry_at || Date.parse(emailChannel.retry_at) <= now) && <section className="rounded-xl border border-border p-6">
+                            <h2 className="mb-3 text-lg font-semibold">Email verification</h2>
                             <RegistrationRecaptcha siteKey={recaptcha_site_key} resetKey={captchaReset} onToken={setCaptchaToken} />
                         </section>}
                         {needsChannelChoice ? (
@@ -503,7 +511,7 @@ export default function VerifyRegistration({
                                 )}
                             </>
                         )}
-                        <Button
+                        {!email_only && <Button
                             type="button"
                             variant="outline"
                             onClick={() =>
@@ -511,15 +519,11 @@ export default function VerifyRegistration({
                             }
                         >
                             Refresh verification status
-                        </Button>
-                        {verification.similarity_warning && <div className="space-y-3 rounded-xl border border-amber-500/40 p-4 text-sm" role="alert">
-                            <p>A similar registration may exist. Check that your name, birthdate, and contact are correct. You can continue if this is a separate registration.</p>
-                            <label className="flex items-center gap-2"><input type="checkbox" checked={completion.data.similarity_acknowledged} onChange={e => completion.setData('similarity_acknowledged', e.target.checked)} />I reviewed my details and want to continue.</label>
-                        </div>}
+                        </Button>}
                         <Button
                             type="button"
                             disabled={
-                                !verification.ready || (verification.similarity_warning && !completion.data.similarity_acknowledged) || completion.processing
+                                !verification.ready || completion.processing
                             }
                             onClick={() =>
                                 completion.post(

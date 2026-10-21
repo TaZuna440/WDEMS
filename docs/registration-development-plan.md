@@ -1892,3 +1892,12 @@ None. All planned features shipped.
   reachable by URL, but there is no in-app path. Small follow-up.
 - Walk-in does not collect custom field answers. Intentional scope
   decision; the fast path is prioritized.
+
+
+## Running Events audit addendum — 2026-10-21
+
+The new Running Events implementation supersedes the old three-mode attendance plan and contact-only identity rules. See the current audit for the Phase A–F traceability matrix, versioned form policy, on-site registration lifecycle, and acceptance-check boundary. Earlier phase counts are historical.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

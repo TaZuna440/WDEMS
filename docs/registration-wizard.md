@@ -488,3 +488,42 @@ tightening the public field.
   known limitations (suffix gap, name variant splits, per-event
   disclaimer deferral, address split). Lists blocked W5.4 and open
   items.
+
+
+## Running Events audit addendum — 2026-10-21
+
+W5.4 reCAPTCHA is implemented and keys are configured locally; live completion remains an acceptance check. Editable sanitized disclaimers, structured emergency contacts, T-shirt choice/photos, and preview are implemented. Middle name/suffix participate in identity. Step 2 now checks for similar registrations and permits explicit continuation. Confirmation includes a Code 128 barcode.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.
+
+## Participant form sequence update — 2026-10-21
+
+Following Mark's participant walkthrough: the public birthdate control is now one
+numeric MM/DD/YYYY input (month, then day, then year), with calendar validation;
+existing age limits remain enforced. Partial typed dates are saved with the draft.
+Personal and emergency mobile inputs have a fixed +63 prefix and normalize pasted
+09 numbers. Version 2 server validation also enforces Philippine mobile numbers.
+Version 2 emergency contacts retain separate first/last names and now offer Parent,
+Guardian, or Other radio choices; Other requires 2–15 letters/spaces/apostrophes/
+hyphens including at least one letter. Stored legacy relationship choices remain
+accepted for existing records and pending challenges.
+
+Email-only verification displays reCAPTCHA, then Send code, then the OTP input
+after delivery. Reloading that page restores the server-side challenge state;
+reCAPTCHA itself must be completed again when a fresh token is required. Legacy
+published verification contracts remain supported. Disclaimer and confirmation
+code/barcode content are unchanged. Confirm acknowledges the code, expires only
+the event's verification cookie, clears the event's local draft, and returns to
+the form. It does not sign out staff or clear other events' drafts/device trust.
+The wizard retains its autosaved draft during submission failures and verification;
+it is cleared by the explicit final Confirm action.
+
+Participant update validation: full PHP suite **937 tests: 934 passed, 3 skipped,
+3,837 assertions**; TypeScript passed; the frontend input-formatting test file
+passed via `node --test tests/frontend/participant-input.test.mjs`; whitespace
+check passed. The report-controller open-event fixture now uses a future date so
+automatic event start cannot make it depend on the time of day. These changes
+remain local and uncommitted. Live reCAPTCHA/browser acceptance is not claimed by
+these automated checks.

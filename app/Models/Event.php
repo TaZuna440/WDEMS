@@ -408,10 +408,23 @@ class Event extends Model
             && $this->registration_form_saved_at !== null;
     }
 
-    public function canCloseRegistration(): bool
+    public function acceptsPublicRegistration(): bool
     {
         return $this->isRunningEvent()
-            && $this->status === EventStatus::RegistrationOpen;
+            && in_array($this->status, [EventStatus::RegistrationOpen, EventStatus::Ongoing], true)
+            && ($this->registration_end === null || now()->lessThan($this->registration_end));
+    }
+
+    public function canCloseRegistration(): bool
+    {
+        return $this->acceptsPublicRegistration();
+    }
+
+    public function canReopenRegistration(): bool
+    {
+        return $this->isRunningEvent() && ($this->status === EventStatus::RegistrationClosed
+            || (in_array($this->status, [EventStatus::RegistrationOpen, EventStatus::Ongoing], true)
+                && ! $this->acceptsPublicRegistration()));
     }
 
     /**
@@ -560,7 +573,7 @@ class Event extends Model
             return false;
         }
 
-        return $this->event_date->lte(today());
+        return $this->event_date->lte(today()) || now()->greaterThanOrEqualTo($this->attendanceWindowOpensAt());
     }
 
     public function isCommunityRun(): bool

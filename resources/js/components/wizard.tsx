@@ -47,6 +47,7 @@ type Props<T extends Record<string, unknown>> = {
     processing: boolean;
     onSubmit: () => void;
     submitLabel?: string;
+    clearOnSubmit?: boolean;
     /**
      * Render function for the current step.
      *
@@ -70,6 +71,7 @@ export default function Wizard<T extends Record<string, unknown>>({
     processing,
     onSubmit,
     submitLabel = 'Submit',
+    clearOnSubmit = true,
     children,
 }: Props<T>) {
     const { snapshot, save, clear } = useWizardPersistence<T>(storageKey);
@@ -239,9 +241,9 @@ export default function Wizard<T extends Record<string, unknown>>({
 
     const handleSubmit = useCallback(() => {
         if (!validateCurrentStep()) return;
-        clear();
+        if (clearOnSubmit) clear();
         onSubmit();
-    }, [validateCurrentStep, clear, onSubmit]);
+    }, [validateCurrentStep, clear, onSubmit, clearOnSubmit]);
 
     const mergedErrors = useMemo(
         () => ({ ...errors, ...stepErrors }),

@@ -1705,3 +1705,12 @@ New test in `tests/Feature/Discipleship/DiscipleshipProgressTest.php`:
   additions." Eleven from the audit (`docs/audit-2026-10-19.md`);
   one from client Q14. M5 and P5 excluded — both closed by
   shipped W-phase work (W5.1 and W2 respectively).
+
+
+## Running Events audit addendum — 2026-10-21
+
+Status correction: ISSUE-014 running/church lifecycle isolation, ISSUE-016 verified_at preservation, and ISSUE-017 dateless deferred attendance are fixed with regression coverage. This does not close unrelated church authorization, other OTP services, concurrency, or design-system findings. Live CAPTCHA and physical camera/scanner validation remain acceptance checks. The earlier reCAPTCHA-key blocker is resolved locally.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

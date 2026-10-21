@@ -365,7 +365,7 @@ test('optional contacts are snapshots and cannot resolve or update participant i
     $registration = Registration::sole();
     expect($registration->participant_id)->not->toBe($existing->id);
     expect($registration->submitted_email)->toBe('maria@example.com');
-    expect($registration->submitted_contact_number)->toBe('+63 917 123 4567');
+    expect($registration->submitted_contact_number)->toBe('+639171234567');
     $participant = $registration->participant;
     expect($participant->email)->toBe($emailRequired ? 'maria@example.com' : null);
     expect($participant->contact_number_normalized)->toBe($emailRequired ? null : '09171234567');
@@ -392,7 +392,7 @@ test('optional phone does not trigger Firebase verification or resolve participa
 
     $registration = Registration::sole();
     expect($registration->participant_id)->not->toBe($existing->id)
-        ->and($registration->submitted_contact_number)->toBe('+63 917 123 4567')
+        ->and($registration->submitted_contact_number)->toBe('+639171234567')
         ->and($registration->participant->contact_number_normalized)->toBeNull();
 });
 
@@ -588,16 +588,44 @@ test('closure never extends a pending challenge beyond its original lifetime', f
     expect(app(Verification::class)->publicState($event, $token)['status'])->toBe('expired');
 });
 
-test('similarity warning is private until verification and allows explicit continuation', function () {
+test('step two similarity check returns only a warning and allows acknowledged intake', function () {
     $event = verificationEvent();
     $person = Participant::create(['first_name' => 'Marya', 'last_name' => 'Santos', 'email' => 'maria@example.com']);
     Registration::create(['event_id' => $event->id, 'participant_id' => $person->id, 'registration_status' => 'confirmed', 'source' => 'form']);
-    [$challenge, $token, $url] = startVerification($this, $event);
-    expect(app(Verification::class)->publicState($event, $token)['similarity_warning'])->toBeFalse();
+    $this->postJson('/r/'.$event->registration_slug.'/similarity', verificationPayload())
+        ->assertOk()->assertExactJson(['similar' => true]);
+    $this->post('/r/'.$event->registration_slug, verificationPayload())->assertSessionHasErrors('similarity_acknowledged');
+    [$challenge, $token, $url] = startVerification($this, $event, ['similarity_acknowledged' => true]);
     $challenge->forceFill(['email_verified_at' => now()])->save();
-    expect(app(Verification::class)->publicState($event, $token)['similarity_warning'])->toBeTrue();
-    $this->post($url.'/complete')->assertSessionHasErrors('verification');
-    expect(Registration::count())->toBe(1);
-    $this->post($url.'/complete', ['similarity_acknowledged' => true])->assertSessionHasNoErrors();
+    $this->post($url.'/complete')->assertSessionHasNoErrors();
     expect(Registration::count())->toBe(2);
+});
+
+test('confirmation can clear its challenge cookie and return to a fresh registration form', function () {
+    $event = verificationEvent();
+    [$challenge, , $url] = startVerification($this, $event);
+    $code = Mail::sent(RegistrationVerificationOtpMail::class)->sole()->code;
+    $this->post($url.'/email', ['code' => $code])->assertSessionHasNoErrors();
+    $this->post($url.'/complete')->assertSessionHasNoErrors();
+    $response = $this->post($url.'/acknowledge-code', ['start_another' => true])
+        ->assertRedirect('/r/'.$event->registration_slug);
+    expect($response->getCookie(Verification::cookieName($event))->getExpiresTime())->toBeLessThan(now()->timestamp);
+    expect($challenge->fresh()->code_acknowledged_at)->not->toBeNull();
+    expect(Registration::count())->toBe(1);
+});
+
+test('participant mobile numbers normalize to international format and Other requires a real relationship', function () {
+    $event = verificationEvent();
+    $event->forceFill(['registration_form_version' => 2])->save();
+    $payload = [
+        'birthday' => '2006-03-23', 'contact_number' => '09295501812',
+        'emergency_contact_first_name' => 'Jose', 'emergency_contact_last_name' => 'Santos',
+        'emergency_contact_relationship' => 'Other', 'emergency_contact_relationship_other' => '123',
+        'emergency_contact_number' => '09171234567',
+    ];
+    $this->post('/r/'.$event->registration_slug, verificationPayload($payload))->assertSessionHasErrors('emergency_contact_relationship_other');
+    [$challenge] = startVerification($this, $event, array_replace($payload, ['emergency_contact_relationship_other' => 'Aunt']));
+    expect($challenge->payload['contact_number'])->toBe('+639295501812')
+        ->and($challenge->payload['emergency_contact_number'])->toBe('+639171234567');
+    Mail::assertNothingSent();
 });

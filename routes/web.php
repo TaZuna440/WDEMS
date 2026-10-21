@@ -56,6 +56,8 @@ Route::permanentRedirect('/discipleship', '/events/church/discipleship');
 Route::middleware([EnsureRegistrationIsOpen::class])->group(function () {
     Route::get('r/{event:registration_slug}', [PublicRegistrationController::class, 'show'])
         ->name('public-registration.show');
+    Route::post('r/{event:registration_slug}/similarity', [PublicRegistrationController::class, 'similarity'])
+        ->middleware('throttle:60,1')->name('public-registration.similarity');
     Route::post('r/{event:registration_slug}', [PublicRegistrationController::class, 'store'])
         ->middleware('throttle:public-registration-submit')
         ->name('public-registration.store');

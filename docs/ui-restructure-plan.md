@@ -340,3 +340,12 @@ As the phases ship, these docs need updating:
 ---
 
 *End of plan.*
+
+
+## Running Events audit addendum — 2026-10-21
+
+Running Events now uses only Running/Church tabs, with no mixed All tab. Attendance exposes Check-in/Walk-in; paper encoding lives under Walk-in. Report and monitor UI follow the current running-events audit. This does not claim church expansion UI is implemented.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

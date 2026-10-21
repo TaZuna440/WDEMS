@@ -28,7 +28,7 @@ enum EventStatus: string
     {
         return match ($this) {
             self::Draft => [self::RegistrationOpen, self::Cancelled],
-            self::RegistrationOpen => [self::RegistrationClosed, self::Cancelled],
+            self::RegistrationOpen => [self::RegistrationClosed, self::Ongoing, self::Cancelled],
             self::RegistrationClosed => [self::RegistrationOpen, self::Ongoing, self::Cancelled],
             self::Ongoing => [self::Completed, self::Cancelled],
             self::Completed => [],

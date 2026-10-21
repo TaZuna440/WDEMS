@@ -1,7 +1,7 @@
 import PaperRegistrationForm from '@/components/paper-registration-form';
 import CheckInCamera from '@/components/check-in-camera';
 import QuickWalkIn from '@/components/quick-walk-in';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePoll } from '@inertiajs/react';
 import {
     ArrowLeft,
     Check,
@@ -101,6 +101,7 @@ type Props = {
         filter: AttendanceFilter;
         code: string;
     };
+    check_in_summary: { total: number; present: number; recent: { id: number; name: string; time: string | null }[] };
     can_mark: boolean;
     is_admin: boolean;
     force_open: boolean;
@@ -130,6 +131,7 @@ export default function EventsAttendance({
     counts,
     filters,
     can_mark,
+    check_in_summary,
     is_admin,
     force_open,
     attendance_statuses,
@@ -141,6 +143,8 @@ export default function EventsAttendance({
     const [marking, setMarking] = useState<number | null>(null);
     const [mode, setMode] = useState<PageMode>('check-in');
     const [walkInMode, setWalkInMode] = useState<'quick' | 'paper'>('quick');
+
+    usePoll(10000, { only: ['check_in_summary'] });
 
     const baseUrl = `/events/${event.id}/attendance`;
     const codeActive = filters.code !== '';
@@ -256,7 +260,7 @@ export default function EventsAttendance({
         router.post(`${baseUrl}/${registrationId}/mark`, payload, {
             preserveScroll: true,
             preserveState: true,
-            only: ['rows', 'counts'],
+            only: ['rows', 'counts', 'check_in_summary'],
             onSuccess: () => {
                 if (codeActive && isPresenceStatus) {
                     setCheckInMessage('Checked in successfully. Ready for the next participant.');
@@ -366,6 +370,10 @@ export default function EventsAttendance({
                     </div>
                 )}
 
+                <aside className="grid gap-4 rounded-xl border p-4 sm:grid-cols-2" aria-label="Live check-in summary">
+                    <div><h2 className="text-sm font-medium">Checked in</h2><p className="text-3xl font-semibold">{check_in_summary.present} / {check_in_summary.total}</p><p className="text-xs text-muted-foreground">Updates every 10 seconds</p></div>
+                    <div><h2 className="mb-2 text-sm font-medium">Recent check-ins</h2><ul className="space-y-1 text-sm">{check_in_summary.recent.map(p => <li key={p.id} className="flex justify-between gap-2"><span>{p.name}</span><time className="text-muted-foreground">{p.time ? new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</time></li>)}</ul>{!check_in_summary.recent.length && <p className="text-sm text-muted-foreground">No check-ins yet.</p>}</div>
+                </aside>
                 {/* Check-in and Walk-in are the two attendance entry points. */}
                 {can_mark && (
                     <div className="flex items-center gap-3">
@@ -596,7 +604,7 @@ export default function EventsAttendance({
                                                             </span>
                                                         ) : (
                                                             <span className="text-xs italic text-muted-foreground/60">
-                                                                Not marked
+                                                                Absent
                                                             </span>
                                                         )}
                                                     </td>

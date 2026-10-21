@@ -43,7 +43,7 @@ class EventController extends Controller
      */
     public function index(Request $request): Response
     {
-        $kindFilter = $request->input('kind');
+        $kindFilter = $request->input('kind') === Event::KIND_CHURCH ? Event::KIND_CHURCH : Event::KIND_RUNNING;
         $validKinds = [Event::KIND_RUNNING, Event::KIND_CHURCH];
 
         $query = Event::query()->with('creator:id,name');
@@ -139,6 +139,7 @@ class EventController extends Controller
                 'can_edit' => $event->canEdit(),
                 'can_open_registration' => $event->canOpenRegistration(),
                 'can_close_registration' => $event->canCloseRegistration(),
+                'can_reopen_registration' => $event->canReopenRegistration(),
                 'can_finalize' => $event->canFinalize(),
                 'finalization_summary' => $finalizationSummary,
             ],
@@ -487,21 +488,14 @@ class EventController extends Controller
 
     public function openRegistration(Event $event): RedirectResponse
     {
-        if (! $event->canOpenRegistration()) {
-            abort(403, 'Cannot open registration for this event in its current state.');
-        }
-
-        $workflow = app(EventWorkflow::class);
-
-        if (! $workflow->canTransition($event, EventStatus::RegistrationOpen)) {
-            abort(403, 'Cannot open registration for this event.');
-        }
-
-        $event->registration_start = now();
-        $event->registration_slug = $this->generateUniqueSlug();
-        $event->save();
-
-        $workflow->openRegistration($event);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($event): void {
+            $event = Event::query()->lockForUpdate()->findOrFail($event->id);
+            abort_unless($event->canOpenRegistration(), 403);
+            $event->registration_start = now();
+            $event->registration_end = null;
+            $event->registration_slug = $this->generateUniqueSlug();
+            app(EventWorkflow::class)->openRegistration($event);
+        });
 
         return redirect()->route('registration-monitor.show', $event);
     }
@@ -514,7 +508,11 @@ class EventController extends Controller
             $event = Event::query()->lockForUpdate()->findOrFail($event->id);
             abort_unless($event->canCloseRegistration(), 403);
             $event->registration_end = now();
-            app(EventWorkflow::class)->closeRegistration($event);
+            if ($event->status === EventStatus::Ongoing) {
+                $event->save();
+            } else {
+                app(EventWorkflow::class)->closeRegistration($event);
+            }
         });
 
         return redirect()->route('registration-monitor.show', $event);
@@ -522,13 +520,17 @@ class EventController extends Controller
 
     public function reopenRegistration(Request $request, Event $event): RedirectResponse
     {
-        abort_unless($event->isRunningEvent() && $event->status === EventStatus::RegistrationClosed, 403);
+        abort_unless($event->canReopenRegistration(), 403);
         $request->validate(['password' => ['required', 'string', 'current_password']]);
         \Illuminate\Support\Facades\DB::transaction(function () use ($event): void {
             $event = Event::query()->lockForUpdate()->findOrFail($event->id);
-            abort_unless($event->isRunningEvent() && $event->status === EventStatus::RegistrationClosed, 403);
+            abort_unless($event->canReopenRegistration(), 403);
             $event->registration_end = null;
-            app(EventWorkflow::class)->openRegistration($event);
+            if ($event->status === EventStatus::RegistrationClosed) {
+                app(EventWorkflow::class)->openRegistration($event);
+            } else {
+                $event->save();
+            }
         });
 
         return redirect()->route('registration-monitor.show', $event);

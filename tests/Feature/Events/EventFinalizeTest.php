@@ -97,7 +97,7 @@ it('rejects finalize on a draft event', function () {
 });
 
 it('rejects finalize on a registration_open event', function () {
-    $event = finalize_event(['status' => 'registration_open']);
+    $event = finalize_event(['status' => 'registration_open', 'event_date' => today()->addWeek()]);
     $staff = finalize_staff();
 
     $this->actingAs($staff)

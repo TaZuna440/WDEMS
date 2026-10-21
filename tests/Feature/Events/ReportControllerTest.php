@@ -143,7 +143,7 @@ it('returns 404 for a draft event', function () {
 });
 
 it('returns 404 for a registration_open event', function () {
-    $event = rpth_event(['status' => 'registration_open']);
+    $event = rpth_event(['status' => 'registration_open', 'event_date' => today()->addWeek()->toDateString()]);
     $staff = rpth_staff();
 
     $this->actingAs($staff)

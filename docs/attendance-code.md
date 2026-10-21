@@ -488,3 +488,12 @@ Migrations, views, tests:
 - `docs/AI-CONTEXT.md` section 18 -- the phone-required change.
 
 - `docs/progress.md` -- dated entry for the shipping session.
+
+
+## Running Events audit addendum — 2026-10-21
+
+Confirmation renders CODE128 containing only the registration code. Check-in accepts keyboard-wedge Enter and native Code128 camera detection, displays the matching registration, then marks Present without a confirm tab. Success clears/refocuses input. Camera availability depends on browser support; physical scanner/camera validation remains outstanding.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.

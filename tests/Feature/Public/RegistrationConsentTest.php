@@ -89,7 +89,7 @@ test('emergency contact persists through finalize', function () {
     $registration = Registration::sole();
     expect($registration->emergency_contact_name)->toBe('Jose Santos');
     expect($registration->emergency_contact_relationship)->toBe('Father');
-    expect($registration->emergency_contact_number)->toBe('+63 917 765 4321');
+    expect($registration->emergency_contact_number)->toBe('+639177654321');
 });
 
 test('emergency contact matching own number does not block finalize (warn only)', function () {
@@ -103,7 +103,7 @@ test('emergency contact matching own number does not block finalize (warn only)'
     ]));
     $response->assertSessionHasNoErrors();
 
-    expect(Registration::sole()->emergency_contact_number)->toBe('+63 917 123 4567');
+    expect(Registration::sole()->emergency_contact_number)->toBe('+639171234567');
 });
 
 test('emergency contact fields are required at intake', function () {

@@ -4029,3 +4029,14 @@ Both are recorded as process additions to
       tests/Feature/Participants/ParticipantIdentityConstraintsTest.php
       Plus any other files the W1–W7 phases touched
 
+
+
+## Running Events audit addendum — 2026-10-21
+
+Local commit 39e554f captured the initial redesign and DeepSeek fixes. The subsequent specification audit corrected missing event filters, on-site intake during Ongoing, live check-in feed, Step 2 similarity placement, monitor identity editing, and registration-queue isolation. See the current audit for final validation and manual acceptance checks.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.
+
+Final audit validation: 935 tests, 932 passed, 3 skipped, 3,815 assertions; TypeScript and whitespace checks passed. Audit changes are local and uncommitted after `39e554f`; nothing pushed. See the current audit for the remaining live-service/device acceptance checks.

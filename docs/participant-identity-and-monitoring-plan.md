@@ -1377,3 +1377,12 @@ with no immediate benefit.
 
 Full record: `docs/registration-contact-verification.md`
 `## Corrections (2026-10-14)` block.
+
+
+## Running Events audit addendum — 2026-10-21
+
+Full-name composite matching, provisional Quick intake, staff-attested Paper intake, Step 2 similarity review, encoder live lookup/direct marking, and Possible Duplicates audit are implemented. Kit claiming is outside the app by Mark’s explicit 2026-10-21 decision. Existing historic contact-uniqueness statements no longer describe the current behavior.
+
+Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
+This dated addendum supersedes conflicting Running Events statements above;
+historical entries are retained under the append-only documentation policy.
