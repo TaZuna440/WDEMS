@@ -22,7 +22,6 @@ function completePublicRegistration(TestCase $test, Event $event, array $payload
         $test->post($url.'/email', ['code' => $code])->assertSessionHasNoErrors();
     }
     if ($event->isCommonFieldRequired('contact_number')) {
-        // Firebase Phone Auth cannot be exercised from the test suite
         // without stubbing the Admin SDK. Write the verified marker
         // directly — the helper's job is to produce a finalized
         // registration, not to exercise the phone path itself.

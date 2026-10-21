@@ -39,7 +39,6 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "concurrently": "^10.0.3",
-        "firebase": "^13.0.0",
         "jsbarcode": "^3.12.3",
         "laravel-vite-plugin": "^3.0.0",
         "leaflet": "^1.9.4",
