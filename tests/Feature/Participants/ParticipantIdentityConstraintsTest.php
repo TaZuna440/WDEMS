@@ -19,7 +19,6 @@ use Illuminate\Database\QueryException;
  *
  * Helpers prefixed identity_ to avoid collisions with sibling test files.
  */
-
 function identity_staff(): User
 {
     return User::factory()->create([
@@ -41,11 +40,11 @@ function identity_event(): Event
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function identity_participant(array $overrides = []): Participant
 {
-    return Participant::create(array_merge([
+    return Participant::create(array_merge(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'age' => 28,

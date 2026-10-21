@@ -21,7 +21,6 @@ uses(RefreshDatabase::class);
  *
  * Helpers prefixed bmk_ to avoid Pest function collisions.
  */
-
 function bmk_staff(): User
 {
     return User::factory()->create([
@@ -41,7 +40,7 @@ function bmk_admin(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function bmk_event(array $overrides = []): Event
 {
@@ -56,11 +55,11 @@ function bmk_event(array $overrides = []): Event
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function bmk_participant(array $overrides = []): Participant
 {
-    return Participant::create(array_merge([
+    return Participant::create(array_merge(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'age' => 28,
@@ -69,7 +68,7 @@ function bmk_participant(array $overrides = []): Participant
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function bmk_registration(Event $event, ?Participant $participant = null, array $overrides = []): Registration
 {

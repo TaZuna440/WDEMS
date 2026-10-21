@@ -34,13 +34,13 @@ it('removes registrations and attendances', function () {
     $admin = User::factory()->create(['role' => 'admin']);
     $event = wdems_make_event($admin);
 
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Test',
         'last_name' => 'Runner',
         'contact_number' => '09000000000',
     ]);
 
-    $registration = Registration::create([
+    $registration = Registration::create(['registration_status' => 'confirmed',
         'event_id' => $event->id,
         'participant_id' => $participant->id,
     ]);
@@ -60,13 +60,13 @@ it('preserves participants when an event is deleted', function () {
     $admin = User::factory()->create(['role' => 'admin']);
     $event = wdems_make_event($admin);
 
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Keep',
         'last_name' => 'Me',
         'contact_number' => '09000000000',
     ]);
 
-    Registration::create([
+    Registration::create(['registration_status' => 'confirmed',
         'event_id' => $event->id,
         'participant_id' => $participant->id,
     ]);

@@ -5,12 +5,12 @@ use Illuminate\Support\Facades\DB;
 
 test('full name identity normalizes case and whitespace while distinguishing optional name parts', function () {
     $attributes = ['first_name' => 'Juan', 'last_name' => 'Santos', 'middle_name' => 'De  Leon', 'suffix' => 'Jr.'];
-    $first = Participant::resolveFrom('family@example.com', null, $attributes);
-    $same = Participant::resolveFrom('family@example.com', null, array_merge($attributes, ['middle_name' => ' DE LEON ', 'suffix' => 'JR.']));
-    $senior = Participant::resolveFrom('family@example.com', null, array_merge($attributes, ['suffix' => 'Sr.']));
-    $otherMiddle = Participant::resolveFrom('family@example.com', null, array_merge($attributes, ['middle_name' => 'Reyes']));
-    $missing = Participant::resolveFrom('family@example.com', null, ['first_name' => 'Juan', 'last_name' => 'Santos']);
-    $blank = Participant::resolveFrom('family@example.com', null, ['first_name' => 'Juan', 'last_name' => 'Santos', 'middle_name' => ' ', 'suffix' => '']);
+    $first = Participant::resolveFrom('running', 'family@example.com', null, $attributes);
+    $same = Participant::resolveFrom('running', 'family@example.com', null, array_merge($attributes, ['middle_name' => ' DE LEON ', 'suffix' => 'JR.']));
+    $senior = Participant::resolveFrom('running', 'family@example.com', null, array_merge($attributes, ['suffix' => 'Sr.']));
+    $otherMiddle = Participant::resolveFrom('running', 'family@example.com', null, array_merge($attributes, ['middle_name' => 'Reyes']));
+    $missing = Participant::resolveFrom('running', 'family@example.com', null, ['first_name' => 'Juan', 'last_name' => 'Santos']);
+    $blank = Participant::resolveFrom('running', 'family@example.com', null, ['first_name' => 'Juan', 'last_name' => 'Santos', 'middle_name' => ' ', 'suffix' => '']);
 
     expect($same->id)->toBe($first->id)
         ->and($senior->id)->not->toBe($first->id)
@@ -21,7 +21,7 @@ test('full name identity normalizes case and whitespace while distinguishing opt
 });
 
 test('expanded identity migration backfills existing display names', function () {
-    $person = Participant::create(['first_name' => 'Juan', 'last_name' => 'Santos', 'middle_name' => 'De Leon', 'suffix' => 'Jr.']);
+    $person = Participant::create(['pool' => 'running', 'first_name' => 'Juan', 'last_name' => 'Santos', 'middle_name' => 'De Leon', 'suffix' => 'Jr.']);
     $migration = require database_path('migrations/2026_10_20_100000_expand_participant_name_identity.php');
     $migration->down();
     DB::table('participants')->where('id', $person->id)->update(['first_name_normalized' => null, 'last_name_normalized' => null]);

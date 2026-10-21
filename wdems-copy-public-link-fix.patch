@@ -1,0 +1,109 @@
+diff --git a/resources/js/hooks/use-clipboard.ts b/resources/js/hooks/use-clipboard.ts
+index 03dada7..6f50771 100644
+--- a/resources/js/hooks/use-clipboard.ts
++++ b/resources/js/hooks/use-clipboard.ts
+@@ -9,23 +9,49 @@ export function useClipboard(): UseClipboardReturn {
+     const [copiedText, setCopiedText] = useState<CopiedValue>(null);
+ 
+     const copy: CopyFn = async (text) => {
+-        if (!navigator?.clipboard) {
+-            console.warn('Clipboard not supported');
+-
+-            return false;
++        // Preferred path: the async Clipboard API. It only exists in
++        // secure contexts (HTTPS or localhost), so on plain-HTTP LAN
++        // origins we fall through to the legacy copy below instead of
++        // failing silently.
++        if (navigator?.clipboard) {
++            try {
++                await navigator.clipboard.writeText(text);
++                setCopiedText(text);
++
++                return true;
++            } catch {
++                // Fall through to the legacy copy.
++            }
+         }
+ 
++        // Legacy fallback: a temporary textarea + execCommand('copy').
++        // Works outside secure contexts because it runs inside the
++        // click handler's user gesture.
+         try {
+-            await navigator.clipboard.writeText(text);
+-            setCopiedText(text);
++            const textarea = document.createElement('textarea');
++            textarea.value = text;
++            textarea.setAttribute('readonly', '');
++            textarea.style.position = 'fixed';
++            textarea.style.opacity = '0';
++            document.body.appendChild(textarea);
++            textarea.focus();
++            textarea.select();
++            const succeeded = document.execCommand('copy');
++            document.body.removeChild(textarea);
++
++            if (succeeded) {
++                setCopiedText(text);
++
++                return true;
++            }
++        } catch {
++            // Fall through to the failure return.
++        }
+ 
+-            return true;
+-        } catch (error) {
+-            console.warn('Copy failed', error);
+-            setCopiedText(null);
++        console.warn('Copy failed');
++        setCopiedText(null);
+ 
+-            return false;
+-        }
++        return false;
+     };
+ 
+     return [copiedText, copy];
+diff --git a/resources/js/pages/registrations/monitor/show.tsx b/resources/js/pages/registrations/monitor/show.tsx
+index 0d3cb66..4b546ca 100644
+--- a/resources/js/pages/registrations/monitor/show.tsx
++++ b/resources/js/pages/registrations/monitor/show.tsx
+@@ -109,21 +109,36 @@ function relativeSeconds(seconds: number): string {
+ 
+ function PublicLinkButton({ slug }: { slug: string }) {
+     const [copied, copy] = useClipboard();
++    const [failed, setFailed] = useState(false);
+     const url = `${window.location.origin}/r/${slug}`;
+     const isCopied = copied === url;
+ 
++    const handleCopy = async () => {
++        const succeeded = await copy(url);
++        setFailed(!succeeded);
++
++        if (!succeeded) {
++            window.setTimeout(() => setFailed(false), 3000);
++        }
++    };
++
+     return (
+         <button
+             type="button"
+-            onClick={() => copy(url)}
++            onClick={handleCopy}
+             title={url}
+-            className="inline-flex items-center gap-1.5 rounded-md border border-lime-brand/40 bg-card/80 px-2.5 py-1 text-xs font-medium text-lime-700 shadow-xs backdrop-blur-sm dark:bg-lime-brand/10 dark:text-lime-brand transition-colors hover:bg-lime-brand/20"
++            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-lime-brand/40 bg-card/80 px-2.5 py-1 text-xs font-medium text-lime-700 shadow-xs backdrop-blur-sm transition-colors hover:border-lime-brand hover:bg-lime-brand/30 dark:bg-lime-brand/10 dark:text-lime-brand"
+         >
+             {isCopied ? (
+                 <>
+                     <Check className="h-3 w-3" />
+                     Copied
+                 </>
++            ) : failed ? (
++                <>
++                    <AlertTriangle className="h-3 w-3" />
++                    Copy failed — link in tooltip
++                </>
+             ) : (
+                 <>
+                     <Link2 className="h-3 w-3" />

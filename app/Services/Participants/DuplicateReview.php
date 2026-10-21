@@ -14,7 +14,7 @@ class DuplicateReview
     {
         abort_unless($event->isRunningEvent(), 404);
 
-        return $event->registrations()->with('participant')->orderBy('id')->get();
+        return $event->registrations()->active()->whereHas('participant', fn ($q) => $q->where('pool', $event->event_kind))->with('participant')->orderBy('id')->get();
     }
 
     public function identity(Registration $registration): array
@@ -53,7 +53,23 @@ class DuplicateReview
             $previous = $current;
         }
 
-        return end($previous) <= max(1, (int) floor(max(count($a), count($b)) * 0.15));
+        if (end($previous) <= max(1, (int) floor(max(count($a), count($b)) * 0.15))) {
+            return true;
+        }
+
+        // Token-subset match (Amendment C / D-09):
+        // E.g. "EJ Rubi Pomasin" vs "EJ Pomasin" (omitted middle name, addition/omission).
+        $tokensA = array_values(array_filter(explode(' ', $left)));
+        $tokensB = array_values(array_filter(explode(' ', $right)));
+        if (count($tokensA) >= 2 && count($tokensB) >= 2) {
+            $diffAB = array_diff($tokensA, $tokensB);
+            $diffBA = array_diff($tokensB, $tokensA);
+            if (empty($diffAB) || empty($diffBA)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function reasons(array $left, array $right): array
@@ -81,6 +97,48 @@ class DuplicateReview
         $value = mb_strtolower(trim($value ?? ''));
 
         return $value !== '' ? $value : null;
+    }
+
+    /** Exact composite checks include inactive submissions to prevent re-registration bypasses. */
+    public function findExact(Event $event, array $payload, ?int $excludeId = null): ?Registration
+    {
+        abort_unless($event->isRunningEvent(), 404);
+        $rows = $event->registrations()->whereHas('participant', fn ($q) => $q->matchingName(
+            'running', $payload['first_name'] ?? null, $payload['last_name'] ?? null,
+            $payload['middle_name'] ?? null, $payload['suffix'] ?? null,
+        ))->with('participant')->orderBy('id')->get();
+        foreach ($rows as $row) {
+            if ($row->id === $excludeId) {
+                continue;
+            }
+            $identity = $this->identity($row);
+            foreach (['email', 'contact_number'] as $key) {
+                $contact = $this->contactKey($key, $payload[$key] ?? null);
+                if ($contact !== null && $contact === $this->contactKey($key, $identity[$key])) {
+                    return $row;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public function findCandidate(Event $event, array $payload, ?int $excludeId = null): ?array
+    {
+        foreach ($this->registrations($event) as $r) {
+            if ($r->id === $excludeId) {
+                continue;
+            }
+            $reasons = $this->reasons($payload, $this->identity($r));
+            if (in_array('Same email', $reasons, true) || in_array('Same phone', $reasons, true)) {
+                return [
+                    'registration' => $r,
+                    'reasons' => $reasons,
+                ];
+            }
+        }
+
+        return null;
     }
 
     public function hasSimilar(Event $event, array $payload): bool

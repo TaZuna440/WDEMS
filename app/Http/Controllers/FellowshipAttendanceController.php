@@ -188,7 +188,7 @@ class FellowshipAttendanceController extends Controller
     private function resolveParticipant(array $validated): Participant
     {
         if (! empty($validated['participant_id'])) {
-            $existing = Participant::find($validated['participant_id']);
+            $existing = Participant::where('pool', 'church')->whereNull('provisional_event_id')->findOrFail($validated['participant_id']);
             if ($existing !== null) {
                 return $existing;
             }
@@ -200,13 +200,13 @@ class FellowshipAttendanceController extends Controller
         );
 
         if ($normalized !== null) {
-            $byPhone = Participant::findByComposite(null, $phoneRaw, $validated['first_name'] ?? null, $validated['last_name'] ?? null, $validated['middle_name'] ?? null, $validated['suffix'] ?? null);
+            $byPhone = Participant::findByComposite('church', null, $phoneRaw, $validated['first_name'] ?? null, $validated['last_name'] ?? null, $validated['middle_name'] ?? null, $validated['suffix'] ?? null);
             if ($byPhone !== null) {
                 return $byPhone;
             }
         }
 
-        return Participant::create([
+        return Participant::create(['pool' => 'church',
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
             'middle_name' => $validated['middle_name'] ?? null,
@@ -231,7 +231,7 @@ class FellowshipAttendanceController extends Controller
             ->exists();
 
         if (! $belongs) {
-            throw new NotFoundHttpException();
+            throw new NotFoundHttpException;
         }
     }
 
@@ -242,7 +242,7 @@ class FellowshipAttendanceController extends Controller
     private function assertBelongsToEvent(int $rowEventId, int $routeEventId): void
     {
         if ($rowEventId !== $routeEventId) {
-            throw new NotFoundHttpException();
+            throw new NotFoundHttpException;
         }
     }
 }

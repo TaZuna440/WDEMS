@@ -26,7 +26,6 @@ uses(RefreshDatabase::class);
  *
  * Helpers prefixed rmx_ to avoid Pest function collisions.
  */
-
 function rmx_staff(): User
 {
     return User::factory()->create([
@@ -37,7 +36,7 @@ function rmx_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function rmx_event(array $overrides = []): Event
 {
@@ -54,11 +53,11 @@ function rmx_event(array $overrides = []): Event
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function rmx_participant(array $overrides = []): Participant
 {
-    return Participant::create(array_merge([
+    return Participant::create(array_merge(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'age' => 28,

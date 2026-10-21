@@ -85,7 +85,7 @@ class EditParticipantRequest extends FormRequest
                 return;
             }
             $person = $registration->participant;
-            $matches = Participant::query()->matchingName(
+            $matches = Participant::query()->matchingName('running',
                 $this->input('first_name'), $this->input('last_name'), $person?->middle_name, $person?->suffix,
             )->where('id', '!=', $registration->participant_id);
             $email = mb_strtolower(trim((string) $this->input('email', '')));

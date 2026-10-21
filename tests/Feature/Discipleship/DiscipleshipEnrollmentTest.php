@@ -52,7 +52,7 @@ beforeEach(function () {
         'created_by' => $this->staff->id,
     ]);
 
-    $this->participant = Participant::create([
+    $this->participant = Participant::create(['pool' => 'church',
         'first_name' => 'Juan',
         'last_name' => 'Dela Cruz',
         'email' => 'juan.'.uniqid().'@example.com',
@@ -427,7 +427,7 @@ test('participant search marks already-enrolled participants', function () {
 
 test('participant search with an empty query returns up to 20 results', function () {
     for ($i = 0; $i < 25; $i++) {
-        Participant::create([
+        Participant::create(['pool' => 'church',
             'first_name' => 'Filler',
             'last_name' => 'Person'.$i,
             'email' => 'filler-'.$i.'-'.uniqid().'@example.com',

@@ -10,7 +10,7 @@ it('audits similar names with shared evidence without treating a family email as
     $staff = User::factory()->create(['role' => 'admin', 'email_two_factor_enabled' => false]);
     $event = Event::create(['event_name' => 'Review run', 'event_type' => 'community_run', 'created_by' => $staff->id]);
     foreach (['Maria', 'Marya', 'Juan'] as $name) {
-        $person = Participant::create(['first_name' => $name, 'last_name' => 'Santos', 'email' => 'family@example.com']);
+        $person = Participant::create(['pool' => 'running', 'first_name' => $name, 'last_name' => 'Santos', 'email' => 'family@example.com']);
         Registration::create(['event_id' => $event->id, 'participant_id' => $person->id, 'registration_status' => 'confirmed', 'source' => 'form']);
     }
     $pairs = app(DuplicateReview::class)->audit($event);
@@ -25,7 +25,7 @@ it('audits similar names with shared evidence without treating a family email as
 it('keeps lookup and duplicate evidence staff-only and scoped to one event', function () {
     $staff = User::factory()->create(['role' => 'admin', 'email_two_factor_enabled' => false]);
     $event = Event::create(['event_name' => 'Empty run', 'event_type' => 'community_run', 'created_by' => $staff->id]);
-    Participant::create(['first_name' => 'Maria', 'last_name' => 'Santos', 'email' => 'private@example.com']);
+    Participant::create(['pool' => 'running', 'first_name' => 'Maria', 'last_name' => 'Santos', 'email' => 'private@example.com']);
     $this->getJson("/events/{$event->id}/participant-review/search?q=Maria")->assertUnauthorized();
     $this->actingAs($staff)->getJson("/events/{$event->id}/participant-review/search?q=Maria")->assertOk()->assertExactJson(['matches' => []]);
     expect(app(DuplicateReview::class)->audit($event))->toBeEmpty();

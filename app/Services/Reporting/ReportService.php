@@ -168,11 +168,11 @@ class ReportService
         // counts. The leftJoin to attendances produces at most one
         // row per registration (unique on registration_id), so the
         // SUM(CASE WHEN) expressions count per registration.
-        $counts = $event->registrations()
+        $counts = $event->registrations()->active()
             ->leftJoin('attendances', 'attendances.registration_id', '=', 'registrations.id')
             ->selectRaw("
-                SUM(CASE WHEN registrations.source = 'form' THEN 1 ELSE 0 END) as registered_form,
-                SUM(CASE WHEN registrations.source IN ('walk_in', 'paper') THEN 1 ELSE 0 END) as walk_ins_encoded,
+                SUM(CASE WHEN registrations.source = 'form' AND registrations.registration_status = 'confirmed' THEN 1 ELSE 0 END) as registered_form,
+                SUM(CASE WHEN registrations.source IN ('walk_in', 'paper') AND registrations.registration_status = 'confirmed' THEN 1 ELSE 0 END) as walk_ins_encoded,
                 SUM(CASE WHEN registrations.source = 'form' AND attendances.attendance_status IN ('present', 'late') AND attendances.verified_at IS NOT NULL THEN 1 ELSE 0 END) as attended_verified,
                 SUM(CASE WHEN registrations.source = 'form' AND attendances.attendance_status IN ('present', 'late') AND attendances.verified_at IS NULL THEN 1 ELSE 0 END) as attended_override,
                 SUM(CASE WHEN attendances.attendance_status IN ('present', 'late') THEN 1 ELSE 0 END) as total_attendance
@@ -189,8 +189,9 @@ class ReportService
         // Status breakdown -- form-scoped. Sums to registeredForm.
         // COALESCE folds no-attendance rows into an '_unmarked' key
         // so they appear in the same map as the named statuses.
-        $statusCounts = $event->registrations()
+        $statusCounts = $event->registrations()->active()
             ->where('registrations.source', 'form')
+            ->where('registrations.registration_status', 'confirmed')
             ->leftJoin('attendances', 'attendances.registration_id', '=', 'registrations.id')
             ->selectRaw("COALESCE(attendances.attendance_status, '_unmarked') as status, COUNT(*) as count")
             ->groupBy('status')
@@ -205,7 +206,7 @@ class ReportService
             'unmarked' => (int) ($statusCounts['_unmarked'] ?? 0),
         ];
 
-        $sources = $event->registrations()->selectRaw("SUM(CASE WHEN source = 'form' AND contact_attested_at IS NULL THEN 1 ELSE 0 END) as online, SUM(CASE WHEN source = 'paper' OR contact_attested_at IS NOT NULL THEN 1 ELSE 0 END) as paper, SUM(CASE WHEN source = 'walk_in' AND contact_attested_at IS NULL THEN 1 ELSE 0 END) as quick")->first();
+        $sources = $event->registrations()->active()->selectRaw("SUM(CASE WHEN source = 'form' AND contact_attested_at IS NULL AND registration_status = 'confirmed' THEN 1 ELSE 0 END) as online, SUM(CASE WHEN (source = 'paper' OR contact_attested_at IS NOT NULL) AND registration_status = 'confirmed' THEN 1 ELSE 0 END) as paper, SUM(CASE WHEN source = 'walk_in' AND contact_attested_at IS NULL AND registration_status = 'confirmed' THEN 1 ELSE 0 END) as quick")->first();
 
         return [
             'sources' => ['online' => (int) $sources->online, 'paper' => (int) $sources->paper, 'quick' => (int) $sources->quick],
@@ -333,10 +334,11 @@ class ReportService
         $type = $event->event_type->value;
 
         // Base rows: every registration for this event.
-        $rows = DB::table('registrations')
+        $rows = Registration::query()->active()
             ->join('participants', 'participants.id', '=', 'registrations.participant_id')
             ->leftJoin('attendances', 'attendances.registration_id', '=', 'registrations.id')
             ->where('registrations.event_id', $event->id)
+            ->where('registrations.registration_status', '!=', 'held')
             ->orderBy('participants.last_name')
             ->orderBy('participants.first_name')
             ->select([
@@ -360,7 +362,7 @@ class ReportService
         // Same-type attendance history for every participant in this
         // event. One query, grouped in PHP. Ordered date descending
         // so the first row per participant is the most recent.
-        $historyRows = DB::table('registrations')
+        $historyRows = Registration::query()->active()
             ->join('events', 'events.id', '=', 'registrations.event_id')
             ->join('attendances', 'attendances.registration_id', '=', 'registrations.id')
             ->whereIn('registrations.participant_id', $participantIds)
@@ -384,7 +386,7 @@ class ReportService
             ->get()
             ->groupBy('participant_id');
 
-        $registrations = Registration::where('event_id', $event->id)
+        $registrations = Registration::active()->where('event_id', $event->id)
             ->with(['participant', 'fieldResponses.registrationField'])->get()->keyBy('id');
 
         return $rows->map(function ($row) use ($historyRows, $event, $registrations) {

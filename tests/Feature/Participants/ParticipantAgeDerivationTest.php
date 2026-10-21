@@ -3,7 +3,7 @@
 use App\Models\Participant;
 
 it('derives age from birthday when birthday is present', function () {
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'contact_number' => null,
@@ -14,7 +14,7 @@ it('derives age from birthday when birthday is present', function () {
 });
 
 it('falls back to the stored age column when birthday is null', function () {
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Legacy',
         'last_name' => 'Participant',
         'contact_number' => null,
@@ -25,7 +25,7 @@ it('falls back to the stored age column when birthday is null', function () {
 });
 
 it('returns null when neither birthday nor stored age is present', function () {
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Unknown',
         'last_name' => 'Age',
         'contact_number' => null,
@@ -35,7 +35,7 @@ it('returns null when neither birthday nor stored age is present', function () {
 });
 
 it('prefers birthday-derived age over a conflicting stored age', function () {
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Both',
         'last_name' => 'Set',
         'contact_number' => null,
@@ -47,7 +47,7 @@ it('prefers birthday-derived age over a conflicting stored age', function () {
 });
 
 it('recomputes age when the birthday crosses another year boundary', function () {
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Birthday',
         'last_name' => 'Child',
         'contact_number' => null,
@@ -66,7 +66,7 @@ it('returns the previous year\'s age on the day before the birthday', function (
     // If Carbon's behavior ever flips (e.g. a version bump that
     // changes boundary handling), this test catches it before the
     // attendance views start showing wrong ages.
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Almost',
         'last_name' => 'Ten',
         'contact_number' => null,

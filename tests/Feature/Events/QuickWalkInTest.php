@@ -26,7 +26,7 @@ test('name-only walk-ins remain event-local and present without merging', functi
     }
     $provisional = Participant::first();
     $provisional->update(['email' => 'maria@example.com']);
-    expect(Participant::findByComposite('maria@example.com', null, 'Maria', 'Santos'))->toBeNull();
+    expect(Participant::findByComposite('running', 'maria@example.com', null, 'Maria', 'Santos'))->toBeNull();
 });
 
 test('quick walk-in cannot bypass church isolation even with admin force open', function () {

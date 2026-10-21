@@ -46,6 +46,8 @@ type Props = {
         ready?: boolean;
         submitted_phone?: string | null;
         attendance_code?: string | null;
+        is_held?: boolean;
+        is_inactive?: boolean;
         chosen_channel?: 'email' | 'phone' | null;
         needs_channel_choice?: boolean;
     };
@@ -424,21 +426,36 @@ export default function VerifyRegistration({
                     maxReachedStep={3}
                 />
                 <h1 className="text-2xl font-semibold">
-                    {verification.status === 'finalized'
-                        ? 'You are registered.'
-                        : 'Verify your contacts'}
+                    {verification.is_inactive
+                        ? 'Registration Received'
+                        : (verification.status === 'finalized'
+                            ? 'You are registered.'
+                            : 'Verify your contacts')}
                 </h1>
                 <p className="text-muted-foreground">{event_name}</p>
                 <p role="status">
-                    {expired ? messages.expired : messages[verification.status]}
+                    {verification.is_inactive
+                        ? 'Your submission is not active. Please contact the organizer for its review status.'
+                        : (expired ? messages.expired : messages[verification.status])}
                 </p>
                 <InputError message={errors.verification} />
 
                 {verification.status === 'finalized' && (
                     <>
-                        <RegistrationCodePanel
-                            code={verification.attendance_code ?? null}
-                        />
+                        {verification.is_inactive ? (
+                            <section className="grid gap-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-6 text-center">
+                                <h2 className="text-base font-semibold text-yellow-600 dark:text-yellow-400">
+                                    Registration Status
+                                </h2>
+                                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                                    Your submission has been received. Please contact the organizer for the review result.
+                                </p>
+                            </section>
+                        ) : (
+                            <RegistrationCodePanel
+                                code={verification.attendance_code ?? null}
+                            />
+                        )}
                         <Button
                             type="button"
                             disabled={acknowledgement.processing}
@@ -453,7 +470,7 @@ export default function VerifyRegistration({
                         >
                             {acknowledgement.processing
                                 ? 'Finishing…'
-                                : 'Confirm'}
+                                : (verification.is_inactive ? 'Acknowledge' : 'Confirm')}
                         </Button>
                     </>
                 )}

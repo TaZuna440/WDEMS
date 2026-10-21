@@ -12,7 +12,7 @@ test('attendance conversion changes only running event records and preserves att
     foreach (['running', 'church'] as $kind) {
         $event = Event::create(['created_by' => $user->id, 'event_kind' => $kind, 'event_type' => 'community_run', 'event_name' => 'Status Migration', 'status' => 'ongoing']);
         foreach (['late', 'excused'] as $status) {
-            $participant = Participant::create(['first_name' => 'Maria', 'last_name' => 'Santos']);
+            $participant = Participant::create(['pool' => 'running', 'first_name' => 'Maria', 'last_name' => 'Santos']);
             $registration = Registration::create(['event_id' => $event->id, 'participant_id' => $participant->id, 'registration_date' => now(), 'source' => 'form', 'registration_status' => 'confirmed']);
             $rows[$kind][$status] = Attendance::create(['registration_id' => $registration->id, 'attendance_status' => $status, 'attendance_time' => '2026-10-20 06:30:00', 'recorded_by' => $user->id]);
         }

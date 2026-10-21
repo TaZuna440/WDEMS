@@ -20,7 +20,7 @@ use App\Models\Participant;
 // ---------------------------------------------------------------------------
 
 test('the mutator normalizes 09-prefixed numbers', function () {
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'contact_number' => '09171234567',
@@ -30,7 +30,7 @@ test('the mutator normalizes 09-prefixed numbers', function () {
 });
 
 test('the mutator normalizes +63-prefixed numbers', function () {
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'contact_number' => '+639171234567',
@@ -40,7 +40,7 @@ test('the mutator normalizes +63-prefixed numbers', function () {
 });
 
 test('the mutator normalizes 63-prefixed numbers without the plus', function () {
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'contact_number' => '639171234567',
@@ -50,7 +50,7 @@ test('the mutator normalizes 63-prefixed numbers without the plus', function () 
 });
 
 test('the mutator normalizes bare 9-prefixed numbers', function () {
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'contact_number' => '9171234567',
@@ -60,7 +60,7 @@ test('the mutator normalizes bare 9-prefixed numbers', function () {
 });
 
 test('the mutator normalizes numbers with separators', function () {
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'contact_number' => '0917 123 4567',
@@ -70,7 +70,7 @@ test('the mutator normalizes numbers with separators', function () {
 });
 
 test('the mutator returns null for unparseable input', function () {
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'contact_number' => 'not-a-phone',
@@ -80,7 +80,7 @@ test('the mutator returns null for unparseable input', function () {
 });
 
 test('the mutator preserves the raw contact_number', function () {
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'contact_number' => '+639171234567',
@@ -94,14 +94,14 @@ test('the mutator preserves the raw contact_number', function () {
 // ---------------------------------------------------------------------------
 
 test('resolveFrom matches on email when email is present', function () {
-    $existing = Participant::create([
+    $existing = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'email' => 'maria@example.com',
         'age' => 28,
     ]);
 
-    $resolved = Participant::resolveFrom('maria@example.com', null, [
+    $resolved = Participant::resolveFrom('running', 'maria@example.com', null, [
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'age' => 28,
@@ -111,14 +111,14 @@ test('resolveFrom matches on email when email is present', function () {
 });
 
 test('resolveFrom creates a new participant when email does not match', function () {
-    Participant::create([
+    Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'email' => 'maria@example.com',
         'age' => 28,
     ]);
 
-    $resolved = Participant::resolveFrom('jose@example.com', null, [
+    $resolved = Participant::resolveFrom('running', 'jose@example.com', null, [
         'first_name' => 'Jose',
         'last_name' => 'Rizal',
         'age' => 35,
@@ -130,14 +130,14 @@ test('resolveFrom creates a new participant when email does not match', function
 });
 
 test('resolveFrom prefers email when both email and phone are present', function () {
-    $byEmail = Participant::create([
+    $byEmail = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'email' => 'maria@example.com',
         'age' => 28,
     ]);
 
-    $resolved = Participant::resolveFrom('maria@example.com', '+639171234567', [
+    $resolved = Participant::resolveFrom('running', 'maria@example.com', '+639171234567', [
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'age' => 28,
@@ -151,14 +151,14 @@ test('resolveFrom prefers email when both email and phone are present', function
 // ---------------------------------------------------------------------------
 
 test('resolveFrom matches on normalized phone when email is absent', function () {
-    $existing = Participant::create([
+    $existing = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'contact_number' => '+639171234567',
         'age' => 28,
     ]);
 
-    $resolved = Participant::resolveFrom(null, '09171234567', [
+    $resolved = Participant::resolveFrom('running', null, '09171234567', [
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'age' => 28,
@@ -168,7 +168,7 @@ test('resolveFrom matches on normalized phone when email is absent', function ()
 });
 
 test('resolveFrom matches on phone across different raw formats', function () {
-    $existing = Participant::create([
+    $existing = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'contact_number' => '09171234567',
@@ -176,7 +176,7 @@ test('resolveFrom matches on phone across different raw formats', function () {
     ]);
 
     // Same person, phone typed with the +63 prefix this time.
-    $resolved = Participant::resolveFrom(null, '+639171234567', [
+    $resolved = Participant::resolveFrom('running', null, '+639171234567', [
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'age' => 28,
@@ -187,7 +187,7 @@ test('resolveFrom matches on phone across different raw formats', function () {
 
 test('resolveFrom ignores an unparseable phone and throws', function () {
     expect(function () {
-        Participant::resolveFrom(null, 'not-a-phone', [
+        Participant::resolveFrom('running', null, 'not-a-phone', [
             'first_name' => 'Maria',
             'last_name' => 'Santos',
             'age' => 28,
@@ -201,7 +201,7 @@ test('resolveFrom ignores an unparseable phone and throws', function () {
 
 test('resolveFrom throws when both email and phone are missing', function () {
     expect(function () {
-        Participant::resolveFrom(null, null, [
+        Participant::resolveFrom('running', null, null, [
             'first_name' => 'Maria',
             'last_name' => 'Santos',
             'age' => 28,
@@ -211,7 +211,7 @@ test('resolveFrom throws when both email and phone are missing', function () {
 
 test('resolveFrom throws when email is blank and phone is empty', function () {
     expect(function () {
-        Participant::resolveFrom('', '', [
+        Participant::resolveFrom('running', '', '', [
             'first_name' => 'Maria',
             'last_name' => 'Santos',
             'age' => 28,
@@ -224,7 +224,7 @@ test('resolveFrom throws when email is blank and phone is empty', function () {
 // ---------------------------------------------------------------------------
 
 test('resolveFrom discards attributes on existing match', function () {
-    Participant::create([
+    Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'email' => 'maria@example.com',
@@ -234,7 +234,7 @@ test('resolveFrom discards attributes on existing match', function () {
     // Second call uses the same composite key (same normalized name +
     // same email) but a different age. First-write-wins: the stored age
     // stays 28.
-    Participant::resolveFrom('maria@example.com', null, [
+    Participant::resolveFrom('running', 'maria@example.com', null, [
         'first_name' => '  MARIA ',
         'last_name' => 'santos',
         'age' => 45,
@@ -248,7 +248,7 @@ test('resolveFrom discards attributes on existing match', function () {
 });
 
 test('resolveFrom treats a name variant as a different person', function () {
-    Participant::create([
+    Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'email' => 'maria@example.com',
@@ -258,7 +258,7 @@ test('resolveFrom treats a name variant as a different person', function () {
     // "Maria D. Santos" normalizes differently from "Maria Santos", so
     // under the composite rule this is a different person — even with
     // the same email. A new row is created.
-    $resolved = Participant::resolveFrom('maria@example.com', null, [
+    $resolved = Participant::resolveFrom('running', 'maria@example.com', null, [
         'first_name' => 'Maria D.',
         'last_name' => 'Santos',
         'age' => 45,

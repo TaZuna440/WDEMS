@@ -10,10 +10,10 @@ use App\Models\RegistrationVerificationChallenge as Challenge;
 use App\Models\User;
 use App\Services\Otp\OtpCode;
 use App\Services\RegistrationVerification\RegistrationVerificationService as Verification;
-use App\Services\TwoFactor\EmailTwoFactorService;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Mail\MailManager;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -62,7 +62,7 @@ beforeEach(function () {
 
 test('finalization distinguishes family members by middle name and suffix', function () {
     $event = verificationEvent();
-    Participant::create(['first_name' => 'Maria', 'last_name' => 'Santos', 'middle_name' => 'Reyes', 'suffix' => 'Sr.', 'email' => 'maria@example.com']);
+    Participant::create(['pool' => 'running', 'first_name' => 'Maria', 'last_name' => 'Santos', 'middle_name' => 'Reyes', 'suffix' => 'Sr.', 'email' => 'maria@example.com']);
 
     completePublicRegistration($this, $event, verificationPayload(['middle_name' => 'Reyes', 'suffix' => 'Jr.']))
         ->assertSessionHasNoErrors();
@@ -83,7 +83,7 @@ test('version two verifies email only even when the contact number is required',
 
     Mail::assertNothingSent();
     config(['services.recaptcha.site_key' => 'test-site', 'services.recaptcha.secret_key' => 'test-secret']);
-    \Illuminate\Support\Facades\Http::fake(['www.google.com/recaptcha/api/siteverify' => \Illuminate\Support\Facades\Http::response(['success' => true, 'hostname' => parse_url(config('app.url'), PHP_URL_HOST)])]);
+    Http::fake(['www.google.com/recaptcha/api/siteverify' => Http::response(['success' => true, 'hostname' => parse_url(config('app.url'), PHP_URL_HOST)])]);
     $this->post($url.'/email/resend', ['recaptcha_token' => 'valid-test-token'])->assertSessionHasNoErrors();
 
     expect($challenge->email_required)->toBeTrue()
@@ -159,7 +159,7 @@ test('Registration Code is visible after finalization then permanently hidden af
     expect($acknowledgedAt)->not->toBeNull()
         ->and($registration->fresh()->attendance_code)->toBe($storedCode)
         ->and(app(Verification::class)->publicState($event, $token))
-            ->toBe(['status' => 'acknowledged']);
+        ->toBe(['status' => 'acknowledged']);
 
     $this->withCookie($cookieName, $token)->get($url)
         ->assertRedirect('/r/'.$event->registration_slug.'/registered');
@@ -358,7 +358,7 @@ test('missing forged and event-mismatched tokens cannot access a challenge', fun
 
 test('optional contacts are snapshots and cannot resolve or update participant identities', function (bool $emailRequired) {
     $event = verificationEvent($emailRequired, ! $emailRequired);
-    $existing = Participant::create(['first_name' => 'Other', 'last_name' => 'Person', 'age' => 40,
+    $existing = Participant::create(['pool' => 'running', 'first_name' => 'Other', 'last_name' => 'Person', 'age' => 40,
         'email' => $emailRequired ? 'other@example.com' : 'maria@example.com',
         'contact_number' => $emailRequired ? '09171234567' : '09179999999']);
     completePublicRegistration($this, $event, verificationPayload())->assertSessionHasNoErrors();
@@ -375,7 +375,7 @@ test('optional contacts are snapshots and cannot resolve or update participant i
 
 test('optional phone does not trigger Firebase verification or resolve participant identity', function () {
     $event = verificationEvent(true, false);
-    $existing = Participant::create([
+    $existing = Participant::create(['pool' => 'running',
         'first_name' => 'Existing', 'last_name' => 'Runner', 'age' => 40,
         'email' => 'existing@example.com', 'contact_number' => '09171234567',
     ]);
@@ -398,7 +398,7 @@ test('optional phone does not trigger Firebase verification or resolve participa
 
 test('two verified identifiers reuse the same participant without rewriting details', function () {
     $event = verificationEvent(true, true);
-    $participant = Participant::create(['first_name' => 'Maria', 'last_name' => 'Santos', 'age' => 40, 'email' => 'maria@example.com', 'contact_number' => '09171234567']);
+    $participant = Participant::create(['pool' => 'running', 'first_name' => 'Maria', 'last_name' => 'Santos', 'age' => 40, 'email' => 'maria@example.com', 'contact_number' => '09171234567']);
     completePublicRegistration($this, $event, verificationPayload())->assertSessionHasNoErrors();
     expect(Registration::sole()->participant_id)->toBe($participant->id);
     expect(Participant::count())->toBe(1);
@@ -407,8 +407,8 @@ test('two verified identifiers reuse the same participant without rewriting deta
 
 test('verified identifiers belonging to different participants fail without merging', function () {
     $event = verificationEvent(true, true);
-    $a = Participant::create(['first_name' => 'Maria', 'last_name' => 'Santos', 'age' => 40, 'email' => 'maria@example.com']);
-    $b = Participant::create(['first_name' => 'Maria', 'last_name' => 'Santos', 'age' => 30, 'contact_number' => '09171234567']);
+    $a = Participant::create(['pool' => 'running', 'first_name' => 'Maria', 'last_name' => 'Santos', 'age' => 40, 'email' => 'maria@example.com']);
+    $b = Participant::create(['pool' => 'running', 'first_name' => 'Maria', 'last_name' => 'Santos', 'age' => 30, 'contact_number' => '09171234567']);
     $before = Participant::orderBy('id')->get()->toArray();
     completePublicRegistration($this, $event, verificationPayload())->assertSessionHasErrors('verification');
     expect(Participant::orderBy('id')->get()->toArray())->toBe($before);
@@ -530,11 +530,11 @@ test('version two refuses missing invalid and wrong-host captcha without sending
         'emergency_contact_last_name' => 'Santos', 'emergency_contact_relationship' => 'Parent',
     ]);
     config(['services.recaptcha.site_key' => 'test-site', 'services.recaptcha.secret_key' => 'test-secret']);
-    \Illuminate\Support\Facades\Http::fakeSequence()
+    Http::fakeSequence()
         ->push(['success' => false])
         ->push(['success' => true, 'hostname' => 'another-host.example']);
     $this->post($url.'/email/resend')->assertSessionHasErrors('email');
-    \Illuminate\Support\Facades\Http::assertNothingSent();
+    Http::assertNothingSent();
     $this->post($url.'/email/resend', ['recaptcha_token' => 'invalid'])->assertSessionHasErrors('email');
     $this->post($url.'/email/resend', ['recaptcha_token' => 'wrong-host'])->assertSessionHasErrors('email');
     Mail::assertNothingSent();
@@ -547,8 +547,7 @@ test('version two email lockout survives resends and a replacement challenge', f
         'emergency_contact_last_name' => 'Santos', 'emergency_contact_relationship' => 'Parent'];
     [$challenge, $token] = startVerification($this, $event, $payload);
     config(['services.recaptcha.site_key' => 'test-site', 'services.recaptcha.secret_key' => 'test-secret']);
-    \Illuminate\Support\Facades\Http::fake(['www.google.com/recaptcha/api/siteverify' =>
-        \Illuminate\Support\Facades\Http::response(['success' => true, 'hostname' => parse_url(config('app.url'), PHP_URL_HOST)])]);
+    Http::fake(['www.google.com/recaptcha/api/siteverify' => Http::response(['success' => true, 'hostname' => parse_url(config('app.url'), PHP_URL_HOST)])]);
     $service = app(Verification::class);
     expect($service->sendEmail($event, $token, null, 'captcha'))->toBeNull();
     for ($attempt = 0; $attempt < 3; $attempt++) {
@@ -590,7 +589,7 @@ test('closure never extends a pending challenge beyond its original lifetime', f
 
 test('step two similarity check returns only a warning and allows acknowledged intake', function () {
     $event = verificationEvent();
-    $person = Participant::create(['first_name' => 'Marya', 'last_name' => 'Santos', 'email' => 'maria@example.com']);
+    $person = Participant::create(['pool' => 'running', 'first_name' => 'Marya', 'last_name' => 'Santos', 'email' => 'maria@example.com']);
     Registration::create(['event_id' => $event->id, 'participant_id' => $person->id, 'registration_status' => 'confirmed', 'source' => 'form']);
     $this->postJson('/r/'.$event->registration_slug.'/similarity', verificationPayload())
         ->assertOk()->assertExactJson(['similar' => true]);

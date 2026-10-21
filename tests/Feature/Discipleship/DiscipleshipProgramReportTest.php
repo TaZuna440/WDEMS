@@ -44,7 +44,7 @@ beforeEach(function () {
         string $status,
         ?int $batchId,
     ): DiscipleshipEnrollment {
-        $participant = Participant::create([
+        $participant = Participant::create(['pool' => 'church',
             'first_name' => $first,
             'last_name' => $last,
             'email' => $email,

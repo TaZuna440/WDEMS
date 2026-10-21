@@ -22,7 +22,6 @@ uses(RefreshDatabase::class);
  * AttendanceTest (att2_), AttendanceDateGateTest (attgate_), and
  * RegistrationFormTest (regform_).
  */
-
 function attv_staff(): User
 {
     return User::factory()->create([
@@ -33,7 +32,7 @@ function attv_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function attv_event(array $overrides = []): Event
 {
@@ -61,7 +60,7 @@ function attv_event_with_registration(string $code = 'KM4X-P2N7'): array
 {
     $event = attv_event();
 
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'contact_number' => '09171234567',
@@ -202,7 +201,7 @@ it('leaves verified_at null for walk-in registrations which have no code', funct
     $event = attv_event();
     $staff = attv_staff();
 
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Walk',
         'last_name' => 'In',
         'contact_number' => '09998887777',

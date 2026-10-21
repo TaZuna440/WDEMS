@@ -36,13 +36,13 @@ function registration_ctx(string $status = 'registration_open'): array
         'status' => $status,
     ]);
 
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'email' => 'maria@example.com',
     ]);
 
-    $registration = Registration::create([
+    $registration = Registration::create(['registration_status' => 'confirmed',
         'event_id' => $event->id,
         'participant_id' => $participant->id,
     ]);
@@ -62,13 +62,13 @@ function admin_registration_ctx(string $status = 'registration_open'): array
         'status' => $status,
     ]);
 
-    $participant = Participant::create([
+    $participant = Participant::create(['pool' => 'running',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'email' => 'maria@example.com',
     ]);
 
-    $registration = Registration::create([
+    $registration = Registration::create(['registration_status' => 'confirmed',
         'event_id' => $event->id,
         'participant_id' => $participant->id,
     ]);

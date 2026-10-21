@@ -43,7 +43,7 @@ beforeEach(function () {
         'created_by' => $this->staff->id,
     ]);
 
-    $this->participant = Participant::create([
+    $this->participant = Participant::create(['pool' => 'church',
         'first_name' => 'Juan',
         'last_name' => 'Dela Cruz',
         'email' => 'juan.'.uniqid().'@example.com',
@@ -361,7 +361,7 @@ test('batchSummary returns one row per enrollment on the batch', function () {
         'created_by' => $this->staff->id,
     ]);
 
-    $p2 = Participant::create([
+    $p2 = Participant::create(['pool' => 'church',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'email' => 'maria.'.uniqid().'@example.com',
@@ -420,7 +420,7 @@ test('programOverview counts enrollments by status', function () {
     ]);
 
     foreach (['enrolled', 'enrolled', 'in_progress', 'in_progress', 'withdrawn'] as $status) {
-        $p = Participant::create([
+        $p = Participant::create(['pool' => 'church',
             'first_name' => 'P',
             'last_name' => 'X'.uniqid(),
             'email' => 'p.'.uniqid().'@example.com',

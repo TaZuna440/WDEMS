@@ -63,7 +63,7 @@ function rpth_participant(array $overrides = []): Participant
     static $counter = 0;
     $counter++;
 
-    return Participant::create(array_merge([
+    return Participant::create(array_merge(['pool' => 'running',
         'first_name' => 'Test',
         'last_name' => "ReportParticipant{$counter}",
         'email' => "rp{$counter}@example.com",

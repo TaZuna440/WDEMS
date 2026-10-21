@@ -236,7 +236,7 @@ class ServiceAttendanceController extends Controller
     private function resolveParticipant(array $validated): Participant
     {
         if (! empty($validated['participant_id'])) {
-            $existing = Participant::find($validated['participant_id']);
+            $existing = Participant::where('pool', 'church')->whereNull('provisional_event_id')->findOrFail($validated['participant_id']);
             if ($existing !== null) {
                 return $existing;
             }
@@ -247,7 +247,7 @@ class ServiceAttendanceController extends Controller
             : null;
 
         $phoneRaw = $validated['contact_number'] ?? null;
-        $existing = Participant::findByComposite(
+        $existing = Participant::findByComposite('church',
             $email,
             is_string($phoneRaw) ? $phoneRaw : null,
             $validated['first_name'] ?? null,
@@ -259,7 +259,7 @@ class ServiceAttendanceController extends Controller
             return $existing;
         }
 
-        return Participant::create([
+        return Participant::create(['pool' => 'church',
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
             'middle_name' => $validated['middle_name'] ?? null,
@@ -337,7 +337,7 @@ class ServiceAttendanceController extends Controller
     private function assertBelongsToOccurrence(int $rowOccurrenceId, int $routeOccurrenceId): void
     {
         if ($rowOccurrenceId !== $routeOccurrenceId) {
-            throw new NotFoundHttpException();
+            throw new NotFoundHttpException;
         }
     }
 }
