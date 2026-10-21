@@ -1714,3 +1714,83 @@ Status correction: ISSUE-014 running/church lifecycle isolation, ISSUE-016 verif
 Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
 This dated addendum supersedes conflicting Running Events statements above;
 historical entries are retained under the append-only documentation policy.
+
+---
+
+## ISSUE-026 — PHPStan level 7 / Pint baseline debt
+
+**Severity:** Low
+
+**Status:** Open (baseline captured 2026-10-21)
+
+**Problem:** PHPStan level 7 has never been green on `main` — 469 errors at
+`5755c75`, +69 from the HOLD/pool work = 538 total. Pint (`laravel` preset)
+has 68 style issues, all pre-existing files. None of the current work's files
+fail Pint; the +69 PHPStan errors are annotation debt (missing generics,
+missing `@property` docblocks, iterable value types).
+
+**Impact:** CI cannot gate on PHPStan or Pint. Every PR adds debt without a
+signal. Baseline was generated on 2026-10-21 to unblock the HOLD/pool PR; the
+baseline must shrink, not grow.
+
+**Action taken:** `phpstan-baseline.neon` generated and wired into
+`phpstan.neon`. New code cannot add errors without updating the baseline.
+Pint debt deferred to a separate chore PR.
+
+**Follow-up priorities for the cleanup PR:**
+1. `missingType.generics` on Model relations (~60 errors) — mechanical, high count.
+2. `Access to undefined property ... Model::$xxx` (~150 errors) — add `@property` docblocks.
+3. `Cannot call method toDateString() on string` (~40 errors) — date casts need typed PHPDoc.
+4. Then run `./vendor/bin/pint` (safe auto-fix, ~68 files).
+
+**Rule:** Do not run `pint` or un-baseline PHPStan as part of a feature PR —
+the diff would bury the feature work.
+
+---
+
+## ISSUE-027 — Repair migration leaves `duplicate_of_registration_id` NULL in the interrupted-implementation branch
+
+**Severity:** Low
+
+**Status:** Open (logged 2026-10-21)
+
+**Problem:** `2026_10_22_100200_repair_participant_pools_and_preserve_review_audits`
+rewrites any `resolution_action = 'confirm_duplicate'` + `registration_status = 'cancelled'`
+row to `registration_status = 'duplicate'` with
+`duplicate_of_registration_id = held_candidate_registration_id`.
+
+If `held_candidate_registration_id` was NULL at the time of the interrupted write,
+the repaired row has status `duplicate` but no master pointer.
+
+**Impact:** Zero rows on live. Live DB had 4 registrations, no shared history —
+audit found no affected data. But other environments migrating from a mid-flight
+interrupted state could produce orphan duplicate-status rows.
+
+**Action taken:** None.
+
+**Follow-up:** A NULL-guard query — count rows where
+`registration_status = 'duplicate' AND duplicate_of_registration_id IS NULL` —
+should be added to the next migration's pre-check.
+
+---
+
+## ISSUE-028 — Master §9.1 workspace-path references are stale after `docs/specs/` promotion
+
+**Severity:** Low
+
+**Status:** Open (logged 2026-10-21)
+
+**Problem:** Master §9.1 references workspace paths like
+`user/files/Church_Events_Update.md`, `wdems-composite-rule/RUNNING_EVENTS_UPDATE.md`.
+Those files now live at `docs/specs/` in the repo. Master §9.1 was written
+assuming the workspace layout; the promotion to `docs/specs/` (AI-CONTEXT §24,
+2026-10-21) makes those paths wrong.
+
+**Impact:** An AI session reading the Master doc will look for files in the
+wrong location.
+
+**Action taken:** None. Master doc is append-only. AI-CONTEXT §24 notes the
+staleness for future readers.
+
+**Follow-up:** Append a dated correction note to Master §9.1 in the next
+docs-sync PR; do not silently rewrite §9.1.

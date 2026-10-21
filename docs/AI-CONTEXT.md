@@ -658,3 +658,45 @@ Read running-events-audit-2026-10-21.md first for current Running Events behavio
 Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
 This dated addendum supersedes conflicting Running Events statements above;
 historical entries are retained under the append-only documentation policy.
+
+## 24. Documentation reorganization — `docs/specs/` (2026-10-21)
+
+Sections §7, §17, §19, §21, §23 describe reading-order additions made
+across 2026-10-13 to 2026-10-21. Those additions pointed at `docs/`
+subsystem docs and were correct at the time.
+
+On 2026-10-21 a `docs/specs/` tier was added to hold **canonical
+feature definitions**, promoted from the workspace-only `docs2/`
+folder that Section §21 (and Master §9.1) treated as workspace-only:
+
+| File | Authority |
+|---|---|
+| `docs/specs/WDEMS_MASTER_PROJECT_DOCUMENT.md` | Top-of-tree: consolidates all decisions, feature specs, build state. Where it conflicts with older working docs, it and the Church MD prevail. |
+| `docs/specs/Church_Events_Update.md` | The church guideline (v1.0 + Amendments A–D). Per Decision D-15, prevails on church matters over any other church document. |
+| `docs/specs/wdems-church-events-update-spec.md` | Companion church build spec (Appendix B–E). Implementation detail; subordinate to the Church MD. |
+| `docs/specs/dashboard_update.md` | Dashboard feature spec. Implementation is a separate track (DASH-1/2/3); has not started as of this writing. |
+| `docs/specs/wdems-panel-duplicate-participants.md` | Panel preparation script. Not a feature spec; contains a supersession amendment per Decision D-10. |
+
+**Ordering for AI sessions:**
+
+1. This file's §7/§17/§19/§21/§23 reading-order entries → `docs/` subsystem docs.
+2. If the task touches features, product decisions, or MVP scope → read
+   `docs/specs/WDEMS_MASTER_PROJECT_DOCUMENT.md` first.
+3. For church tasks → `docs/specs/Church_Events_Update.md` prevails per D-15.
+4. Section §7's reading order still applies for implementation specifics.
+
+**Why `specs/` and not `docs2/`:** `docs2` was a workspace label
+(Master §9.1). Promoting to the repo required a semantic name —
+`docs/specs/` reads as "canonical feature definitions" for a new
+reader. Filenames are preserved so cross-references inside the
+specs stay valid; the previous location (`docs2/`) is retired.
+
+Historical docs (`docs/participant-identity.md` §3/§4.1/§5/§6,
+`docs/registration.md` for the public path) remain reversed by their
+own Corrections blocks per §23 — the specs tier does not undo that.
+
+**Master §9.1 paths are now stale.** Its table references workspace
+paths like `user/files/Church_Events_Update.md`. The canonical path
+is now `docs/specs/Church_Events_Update.md`. Per the append-only
+policy on the Master doc, do not silently rewrite §9.1 — append a
+dated correction note if the discrepancy matters for a task.
