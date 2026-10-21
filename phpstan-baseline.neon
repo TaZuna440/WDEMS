@@ -2299,12 +2299,6 @@ parameters:
 			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
 
 		-
-			message: '#^Parameter \#1 \$idToken of method Kreait\\Firebase\\Auth\:\:verifyIdToken\(\) expects Lcobucci\\JWT\\Token\|non\-empty\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
-
-		-
 			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 1

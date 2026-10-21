@@ -908,6 +908,7 @@ class RegistrationVerificationService
             }
 
             try {
+                /** @phpstan-ignore-next-line */
                 $verified = app(Auth::class)->verifyIdToken($idToken);
             } catch (\Throwable) {
                 $attempts = $challenge->phone_attempts + 1;
