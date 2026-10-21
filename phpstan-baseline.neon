@@ -223,13 +223,25 @@ parameters:
 			path: app/Http/Controllers/AttendanceController.php
 
 		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
+			message: '#^Call to function in_array\(\) with arguments string, array\{App\\Enums\\EventStatus\:\:Completed, App\\Enums\\EventStatus\:\:Cancelled\} and true will always evaluate to false\.$#'
+			identifier: function.impossibleType
 			count: 1
 			path: app/Http/Controllers/DashboardController.php
 
 		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Http/Controllers/DashboardController.php
+
+		-
 			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 2
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Cannot call method isCurrentMonth\(\) on string\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: app/Http/Controllers/DashboardController.php
@@ -243,31 +255,79 @@ parameters:
 		-
 			message: '#^Cannot call method label\(\) on string\.$#'
 			identifier: method.nonObject
-			count: 1
+			count: 3
 			path: app/Http/Controllers/DashboardController.php
 
 		-
 			message: '#^Cannot call method startOfDay\(\) on string\.$#'
 			identifier: method.nonObject
+			count: 2
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Parameter \#1 \$array of function usort contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
 			count: 1
 			path: app/Http/Controllers/DashboardController.php
 
 		-
-			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:buildActionItems\(\) has parameter \$events with no type specified\.$#'
-			identifier: missingType.parameter
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Event\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
 			count: 1
 			path: app/Http/Controllers/DashboardController.php
 
 		-
-			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:buildUpcoming\(\) has parameter \$events with no type specified\.$#'
-			identifier: missingType.parameter
+			message: '#^Parameter \#2 \$callback of function usort contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Event\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:all\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:values\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
 			count: 1
 			path: app/Http/Controllers/DashboardController.php
 
 		-
 			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\EventStatus\:\:Draft will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
+			count: 3
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\EventStatus\:\:Ongoing will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
 			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\EventStatus\:\:RegistrationClosed will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\EventStatus\:\:RegistrationOpen will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 2
 			path: app/Http/Controllers/DashboardController.php
 
 		-
