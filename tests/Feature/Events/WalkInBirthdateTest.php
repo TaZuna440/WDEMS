@@ -18,7 +18,6 @@ uses(RefreshDatabase::class);
  * Helpers are prefixed wbd_ to avoid Pest function collisions with
  * AttendanceTest (att2_) and friends.
  */
-
 function wbd_staff(): User
 {
     return User::factory()->create([
@@ -33,7 +32,7 @@ function wbd_staff(): User
  * shape as att2_event(). Today's date + registration_closed keeps
  * canRecordAttendanceNow() true for the walk-in gate.
  *
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function wbd_event(array $overrides = []): Event
 {
@@ -61,7 +60,7 @@ function wbd_phone(): string
  * Base walk-in payload. Callers override 'email' and add the
  * demographic field(s) under test.
  *
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function wbd_payload(array $overrides = []): array
 {

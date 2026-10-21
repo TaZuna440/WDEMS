@@ -5,8 +5,6 @@ use App\Models\EmailDeviceVerification;
 use App\Services\RegistrationVerification\RegistrationVerificationService as Verification;
 use Illuminate\Support\Facades\Mail;
 
-use function Pest\Laravel\post;
-
 // Helpers verificationEvent(), verificationPayload(), startVerification()
 // are defined in RegistrationVerificationTest.php.
 

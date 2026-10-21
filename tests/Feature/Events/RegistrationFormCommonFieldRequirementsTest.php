@@ -12,7 +12,6 @@ use Inertia\Testing\AssertableInertia as Assert;
  *
  * Helpers prefixed rfreqs_ to avoid collisions with sibling test files.
  */
-
 function rfreqs_staff(): User
 {
     return User::factory()->create([
@@ -34,7 +33,7 @@ function rfreqs_event(): Event
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
  */
 function rfreqs_payload(array $overrides = []): array

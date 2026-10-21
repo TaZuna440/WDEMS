@@ -25,7 +25,6 @@ uses(RefreshDatabase::class);
  * Helpers are prefixed bwb_ to avoid Pest function collisions with
  * AttendanceBulkWalkInTest (bwt_) and friends.
  */
-
 function bwb_staff(): User
 {
     return User::factory()->create([
@@ -36,7 +35,7 @@ function bwb_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function bwb_event(array $overrides = []): Event
 {
@@ -59,7 +58,7 @@ function bwb_event(array $overrides = []): Event
  * A bulk row defaulting to the new shape (birthday). Override with
  * `'birthday' => null` + unset, or pass `'age'` for legacy rows.
  *
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function bwb_row(array $overrides = []): array
 {

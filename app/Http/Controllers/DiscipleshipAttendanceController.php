@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\DiscipleshipAttendanceStatus;
 use App\Http\Requests\Discipleship\StoreDiscipleshipAttendanceBulkRequest;
 use App\Models\DiscipleshipAttendance;
 use App\Models\DiscipleshipBatch;
@@ -64,7 +63,7 @@ class DiscipleshipAttendanceController extends Controller
             ->count();
 
         if ($validEnrollmentCount !== count($enrollmentIds)) {
-            throw new NotFoundHttpException();
+            throw new NotFoundHttpException;
         }
 
         // Every session must belong to this batch.
@@ -74,7 +73,7 @@ class DiscipleshipAttendanceController extends Controller
             ->count();
 
         if ($validSessionCount !== count($sessionIds)) {
-            throw new NotFoundHttpException();
+            throw new NotFoundHttpException;
         }
 
         $userId = $request->user()->id;

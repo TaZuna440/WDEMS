@@ -47,52 +47,45 @@ class DashboardController extends Controller
             $status = $event->status;
 
             [$urgency, $reason, $action] = match (true) {
-                $daysUntil !== null && $daysUntil < 0
-                    => [
-                        'overdue',
-                        'Event was '.abs($daysUntil).' day'.(abs($daysUntil) === 1 ? '' : 's').' ago, still in '.$status->label(),
-                        ['label' => 'Mark as completed', 'href' => route('events.show', $event)],
-                    ],
+                $daysUntil !== null && $daysUntil < 0 => [
+                    'overdue',
+                    'Event was '.abs($daysUntil).' day'.(abs($daysUntil) === 1 ? '' : 's').' ago, still in '.$status->label(),
+                    ['label' => 'Mark as completed', 'href' => route('events.show', $event)],
+                ],
 
-                $daysUntil !== null && $daysUntil <= 7 && $status === EventStatus::Draft
-                    => [
-                        'urgent',
-                        'Event in '.$daysUntil.' day'.($daysUntil === 1 ? '' : 's').' — still in '.$status->label(),
-                        $this->nextActionFor($event),
-                    ],
+                $daysUntil !== null && $daysUntil <= 7 && $status === EventStatus::Draft => [
+                    'urgent',
+                    'Event in '.$daysUntil.' day'.($daysUntil === 1 ? '' : 's').' — still in '.$status->label(),
+                    $this->nextActionFor($event),
+                ],
 
-                $status === EventStatus::Draft
-                    => [
-                        'action',
-                        'Draft — no registration form yet',
-                        ['label' => 'Configure event', 'href' => route('events.show', $event)],
-                    ],
+                $status === EventStatus::Draft => [
+                    'action',
+                    'Draft — no registration form yet',
+                    ['label' => 'Configure event', 'href' => route('events.show', $event)],
+                ],
 
+                $status === EventStatus::RegistrationOpen => [
+                    'waiting',
+                    $daysUntil !== null
+                        ? 'Registration open — '.$daysUntil.' day'.($daysUntil === 1 ? '' : 's').' to event'
+                        : 'Registration open',
+                    ['label' => 'View event', 'href' => route('events.show', $event)],
+                ],
 
-                $status === EventStatus::RegistrationOpen
-                    => [
-                        'waiting',
-                        $daysUntil !== null
-                            ? 'Registration open — '.$daysUntil.' day'.($daysUntil === 1 ? '' : 's').' to event'
-                            : 'Registration open',
-                        ['label' => 'View event', 'href' => route('events.show', $event)],
-                    ],
+                $status === EventStatus::RegistrationClosed => [
+                    'waiting',
+                    $daysUntil !== null
+                        ? 'Registration closed — '.$daysUntil.' day'.($daysUntil === 1 ? '' : 's').' to event'
+                        : 'Registration closed',
+                    ['label' => 'View event', 'href' => route('events.show', $event)],
+                ],
 
-                $status === EventStatus::RegistrationClosed
-                    => [
-                        'waiting',
-                        $daysUntil !== null
-                            ? 'Registration closed — '.$daysUntil.' day'.($daysUntil === 1 ? '' : 's').' to event'
-                            : 'Registration closed',
-                        ['label' => 'View event', 'href' => route('events.show', $event)],
-                    ],
-
-                $status === EventStatus::Ongoing
-                    => [
-                        'waiting',
-                        'Event ongoing — mark complete when done',
-                        ['label' => 'Mark as completed', 'href' => route('events.show', $event)],
-                    ],
+                $status === EventStatus::Ongoing => [
+                    'waiting',
+                    'Event ongoing — mark complete when done',
+                    ['label' => 'Mark as completed', 'href' => route('events.show', $event)],
+                ],
 
                 default => [null, null, null],
             };

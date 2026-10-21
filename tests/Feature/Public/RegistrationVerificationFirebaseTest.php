@@ -2,14 +2,13 @@
 
 use App\Models\Event;
 use App\Models\Participant;
-use App\Models\Registration;
 use App\Models\RegistrationVerificationChallenge as Challenge;
 use App\Models\User;
 use App\Services\RegistrationVerification\RegistrationVerificationService as Verification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Kreait\Firebase\Contract\Auth as FirebaseAuth;
-use Kreait\Firebase\Exception\Auth\FailedToVerifyToken;
-use Tests\TestCase;
+use Lcobucci\JWT\Token\DataSet;
+use Lcobucci\JWT\UnencryptedToken;
 
 uses(RefreshDatabase::class);
 
@@ -45,7 +44,7 @@ function fb_event(): Event
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
  */
 function fb_payload(array $overrides = []): array
@@ -86,15 +85,15 @@ function fb_challenge(Event $event, string $submittedPhone = '09171234567'): arr
  */
 function fb_stub(?string $verifiedPhone): FirebaseAuth
 {
-    $claims = new \Lcobucci\JWT\Token\DataSet(
+    $claims = new DataSet(
         $verifiedPhone === null ? [] : ['phone_number' => $verifiedPhone],
         '',
     );
 
-    $token = \Mockery::mock(\Lcobucci\JWT\UnencryptedToken::class);
+    $token = Mockery::mock(UnencryptedToken::class);
     $token->shouldReceive('claims')->andReturn($claims);
 
-    $auth = \Mockery::mock(FirebaseAuth::class);
+    $auth = Mockery::mock(FirebaseAuth::class);
     $auth->shouldReceive('verifyIdToken')->andReturn($token);
 
     return $auth;
@@ -102,8 +101,8 @@ function fb_stub(?string $verifiedPhone): FirebaseAuth
 
 function fb_stub_failing(): FirebaseAuth
 {
-    $auth = \Mockery::mock(FirebaseAuth::class);
-    $auth->shouldReceive('verifyIdToken')->andThrow(new \RuntimeException('simulated failure'));
+    $auth = Mockery::mock(FirebaseAuth::class);
+    $auth->shouldReceive('verifyIdToken')->andThrow(new RuntimeException('simulated failure'));
 
     return $auth;
 }

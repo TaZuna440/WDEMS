@@ -27,8 +27,7 @@ class RegistrationDeletionOtpMail extends Mailable
         public readonly string $participantName,
         public readonly string $eventName,
         public readonly int $expiresInMinutes = 10,
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {

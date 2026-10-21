@@ -1,3 +1,4 @@
+/* eslint-disable no-control-regex */
 /**
  * Client-side validation for the event creation wizard.
  *

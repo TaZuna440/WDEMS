@@ -38,6 +38,7 @@ function deviceCaptureCode(): string
     $code = null;
     Mail::assertSent(LoginVerificationCodeMail::class, function (LoginVerificationCodeMail $mail) use (&$code) {
         $code = $mail->code;
+
         return true;
     });
 

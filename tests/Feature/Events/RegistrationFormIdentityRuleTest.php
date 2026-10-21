@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Event;
-use App\Models\RegistrationField;
 use App\Models\User;
 
 /**
@@ -13,7 +12,6 @@ use App\Models\User;
  * this way could ever dedupe a submission. The builder rejects the
  * configuration up front.
  */
-
 function rfidentity_staff(): User
 {
     return User::factory()->create([
@@ -35,7 +33,7 @@ function rfidentity_event(): Event
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
  */
 function rfidentity_payload(array $overrides = []): array
@@ -115,4 +113,3 @@ test('both email and contact number optional is rejected', function () {
 // ---------------------------------------------------------------------------
 // Rejected configuration
 // ---------------------------------------------------------------------------
-

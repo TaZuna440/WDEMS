@@ -2,6 +2,7 @@
 
 use App\Models\Event;
 use App\Models\User;
+use Illuminate\Http\Testing\File;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -20,7 +21,7 @@ function redesignPayload(array $overrides = []): array
     ], $overrides);
 }
 
-function redesignPhoto(string $name): \Illuminate\Http\Testing\File
+function redesignPhoto(string $name): File
 {
     return UploadedFile::fake()->createWithContent($name, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aC1sAAAAASUVORK5CYII='));
 }

@@ -14,7 +14,6 @@ use App\Services\EventWorkflow;
  * pin that shape — any future change to the state machine must
  * update this file as part of the same change.
  */
-
 function workflow_staff(): User
 {
     return User::factory()->create(['role' => 'staff']);
@@ -89,7 +88,7 @@ test('Completed and Cancelled are terminal', function () {
 
 test('EventWorkflow transitions Draft to RegistrationOpen', function () {
     $event = event_with_status(EventStatus::Draft);
-    $workflow = new EventWorkflow();
+    $workflow = new EventWorkflow;
 
     $workflow->transition($event, EventStatus::RegistrationOpen);
 
@@ -98,7 +97,7 @@ test('EventWorkflow transitions Draft to RegistrationOpen', function () {
 
 test('EventWorkflow allows Draft to Cancelled', function () {
     $event = event_with_status(EventStatus::Draft);
-    $workflow = new EventWorkflow();
+    $workflow = new EventWorkflow;
 
     $workflow->transition($event, EventStatus::Cancelled);
 
@@ -107,7 +106,7 @@ test('EventWorkflow allows Draft to Cancelled', function () {
 
 test('EventWorkflow walks the full lifecycle', function () {
     $event = event_with_status(EventStatus::Draft);
-    $workflow = new EventWorkflow();
+    $workflow = new EventWorkflow;
 
     $workflow->transition($event, EventStatus::RegistrationOpen);
     $workflow->transition($event, EventStatus::RegistrationClosed);
@@ -119,7 +118,7 @@ test('EventWorkflow walks the full lifecycle', function () {
 
 test('EventWorkflow throws when skipping a state', function () {
     $event = event_with_status(EventStatus::Draft);
-    $workflow = new EventWorkflow();
+    $workflow = new EventWorkflow;
 
     expect(fn () => $workflow->transition($event, EventStatus::RegistrationClosed))
         ->toThrow(InvalidArgumentException::class);
@@ -127,7 +126,7 @@ test('EventWorkflow throws when skipping a state', function () {
 
 test('EventWorkflow throws when transitioning from a terminal state', function () {
     $event = event_with_status(EventStatus::Completed);
-    $workflow = new EventWorkflow();
+    $workflow = new EventWorkflow;
 
     expect(fn () => $workflow->transition($event, EventStatus::RegistrationOpen))
         ->toThrow(InvalidArgumentException::class);
@@ -135,7 +134,7 @@ test('EventWorkflow throws when transitioning from a terminal state', function (
 
 test('EventWorkflow throws when moving backward', function () {
     $event = event_with_status(EventStatus::RegistrationOpen);
-    $workflow = new EventWorkflow();
+    $workflow = new EventWorkflow;
 
     expect(fn () => $workflow->transition($event, EventStatus::Draft))
         ->toThrow(InvalidArgumentException::class);
@@ -147,7 +146,7 @@ test('EventWorkflow throws when moving backward', function () {
 
 test('EventWorkflow::canTransition returns true for a legal transition', function () {
     $event = event_with_status(EventStatus::Draft);
-    $workflow = new EventWorkflow();
+    $workflow = new EventWorkflow;
 
     expect($workflow->canTransition($event, EventStatus::RegistrationOpen))
         ->toBeTrue();
@@ -155,7 +154,7 @@ test('EventWorkflow::canTransition returns true for a legal transition', functio
 
 test('EventWorkflow::canTransition returns false for an illegal transition', function () {
     $event = event_with_status(EventStatus::Draft);
-    $workflow = new EventWorkflow();
+    $workflow = new EventWorkflow;
 
     expect($workflow->canTransition($event, EventStatus::Completed))
         ->toBeFalse();
@@ -163,7 +162,7 @@ test('EventWorkflow::canTransition returns false for an illegal transition', fun
 
 test('EventWorkflow::canTransition does not save the event', function () {
     $event = event_with_status(EventStatus::Draft);
-    $workflow = new EventWorkflow();
+    $workflow = new EventWorkflow;
 
     $workflow->canTransition($event, EventStatus::RegistrationOpen);
 

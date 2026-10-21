@@ -22,7 +22,6 @@ uses(RefreshDatabase::class);
  * Helpers are prefixed wicf_ (walk-in custom field) to avoid Pest
  * function collisions with sibling test files.
  */
-
 function wicf_staff(): User
 {
     return User::factory()->create([
@@ -33,7 +32,7 @@ function wicf_staff(): User
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function wicf_event(array $overrides = []): Event
 {
@@ -53,7 +52,7 @@ function wicf_event(array $overrides = []): Event
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  */
 function wicf_field(Event $event, array $overrides = []): RegistrationField
 {
@@ -68,7 +67,7 @@ function wicf_field(Event $event, array $overrides = []): RegistrationField
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
  */
 function wicf_payload(array $overrides = []): array

@@ -1,7 +1,9 @@
 <?php
 
+use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\User;
+use App\Services\EventWorkflow;
 
 /**
  * Pins the running-event lifecycle guard behavior for church events.
@@ -38,7 +40,6 @@ use App\Models\User;
  *
  * Helpers prefixed kindguard_ to avoid Pest collisions.
  */
-
 function kindguard_user(): User
 {
     return User::factory()->create([
@@ -49,10 +50,10 @@ function kindguard_user(): User
 
 test('church events cannot transition through the running workflow service', function () {
     $event = kindguard_church_event();
-    $workflow = app(\App\Services\EventWorkflow::class);
+    $workflow = app(EventWorkflow::class);
 
-    expect($workflow->canTransition($event, \App\Enums\EventStatus::RegistrationOpen))->toBeFalse();
-    expect(fn () => $workflow->openRegistration($event))->toThrow(\InvalidArgumentException::class);
+    expect($workflow->canTransition($event, EventStatus::RegistrationOpen))->toBeFalse();
+    expect(fn () => $workflow->openRegistration($event))->toThrow(InvalidArgumentException::class);
     expect($event->fresh()->status->value)->toBe('draft');
 });
 

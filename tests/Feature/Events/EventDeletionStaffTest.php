@@ -28,6 +28,7 @@ function capture_otp_code(): string
     $code = null;
     Mail::assertSent(EventDeletionOtpMail::class, function (EventDeletionOtpMail $mail) use (&$code) {
         $code = $mail->code;
+
         return true;
     });
 

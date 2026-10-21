@@ -12,11 +12,15 @@ use Illuminate\Support\Str;
 class EmailTwoFactorService
 {
     public const CODE_TTL_SECONDS = 600;
+
     public const RESEND_COOLDOWN_SECONDS = 60;
+
     public const MAX_ATTEMPTS = 5;
 
     public const DEVICE_COOKIE_NAME = 'wdems_trusted_device';
+
     public const DEVICE_TTL_MINUTES = 60 * 24 * 30; // 30 days
+
     public const MAX_TRUSTED_DEVICES = 10;
 
     public function issue(User $user): int
@@ -61,6 +65,7 @@ class EmailTwoFactorService
 
         if (($payload['expires_at'] ?? 0) < now()->timestamp) {
             Cache::forget($this->otpKey($user));
+
             return EmailTwoFactorResult::Expired;
         }
 
@@ -68,6 +73,7 @@ class EmailTwoFactorService
 
         if ($attempts >= self::MAX_ATTEMPTS) {
             Cache::forget($this->otpKey($user));
+
             return EmailTwoFactorResult::Locked;
         }
 
@@ -77,6 +83,7 @@ class EmailTwoFactorService
 
             if ($attempts >= self::MAX_ATTEMPTS) {
                 Cache::forget($this->otpKey($user));
+
                 return EmailTwoFactorResult::Locked;
             }
 

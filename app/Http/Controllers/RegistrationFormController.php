@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\RegistrationFieldRequest;
 use App\Models\Event;
 use App\Models\RegistrationField;
+use App\Support\RegistrationLegalText;
+use App\Support\RegistrationRichText;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -58,7 +60,7 @@ class RegistrationFormController extends Controller
             'tshirt' => $event->registration_tshirt ? array_merge($event->registration_tshirt, [
                 'photos' => array_map(fn ($photo) => array_merge($photo, ['url' => Storage::disk('public')->url($photo['path'])]), $event->registration_tshirt['photos']),
             ]) : null,
-            'default_disclaimer_html' => implode('', array_map(fn ($paragraph) => '<p>'.e($paragraph).'</p>', \App\Support\RegistrationLegalText::disclaimerFor($event))),
+            'default_disclaimer_html' => implode('', array_map(fn ($paragraph) => '<p>'.e($paragraph).'</p>', RegistrationLegalText::disclaimerFor($event))),
         ]);
     }
 
@@ -101,7 +103,7 @@ class RegistrationFormController extends Controller
             $request->validated()['common_field_requirements'] ?? null,
         );
         $disclaimer = $request->validated()['disclaimer_html'] ?? null;
-        $disclaimer = is_string($disclaimer) ? \App\Support\RegistrationRichText::sanitize($disclaimer) : null;
+        $disclaimer = is_string($disclaimer) ? RegistrationRichText::sanitize($disclaimer) : null;
         $oldPhotos = $event->registration_tshirt['photos'] ?? [];
         $keptPaths = $request->validated()['tshirt_existing_photos'] ?? [];
         $photos = array_values(array_filter($oldPhotos, fn ($photo) => in_array($photo['path'], $keptPaths, true)));
@@ -111,7 +113,9 @@ class RegistrationFormController extends Controller
         try {
             foreach ($request->file('tshirt_photos', []) as $file) {
                 $path = $file->store('registration-tshirts/'.$event->id, 'public');
-                if (! is_string($path)) throw new \RuntimeException('Could not store T-shirt photo.');
+                if (! is_string($path)) {
+                    throw new \RuntimeException('Could not store T-shirt photo.');
+                }
                 $newPaths[] = $path;
                 $photos[] = ['path' => $path, 'size' => $file->getSize()];
             }
@@ -124,29 +128,29 @@ class RegistrationFormController extends Controller
                 ];
             }
 
-        DB::transaction(function () use ($event, $fields, $requirements, $disclaimer, $tshirt): void {
-            $event = Event::query()->lockForUpdate()->findOrFail($event->id);
-            abort_unless($event->canEditRegistrationForm(), 403);
-            $event->registrationFields()->delete();
+            DB::transaction(function () use ($event, $fields, $requirements, $disclaimer, $tshirt): void {
+                $event = Event::query()->lockForUpdate()->findOrFail($event->id);
+                abort_unless($event->canEditRegistrationForm(), 403);
+                $event->registrationFields()->delete();
 
-            foreach ($fields as $index => $field) {
-                $event->registrationFields()->create([
-                    'label' => $field['label'],
-                    'field_type' => $field['field_type'],
-                    'options' => $field['options'] ?? null,
-                    'validation_rules' => $field['validation_rules'] ?? null,
-                    'is_required' => $field['is_required'] ?? false,
-                    'display_order' => $index,
-                ]);
-            }
+                foreach ($fields as $index => $field) {
+                    $event->registrationFields()->create([
+                        'label' => $field['label'],
+                        'field_type' => $field['field_type'],
+                        'options' => $field['options'] ?? null,
+                        'validation_rules' => $field['validation_rules'] ?? null,
+                        'is_required' => $field['is_required'] ?? false,
+                        'display_order' => $index,
+                    ]);
+                }
 
-            $event->registration_common_field_requirements = $requirements;
-            $event->registration_form_version = 2;
-            $event->registration_disclaimer_html = $disclaimer;
-            $event->registration_tshirt = $tshirt;
-            $event->registration_form_saved_at = now();
-            $event->save();
-        });
+                $event->registration_common_field_requirements = $requirements;
+                $event->registration_form_version = 2;
+                $event->registration_disclaimer_html = $disclaimer;
+                $event->registration_tshirt = $tshirt;
+                $event->registration_form_saved_at = now();
+                $event->save();
+            });
         } catch (\Throwable $exception) {
             Storage::disk('public')->delete($newPaths);
             throw $exception;

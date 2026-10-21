@@ -39,7 +39,9 @@ class RegistrationRichText
         foreach ($node->childNodes as $child) {
             $content .= self::render($child);
         }
-        $tag = match ($tag) { 'b' => 'strong', 'i' => 'em', default => $tag };
+        $tag = match ($tag) {
+            'b' => 'strong', 'i' => 'em', default => $tag
+        };
         if ($tag === 'br') {
             return '<br>';
         }

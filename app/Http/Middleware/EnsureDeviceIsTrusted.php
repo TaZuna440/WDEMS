@@ -12,8 +12,7 @@ class EnsureDeviceIsTrusted
 {
     public function __construct(
         private readonly EmailTwoFactorService $service,
-    ) {
-    }
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {

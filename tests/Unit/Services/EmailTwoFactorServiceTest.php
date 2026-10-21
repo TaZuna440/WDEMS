@@ -7,8 +7,9 @@ use App\Services\TwoFactor\EmailTwoFactorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Tests\TestCase;
 
-uses(Tests\TestCase::class, RefreshDatabase::class);
+uses(TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
     Cache::flush();
@@ -28,6 +29,7 @@ function otpCaptureCode(): string
     $code = null;
     Mail::assertSent(LoginVerificationCodeMail::class, function (LoginVerificationCodeMail $mail) use (&$code) {
         $code = $mail->code;
+
         return true;
     });
 

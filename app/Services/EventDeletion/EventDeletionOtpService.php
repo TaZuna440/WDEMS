@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\Mail;
 class EventDeletionOtpService
 {
     public const CODE_TTL_SECONDS = 600;       // 10 minutes
+
     public const RESEND_COOLDOWN_SECONDS = 60; // 1 minute
+
     public const MAX_ATTEMPTS = 5;
 
     /**
@@ -24,7 +26,7 @@ class EventDeletionOtpService
     public function issue(User $user, Event $event): int
     {
         if (Cache::has($this->resendKey($user, $event))) {
-            throw new OtpResendTooSoonException();
+            throw new OtpResendTooSoonException;
         }
 
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -67,6 +69,7 @@ class EventDeletionOtpService
 
         if (($payload['expires_at'] ?? 0) < now()->timestamp) {
             $this->forgetOtp($user, $event);
+
             return OtpVerificationResult::Expired;
         }
 
@@ -74,6 +77,7 @@ class EventDeletionOtpService
 
         if ($attempts >= self::MAX_ATTEMPTS) {
             $this->forgetOtp($user, $event);
+
             return OtpVerificationResult::Locked;
         }
 
@@ -83,6 +87,7 @@ class EventDeletionOtpService
 
             if ($attempts >= self::MAX_ATTEMPTS) {
                 $this->forgetOtp($user, $event);
+
                 return OtpVerificationResult::Locked;
             }
 

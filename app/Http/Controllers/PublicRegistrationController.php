@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PublicRegistrationRequest;
 use App\Models\Event;
-use App\Support\RegistrationLegalText;
+use App\Services\Participants\DuplicateReview;
 use App\Services\RegistrationVerification\RegistrationVerificationService;
+use App\Support\RegistrationLegalText;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,7 +23,7 @@ class PublicRegistrationController extends Controller
         return $this->renderForm($event, $request->session()->pull('success'));
     }
 
-    public function similarity(Request $request, Event $event): \Illuminate\Http\JsonResponse
+    public function similarity(Request $request, Event $event): JsonResponse
     {
         abort_unless($event->acceptsPublicRegistration(), 404);
         $payload = $request->validate([
@@ -31,7 +34,7 @@ class PublicRegistrationController extends Controller
             'email' => ['nullable', 'email', 'max:255'], 'contact_number' => ['nullable', 'string', 'max:50'],
         ]);
 
-        return response()->json(['similar' => app(\App\Services\Participants\DuplicateReview::class)->hasSimilar($event, $payload)])
+        return response()->json(['similar' => app(DuplicateReview::class)->hasSimilar($event, $payload)])
             ->header('Cache-Control', 'no-store, private');
     }
 
@@ -52,7 +55,7 @@ class PublicRegistrationController extends Controller
                 'label' => $event->registration_tshirt['label'],
                 'required' => $event->registration_tshirt['required'],
                 'choices' => $event->registration_tshirt['choices'],
-                'photos' => array_map(fn ($photo) => \Illuminate\Support\Facades\Storage::disk('public')->url($photo['path']), $event->registration_tshirt['photos']),
+                'photos' => array_map(fn ($photo) => Storage::disk('public')->url($photo['path']), $event->registration_tshirt['photos']),
             ] : null,
             'preview_return_url' => $preview ? route('events.show', $event) : null,
             'event' => $this->eventPayload($event),

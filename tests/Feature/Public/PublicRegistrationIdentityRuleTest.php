@@ -52,5 +52,3 @@ test('legacy event data with both identity channels optional rejects public subm
     expect(Registration::count())->toBe(0)
         ->and(Participant::count())->toBe(0);
 });
-
-

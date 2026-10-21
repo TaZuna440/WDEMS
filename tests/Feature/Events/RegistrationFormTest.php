@@ -16,7 +16,6 @@ uses(RefreshDatabase::class);
  * collisions, choice-field options — and the lock-at-Open-Registration
  * rule.
  */
-
 function regform_staff(): User
 {
     return User::factory()->create([
@@ -38,7 +37,7 @@ function regform_event(string $status = 'draft'): Event
 }
 
 /**
- * @param array<int, array<string, mixed>> $fields
+ * @param  array<int, array<string, mixed>>  $fields
  * @return array<string, mixed>
  */
 function regform_payload(array $fields): array
@@ -47,7 +46,7 @@ function regform_payload(array $fields): array
 }
 
 /**
- * @param array<string, mixed> $overrides
+ * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
  */
 function regform_field(array $overrides = []): array

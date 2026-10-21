@@ -16,8 +16,7 @@ class EventDeletionOtpMail extends Mailable
         public readonly string $code,
         public readonly string $eventName,
         public readonly int $expiresInMinutes = 10,
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {

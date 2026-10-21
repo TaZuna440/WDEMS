@@ -87,8 +87,8 @@ class BulkWalkInRegistrationRequest extends FormRequest
             'rows.*.birthday' => [
                 'nullable',
                 'date',
-                'before_or_equal:' . now()->subYears(3)->toDateString(),
-                'after_or_equal:' . now()->subYears(120)->toDateString(),
+                'before_or_equal:'.now()->subYears(3)->toDateString(),
+                'after_or_equal:'.now()->subYears(120)->toDateString(),
             ],
 
             'rows.*.email' => $this->commonFieldRules('email', [
@@ -187,6 +187,7 @@ class BulkWalkInRegistrationRequest extends FormRequest
                             "rows.{$i}.responses.{$fieldId}",
                             'This field does not belong to this event.',
                         );
+
                         continue;
                     }
 

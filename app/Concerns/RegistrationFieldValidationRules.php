@@ -3,16 +3,19 @@
 namespace App\Concerns;
 
 use App\Models\Event;
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 trait RegistrationFieldValidationRules
 {
     public const MAX_FIELDS = 5;
+
     public const MAX_OPTIONS_PER_FIELD = 10;
+
     public const MAX_LABEL_LENGTH = 255;
+
     public const MIN_OPTIONS_PER_CHOICE_FIELD = 2;
+
     public const MIN_STRICT_LABEL_LENGTH = 2;
 
     /**
@@ -87,6 +90,7 @@ trait RegistrationFieldValidationRules
                 $labels[] = $alias;
             }
         }
+
         return $labels;
     }
 
@@ -191,17 +195,23 @@ trait RegistrationFieldValidationRules
             $data = $v->getData();
             $fields = $data['fields'] ?? null;
 
-            if (! is_array($fields)) return;
+            if (! is_array($fields)) {
+                return;
+            }
 
             $choiceTypes = $this->choiceFieldTypes();
 
             foreach ($fields as $index => $field) {
-                if (! is_array($field)) continue;
+                if (! is_array($field)) {
+                    continue;
+                }
 
                 $type = $field['field_type'] ?? null;
                 $options = $field['options'] ?? [];
 
-                if (! is_string($type)) continue;
+                if (! is_string($type)) {
+                    continue;
+                }
 
                 if (in_array($type, $choiceTypes, true)) {
                     if (! is_array($options) || count($options) < self::MIN_OPTIONS_PER_CHOICE_FIELD) {
@@ -228,19 +238,27 @@ trait RegistrationFieldValidationRules
             $data = $v->getData();
             $fields = $data['fields'] ?? null;
 
-            if (! is_array($fields)) return;
+            if (! is_array($fields)) {
+                return;
+            }
 
             $seen = [];
             $duplicateCount = 0;
 
             foreach ($fields as $index => $field) {
-                if (! is_array($field)) continue;
+                if (! is_array($field)) {
+                    continue;
+                }
 
                 $rawLabel = $field['label'] ?? '';
-                if (! is_string($rawLabel)) continue;
+                if (! is_string($rawLabel)) {
+                    continue;
+                }
 
                 $label = strtolower(trim($rawLabel));
-                if ($label === '') continue;
+                if ($label === '') {
+                    continue;
+                }
 
                 if (isset($seen[$label])) {
                     $v->errors()->add(
@@ -270,18 +288,26 @@ trait RegistrationFieldValidationRules
             $data = $v->getData();
             $fields = $data['fields'] ?? null;
 
-            if (! is_array($fields)) return;
+            if (! is_array($fields)) {
+                return;
+            }
 
             $exempt = $this->exemptShortLabels();
 
             foreach ($fields as $index => $field) {
-                if (! is_array($field)) continue;
+                if (! is_array($field)) {
+                    continue;
+                }
 
                 $rawLabel = $field['label'] ?? '';
-                if (! is_string($rawLabel)) continue;
+                if (! is_string($rawLabel)) {
+                    continue;
+                }
 
                 $normalized = $this->normalizeLabelForCollision($rawLabel);
-                if ($normalized === '') continue;
+                if ($normalized === '') {
+                    continue;
+                }
 
                 // Exempt labels skip the collision rule entirely.
                 // This is the fix: previously the exemption list only
@@ -309,24 +335,34 @@ trait RegistrationFieldValidationRules
             $data = $v->getData();
             $fields = $data['fields'] ?? null;
 
-            if (! is_array($fields)) return;
+            if (! is_array($fields)) {
+                return;
+            }
 
             $exempt = $this->exemptShortLabels();
 
             foreach ($fields as $index => $field) {
-                if (! is_array($field)) continue;
+                if (! is_array($field)) {
+                    continue;
+                }
 
                 $rawLabel = $field['label'] ?? '';
-                if (! is_string($rawLabel)) continue;
+                if (! is_string($rawLabel)) {
+                    continue;
+                }
 
                 $label = trim($rawLabel);
                 $length = mb_strlen($label);
 
-                if ($length < self::MIN_STRICT_LABEL_LENGTH) continue;
+                if ($length < self::MIN_STRICT_LABEL_LENGTH) {
+                    continue;
+                }
 
                 $normalized = mb_strtolower($label);
 
-                if (in_array($normalized, $exempt, true)) continue;
+                if (in_array($normalized, $exempt, true)) {
+                    continue;
+                }
 
                 $hasVowel = preg_match('/[aeiouyAEIOUY]/', $label) === 1;
                 $hasConsonant = preg_match('/[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]/', $label) === 1;
@@ -336,6 +372,7 @@ trait RegistrationFieldValidationRules
                         "fields.{$index}.label",
                         'Please enter a valid field label.',
                     );
+
                     continue;
                 }
 
@@ -355,7 +392,9 @@ trait RegistrationFieldValidationRules
             $data = $v->getData();
             $requirements = $data['common_field_requirements'] ?? null;
 
-            if (! is_array($requirements)) return;
+            if (! is_array($requirements)) {
+                return;
+            }
 
             $emailRequired = (bool) ($requirements['email'] ?? true);
             $phoneRequired = (bool) ($requirements['contact_number'] ?? true);
