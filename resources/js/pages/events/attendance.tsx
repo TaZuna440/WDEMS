@@ -33,7 +33,6 @@ type AttendanceStatus = 'present' | 'absent';
 
 type PageMode = 'check-in' | 'walk-in';
 
-
 type StatusOption = {
     value: AttendanceStatus;
     label: string;
@@ -101,7 +100,11 @@ type Props = {
         filter: AttendanceFilter;
         code: string;
     };
-    check_in_summary: { total: number; present: number; recent: { id: number; name: string; time: string | null }[] };
+    check_in_summary: {
+        total: number;
+        present: number;
+        recent: { id: number; name: string; time: string | null }[];
+    };
     can_mark: boolean;
     is_admin: boolean;
     force_open: boolean;
@@ -109,10 +112,10 @@ type Props = {
 };
 
 const STATUS_STYLES: Record<AttendanceStatus, string> = {
-    present: 'bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400',
+    present:
+        'bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400',
     absent: 'bg-destructive/15 text-destructive border-destructive/30',
 };
-
 
 const MAX_BULK_ROWS = 100;
 
@@ -151,8 +154,8 @@ export default function EventsAttendance({
 
     const sharedQuery = (overrides: Record<string, string | number> = {}) => ({
         ...(codeActive ? { code: filters.code } : {}),
-        ...(! codeActive && localSearch !== '' ? { q: localSearch } : {}),
-        ...(! codeActive && filters.filter !== 'all'
+        ...(!codeActive && localSearch !== '' ? { q: localSearch } : {}),
+        ...(!codeActive && filters.filter !== 'all'
             ? { filter: filters.filter }
             : {}),
         ...(force_open ? { force_open: 1 } : {}),
@@ -165,7 +168,6 @@ export default function EventsAttendance({
     useEffect(() => {
         setLocalCode(filters.code);
     }, [filters.code]);
-
 
     useEffect(() => {
         if (codeActive) {
@@ -219,16 +221,12 @@ export default function EventsAttendance({
 
     const clearCode = () => {
         setLocalCode('');
-        router.get(
-            baseUrl,
-            force_open ? { force_open: 1 } : {},
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-                only: ['rows', 'pagination', 'counts', 'filters'],
-            },
-        );
+        router.get(baseUrl, force_open ? { force_open: 1 } : {}, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+            only: ['rows', 'pagination', 'counts', 'filters'],
+        });
     };
 
     /**
@@ -263,7 +261,9 @@ export default function EventsAttendance({
             only: ['rows', 'counts', 'check_in_summary'],
             onSuccess: () => {
                 if (codeActive && isPresenceStatus) {
-                    setCheckInMessage('Checked in successfully. Ready for the next participant.');
+                    setCheckInMessage(
+                        'Checked in successfully. Ready for the next participant.',
+                    );
                     clearCode();
                     requestAnimationFrame(() => codeInput.current?.focus());
                 }
@@ -292,7 +292,6 @@ export default function EventsAttendance({
     const showForceToggle = is_admin && (!can_mark || force_open);
     const isWalkInMode = mode === 'walk-in';
 
-
     return (
         <>
             <Head title={`Attendance — ${event.event_name}`} />
@@ -300,7 +299,7 @@ export default function EventsAttendance({
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
                 <Link
                     href={`/events/${event.id}`}
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Event
@@ -343,7 +342,7 @@ export default function EventsAttendance({
                                 )}
                             </Button>
                         )}
-                        <span className="inline-flex w-fit rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-foreground">
+                        <span className="bg-secondary text-foreground inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-medium">
                             {event.status_label}
                         </span>
                     </div>
@@ -353,26 +352,67 @@ export default function EventsAttendance({
                     <div className="flex items-start gap-3 rounded-xl border border-[#13253B]/30 bg-[#13253B]/5 p-4 dark:border-amber-500/30 dark:bg-amber-500/5">
                         <Unlock className="mt-0.5 h-4 w-4 shrink-0 text-[#13253B] dark:text-amber-400" />
                         <p className="text-sm text-[#13253B] dark:text-amber-200">
-                            Admin override active. Marking is enabled
-                            outside the normal attendance window.
+                            Admin override active. Marking is enabled outside
+                            the normal attendance window.
                         </p>
                     </div>
                 )}
 
                 {!can_mark && (
                     <div className="glass-panel flex items-start gap-3 rounded-xl p-4">
-                        <Clock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                            This event is closed for attendance recording.
-                            You can review the final attendance list, but new
-                            marks cannot be added.
+                        <Clock className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
+                        <p className="text-muted-foreground text-sm">
+                            This event is closed for attendance recording. You
+                            can review the final attendance list, but new marks
+                            cannot be added.
                         </p>
                     </div>
                 )}
 
-                <aside className="grid gap-4 rounded-xl border p-4 sm:grid-cols-2" aria-label="Live check-in summary">
-                    <div><h2 className="text-sm font-medium">Checked in</h2><p className="text-3xl font-semibold">{check_in_summary.present} / {check_in_summary.total}</p><p className="text-xs text-muted-foreground">Updates every 10 seconds</p></div>
-                    <div><h2 className="mb-2 text-sm font-medium">Recent check-ins</h2><ul className="space-y-1 text-sm">{check_in_summary.recent.map(p => <li key={p.id} className="flex justify-between gap-2"><span>{p.name}</span><time className="text-muted-foreground">{p.time ? new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</time></li>)}</ul>{!check_in_summary.recent.length && <p className="text-sm text-muted-foreground">No check-ins yet.</p>}</div>
+                <aside
+                    className="grid gap-4 rounded-xl border p-4 sm:grid-cols-2"
+                    aria-label="Live check-in summary"
+                >
+                    <div>
+                        <h2 className="text-sm font-medium">Checked in</h2>
+                        <p className="text-3xl font-semibold">
+                            {check_in_summary.present} /{' '}
+                            {check_in_summary.total}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                            Updates every 10 seconds
+                        </p>
+                    </div>
+                    <div>
+                        <h2 className="mb-2 text-sm font-medium">
+                            Recent check-ins
+                        </h2>
+                        <ul className="space-y-1 text-sm">
+                            {check_in_summary.recent.map((p) => (
+                                <li
+                                    key={p.id}
+                                    className="flex justify-between gap-2"
+                                >
+                                    <span>{p.name}</span>
+                                    <time className="text-muted-foreground">
+                                        {p.time
+                                            ? new Date(
+                                                  p.time,
+                                              ).toLocaleTimeString([], {
+                                                  hour: '2-digit',
+                                                  minute: '2-digit',
+                                              })
+                                            : '—'}
+                                    </time>
+                                </li>
+                            ))}
+                        </ul>
+                        {!check_in_summary.recent.length && (
+                            <p className="text-muted-foreground text-sm">
+                                No check-ins yet.
+                            </p>
+                        )}
+                    </div>
                 </aside>
                 {/* Check-in and Walk-in are the two attendance entry points. */}
                 {can_mark && (
@@ -383,8 +423,8 @@ export default function EventsAttendance({
                                 onClick={() => setMode('check-in')}
                                 className={
                                     mode === 'check-in'
-                                        ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
-                                        : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
+                                        ? 'text-foreground rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium'
+                                        : 'text-muted-foreground hover:text-foreground rounded-md px-3 py-1.5 text-xs font-medium'
                                 }
                             >
                                 Check-in
@@ -394,28 +434,60 @@ export default function EventsAttendance({
                                 onClick={() => setMode('walk-in')}
                                 className={
                                     mode === 'walk-in'
-                                        ? 'rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-foreground'
-                                        : 'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground'
+                                        ? 'text-foreground rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium'
+                                        : 'text-muted-foreground hover:text-foreground rounded-md px-3 py-1.5 text-xs font-medium'
                                 }
                             >
                                 Walk-in
                             </button>
                         </div>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-muted-foreground text-xs">
                             {isWalkInMode
-                                  ? 'Add a quick walk-in or encode paper forms.'
-                                  : 'Mark participants one at a time.'}
+                                ? 'Add a quick walk-in or encode paper forms.'
+                                : 'Mark participants one at a time.'}
                         </span>
                     </div>
                 )}
 
-                {isWalkInMode && <div className="flex gap-2">
-                    <Button variant={walkInMode === 'quick' ? 'default' : 'outline'} onClick={() => setWalkInMode('quick')}>Quick walk-in</Button>
-                    <Button variant={walkInMode === 'paper' ? 'default' : 'outline'} onClick={() => setWalkInMode('paper')}>Encode paper forms</Button>
-                </div>}
-                {isWalkInMode && walkInMode === 'quick' && <div className="glass-panel rounded-xl p-6"><QuickWalkIn eventId={event.id} forceOpen={force_open} /></div>}
-                {isWalkInMode && walkInMode === 'quick' ? null : isWalkInMode ? (
-                    <div className="glass-panel rounded-xl p-6"><PaperRegistrationForm eventId={event.id} forceOpen={force_open} version={event.form_version} fields={event.registration_fields} tshirt={event.tshirt} /></div>
+                {isWalkInMode && (
+                    <div className="flex gap-2">
+                        <Button
+                            variant={
+                                walkInMode === 'quick' ? 'default' : 'outline'
+                            }
+                            onClick={() => setWalkInMode('quick')}
+                        >
+                            Quick walk-in
+                        </Button>
+                        <Button
+                            variant={
+                                walkInMode === 'paper' ? 'default' : 'outline'
+                            }
+                            onClick={() => setWalkInMode('paper')}
+                        >
+                            Encode paper forms
+                        </Button>
+                    </div>
+                )}
+                {isWalkInMode && walkInMode === 'quick' && (
+                    <div className="glass-panel rounded-xl p-6">
+                        <QuickWalkIn
+                            eventId={event.id}
+                            forceOpen={force_open}
+                        />
+                    </div>
+                )}
+                {isWalkInMode &&
+                walkInMode === 'quick' ? null : isWalkInMode ? (
+                    <div className="glass-panel rounded-xl p-6">
+                        <PaperRegistrationForm
+                            eventId={event.id}
+                            forceOpen={force_open}
+                            version={event.form_version}
+                            fields={event.registration_fields}
+                            tshirt={event.tshirt}
+                        />
+                    </div>
                 ) : (
                     <div className="glass-panel flex flex-col gap-4 rounded-xl p-6">
                         {/* Attendance-code lookup. The volunteer types
@@ -428,7 +500,7 @@ export default function EventsAttendance({
                             className="flex flex-col gap-2 sm:flex-row sm:items-center"
                         >
                             <div className="relative w-full sm:max-w-xs">
-                                <Ticket className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-lime-brand" />
+                                <Ticket className="text-lime-brand pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                                 <Input
                                     ref={codeInput}
                                     autoFocus
@@ -440,10 +512,15 @@ export default function EventsAttendance({
                                     autoComplete="off"
                                     maxLength={12}
                                     aria-label="Attendance code"
-                                    className="h-14 pl-9 font-mono text-xl uppercase tracking-wider"
+                                    className="h-14 pl-9 font-mono text-xl tracking-wider uppercase"
                                 />
                             </div>
-                            <CheckInCamera onCode={(code) => { setLocalCode(code); lookupCode(code); }} />
+                            <CheckInCamera
+                                onCode={(code) => {
+                                    setLocalCode(code);
+                                    lookupCode(code);
+                                }}
+                            />
                             {codeActive ? (
                                 <Button
                                     type="button"
@@ -463,23 +540,68 @@ export default function EventsAttendance({
                             )}
                         </form>
 
-                        {checkInMessage && <p role="status" className="rounded-lg border border-green-500/40 bg-green-500/10 p-4 text-green-700 dark:text-green-300">{checkInMessage}</p>}
-                        {codeActive && rows.length === 0 && <p role="alert" className="rounded-lg border border-destructive/40 p-4 text-destructive">Code not found for this event. Check the code or use walk-in entry.</p>}
-                        {codeActive && rows.length === 1 && <section className="space-y-3 rounded-xl border border-lime-brand/40 bg-lime-brand/5 p-5">
-                            <h2 className="text-xl font-semibold">{rows[0].participant.full_name}</h2>
-                            <p>{event.event_name}</p>
-                            {rows[0].tshirt_choice && <p>T-shirt: {rows[0].tshirt_choice}</p>}
-                            {rows[0].custom_fields?.map((field, index) => <p key={index}><span className="font-medium">{field.label}: </span>{Array.isArray(field.value) ? field.value.join(', ') : field.value}</p>)}
-                            {rows[0].attendance?.status === 'present' && <p role="status">Already present.</p>}
-                            {can_mark && <Button className="h-14 bg-green-700 px-10 text-lg text-white hover:bg-green-800" disabled={marking !== null} onClick={() => mark(rows[0].id, 'present')}>
-                                {marking !== null ? 'Saving…' : rows[0].attendance?.status === 'present' ? 'Verify check-in' : 'Present'}
-                            </Button>}
-                        </section>}
+                        {checkInMessage && (
+                            <p
+                                role="status"
+                                className="rounded-lg border border-green-500/40 bg-green-500/10 p-4 text-green-700 dark:text-green-300"
+                            >
+                                {checkInMessage}
+                            </p>
+                        )}
+                        {codeActive && rows.length === 0 && (
+                            <p
+                                role="alert"
+                                className="border-destructive/40 text-destructive rounded-lg border p-4"
+                            >
+                                Code not found for this event. Check the code or
+                                use walk-in entry.
+                            </p>
+                        )}
+                        {codeActive && rows.length === 1 && (
+                            <section className="border-lime-brand/40 bg-lime-brand/5 space-y-3 rounded-xl border p-5">
+                                <h2 className="text-xl font-semibold">
+                                    {rows[0].participant.full_name}
+                                </h2>
+                                <p>{event.event_name}</p>
+                                {rows[0].tshirt_choice && (
+                                    <p>T-shirt: {rows[0].tshirt_choice}</p>
+                                )}
+                                {rows[0].custom_fields?.map((field, index) => (
+                                    <p key={index}>
+                                        <span className="font-medium">
+                                            {field.label}:{' '}
+                                        </span>
+                                        {Array.isArray(field.value)
+                                            ? field.value.join(', ')
+                                            : field.value}
+                                    </p>
+                                ))}
+                                {rows[0].attendance?.status === 'present' && (
+                                    <p role="status">Already present.</p>
+                                )}
+                                {can_mark && (
+                                    <Button
+                                        className="h-14 bg-green-700 px-10 text-lg text-white hover:bg-green-800"
+                                        disabled={marking !== null}
+                                        onClick={() =>
+                                            mark(rows[0].id, 'present')
+                                        }
+                                    >
+                                        {marking !== null
+                                            ? 'Saving…'
+                                            : rows[0].attendance?.status ===
+                                                'present'
+                                              ? 'Verify check-in'
+                                              : 'Present'}
+                                    </Button>
+                                )}
+                            </section>
+                        )}
 
                         {/* Toolbar */}
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="relative w-full sm:max-w-xs">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                                 <Input
                                     value={localSearch}
                                     onChange={(e) =>
@@ -494,7 +616,10 @@ export default function EventsAttendance({
                             {can_mark && (
                                 <Button
                                     type="button"
-                                    onClick={() => { setMode('walk-in'); setWalkInMode('quick'); }}
+                                    onClick={() => {
+                                        setMode('walk-in');
+                                        setWalkInMode('quick');
+                                    }}
                                     className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
                                 >
                                     <Plus className="mr-2 h-4 w-4" />
@@ -523,17 +648,17 @@ export default function EventsAttendance({
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="border-b border-white/5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                            <th className="pb-3 pr-4">
+                                        <tr className="text-muted-foreground border-b border-white/5 text-left text-xs font-medium tracking-wider uppercase">
+                                            <th className="pr-4 pb-3">
                                                 Participant
                                             </th>
-                                            <th className="pb-3 pr-4">
+                                            <th className="pr-4 pb-3">
                                                 Contact
                                             </th>
-                                            <th className="pb-3 pr-4">
+                                            <th className="pr-4 pb-3">
                                                 Source
                                             </th>
-                                            <th className="pb-3 pr-4">
+                                            <th className="pr-4 pb-3">
                                                 Status
                                             </th>
                                             <th className="pb-3 text-right">
@@ -559,14 +684,14 @@ export default function EventsAttendance({
                                                     }`}
                                                 >
                                                     <td className="py-3 pr-4">
-                                                        <div className="font-medium text-foreground">
+                                                        <div className="text-foreground font-medium">
                                                             {row.participant
                                                                 .full_name ??
                                                                 '—'}
                                                         </div>
                                                         {row.participant
                                                             .email && (
-                                                            <div className="text-xs text-muted-foreground">
+                                                            <div className="text-muted-foreground text-xs">
                                                                 {
                                                                     row
                                                                         .participant
@@ -575,12 +700,12 @@ export default function EventsAttendance({
                                                             </div>
                                                         )}
                                                     </td>
-                                                    <td className="py-3 pr-4 text-muted-foreground">
+                                                    <td className="text-muted-foreground py-3 pr-4">
                                                         {row.participant
                                                             .contact_number ??
                                                             '—'}
                                                     </td>
-                                                    <td className="py-3 pr-4 text-muted-foreground">
+                                                    <td className="text-muted-foreground py-3 pr-4">
                                                         {sourceLabel(
                                                             row.source,
                                                         )}
@@ -603,7 +728,7 @@ export default function EventsAttendance({
                                                                 }
                                                             </span>
                                                         ) : (
-                                                            <span className="text-xs italic text-muted-foreground/60">
+                                                            <span className="text-muted-foreground/60 text-xs italic">
                                                                 Absent
                                                             </span>
                                                         )}
@@ -632,7 +757,7 @@ export default function EventsAttendance({
                                                                     className={
                                                                         isPresent
                                                                             ? 'bg-green-500/20 text-green-700 dark:text-green-400'
-                                                                            : 'hover:border-green-500 hover:bg-green-500 hover:text-navy-900'
+                                                                            : 'hover:text-navy-900 hover:border-green-500 hover:bg-green-500'
                                                                     }
                                                                 >
                                                                     <Check className="mr-1 h-3.5 w-3.5" />
@@ -701,9 +826,6 @@ export default function EventsAttendance({
                     </div>
                 )}
             </div>
-
-
-
         </>
     );
 }
@@ -720,12 +842,12 @@ function EmptyState({
     if (code !== '') {
         return (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-                <Ticket className="h-8 w-8 text-muted-foreground/40" />
-                <p className="mt-3 text-sm text-foreground">
+                <Ticket className="text-muted-foreground/40 h-8 w-8" />
+                <p className="text-foreground mt-3 text-sm">
                     No registration matches{' '}
                     <span className="font-mono font-medium">{code}</span>.
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-xs">
                     Check the code, or clear it and search by name.
                 </p>
             </div>
@@ -735,11 +857,11 @@ function EmptyState({
     if (hasSearch || hasFilter) {
         return (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-                <Search className="h-8 w-8 text-muted-foreground/40" />
-                <p className="mt-3 text-sm text-foreground">
+                <Search className="text-muted-foreground/40 h-8 w-8" />
+                <p className="text-foreground mt-3 text-sm">
                     No submissions match this filter.
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-xs">
                     Try a different search or filter.
                 </p>
             </div>
@@ -748,11 +870,11 @@ function EmptyState({
 
     return (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-            <UserCheck className="h-10 w-10 text-muted-foreground/40" />
-            <p className="mt-3 text-sm text-foreground">
+            <UserCheck className="text-muted-foreground/40 h-10 w-10" />
+            <p className="text-foreground mt-3 text-sm">
                 No registrations yet.
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="text-muted-foreground mt-1 text-xs">
                 Participants will appear here once registration opens and
                 responses come in.
             </p>

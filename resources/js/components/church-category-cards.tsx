@@ -126,14 +126,14 @@ export default function ChurchCategoryCards({ mode = 'browse' }: Props) {
                         href={hrefFor(category, mode)}
                         className="glass-panel glass-panel-hover flex items-start gap-4 rounded-xl p-5"
                     >
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-lime-brand/15">
-                            <Icon className="h-5 w-5 text-lime-700 dark:text-lime-brand" />
+                        <div className="bg-lime-brand/15 flex h-11 w-11 shrink-0 items-center justify-center rounded-full">
+                            <Icon className="dark:text-lime-brand h-5 w-5 text-lime-700" />
                         </div>
                         <div className="min-w-0">
-                            <h3 className="font-semibold text-foreground">
+                            <h3 className="text-foreground font-semibold">
                                 {category.label}
                             </h3>
-                            <p className="mt-0.5 text-sm text-muted-foreground">
+                            <p className="text-muted-foreground mt-0.5 text-sm">
                                 {category.description}
                             </p>
                         </div>

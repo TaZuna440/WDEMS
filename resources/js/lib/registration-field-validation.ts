@@ -83,7 +83,10 @@ function passesStrictLabelChecks(label: string): boolean {
 
 function isLabelValid(label: string): boolean {
     if (!passesRelaxedLabelChecks(label)) return false;
-    if (label.length >= MIN_STRICT_LABEL_LENGTH && !passesStrictLabelChecks(label)) {
+    if (
+        label.length >= MIN_STRICT_LABEL_LENGTH &&
+        !passesStrictLabelChecks(label)
+    ) {
         return false;
     }
     return true;

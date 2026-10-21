@@ -17,7 +17,7 @@ Verified against the code at HEAD `5755c75`:
 - The separate admin dashboard (`admin/dashboard.tsx`) is a bare stub ("Welcome to WDEMS").
 - The repo's own UI restructure plan (`docs/ui-restructure-plan.md`, **Phase 5 — Dashboard rebuild**) specified this work — stat cards, Church Events Categories panel, Recent Events, statistics chart, calendar widget, Quick Actions — and Phase 5 was **never started**.
 
-Mark's verdict on the current page (2026-10-21, with screenshot): *"it is not appropriate to call as dashboard."* It answers only "what's wrong." A dashboard must also answer **"how are we doing"** (totals) and **"what's ahead / what just happened"** (upcoming, calendar, activity).
+Mark's verdict on the current page (2026-10-21, with screenshot): _"it is not appropriate to call as dashboard."_ It answers only "what's wrong." A dashboard must also answer **"how are we doing"** (totals) and **"what's ahead / what just happened"** (upcoming, calendar, activity).
 
 Nothing on the current page is thrown away: the existing Needs Attention feed survives as one panel of the new design.
 
@@ -67,9 +67,11 @@ An **aligned row grid** — not independent stacked columns (the first prototype
 ## 4. Shared features (both sides)
 
 ### 4.1 Quick Actions
+
 Buttons in the header area, contextual to the active side: **Create Event** (side-specific label: "+ Create Running Event" / "+ Create Church Event"), **Open Registration**, **Record Attendance**, **Reports**.
 
 ### 4.2 Needs Attention (kept + extended)
+
 The existing action-items feed, preserved with its semantics and extended per side:
 
 - Urgency groups in order: **NEEDS REVIEW → OVERDUE → URGENT → ACTION → WAITING**, each with its colored dot and the item's action button (e.g. "Mark as completed", "Configure event", "View event").
@@ -78,6 +80,7 @@ The existing action-items feed, preserved with its semantics and extended per si
 - Church items (with the Phase 2 church build): today's occurrences with participants still Unmarked, events whose summary has not been reviewed, church events whose registration link is not yet opened.
 
 ### 4.3 Needs Review group (new; depends on the duplicate hold, Phase 1 B-1)
+
 Top group inside Needs Attention, per side:
 
 - Count of **held likely duplicates** awaiting organizer action, with a "Review queue" button to the review page.
@@ -85,9 +88,11 @@ Top group inside Needs Attention, per side:
 - Held registrations are excluded from every count on the dashboard until resolved (they are not confirmed registrations).
 
 ### 4.4 Coming Up
+
 The next upcoming events **of the active side only**, each with date, status (and module, on the church side), and a "View all" link to the Events page. Running rows keep their status tags (OPEN / CLOSED / DRAFT).
 
 ### 4.5 Calendar (right rail, below Coming Up)
+
 Month grid for the active side:
 
 - **Today** is filled with the side's accent.
@@ -97,6 +102,7 @@ Month grid for the active side:
 - Month navigation (previous/next) included; the calendar shows only the active side's events.
 
 ### 4.6 Recent Activity (implement the feed)
+
 Replaces the hardcoded empty array. Newest first, with relative timestamps ("2m ago"). Per side, drawn from that side's records only. Event types:
 
 - New registration (with participant name + event)
@@ -111,12 +117,14 @@ Replaces the hardcoded empty array. Newest first, with relative timestamps ("2m 
 ## 5. Running dashboard features
 
 ### 5.1 Stat cards (running pool only)
+
 1. **Running Events** — total running events, with sub-line "N open for registration".
 2. **Registrations (running pool)** — total registrations across running events, with today's delta ("+18 today").
 3. **Total Attendance** — total recorded attendance, with the **show rate** (attended ÷ registered).
 4. **In Check-in Window Today** — how many running events are inside their attendance window right now, naming the next one ("JNT · opens 5:00 AM").
 
 ### 5.2 Event Statistics (full-width band, bottom row)
+
 Series figures across recent Community Runs: registrations for the last 4 runs, average show rate, paper-encoded (staff-attested) walk-ins, first-time runners this month. (The chart form of this panel is DASH-3; the band ships first with the numbers.)
 
 ---
@@ -124,15 +132,18 @@ Series figures across recent Community Runs: registrations for the last 4 runs, 
 ## 6. Church dashboard features
 
 ### 6.1 Stat cards (church pool only)
+
 1. **Church Events This Month** — with sub-line "9 modules active".
 2. **Church Participants (church pool)** — total participants on the church side, with the weekly delta ("+12 this week").
 3. **Attendance Recorded Today** — with sub-line naming what was encoded ("3 services encoded").
 4. **Unmarked Remaining** — participants still Unmarked across today's events, naming the largest source ("Sunday Service · AM"). This is the number ministry leaders chase at the end of a service day.
 
 ### 6.2 Participant History (church only; from decision D-11)
+
 The church side monitors its own people's history, so the church dashboard carries a panel the running side does not have: **top attending participants in the church pool** — name, total attendance count, and the types of church events joined (e.g. "Juan Dela Cruz — 14 attendances · Services, Fellowship"). Each row links to that participant's church-side history. Running participants never appear here, and vice versa.
 
 ### 6.3 Church Categories
+
 The nine modules as count chips — Services, Fellowship, Discipleship, Youth, Kids, Young Adult, Worship & Prayer, Church Administration, Special Occasions — each with its event count and linking into the Events · Church tab filtered by that module. (From the Phase 5 plan in `docs/ui-restructure-plan.md`.)
 
 ---
@@ -176,13 +187,13 @@ The nine modules as count chips — Services, Fellowship, Discipleship, Youth, K
 
 ## 10. Decisions recorded for the dashboard
 
-| # | Decision | By | Date |
-|---|----------|----|------|
-| 1 | The dashboard will be **split**: one route, Running \| Church segmented switcher, each side a complete dashboard | Mark | 2026-10-21 |
-| 2 | Calendar placement: **right rail, below Coming Up** | Mark | 2026-10-21 |
-| 3 | Default side: **remember the last side viewed** (first visit: Running; `?side=` deep link overrides per visit) | Mark | 2026-10-21 |
-| 4 | Calendar days with events show a **hover/tap tooltip listing the event names** | Mark | 2026-10-21 |
-| 5 | Layout is an **aligned row grid**; independent stacked columns rejected ("like in queue") | Mark (feedback) | 2026-10-21 |
-| 6 | Totals are never blended across sides; church gets a Participant History panel, running gets Event Statistics | From D-10/D-11 | 2026-10-21 |
+| #   | Decision                                                                                                         | By              | Date       |
+| --- | ---------------------------------------------------------------------------------------------------------------- | --------------- | ---------- |
+| 1   | The dashboard will be **split**: one route, Running \| Church segmented switcher, each side a complete dashboard | Mark            | 2026-10-21 |
+| 2   | Calendar placement: **right rail, below Coming Up**                                                              | Mark            | 2026-10-21 |
+| 3   | Default side: **remember the last side viewed** (first visit: Running; `?side=` deep link overrides per visit)   | Mark            | 2026-10-21 |
+| 4   | Calendar days with events show a **hover/tap tooltip listing the event names**                                   | Mark            | 2026-10-21 |
+| 5   | Layout is an **aligned row grid**; independent stacked columns rejected ("like in queue")                        | Mark (feedback) | 2026-10-21 |
+| 6   | Totals are never blended across sides; church gets a Participant History panel, running gets Event Statistics    | From D-10/D-11  | 2026-10-21 |
 
 **References:** Master Project Document, Dashboard Addendum · `docs/ui-restructure-plan.md` Phase 5 · interactive prototype `~/workspace/wdems-dashboard-prototype/prototype-v3.html` (v1 single-page draft and v2 grid draft kept alongside).

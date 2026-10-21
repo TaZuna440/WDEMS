@@ -16,9 +16,9 @@ and — most importantly — which parts AI will try to "fix" and get wrong.
 
 Deleting an event has **two paths** depending on the user's role:
 
-| Role | Path | Extra step |
-|---|---|---|
-| **Admin** | Direct delete | None |
+| Role      | Path             | Extra step                                |
+| --------- | ---------------- | ----------------------------------------- |
+| **Admin** | Direct delete    | None                                      |
 | **Staff** | OTP-gated delete | Emailed 6-digit code, entered in a dialog |
 
 Both paths funnel through the same service call:
@@ -38,41 +38,41 @@ restore. The confirm dialog says so.
 
 ### Backend
 
-| File | What it does |
-|---|---|
-| `app/Http/Controllers/EventDeletionController.php` | Three actions: `destroy`, `requestOtp`, `verifyOtp` |
-| `app/Services/EventDeletion/EventDeletionService.php` | The ordered delete in a transaction |
-| `app/Services/EventDeletion/EventDeletionOtpService.php` | OTP issue / verify / invalidate |
-| `app/Services/EventDeletion/OtpVerificationResult.php` | Enum: `Verified`, `Invalid`, `Expired`, `Locked`, `NotFound` |
-| `app/Services/EventDeletion/OtpResendTooSoonException.php` | Thrown when the resend cooldown is active |
-| `app/Services/Otp/OtpCode.php` | Shared OTP helper (generate / hash / matches) |
-| `app/Mail/EventDeletionOtpMail.php` | The email mailable |
-| `resources/views/emails/event-deletion-otp.blade.php` | The email body |
+| File                                                       | What it does                                                 |
+| ---------------------------------------------------------- | ------------------------------------------------------------ |
+| `app/Http/Controllers/EventDeletionController.php`         | Three actions: `destroy`, `requestOtp`, `verifyOtp`          |
+| `app/Services/EventDeletion/EventDeletionService.php`      | The ordered delete in a transaction                          |
+| `app/Services/EventDeletion/EventDeletionOtpService.php`   | OTP issue / verify / invalidate                              |
+| `app/Services/EventDeletion/OtpVerificationResult.php`     | Enum: `Verified`, `Invalid`, `Expired`, `Locked`, `NotFound` |
+| `app/Services/EventDeletion/OtpResendTooSoonException.php` | Thrown when the resend cooldown is active                    |
+| `app/Services/Otp/OtpCode.php`                             | Shared OTP helper (generate / hash / matches)                |
+| `app/Mail/EventDeletionOtpMail.php`                        | The email mailable                                           |
+| `resources/views/emails/event-deletion-otp.blade.php`      | The email body                                               |
 
 ### Frontend
 
-| File | What it does |
-|---|---|
-| `resources/js/components/event-deletion-otp-dialog.tsx` | The OTP dialog |
-| `resources/js/pages/events/show.tsx` | Has the Danger Zone button that opens the dialog, and calls `router.delete()` for admins |
+| File                                                    | What it does                                                                             |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `resources/js/components/event-deletion-otp-dialog.tsx` | The OTP dialog                                                                           |
+| `resources/js/pages/events/show.tsx`                    | Has the Danger Zone button that opens the dialog, and calls `router.delete()` for admins |
 
 ### Routes
 
 All in `routes/web.php`:
 
-| Method | Route | Name | Middleware |
-|---|---|---|---|
-| DELETE | `/events/{event}` | `events.destroy` | `auth, verified, device.trusted` |
-| POST | `/events/{event}/deletion/request-otp` | `events.deletion.request-otp` | `+ throttle:event-deletion-otp-request` |
-| POST | `/events/{event}/deletion/verify-otp` | `events.deletion.verify-otp` | `+ throttle:event-deletion-otp-verify` |
+| Method | Route                                  | Name                          | Middleware                              |
+| ------ | -------------------------------------- | ----------------------------- | --------------------------------------- |
+| DELETE | `/events/{event}`                      | `events.destroy`              | `auth, verified, device.trusted`        |
+| POST   | `/events/{event}/deletion/request-otp` | `events.deletion.request-otp` | `+ throttle:event-deletion-otp-request` |
+| POST   | `/events/{event}/deletion/verify-otp`  | `events.deletion.verify-otp`  | `+ throttle:event-deletion-otp-verify`  |
 
 ### Tests
 
-| File | Covers |
-|---|---|
-| `tests/Feature/Events/EventDeletionAdminTest.php` | Admin direct delete, cascade, participant preservation, staff/guest blocked |
-| `tests/Feature/Events/EventDeletionStaffTest.php` | Full OTP flow, cooldown, lock-out, admin blocked from OTP endpoints, guests blocked |
-| `tests/Unit/Services/EventDeletionOtpServiceTest.php` | Service-level: issue, verify, expire, lock, invalidate |
+| File                                                  | Covers                                                                              |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `tests/Feature/Events/EventDeletionAdminTest.php`     | Admin direct delete, cascade, participant preservation, staff/guest blocked         |
+| `tests/Feature/Events/EventDeletionStaffTest.php`     | Full OTP flow, cooldown, lock-out, admin blocked from OTP endpoints, guests blocked |
+| `tests/Unit/Services/EventDeletionOtpServiceTest.php` | Service-level: issue, verify, expire, lock, invalidate                              |
 
 ---
 
@@ -129,7 +129,7 @@ The service:
 2. Generates a 6-digit code (`random_int(0, 999999)`, zero-padded).
 3. Hashes the code with `OtpCode::hash()` (HMAC-SHA256 with `APP_KEY`).
 4. Writes the OTP cache key with `{ code_hash, attempts: 0, issued_at,
-   expires_at }`, TTL 600 seconds.
+expires_at }`, TTL 600 seconds.
 5. Writes the resend cache key with the current timestamp, TTL 60
    seconds.
 6. Sends `EventDeletionOtpMail` to the user's registered email.
@@ -140,13 +140,13 @@ The service:
 `EventDeletionOtpService::verify($user, $event, $code)`. Returns one
 of:
 
-| Result | Meaning | What the controller does |
-|---|---|---|
-| `Verified` | Correct code | Calls `performDeletion()` |
-| `Invalid` | Wrong code, attempts remain | Back with `code` error |
-| `Expired` | TTL passed | Back with `code` error |
-| `Locked` | 5+ wrong attempts | Back with `code` error |
-| `NotFound` | No active OTP | Back with `code` error |
+| Result     | Meaning                     | What the controller does  |
+| ---------- | --------------------------- | ------------------------- |
+| `Verified` | Correct code                | Calls `performDeletion()` |
+| `Invalid`  | Wrong code, attempts remain | Back with `code` error    |
+| `Expired`  | TTL passed                  | Back with `code` error    |
+| `Locked`   | 5+ wrong attempts           | Back with `code` error    |
+| `NotFound` | No active OTP               | Back with `code` error    |
 
 ### 4.3 Invalidate
 
@@ -181,7 +181,7 @@ foreign-key table.
 can have registrations on multiple events.
 
 **After deletion**, the service logs an `event.deleted` info entry with
-counts, actor, and timestamp. This happens *outside* the transaction —
+counts, actor, and timestamp. This happens _outside_ the transaction —
 if logging fails, the deletion has already committed.
 
 ### 5.1 Controller error handling
@@ -254,20 +254,20 @@ the dialog disappears along with it.
 Registered in `AppServiceProvider::configureRateLimiters()`, applied
 in `routes/web.php`.
 
-| Name | Key | Limit | Applies to |
-|---|---|---|---|
-| `event-deletion-otp-request` | `user_id\|event_id` | 3 / min | `requestOtp` |
-| `event-deletion-otp-verify` | `user_id\|event_id` | 10 / min | `verifyOtp` |
+| Name                         | Key                 | Limit    | Applies to   |
+| ---------------------------- | ------------------- | -------- | ------------ |
+| `event-deletion-otp-request` | `user_id\|event_id` | 3 / min  | `requestOtp` |
+| `event-deletion-otp-verify`  | `user_id\|event_id` | 10 / min | `verifyOtp`  |
 
 The `destroy` route is not throttled — it either succeeds quickly
 (admin path) or aborts 403.
 
 ### 7.2 Cache keys
 
-| Key | Shape | TTL |
-|---|---|---|
-| `event-delete-otp:{user_id}:{event_id}` | `{ code_hash, attempts, issued_at, expires_at }` | 600s |
-| `event-delete-otp-resend:{user_id}:{event_id}` | unix timestamp | 60s |
+| Key                                            | Shape                                            | TTL  |
+| ---------------------------------------------- | ------------------------------------------------ | ---- |
+| `event-delete-otp:{user_id}:{event_id}`        | `{ code_hash, attempts, issued_at, expires_at }` | 600s |
+| `event-delete-otp-resend:{user_id}:{event_id}` | unix timestamp                                   | 60s  |
 
 `code_hash` is `OtpCode::hash($code)` = HMAC-SHA256 with `APP_KEY`.
 The plaintext code is never stored or logged.
@@ -276,17 +276,17 @@ The plaintext code is never stored or logged.
 
 From `EventDeletionOtpService`:
 
-| Constant | Value | Meaning |
-|---|---|---|
-| `CODE_TTL_SECONDS` | 600 | 10-minute validity |
-| `RESEND_COOLDOWN_SECONDS` | 60 | 1-minute cooldown |
-| `MAX_ATTEMPTS` | 5 | Wrong-code lockout |
+| Constant                  | Value | Meaning            |
+| ------------------------- | ----- | ------------------ |
+| `CODE_TTL_SECONDS`        | 600   | 10-minute validity |
+| `RESEND_COOLDOWN_SECONDS` | 60    | 1-minute cooldown  |
+| `MAX_ATTEMPTS`            | 5     | Wrong-code lockout |
 
 From `event-deletion-otp-dialog.tsx`:
 
-| Constant | Value | Note |
-|---|---|---|
-| `RESEND_COOLDOWN_SECONDS` | 60 | Must match the backend value |
+| Constant                  | Value | Note                         |
+| ------------------------- | ----- | ---------------------------- |
+| `RESEND_COOLDOWN_SECONDS` | 60    | Must match the backend value |
 
 The two `RESEND_COOLDOWN_SECONDS` constants are **not shared** — they
 are duplicated in PHP and TypeScript. If you change one, change the
@@ -423,14 +423,14 @@ deletion dialog look similar — extract a shared component."
 (both are 6-digit code inputs with a resend cooldown) but their
 lifecycles are different:
 
-| Aspect | `verify-device.tsx` | `event-deletion-otp-dialog.tsx` |
-|---|---|---|
-| Presentation | Full-page Inertia page | Dialog inside `events/show.tsx` |
-| Props | email, autoSend, initialCountdown | eventId, open, onOpenChange |
-| Auto-send | Only when server says no active code | Always on open |
-| Locked handling | None | String-match on "too many" |
-| Post-success | Redirect to home | Parent page unmounts via server redirect |
-| Storage key | Server-driven | None |
+| Aspect          | `verify-device.tsx`                  | `event-deletion-otp-dialog.tsx`          |
+| --------------- | ------------------------------------ | ---------------------------------------- |
+| Presentation    | Full-page Inertia page               | Dialog inside `events/show.tsx`          |
+| Props           | email, autoSend, initialCountdown    | eventId, open, onOpenChange              |
+| Auto-send       | Only when server says no active code | Always on open                           |
+| Locked handling | None                                 | String-match on "too many"               |
+| Post-success    | Redirect to home                     | Parent page unmounts via server redirect |
+| Storage key     | Server-driven                        | None                                     |
 
 Forcing them into a shared component would require the shared component
 to know about both contexts. That is worse than the current duplication.
@@ -520,7 +520,7 @@ appears in three places:
 1. `EnsureDeviceIsTrusted` — admins skip device challenge
 2. `EventDeletionController::destroy()` — admins delete without OTP
 3. `EventDeletionController::requestOtp()/verifyOtp()` — admins are
-   actively *blocked* from those endpoints (403)
+   actively _blocked_ from those endpoints (403)
 
 Making admins go through OTP would require changing all three. The
 reason for the exemption is that admins control the server itself, so
@@ -548,17 +548,17 @@ code so we can see it in dev." Say no.
 
 ## 10. Glossary
 
-| Term | Plain meaning |
-|---|---|
-| **OTP** | One-time password. The 6-digit code emailed to staff. |
-| **Resend cooldown** | The 60-second window during which no new OTP can be issued for the same user+event. |
-| **Attempts** | How many times a wrong code has been submitted for the current OTP. Capped at 5. |
-| **Locked** | The state after 5 wrong attempts. The OTP is invalidated and a new one is needed. |
-| **`performDeletion()`** | Private controller helper that calls the deletion service. Both the admin path and the staff success path go through it. |
-| **Ordered delete** | The explicit sequence of deletes inside a transaction. Required because of the RESTRICT foreign key. |
-| **`requires_otp`** | A prop on `events/show.tsx` — `! $request->user()->isAdmin()`. Tells the frontend which delete path to use. |
-| **`OtpVerificationResult`** | Enum returned by `verify()`. Five cases. |
-| **Wayfinder** | Generates `resources/js/routes/**` from PHP routes. Do not edit those files. |
+| Term                        | Plain meaning                                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **OTP**                     | One-time password. The 6-digit code emailed to staff.                                                                    |
+| **Resend cooldown**         | The 60-second window during which no new OTP can be issued for the same user+event.                                      |
+| **Attempts**                | How many times a wrong code has been submitted for the current OTP. Capped at 5.                                         |
+| **Locked**                  | The state after 5 wrong attempts. The OTP is invalidated and a new one is needed.                                        |
+| **`performDeletion()`**     | Private controller helper that calls the deletion service. Both the admin path and the staff success path go through it. |
+| **Ordered delete**          | The explicit sequence of deletes inside a transaction. Required because of the RESTRICT foreign key.                     |
+| **`requires_otp`**          | A prop on `events/show.tsx` — `! $request->user()->isAdmin()`. Tells the frontend which delete path to use.              |
+| **`OtpVerificationResult`** | Enum returned by `verify()`. Five cases.                                                                                 |
+| **Wayfinder**               | Generates `resources/js/routes/**` from PHP routes. Do not edit those files.                                             |
 
 ---
 

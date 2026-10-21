@@ -102,8 +102,7 @@ type Props = {
 const STATUS_STYLES: Record<string, string> = {
     enrolled:
         'bg-lime-brand/15 text-lime-700 border-lime-brand/30 dark:text-lime-brand',
-    in_progress:
-        'bg-accent/15 text-teal-700 border-accent/30 dark:text-accent',
+    in_progress: 'bg-accent/15 text-teal-700 border-accent/30 dark:text-accent',
     completed:
         'bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400',
     withdrawn: 'bg-destructive/10 text-destructive border-destructive/30',
@@ -134,7 +133,7 @@ function formatDate(iso: string): string {
 function ProgressCell({ progress }: { progress: ProgressRow }) {
     if (progress.applicable === 0) {
         return (
-            <span className="text-xs italic text-muted-foreground/60">
+            <span className="text-muted-foreground/60 text-xs italic">
                 No sessions yet
             </span>
         );
@@ -144,16 +143,16 @@ function ProgressCell({ progress }: { progress: ProgressRow }) {
 
     return (
         <div className="flex items-center gap-2">
-            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
+            <div className="bg-secondary h-1.5 w-16 overflow-hidden rounded-full">
                 <div
-                    className="h-full rounded-full bg-lime-brand"
+                    className="bg-lime-brand h-full rounded-full"
                     style={{ width: `${pct}%` }}
                 />
             </div>
-            <span className="text-xs tabular-nums text-muted-foreground">
+            <span className="text-muted-foreground text-xs tabular-nums">
                 {progress.attended}/{progress.applicable}
             </span>
-            <span className="text-xs tabular-nums text-muted-foreground">
+            <span className="text-muted-foreground text-xs tabular-nums">
                 {pct.toFixed(0)}%
             </span>
         </div>
@@ -191,7 +190,7 @@ function CompletionDonut({ rate }: { rate: number | null }) {
                 />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-sm font-semibold text-foreground">
+                <span className="text-foreground text-sm font-semibold">
                     {pct.toFixed(0)}%
                 </span>
             </div>
@@ -211,10 +210,15 @@ export default function DiscipleshipShow({
 }: Props) {
     const [localSearch, setLocalSearch] = useState(filters.q);
     const [createBatchOpen, setCreateBatchOpen] = useState(false);
-    const [editBatchTarget, setEditBatchTarget] = useState<BatchRow | null>(null);
+    const [editBatchTarget, setEditBatchTarget] = useState<BatchRow | null>(
+        null,
+    );
     const [addEnrollOpen, setAddEnrollOpen] = useState(false);
-    const [editEnrollTarget, setEditEnrollTarget] = useState<EnrollmentRow | null>(null);
-    const [withdrawTarget, setWithdrawTarget] = useState<EnrollmentRow | null>(null);
+    const [editEnrollTarget, setEditEnrollTarget] =
+        useState<EnrollmentRow | null>(null);
+    const [withdrawTarget, setWithdrawTarget] = useState<EnrollmentRow | null>(
+        null,
+    );
     const [detailsOpen, setDetailsOpen] = useState(false);
     const { dialog, openConfirm } = useConfirmDialog();
 
@@ -248,7 +252,12 @@ export default function DiscipleshipShow({
                     preserveScroll: true,
                     preserveState: true,
                     replace: true,
-                    only: ['enrollments', 'enrollments_count', 'counts', 'filters'],
+                    only: [
+                        'enrollments',
+                        'enrollments_count',
+                        'counts',
+                        'filters',
+                    ],
                 },
             );
         }, 300);
@@ -320,7 +329,7 @@ export default function DiscipleshipShow({
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
                 <Link
                     href="/events/church/discipleship"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     All Discipleship
@@ -330,15 +339,15 @@ export default function DiscipleshipShow({
                 <div className="grid gap-4 lg:grid-cols-3">
                     <div className="glass-panel rounded-xl p-6 lg:col-span-2">
                         <div className="pl-10">
-                            <h1 className="text-xl font-semibold text-foreground">
+                            <h1 className="text-foreground text-xl font-semibold">
                                 {program.name}
                             </h1>
                             {program.description && (
-                                <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                                <p className="text-muted-foreground mt-2 max-w-2xl text-sm">
                                     {program.description}
                                 </p>
                             )}
-                            <p className="mt-3 text-xs text-muted-foreground">
+                            <p className="text-muted-foreground mt-3 text-xs">
                                 {batches_count}{' '}
                                 {batches_count === 1 ? 'batch' : 'batches'}
                                 {' · '}
@@ -352,17 +361,19 @@ export default function DiscipleshipShow({
 
                     <div className="flex flex-col gap-4">
                         <div className="glass-panel rounded-xl p-5">
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                                 Program Overview
                             </p>
                             <div className="mt-3 flex items-center gap-4">
-                                <CompletionDonut rate={overview.completion_rate} />
+                                <CompletionDonut
+                                    rate={overview.completion_rate}
+                                />
                                 <div className="flex flex-1 flex-col gap-1 text-xs">
                                     <div className="flex items-center justify-between">
                                         <span className="text-muted-foreground">
                                             Total
                                         </span>
-                                        <span className="tabular-nums text-foreground">
+                                        <span className="text-foreground tabular-nums">
                                             {overview.total}
                                         </span>
                                     </div>
@@ -370,7 +381,7 @@ export default function DiscipleshipShow({
                                         <span className="text-muted-foreground">
                                             Completed
                                         </span>
-                                        <span className="tabular-nums text-foreground">
+                                        <span className="text-foreground tabular-nums">
                                             {overview.completed}
                                         </span>
                                     </div>
@@ -378,7 +389,7 @@ export default function DiscipleshipShow({
                                         <span className="text-muted-foreground">
                                             In Progress
                                         </span>
-                                        <span className="tabular-nums text-foreground">
+                                        <span className="text-foreground tabular-nums">
                                             {overview.in_progress}
                                         </span>
                                     </div>
@@ -386,7 +397,7 @@ export default function DiscipleshipShow({
                                         <span className="text-muted-foreground">
                                             Not Started
                                         </span>
-                                        <span className="tabular-nums text-foreground">
+                                        <span className="text-foreground tabular-nums">
                                             {overview.not_started}
                                         </span>
                                     </div>
@@ -396,31 +407,31 @@ export default function DiscipleshipShow({
 
                         {/* Quick Actions */}
                         <div className="glass-panel rounded-xl p-5">
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                                 Quick Actions
                             </p>
                             <div className="mt-3 flex flex-col gap-2">
                                 <button
                                     type="button"
                                     onClick={() => setDetailsOpen(true)}
-                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-secondary/60"
+                                    className="text-foreground hover:bg-secondary/60 flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors"
                                 >
-                                    <Info className="h-4 w-4 text-muted-foreground" />
+                                    <Info className="text-muted-foreground h-4 w-4" />
                                     View program details
                                 </button>
                                 <a
                                     href="#batches"
-                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-secondary/60"
+                                    className="text-foreground hover:bg-secondary/60 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors"
                                 >
-                                    <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                                    <CalendarDays className="text-muted-foreground h-4 w-4" />
                                     Manage batches
                                 </a>
                                 <button
                                     type="button"
                                     onClick={() => setAddEnrollOpen(true)}
-                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-secondary/60"
+                                    className="text-foreground hover:bg-secondary/60 flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors"
                                 >
-                                    <UserPlus className="h-4 w-4 text-muted-foreground" />
+                                    <UserPlus className="text-muted-foreground h-4 w-4" />
                                     Add enrollment
                                 </button>
                             </div>
@@ -429,9 +440,12 @@ export default function DiscipleshipShow({
                 </div>
 
                 {/* Batches */}
-                <section id="batches" className="flex flex-col gap-3 scroll-mt-6">
+                <section
+                    id="batches"
+                    className="flex scroll-mt-6 flex-col gap-3"
+                >
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                             Batches
                         </h2>
                         <Button
@@ -446,7 +460,7 @@ export default function DiscipleshipShow({
                     </div>
 
                     {batches.length === 0 ? (
-                        <p className="glass-panel rounded-xl p-6 text-center text-sm text-muted-foreground">
+                        <p className="glass-panel text-muted-foreground rounded-xl p-6 text-center text-sm">
                             No batches yet.
                         </p>
                     ) : (
@@ -457,22 +471,25 @@ export default function DiscipleshipShow({
                                     className="glass-panel flex items-center justify-between gap-3 rounded-xl px-5 py-3"
                                 >
                                     <div className="flex flex-1 items-center gap-3">
-                                        <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                        <CalendarDays className="text-muted-foreground h-4 w-4 shrink-0" />
                                         <Link
                                             href={`/discipleship/batches/${batch.id}`}
-                                            className="text-sm font-medium text-foreground hover:text-lime-brand"
+                                            className="text-foreground hover:text-lime-brand text-sm font-medium"
                                         >
                                             {batch.name}
                                         </Link>
-                                        <span className="text-xs text-muted-foreground">
-                                            Starts {formatDate(batch.start_date)}
+                                        <span className="text-muted-foreground text-xs">
+                                            Starts{' '}
+                                            {formatDate(batch.start_date)}
                                         </span>
                                     </div>
                                     <div className="flex shrink-0 items-center gap-1">
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => setEditBatchTarget(batch)}
+                                            onClick={() =>
+                                                setEditBatchTarget(batch)
+                                            }
                                             aria-label={`Edit ${batch.name}`}
                                         >
                                             <Pencil className="h-4 w-4" />
@@ -496,13 +513,13 @@ export default function DiscipleshipShow({
                 {/* Enrollments */}
                 <section className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                             Enrollments
                         </h2>
                         <div className="flex items-center gap-2">
                             <a
                                 href={csvHref}
-                                className="inline-flex h-8 items-center rounded-md border border-border bg-card/80 px-3 text-xs font-medium text-foreground shadow-xs backdrop-blur-sm transition-colors hover:bg-card"
+                                className="border-border bg-card/80 text-foreground hover:bg-card inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium shadow-xs backdrop-blur-sm transition-colors"
                             >
                                 <Download className="mr-1.5 h-3.5 w-3.5" />
                                 Export CSV
@@ -522,7 +539,7 @@ export default function DiscipleshipShow({
                     {/* Filter bar */}
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div className="relative w-full lg:max-w-sm">
-                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                             <Input
                                 value={localSearch}
                                 onChange={(e) => setLocalSearch(e.target.value)}
@@ -536,10 +553,12 @@ export default function DiscipleshipShow({
                                 <button
                                     key={f.value}
                                     type="button"
-                                    onClick={() => applyFilter('status', f.value)}
+                                    onClick={() =>
+                                        applyFilter('status', f.value)
+                                    }
                                     className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                                         filters.status === f.value
-                                            ? 'border-lime-brand/40 bg-lime-brand/25 text-lime-700 dark:bg-lime-brand/20 dark:text-lime-brand'
+                                            ? 'border-lime-brand/40 bg-lime-brand/25 dark:bg-lime-brand/20 dark:text-lime-brand text-lime-700'
                                             : 'border-border bg-card/70 text-foreground hover:bg-card'
                                     }`}
                                 >
@@ -568,7 +587,9 @@ export default function DiscipleshipShow({
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All batches</SelectItem>
-                                <SelectItem value="unassigned">Unassigned</SelectItem>
+                                <SelectItem value="unassigned">
+                                    Unassigned
+                                </SelectItem>
                                 {batches.map((b) => (
                                     <SelectItem key={b.id} value={String(b.id)}>
                                         {b.name}
@@ -581,14 +602,14 @@ export default function DiscipleshipShow({
                             <button
                                 type="button"
                                 onClick={clearFilters}
-                                className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                                className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs transition-colors"
                             >
                                 <X className="h-3 w-3" />
                                 Clear filters
                             </button>
                         )}
 
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-muted-foreground text-xs">
                             {enrollments_count}{' '}
                             {enrollments_count === 1 ? 'result' : 'results'}
                         </span>
@@ -596,15 +617,15 @@ export default function DiscipleshipShow({
 
                     {enrollments.length === 0 ? (
                         <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-12 text-center">
-                            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-lime-brand/15">
-                                <Users className="h-7 w-7 text-lime-brand" />
+                            <div className="bg-lime-brand/15 mb-4 flex h-14 w-14 items-center justify-center rounded-full">
+                                <Users className="text-lime-brand h-7 w-7" />
                             </div>
-                            <p className="mb-1 text-sm font-medium text-foreground">
+                            <p className="text-foreground mb-1 text-sm font-medium">
                                 {hasActiveFilters
                                     ? 'No matches'
                                     : 'No one is enrolled yet'}
                             </p>
-                            <p className="mb-6 max-w-sm text-xs text-muted-foreground">
+                            <p className="text-muted-foreground mb-6 max-w-sm text-xs">
                                 {hasActiveFilters
                                     ? 'Try a different search or filter.'
                                     : 'Enroll the first participant to begin tracking their progress through this program.'}
@@ -625,46 +646,66 @@ export default function DiscipleshipShow({
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                            <th className="px-4 py-3">Participant</th>
-                                            <th className="px-4 py-3">Contact</th>
+                                        <tr className="border-border text-muted-foreground border-b text-left text-xs font-medium tracking-wider uppercase">
+                                            <th className="px-4 py-3">
+                                                Participant
+                                            </th>
+                                            <th className="px-4 py-3">
+                                                Contact
+                                            </th>
                                             <th className="px-4 py-3">Batch</th>
-                                            <th className="px-4 py-3">Status</th>
-                                            <th className="px-4 py-3">Progress</th>
-                                            <th className="px-4 py-3">Enrolled</th>
-                                            <th className="px-4 py-3 text-right">Actions</th>
+                                            <th className="px-4 py-3">
+                                                Status
+                                            </th>
+                                            <th className="px-4 py-3">
+                                                Progress
+                                            </th>
+                                            <th className="px-4 py-3">
+                                                Enrolled
+                                            </th>
+                                            <th className="px-4 py-3 text-right">
+                                                Actions
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {enrollments.map((row) => (
                                             <tr
                                                 key={row.id}
-                                                className="border-b border-border last:border-b-0 hover:bg-card/40"
+                                                className="border-border hover:bg-card/40 border-b last:border-b-0"
                                             >
-                                                <td className="px-4 py-3 font-medium text-foreground">
+                                                <td className="text-foreground px-4 py-3 font-medium">
                                                     {row.full_name ?? '—'}
                                                 </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
-                                                    {row.email ?? row.contact_number ?? '—'}
+                                                <td className="text-muted-foreground px-4 py-3">
+                                                    {row.email ??
+                                                        row.contact_number ??
+                                                        '—'}
                                                 </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
+                                                <td className="text-muted-foreground px-4 py-3">
                                                     {row.batch_name ?? '—'}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span
                                                         className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${
-                                                            STATUS_STYLES[row.status] ?? ''
+                                                            STATUS_STYLES[
+                                                                row.status
+                                                            ] ?? ''
                                                         }`}
                                                     >
                                                         {row.status_label}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <ProgressCell progress={row.progress} />
+                                                    <ProgressCell
+                                                        progress={row.progress}
+                                                    />
                                                 </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
+                                                <td className="text-muted-foreground px-4 py-3">
                                                     {row.enrolled_at
-                                                        ? formatDate(row.enrolled_at)
+                                                        ? formatDate(
+                                                              row.enrolled_at,
+                                                          )
                                                         : '—'}
                                                 </td>
                                                 <td className="px-4 py-3">
@@ -673,7 +714,9 @@ export default function DiscipleshipShow({
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() =>
-                                                                setEditEnrollTarget(row)
+                                                                setEditEnrollTarget(
+                                                                    row,
+                                                                )
                                                             }
                                                             aria-label={`Edit enrollment for ${row.full_name ?? 'participant'}`}
                                                         >
@@ -683,9 +726,14 @@ export default function DiscipleshipShow({
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() =>
-                                                                withdrawEnrollment(row)
+                                                                withdrawEnrollment(
+                                                                    row,
+                                                                )
                                                             }
-                                                            disabled={row.status === 'withdrawn'}
+                                                            disabled={
+                                                                row.status ===
+                                                                'withdrawn'
+                                                            }
                                                             className="text-destructive hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
                                                             aria-label={`Withdraw ${row.full_name ?? 'participant'}`}
                                                         >
@@ -819,10 +867,10 @@ function ProgramDetailsDialog({
                 <div className="grid gap-4">
                     {program.description && (
                         <div className="grid gap-1">
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                                 Description
                             </p>
-                            <p className="text-sm text-foreground">
+                            <p className="text-foreground text-sm">
                                 {program.description}
                             </p>
                         </div>
@@ -830,40 +878,39 @@ function ProgramDetailsDialog({
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-1">
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                                 Batches
                             </p>
-                            <p className="text-sm text-foreground">
+                            <p className="text-foreground text-sm">
                                 {batches.length}
                             </p>
                         </div>
                         <div className="grid gap-1">
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                                 Enrollments
                             </p>
-                            <p className="text-sm text-foreground">
+                            <p className="text-foreground text-sm">
                                 {overview.total}
                             </p>
                         </div>
                     </div>
 
-                    <div className="rounded-md border border-border bg-card/40 p-3">
-                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    <div className="border-border bg-card/40 rounded-md border p-3">
+                        <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                             Completion criteria
                         </p>
-                        <p className="mt-2 text-sm text-foreground">
+                        <p className="text-foreground mt-2 text-sm">
                             Required sessions:{' '}
                             <span className="font-medium">
                                 {overview.total > 0
-                                    ? (enrollmentRequiredText(overview))
+                                    ? enrollmentRequiredText(overview)
                                     : 'Not configured'}
                             </span>
                         </p>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                            Completion criteria are configured by the
-                            organizer. Required session count and any
-                            additional checklist are recorded on the
-                            program record.
+                        <p className="text-muted-foreground mt-2 text-xs">
+                            Completion criteria are configured by the organizer.
+                            Required session count and any additional checklist
+                            are recorded on the program record.
                         </p>
                     </div>
                 </div>
@@ -1112,8 +1159,7 @@ function AddEnrollmentDialog({
         form.transform((data) => ({
             ...data,
             participant_id: Number(data.participant_id),
-            batch_id:
-                data.batch_id === NO_BATCH ? null : Number(data.batch_id),
+            batch_id: data.batch_id === NO_BATCH ? null : Number(data.batch_id),
             enrolled_at: data.enrolled_at === '' ? null : data.enrolled_at,
         }));
         form.post(`/discipleship/programs/${programSlug}/enrollments`, {
@@ -1134,8 +1180,8 @@ function AddEnrollmentDialog({
                     <DialogTitle>Add Enrollment</DialogTitle>
                     <DialogDescription>
                         Search for a participant and enroll them in this
-                        program. Each participant can hold one enrollment
-                        per program.
+                        program. Each participant can hold one enrollment per
+                        program.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -1147,8 +1193,8 @@ function AddEnrollmentDialog({
                         </Label>
 
                         {selected !== null ? (
-                            <div className="flex items-center justify-between rounded-md border border-lime-brand/30 bg-lime-brand/5 px-3 py-2 text-sm">
-                                <span className="font-medium text-foreground">
+                            <div className="border-lime-brand/30 bg-lime-brand/5 flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                                <span className="text-foreground font-medium">
                                     {selected.full_name}
                                 </span>
                                 <Button
@@ -1164,23 +1210,25 @@ function AddEnrollmentDialog({
                         ) : (
                             <>
                                 <div className="relative">
-                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                                     <Input
                                         value={query}
-                                        onChange={(e) => setQuery(e.target.value)}
+                                        onChange={(e) =>
+                                            setQuery(e.target.value)
+                                        }
                                         placeholder="Search name, email, or phone…"
                                         className="pl-9"
                                         autoFocus
                                     />
                                 </div>
 
-                                <div className="max-h-56 overflow-y-auto rounded-md border border-border">
+                                <div className="border-border max-h-56 overflow-y-auto rounded-md border">
                                     {loading ? (
-                                        <p className="px-3 py-2 text-xs text-muted-foreground">
+                                        <p className="text-muted-foreground px-3 py-2 text-xs">
                                             Searching…
                                         </p>
                                     ) : results.length === 0 ? (
-                                        <p className="px-3 py-2 text-xs text-muted-foreground">
+                                        <p className="text-muted-foreground px-3 py-2 text-xs">
                                             {query.trim() === ''
                                                 ? 'No participants found.'
                                                 : 'No matches. Try a different search.'}
@@ -1191,24 +1239,31 @@ function AddEnrollmentDialog({
                                                 <button
                                                     key={p.id}
                                                     type="button"
-                                                    onClick={() => !p.already_enrolled && pick(p)}
-                                                    disabled={p.already_enrolled}
-                                                    className={`flex items-center justify-between gap-3 border-b border-border px-3 py-2 text-left text-sm last:border-b-0 ${
+                                                    onClick={() =>
+                                                        !p.already_enrolled &&
+                                                        pick(p)
+                                                    }
+                                                    disabled={
+                                                        p.already_enrolled
+                                                    }
+                                                    className={`border-border flex items-center justify-between gap-3 border-b px-3 py-2 text-left text-sm last:border-b-0 ${
                                                         p.already_enrolled
                                                             ? 'cursor-not-allowed opacity-50'
                                                             : 'hover:bg-secondary/60'
                                                     }`}
                                                 >
                                                     <div className="flex flex-col">
-                                                        <span className="font-medium text-foreground">
+                                                        <span className="text-foreground font-medium">
                                                             {p.full_name}
                                                         </span>
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {p.email ?? p.contact_number ?? '—'}
+                                                        <span className="text-muted-foreground text-xs">
+                                                            {p.email ??
+                                                                p.contact_number ??
+                                                                '—'}
                                                         </span>
                                                     </div>
                                                     {p.already_enrolled && (
-                                                        <span className="shrink-0 text-xs italic text-muted-foreground">
+                                                        <span className="text-muted-foreground shrink-0 text-xs italic">
                                                             Already enrolled
                                                         </span>
                                                     )}
@@ -1218,7 +1273,9 @@ function AddEnrollmentDialog({
                                     )}
                                 </div>
 
-                                <InputError message={form.errors.participant_id} />
+                                <InputError
+                                    message={form.errors.participant_id}
+                                />
                             </>
                         )}
                     </div>
@@ -1233,7 +1290,9 @@ function AddEnrollmentDialog({
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value={NO_BATCH}>No batch yet</SelectItem>
+                                <SelectItem value={NO_BATCH}>
+                                    No batch yet
+                                </SelectItem>
                                 {batches.map((b) => (
                                     <SelectItem key={b.id} value={String(b.id)}>
                                         {b.name}
@@ -1252,7 +1311,7 @@ function AddEnrollmentDialog({
                             onChange={(v) => form.setData('enrolled_at', v)}
                             placeholder="Defaults to today"
                         />
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                             Leave empty to use today's date.
                         </p>
                         <InputError message={form.errors.enrolled_at} />
@@ -1263,7 +1322,9 @@ function AddEnrollmentDialog({
                         <textarea
                             id="add-notes"
                             value={form.data.notes}
-                            onChange={(e) => form.setData('notes', e.target.value)}
+                            onChange={(e) =>
+                                form.setData('notes', e.target.value)
+                            }
                             rows={2}
                             className="border-input bg-input placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-16 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
                             placeholder="Optional. Any notes about this enrollment."
@@ -1323,8 +1384,7 @@ function EditEnrollmentDialog({
         e.preventDefault();
         form.transform((data) => ({
             ...data,
-            batch_id:
-                data.batch_id === NO_BATCH ? null : Number(data.batch_id),
+            batch_id: data.batch_id === NO_BATCH ? null : Number(data.batch_id),
         }));
         form.put(`/discipleship/enrollments/${enrollment.id}`, {
             onSuccess: () => onOpenChange(false),
@@ -1382,7 +1442,9 @@ function EditEnrollmentDialog({
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value={NO_BATCH}>No batch</SelectItem>
+                                <SelectItem value={NO_BATCH}>
+                                    No batch
+                                </SelectItem>
                                 {batches.map((b) => (
                                     <SelectItem key={b.id} value={String(b.id)}>
                                         {b.name}
@@ -1398,7 +1460,9 @@ function EditEnrollmentDialog({
                         <textarea
                             id="edit-notes"
                             value={form.data.notes}
-                            onChange={(e) => form.setData('notes', e.target.value)}
+                            onChange={(e) =>
+                                form.setData('notes', e.target.value)
+                            }
                             rows={3}
                             className="border-input bg-input placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-16 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
                             placeholder="Optional notes about this enrollment"

@@ -330,10 +330,10 @@ This is the biggest RBAC gap in the system and the one the sidebar
 work does not address.
 
 1. **Decide the ownership model.** Options:
-   - Any staff can edit any event (current behavior — deliberate?)
-   - Only the creator can edit their own events
-   - Only the creator or an admin can edit
-   - Staff can edit their own; admins can edit anyone's
+    - Any staff can edit any event (current behavior — deliberate?)
+    - Only the creator can edit their own events
+    - Only the creator or an admin can edit
+    - Staff can edit their own; admins can edit anyone's
 
 2. **Implement the chosen model.** The natural place is a Laravel
    policy (`EventPolicy`) registered in `AppServiceProvider`. The
@@ -375,24 +375,24 @@ These are documented in full in their subsystem guides. Listed here so
 this file works as a master index. If you fix one, add a pointer entry
 under it or move it up into a full entry.
 
-| # | Title | Where | Severity |
-|---|---|---|---|
-| A-1 | SecurityTest.php skips 3 tests silently | `docs/authentication.md` Trap #6 | Low |
-| A-2 | Flash `status` not shared to Inertia | `docs/authentication.md` Open #3 | Cosmetic |
-| A-3 | Device-token hash claim in architecture.md wrong | Fixed via `architecture.md` corrections | — |
-| A-4 | Mail queued class sent synchronously | `docs/authentication.md` Trap #9 | Low |
-| E-1 | Dead `isEdit` ternary in BasicsStep | `docs/event-creation.md` Trap #3 | Cosmetic |
-| E-2 | Workflow transitions not wired to routes | `docs/event-creation.md` Open #4 | Low |
-| E-3 | No test coverage on event CRUD controllers | `docs/event-creation.md` §8.2 | Low |
-| D-1 | No try/catch in `EventDeletionController::destroy()` | `docs/event-deletion.md` Open #1 | Low |
-| D-2 | `locked` detection uses string-match on error text | `docs/event-deletion.md` Trap #1 | Medium |
-| D-3 | `RESEND_COOLDOWN_SECONDS` duplicated across PHP/TS | `docs/event-deletion.md` Trap #3 | Cosmetic |
-| D-4 | No autoFocus on OTP input in deletion dialog | `docs/event-deletion.md` Open #4 | Cosmetic |
-| W-1 | Checkpoint has no "resume draft" prompt | `docs/event-creation-wizard.md` §11.1 | Low |
-| W-2 | Checkpoint `clear()` fires before submit | `docs/event-creation-wizard.md` §11.1 | Low |
-| W-3 | FAQ entries cannot be edited through any UI | `docs/event-creation-wizard.md` §11.2 | Medium |
-| W-4 | Partner contact info not stored | `docs/event-creation-wizard.md` §11.4 | Low |
-| W-5 | No server-side draft persistence | `docs/event-creation-wizard.md` §11.5 | Low |
+| #   | Title                                                | Where                                   | Severity |
+| --- | ---------------------------------------------------- | --------------------------------------- | -------- |
+| A-1 | SecurityTest.php skips 3 tests silently              | `docs/authentication.md` Trap #6        | Low      |
+| A-2 | Flash `status` not shared to Inertia                 | `docs/authentication.md` Open #3        | Cosmetic |
+| A-3 | Device-token hash claim in architecture.md wrong     | Fixed via `architecture.md` corrections | —        |
+| A-4 | Mail queued class sent synchronously                 | `docs/authentication.md` Trap #9        | Low      |
+| E-1 | Dead `isEdit` ternary in BasicsStep                  | `docs/event-creation.md` Trap #3        | Cosmetic |
+| E-2 | Workflow transitions not wired to routes             | `docs/event-creation.md` Open #4        | Low      |
+| E-3 | No test coverage on event CRUD controllers           | `docs/event-creation.md` §8.2           | Low      |
+| D-1 | No try/catch in `EventDeletionController::destroy()` | `docs/event-deletion.md` Open #1        | Low      |
+| D-2 | `locked` detection uses string-match on error text   | `docs/event-deletion.md` Trap #1        | Medium   |
+| D-3 | `RESEND_COOLDOWN_SECONDS` duplicated across PHP/TS   | `docs/event-deletion.md` Trap #3        | Cosmetic |
+| D-4 | No autoFocus on OTP input in deletion dialog         | `docs/event-deletion.md` Open #4        | Cosmetic |
+| W-1 | Checkpoint has no "resume draft" prompt              | `docs/event-creation-wizard.md` §11.1   | Low      |
+| W-2 | Checkpoint `clear()` fires before submit             | `docs/event-creation-wizard.md` §11.1   | Low      |
+| W-3 | FAQ entries cannot be edited through any UI          | `docs/event-creation-wizard.md` §11.2   | Medium   |
+| W-4 | Partner contact info not stored                      | `docs/event-creation-wizard.md` §11.4   | Low      |
+| W-5 | No server-side draft persistence                     | `docs/event-creation-wizard.md` §11.5   | Low      |
 
 ---
 
@@ -494,7 +494,7 @@ security — only friction.
 - Removed the four now-unused imports (`EmailTwoFactorService`,
   `Logout`, `Cookie`, `Event`)
 - Inverted `tests/Feature/Auth/LogoutDeviceTrustTest.php` — it now
-  asserts the cookie is *not* cleared on logout
+  asserts the cookie is _not_ cleared on logout
 
 **No changes to:** `EnsureDeviceIsTrusted`, `EmailTwoFactorService`,
 the settings page, or any route. The trust-list-based check was always
@@ -1151,6 +1151,7 @@ through a workflow method that enforces it — same pattern as
 ### Verification when fixed
 
 New feature test file `tests/Feature/Events/ChurchEventKindGuardTest.php`:
+
 - `POST open-registration` on a church event → 403
 - `PUT update` on a church event cannot bypass a legal → illegal
   `church_status` transition
@@ -1252,6 +1253,7 @@ it never transitions `timestamp → null` via `mark()`.
 ### Verification when fixed
 
 New test in `tests/Feature/Events/AttendanceVerificationTest.php`:
+
 - Mark Present with code → `verified_at` set
 - Re-mark Present (no code) → `verified_at` still set
 - Re-mark Absent → `verified_at` still set (absence doesn't clear
@@ -1682,16 +1684,17 @@ Three coordinated changes plus a data migration:
    applicable = every session in the batch.
 3. **Data migration:** existing attendance rows with `excused` status
    need a decision. Options:
-   - Convert to `absent` (preserves history as absence; recommended)
-   - Delete the rows
-   - Leave orphaned (breaks the enum constraint)
-   Follow-up question already on the client: confirm the conversion
-   choice and confirm mid-batch joiners show partial progress under
-   the new rule.
+    - Convert to `absent` (preserves history as absence; recommended)
+    - Delete the rows
+    - Leave orphaned (breaks the enum constraint)
+      Follow-up question already on the client: confirm the conversion
+      choice and confirm mid-batch joiners show partial progress under
+      the new rule.
 
 ### Verification when fixed
 
 New test in `tests/Feature/Discipleship/DiscipleshipProgressTest.php`:
+
 - Excused status no longer accepted (validation error)
 - Applicable includes pre-enrollment sessions
 - Attended counts Present only, ignores Absent
@@ -1705,7 +1708,6 @@ New test in `tests/Feature/Discipleship/DiscipleshipProgressTest.php`:
   additions." Eleven from the audit (`docs/audit-2026-10-19.md`);
   one from client Q14. M5 and P5 excluded — both closed by
   shipped W-phase work (W5.1 and W2 respectively).
-
 
 ## Running Events audit addendum — 2026-10-21
 
@@ -1738,6 +1740,7 @@ baseline must shrink, not grow.
 Pint debt deferred to a separate chore PR.
 
 **Follow-up priorities for the cleanup PR:**
+
 1. `missingType.generics` on Model relations (~60 errors) — mechanical, high count.
 2. `Access to undefined property ... Model::$xxx` (~150 errors) — add `@property` docblocks.
 3. `Cannot call method toDateString() on string` (~40 errors) — date casts need typed PHPDoc.

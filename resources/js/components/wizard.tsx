@@ -56,10 +56,7 @@ type Props<T extends Record<string, unknown>> = {
      * with server-side errors from the parent form. Pass these down to
      * the step component so its `<InputError>` slots actually fire.
      */
-    children: (
-        stepId: string,
-        errors: Record<string, string>,
-    ) => ReactNode;
+    children: (stepId: string, errors: Record<string, string>) => ReactNode;
 };
 
 export default function Wizard<T extends Record<string, unknown>>({
@@ -265,10 +262,10 @@ export default function Wizard<T extends Record<string, unknown>>({
             {hasErrors && (
                 <div
                     role="alert"
-                    className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3"
+                    className="border-destructive/40 bg-destructive/10 flex items-start gap-2 rounded-lg border p-3"
                 >
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                    <p className="text-sm font-medium text-destructive">
+                    <AlertCircle className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
+                    <p className="text-destructive text-sm font-medium">
                         Please fix the highlighted fields before continuing.
                     </p>
                 </div>

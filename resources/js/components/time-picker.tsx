@@ -89,7 +89,9 @@ export default function TimePicker({
         <div className={cn('flex items-center gap-1', className)}>
             <Select
                 value={hour !== null ? String(hour) : ''}
-                onValueChange={(v) => update(parseInt(v, 10), minute ?? 0, period)}
+                onValueChange={(v) =>
+                    update(parseInt(v, 10), minute ?? 0, period)
+                }
                 disabled={disabled}
             >
                 <SelectTrigger id={id} className="h-9 flex-1 px-2">
@@ -104,11 +106,13 @@ export default function TimePicker({
                 </SelectContent>
             </Select>
 
-            <span className="text-sm text-muted-foreground">:</span>
+            <span className="text-muted-foreground text-sm">:</span>
 
             <Select
                 value={minute !== null ? String(minute) : ''}
-                onValueChange={(v) => update(hour ?? 12, parseInt(v, 10), period)}
+                onValueChange={(v) =>
+                    update(hour ?? 12, parseInt(v, 10), period)
+                }
                 disabled={disabled}
             >
                 <SelectTrigger className="h-9 flex-1 px-2">
@@ -125,7 +129,9 @@ export default function TimePicker({
 
             <Select
                 value={period}
-                onValueChange={(v) => update(hour ?? 12, minute ?? 0, v as Period)}
+                onValueChange={(v) =>
+                    update(hour ?? 12, minute ?? 0, v as Period)
+                }
                 disabled={disabled}
             >
                 <SelectTrigger className="h-9 w-20 shrink-0 px-2">
@@ -144,7 +150,7 @@ export default function TimePicker({
                     disabled={disabled}
                     aria-label="Clear time"
                     title="Clear time"
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                    className="text-muted-foreground hover:text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-white/10 disabled:pointer-events-none disabled:opacity-50"
                 >
                     <X className="h-4 w-4" />
                 </button>

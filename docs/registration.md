@@ -90,14 +90,14 @@ button on the current options page disappears.
 Every registration includes these fields, always. Required unless marked
 optional.
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `first_name` | text | yes | |
-| `last_name` | text | yes | |
-| `email` | email | yes | Unique per event — duplicate submissions rejected |
-| `contact_number` | text | yes | Mobile number for on-site coordination |
-| `age` | number | yes | 1–120 |
-| `address` | text | no | Free-form |
+| Field            | Type   | Required | Notes                                             |
+| ---------------- | ------ | -------- | ------------------------------------------------- |
+| `first_name`     | text   | yes      |                                                   |
+| `last_name`      | text   | yes      |                                                   |
+| `email`          | email  | yes      | Unique per event — duplicate submissions rejected |
+| `contact_number` | text   | yes      | Mobile number for on-site coordination            |
+| `age`            | number | yes      | 1–120                                             |
+| `address`        | text   | no       | Free-form                                         |
 
 These map 1:1 to the existing `participants` table columns. No migration
 needed.
@@ -112,14 +112,14 @@ structural.
 The organizer adds custom fields on the Create Registration Form page.
 Each custom field has:
 
-| Attribute | Notes |
-|---|---|
-| `label` | Human-readable, e.g. "Shirt Size" |
-| `type` | One of: `text`, `number`, `email`, `select`, `checkbox`, `radio`, `date` |
-| `options` | Only for `select`, `radio`, `checkbox` — JSON array of strings |
-| `required` | boolean |
-| `validation_rules` | JSON — min length, max length, regex, min/max value |
-| `display_order` | Integer, controls rendering order |
+| Attribute          | Notes                                                                    |
+| ------------------ | ------------------------------------------------------------------------ |
+| `label`            | Human-readable, e.g. "Shirt Size"                                        |
+| `type`             | One of: `text`, `number`, `email`, `select`, `checkbox`, `radio`, `date` |
+| `options`          | Only for `select`, `radio`, `checkbox` — JSON array of strings           |
+| `required`         | boolean                                                                  |
+| `validation_rules` | JSON — min length, max length, regex, min/max value                      |
+| `display_order`    | Integer, controls rendering order                                        |
 
 ### Schema
 
@@ -466,11 +466,11 @@ path. The flow at `/r/{slug}` is now three-phase:
 
 ### New columns and table (2026-10-13)
 
-| Object | Purpose |
-|---|---|
+| Object                                       | Purpose                                                                                               |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `registration_verification_challenges` table | Pending intake. One row per submit. Encrypted payload, token hash, per-channel OTP state, 24-hour TTL |
-| `registrations.submitted_email` | Snapshot of the value the participant typed. Nullable. Not an identity key |
-| `registrations.submitted_contact_number` | Same, for phone. Nullable. Not an identity key |
+| `registrations.submitted_email`              | Snapshot of the value the participant typed. Nullable. Not an identity key                            |
+| `registrations.submitted_contact_number`     | Same, for phone. Nullable. Not an identity key                                                        |
 
 Migrations:
 
@@ -488,7 +488,7 @@ non-obvious behavior. Read it before touching the public path.
 ### Identity model — unchanged in spirit
 
 `Participant::resolveFrom()` is still the identity resolver. The
-change is *when* it runs: at finalize, not at submit. Only verified
+change is _when_ it runs: at finalize, not at submit. Only verified
 identity keys participate in resolution. Optional contact values are
 stored on the Registration as `submitted_*` snapshots and never touch
 `participants.email` or `participants.contact_number`.
@@ -628,7 +628,7 @@ Participant-facing strings now read "Registration Code" instead of
 `resources/js/lib/public-registration-validation.ts`'s at-least-one
 identity check now respects the per-event toggle state. Previously
 it fired whenever both email and phone were blank, even if one was
-optional. It now fires only when no *required* identity channel is
+optional. It now fires only when no _required_ identity channel is
 satisfied — matching `PublicRegistrationRequest::withValidator()`
 Pass 3.
 
@@ -694,7 +694,6 @@ Decisions: store birthday only and derive age on read
 column for legacy rows); bounds tightened from 1–120 to 3–120.
 Client and server each enforce the bounds. Full phase record:
 `docs/progress.md` "2026-10-19 — Birthdate swap closure".
-
 
 ## Running Events audit addendum — 2026-10-21
 

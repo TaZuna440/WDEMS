@@ -20,7 +20,7 @@ There are two roles: **admin** and **staff**.
 
 Login is handled by Laravel Fortify (standard email + password). On top
 of that, WDEMS adds a **custom email two-factor authentication** layer
-that is *not* Fortify's built-in TOTP 2FA. This is the single most
+that is _not_ Fortify's built-in TOTP 2FA. This is the single most
 common source of confusion in the codebase.
 
 The flow, in one line:
@@ -38,93 +38,93 @@ find the file here first.
 
 ### Backend — the login gate
 
-| File | What it does |
-|---|---|
-| `config/fortify.php` | Fortify settings. **TOTP 2FA is NOT enabled here.** |
-| `config/auth.php` | Session guard, password broker, 3-hour password confirmation timeout |
-| `app/Providers/FortifyServiceProvider.php` | Views, login rate limiter, role-based redirect after login |
-| `app/Providers/AppServiceProvider.php` | 2FA rate limiters, logout cookie cleanup, password rules |
-| `app/Http/Middleware/EnsureDeviceIsTrusted.php` | **The gate.** Sends new devices to the challenge page |
-| `app/Http/Middleware/AdminMiddleware.php` | Blocks non-admins from `/admin/*` |
-| `bootstrap/app.php` | Registers the two middleware aliases above |
+| File                                            | What it does                                                         |
+| ----------------------------------------------- | -------------------------------------------------------------------- |
+| `config/fortify.php`                            | Fortify settings. **TOTP 2FA is NOT enabled here.**                  |
+| `config/auth.php`                               | Session guard, password broker, 3-hour password confirmation timeout |
+| `app/Providers/FortifyServiceProvider.php`      | Views, login rate limiter, role-based redirect after login           |
+| `app/Providers/AppServiceProvider.php`          | 2FA rate limiters, logout cookie cleanup, password rules             |
+| `app/Http/Middleware/EnsureDeviceIsTrusted.php` | **The gate.** Sends new devices to the challenge page                |
+| `app/Http/Middleware/AdminMiddleware.php`       | Blocks non-admins from `/admin/*`                                    |
+| `bootstrap/app.php`                             | Registers the two middleware aliases above                           |
 
 ### Backend — the email 2FA system (custom, not Fortify)
 
-| File | What it does |
-|---|---|
-| `app/Services/TwoFactor/EmailTwoFactorService.php` | **Everything.** Issue codes, verify codes, trust devices, revoke devices |
-| `app/Services/TwoFactor/EmailTwoFactorResult.php` | Enum: `Verified`, `Invalid`, `Expired`, `Locked`, `NotFound` |
-| `app/Services/Otp/OtpCode.php` | Shared helper for generating/hashing OTP codes |
-| `app/Http/Controllers/Auth/DeviceVerificationController.php` | The three endpoints the challenge page talks to |
-| `app/Mail/LoginVerificationCodeMail.php` | The email sent with the code |
-| `resources/views/emails/login-verification-code.blade.php` | The email body |
+| File                                                         | What it does                                                             |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `app/Services/TwoFactor/EmailTwoFactorService.php`           | **Everything.** Issue codes, verify codes, trust devices, revoke devices |
+| `app/Services/TwoFactor/EmailTwoFactorResult.php`            | Enum: `Verified`, `Invalid`, `Expired`, `Locked`, `NotFound`             |
+| `app/Services/Otp/OtpCode.php`                               | Shared helper for generating/hashing OTP codes                           |
+| `app/Http/Controllers/Auth/DeviceVerificationController.php` | The three endpoints the challenge page talks to                          |
+| `app/Mail/LoginVerificationCodeMail.php`                     | The email sent with the code                                             |
+| `resources/views/emails/login-verification-code.blade.php`   | The email body                                                           |
 
 ### Backend — settings (security + profile)
 
-| File | What it does |
-|---|---|
-| `app/Http/Controllers/Settings/SecurityController.php` | Password change, 2FA toggle, device revoke |
-| `app/Http/Controllers/Settings/ProfileController.php` | Profile update, account deletion |
-| `app/Http/Requests/Settings/PasswordUpdateRequest.php` | Validates password change form |
-| `app/Http/Requests/Settings/ProfileUpdateRequest.php` | Validates profile form |
-| `app/Http/Requests/Settings/ProfileDeleteRequest.php` | Validates account deletion |
-| `app/Http/Requests/Settings/TwoFactorAuthenticationRequest.php` | Empty request — see §6 trap #4 |
-| `app/Concerns/PasswordValidationRules.php` | Shared password rules trait |
-| `app/Concerns/ProfileValidationRules.php` | Shared profile rules trait |
+| File                                                            | What it does                               |
+| --------------------------------------------------------------- | ------------------------------------------ |
+| `app/Http/Controllers/Settings/SecurityController.php`          | Password change, 2FA toggle, device revoke |
+| `app/Http/Controllers/Settings/ProfileController.php`           | Profile update, account deletion           |
+| `app/Http/Requests/Settings/PasswordUpdateRequest.php`          | Validates password change form             |
+| `app/Http/Requests/Settings/ProfileUpdateRequest.php`           | Validates profile form                     |
+| `app/Http/Requests/Settings/ProfileDeleteRequest.php`           | Validates account deletion                 |
+| `app/Http/Requests/Settings/TwoFactorAuthenticationRequest.php` | Empty request — see §6 trap #4             |
+| `app/Concerns/PasswordValidationRules.php`                      | Shared password rules trait                |
+| `app/Concerns/ProfileValidationRules.php`                       | Shared profile rules trait                 |
 
 ### Backend — routes
 
-| File | What it does |
-|---|---|
-| `routes/web.php` | Device verification routes + all main app routes |
-| `routes/settings.php` | Profile, security, appearance |
+| File                  | What it does                                     |
+| --------------------- | ------------------------------------------------ |
+| `routes/web.php`      | Device verification routes + all main app routes |
+| `routes/settings.php` | Profile, security, appearance                    |
 
 ### Backend — model
 
-| File | What it does |
-|---|---|
+| File                  | What it does                               |
+| --------------------- | ------------------------------------------ |
 | `app/Models/User.php` | `isAdmin()`, `homePath()`, casts, fillable |
 
 ### Frontend — pages
 
-| File | What it does |
-|---|---|
-| `resources/js/pages/auth/login.tsx` | Sign-in form |
-| `resources/js/pages/auth/verify-device.tsx` | The 6-digit code challenge |
-| `resources/js/pages/auth/forgot-password.tsx` | Password reset request |
-| `resources/js/pages/auth/reset-password.tsx` | New password form |
-| `resources/js/pages/auth/confirm-password.tsx` | Re-enter password gate |
-| `resources/js/pages/auth/verify-email.tsx` | Email verification notice |
-| `resources/js/pages/settings/security.tsx` | Password, 2FA toggle, device list |
-| `resources/js/pages/settings/profile.tsx` | Profile + delete account |
+| File                                           | What it does                      |
+| ---------------------------------------------- | --------------------------------- |
+| `resources/js/pages/auth/login.tsx`            | Sign-in form                      |
+| `resources/js/pages/auth/verify-device.tsx`    | The 6-digit code challenge        |
+| `resources/js/pages/auth/forgot-password.tsx`  | Password reset request            |
+| `resources/js/pages/auth/reset-password.tsx`   | New password form                 |
+| `resources/js/pages/auth/confirm-password.tsx` | Re-enter password gate            |
+| `resources/js/pages/auth/verify-email.tsx`     | Email verification notice         |
+| `resources/js/pages/settings/security.tsx`     | Password, 2FA toggle, device list |
+| `resources/js/pages/settings/profile.tsx`      | Profile + delete account          |
 
 ### Frontend — layouts & shell
 
-| File | What it does |
-|---|---|
-| `resources/js/app.tsx` | Chooses the layout per page name |
-| `resources/js/layouts/auth-layout.tsx` | Simple wrapper around `auth-simple-layout` |
-| `resources/js/layouts/auth/auth-login-layout.tsx` | The branded split-screen login |
-| `resources/js/layouts/auth/auth-simple-layout.tsx` | Default auth page wrapper |
-| `resources/js/layouts/settings/layout.tsx` | The three-tab strip (Profile / Security / Appearance) |
-| `resources/js/layouts/app-layout.tsx` | The main app shell wrapper |
+| File                                               | What it does                                          |
+| -------------------------------------------------- | ----------------------------------------------------- |
+| `resources/js/app.tsx`                             | Chooses the layout per page name                      |
+| `resources/js/layouts/auth-layout.tsx`             | Simple wrapper around `auth-simple-layout`            |
+| `resources/js/layouts/auth/auth-login-layout.tsx`  | The branded split-screen login                        |
+| `resources/js/layouts/auth/auth-simple-layout.tsx` | Default auth page wrapper                             |
+| `resources/js/layouts/settings/layout.tsx`         | The three-tab strip (Profile / Security / Appearance) |
+| `resources/js/layouts/app-layout.tsx`              | The main app shell wrapper                            |
 
 ### Frontend — shared components
 
-| File | What it does |
-|---|---|
-| `resources/js/components/password-input.tsx` | Input with show/hide toggle |
-| `resources/js/components/delete-user.tsx` | Delete account modal |
-| `resources/js/components/heading.tsx` | `variant="small"` or `"default"` heading |
-| `resources/js/components/input-error.tsx` | Red error text under a field |
-| `resources/js/components/wdems-logo.tsx` | Brand SVG logo |
-| `resources/js/hooks/use-confirm-dialog.tsx` | Confirm modal hook |
+| File                                         | What it does                             |
+| -------------------------------------------- | ---------------------------------------- |
+| `resources/js/components/password-input.tsx` | Input with show/hide toggle              |
+| `resources/js/components/delete-user.tsx`    | Delete account modal                     |
+| `resources/js/components/heading.tsx`        | `variant="small"` or `"default"` heading |
+| `resources/js/components/input-error.tsx`    | Red error text under a field             |
+| `resources/js/components/wdems-logo.tsx`     | Brand SVG logo                           |
+| `resources/js/hooks/use-confirm-dialog.tsx`  | Confirm modal hook                       |
 
 ### Frontend — generated (do NOT edit)
 
-| Path | What it is |
-|---|---|
-| `resources/js/routes/**` | Wayfinder-generated route helpers |
+| Path                      | What it is                         |
+| ------------------------- | ---------------------------------- |
+| `resources/js/routes/**`  | Wayfinder-generated route helpers  |
 | `resources/js/actions/**` | Wayfinder-generated action helpers |
 
 These regenerate from Laravel routes on every `npm run dev`. **If you
@@ -132,18 +132,18 @@ edit them by hand, your edits disappear.**
 
 ### Tests
 
-| File | Covers |
-|---|---|
-| `tests/Feature/Auth/AuthenticationTest.php` | Login, logout, rate limit, role redirects |
-| `tests/Feature/Auth/DeviceVerificationTest.php` | Full 2FA challenge flow |
-| `tests/Feature/Auth/LogoutDeviceTrustTest.php` | Cookie cleared on logout |
-| `tests/Feature/Auth/EmailVerificationTest.php` | Standard Fortify email verification |
-| `tests/Feature/Auth/PasswordConfirmationTest.php` | Password confirm screen |
-| `tests/Feature/Auth/PasswordResetTest.php` | Password reset flow |
-| `tests/Feature/Auth/VerificationNotificationTest.php` | Resend verification email |
-| `tests/Feature/Settings/SecurityTest.php` | **3 page tests skip silently — see §6 trap #6** |
-| `tests/Feature/Settings/ProfileUpdateTest.php` | Profile update, delete |
-| `tests/Unit/Services/EmailTwoFactorServiceTest.php` | Service-level OTP + device tests |
+| File                                                  | Covers                                          |
+| ----------------------------------------------------- | ----------------------------------------------- |
+| `tests/Feature/Auth/AuthenticationTest.php`           | Login, logout, rate limit, role redirects       |
+| `tests/Feature/Auth/DeviceVerificationTest.php`       | Full 2FA challenge flow                         |
+| `tests/Feature/Auth/LogoutDeviceTrustTest.php`        | Cookie cleared on logout                        |
+| `tests/Feature/Auth/EmailVerificationTest.php`        | Standard Fortify email verification             |
+| `tests/Feature/Auth/PasswordConfirmationTest.php`     | Password confirm screen                         |
+| `tests/Feature/Auth/PasswordResetTest.php`            | Password reset flow                             |
+| `tests/Feature/Auth/VerificationNotificationTest.php` | Resend verification email                       |
+| `tests/Feature/Settings/SecurityTest.php`             | **3 page tests skip silently — see §6 trap #6** |
+| `tests/Feature/Settings/ProfileUpdateTest.php`        | Profile update, delete                          |
+| `tests/Unit/Services/EmailTwoFactorServiceTest.php`   | Service-level OTP + device tests                |
 
 ---
 
@@ -239,7 +239,7 @@ or divert the user to the code challenge.
 
 **Safe changes:**
 
-- Adding a new check *between* existing ones that returns `$next($request)`
+- Adding a new check _between_ existing ones that returns `$next($request)`
   more often.
 - Changing the redirect target from `device.verify` to a new route.
 
@@ -261,14 +261,14 @@ list on the user row.
 
 **Key constants — do not change without a deliberate decision:**
 
-| Constant | Value | Meaning |
-|---|---|---|
-| `CODE_TTL_SECONDS` | 600 | 10-minute code validity |
-| `RESEND_COOLDOWN_SECONDS` | 60 | 1-minute resend window |
-| `MAX_ATTEMPTS` | 5 | Wrong-code lockout |
-| `DEVICE_COOKIE_NAME` | `wdems_trusted_device` | |
-| `DEVICE_TTL_MINUTES` | 43200 | 30 days |
-| `MAX_TRUSTED_DEVICES` | 10 | Cap per user |
+| Constant                  | Value                  | Meaning                 |
+| ------------------------- | ---------------------- | ----------------------- |
+| `CODE_TTL_SECONDS`        | 600                    | 10-minute code validity |
+| `RESEND_COOLDOWN_SECONDS` | 60                     | 1-minute resend window  |
+| `MAX_ATTEMPTS`            | 5                      | Wrong-code lockout      |
+| `DEVICE_COOKIE_NAME`      | `wdems_trusted_device` |                         |
+| `DEVICE_TTL_MINUTES`      | 43200                  | 30 days                 |
+| `MAX_TRUSTED_DEVICES`     | 10                     | Cap per user            |
 
 **Safe changes:**
 
@@ -295,11 +295,11 @@ list on the user row.
 
 **Three endpoints:**
 
-| Method | Route | Purpose |
-|---|---|---|
-| `show()` | GET `/verify-device` | Render the page |
-| `sendCode()` | POST `/verify-device/send-code` | Issue a code |
-| `verify()` | POST `/verify-device/verify` | Verify a code |
+| Method       | Route                           | Purpose         |
+| ------------ | ------------------------------- | --------------- |
+| `show()`     | GET `/verify-device`            | Render the page |
+| `sendCode()` | POST `/verify-device/send-code` | Issue a code    |
+| `verify()`   | POST `/verify-device/verify`    | Verify a code   |
 
 **Safe changes:**
 
@@ -328,12 +328,12 @@ list on the user row.
 
 **Routes:**
 
-| Method | Route | Name |
-|---|---|---|
-| GET | `/settings/security` | `security.edit` |
-| PUT | `/settings/password` | `user-password.update` |
-| PUT | `/settings/security/two-factor` | `security.two-factor.toggle` |
-| DELETE | `/settings/security/devices/{deviceId}` | `security.devices.revoke` |
+| Method | Route                                   | Name                         |
+| ------ | --------------------------------------- | ---------------------------- |
+| GET    | `/settings/security`                    | `security.edit`              |
+| PUT    | `/settings/password`                    | `user-password.update`       |
+| PUT    | `/settings/security/two-factor`         | `security.two-factor.toggle` |
+| DELETE | `/settings/security/devices/{deviceId}` | `security.devices.revoke`    |
 
 **Safe changes:**
 
@@ -399,10 +399,10 @@ controller.
 ### Add a new auth route
 
 1. Add it in `routes/web.php` inside the correct middleware group.
-   - Needs login but not device trust? Use `['auth', 'verified']`.
-   - Needs device trust? Use `['auth', 'verified', 'device.trusted']`.
-   - Needs password confirmation? Add `RequirePassword` (from
-     `Illuminate\Auth\Middleware\RequirePassword`).
+    - Needs login but not device trust? Use `['auth', 'verified']`.
+    - Needs device trust? Use `['auth', 'verified', 'device.trusted']`.
+    - Needs password confirmation? Add `RequirePassword` (from
+      `Illuminate\Auth\Middleware\RequirePassword`).
 2. Run `npm run dev` so Wayfinder regenerates `resources/js/routes/`.
 3. Import from `@/routes/...` in the React side.
 
@@ -459,6 +459,7 @@ exists but is **never rendered** by any controller I can find.
 
 **What to do instead:** If you want to add an admin-only view, you
 have two options:
+
 1. Add conditional logic inside `dashboard.tsx` keyed on the user's role.
 2. Create a new controller/route/pages under a distinct path, and
    confirm the render target matches the file path.
@@ -603,21 +604,21 @@ or controller.
 
 ## 7. Glossary
 
-| Term | Plain meaning |
-|---|---|
-| **Fortify** | The Laravel package that provides the login/logout/password-reset endpoints. WDEMS uses it for the base login, not for 2FA. |
-| **2FA / Two-factor authentication** | Requiring a second proof of identity — in WDEMS, a 6-digit code sent to email. |
-| **OTP** | One-time password. Same thing as a 2FA code in this codebase. |
-| **Trusted device** | A browser WDEMS has been told "this is okay". Skips the code challenge for 30 days. |
-| **Device cookie** | The browser cookie (`wdems_trusted_device`) that proves the browser is trusted. |
-| **Middleware** | Code that runs before a controller. `EnsureDeviceIsTrusted` is a middleware. |
-| **Guard** | Laravel's name for "how is the user authenticated". WDEMS uses the `web` session guard. |
-| **Wayfinder** | The Laravel + TypeScript plugin that generates `resources/js/routes/**` from your Laravel routes. |
-| **Inertia** | The bridge between Laravel and React. Server renders props, React renders the page. |
-| **`forceFill`** | A model method that bypasses `$fillable`. Used for security-sensitive fields. |
-| **`fill`** | A model method that respects `$fillable`. Drops anything not listed. |
-| **`RequirePassword`** | Laravel's built-in middleware (`Illuminate\Auth\Middleware\RequirePassword`) that forces the user to re-enter their password before sensitive actions. Not part of Fortify. |
-| **Rate limiter** | A throttle that slows down repeated requests. Used on login and 2FA endpoints. |
+| Term                                | Plain meaning                                                                                                                                                               |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fortify**                         | The Laravel package that provides the login/logout/password-reset endpoints. WDEMS uses it for the base login, not for 2FA.                                                 |
+| **2FA / Two-factor authentication** | Requiring a second proof of identity — in WDEMS, a 6-digit code sent to email.                                                                                              |
+| **OTP**                             | One-time password. Same thing as a 2FA code in this codebase.                                                                                                               |
+| **Trusted device**                  | A browser WDEMS has been told "this is okay". Skips the code challenge for 30 days.                                                                                         |
+| **Device cookie**                   | The browser cookie (`wdems_trusted_device`) that proves the browser is trusted.                                                                                             |
+| **Middleware**                      | Code that runs before a controller. `EnsureDeviceIsTrusted` is a middleware.                                                                                                |
+| **Guard**                           | Laravel's name for "how is the user authenticated". WDEMS uses the `web` session guard.                                                                                     |
+| **Wayfinder**                       | The Laravel + TypeScript plugin that generates `resources/js/routes/**` from your Laravel routes.                                                                           |
+| **Inertia**                         | The bridge between Laravel and React. Server renders props, React renders the page.                                                                                         |
+| **`forceFill`**                     | A model method that bypasses `$fillable`. Used for security-sensitive fields.                                                                                               |
+| **`fill`**                          | A model method that respects `$fillable`. Drops anything not listed.                                                                                                        |
+| **`RequirePassword`**               | Laravel's built-in middleware (`Illuminate\Auth\Middleware\RequirePassword`) that forces the user to re-enter their password before sensitive actions. Not part of Fortify. |
+| **Rate limiter**                    | A throttle that slows down repeated requests. Used on login and 2FA endpoints.                                                                                              |
 
 ---
 
@@ -691,7 +692,7 @@ cookie. Trust survives logout until it is revoked or expires.
 shared browser from carrying device-trust state into the next user's
 session. But the trust check is already per-user — see
 `EmailTwoFactorService::hasTrustedDevice()`, which only matches entries
-in the *current user's* `trusted_devices` array. A cookie left behind
+in the _current user's_ `trusted_devices` array. A cookie left behind
 by a previous user is useless to a different user.
 
 The listener added no security. It only forced the same user to
@@ -782,9 +783,9 @@ Full record: `docs/fixes.md` FIX-003.
 
 ### Summary table
 
-| Concern | Before 2026-09-25 | After |
-|---|---|---|
-| Unverified staff reaches dashboard | Yes (gate was a no-op) | No — redirected to `/verify-email` |
-| Unverified admin reaches admin dashboard | Yes (gate was a no-op) | Yes (deliberate bypass) |
-| Framework `verified` alias | Active but inert | Active, now enforces |
-| Custom `verified.or.admin` alias | Did not exist | Registered and in use on two route groups |
+| Concern                                  | Before 2026-09-25      | After                                     |
+| ---------------------------------------- | ---------------------- | ----------------------------------------- |
+| Unverified staff reaches dashboard       | Yes (gate was a no-op) | No — redirected to `/verify-email`        |
+| Unverified admin reaches admin dashboard | Yes (gate was a no-op) | Yes (deliberate bypass)                   |
+| Framework `verified` alias               | Active but inert       | Active, now enforces                      |
+| Custom `verified.or.admin` alias         | Did not exist          | Registered and in use on two route groups |

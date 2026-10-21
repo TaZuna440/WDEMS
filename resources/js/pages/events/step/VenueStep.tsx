@@ -32,10 +32,8 @@ export default function VenueStep({ data, setData, errors }: Props) {
     return (
         <div className="flex flex-col gap-6">
             <div>
-                <h2 className="text-lg font-semibold text-foreground">
-                    Venue
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <h2 className="text-foreground text-lg font-semibold">Venue</h2>
+                <p className="text-muted-foreground mt-1 text-sm">
                     Where the event takes place.
                 </p>
             </div>
@@ -51,7 +49,7 @@ export default function VenueStep({ data, setData, errors }: Props) {
                     placeholder="e.g. SM Mall of Asia Grounds"
                 />
                 <InputError message={errors.venue} />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                     Short name participants will recognize.
                 </p>
             </div>
@@ -67,7 +65,7 @@ export default function VenueStep({ data, setData, errors }: Props) {
                     placeholder="e.g. Seaside Blvd, Pasay, Metro Manila"
                 />
                 <InputError message={errors.venue_address} />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                     Full street address participants can type into a
                     ride-hailing app if needed.
                 </p>
@@ -79,9 +77,7 @@ export default function VenueStep({ data, setData, errors }: Props) {
                     id="venue_map_url"
                     type="url"
                     value={data.venue_map_url}
-                    onChange={(e) =>
-                        setData('venue_map_url', e.target.value)
-                    }
+                    onChange={(e) => setData('venue_map_url', e.target.value)}
                     onBlur={(e) =>
                         setData(
                             'venue_map_url',
@@ -91,11 +87,11 @@ export default function VenueStep({ data, setData, errors }: Props) {
                     placeholder="Paste a Google Maps link to the meeting point"
                 />
                 <InputError message={errors.venue_map_url} />
-                <p className="text-xs text-muted-foreground">
-                    Optional. Paste a Google Maps link only. Open Google Maps, tap Share, and paste the URL
-                    here. Participants will get a one-tap "navigate here"
-                    button. If you leave out the https:// part, it is added
-                    automatically.
+                <p className="text-muted-foreground text-xs">
+                    Optional. Paste a Google Maps link only. Open Google Maps,
+                    tap Share, and paste the URL here. Participants will get a
+                    one-tap "navigate here" button. If you leave out the
+                    https:// part, it is added automatically.
                 </p>
             </div>
         </div>

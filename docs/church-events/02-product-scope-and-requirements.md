@@ -14,6 +14,7 @@ scope, and which requirements remain unresolved. Documents 03-06
 derive from this one.
 
 **Related:**
+
 - `docs/church-events/01-current-system-audit.md` -- what exists
   in WDEMS today
 - `docs/AI-CONTEXT.md` -- system-wide constraints
@@ -27,12 +28,12 @@ derive from this one.
 
 Every requirement below carries one of four tags.
 
-| Tag | Meaning |
-|---|---|
-| **CONFIRMED** | A directive from the Church Events scoping prompt. It is a settled instruction, not a proposal. |
-| **PROPOSED** | From the workflow specification, the mockup, or a related client document. Not yet approved as a requirement. Included here so it is not lost and can be approved or rejected deliberately. |
-| **PENDING** | A decision that has not been made. Listed so it blocks the right things and is not accidentally answered by an implementation choice. |
-| **OUT** | Explicitly excluded from the current scope. Recorded so it is not re-proposed. |
+| Tag           | Meaning                                                                                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CONFIRMED** | A directive from the Church Events scoping prompt. It is a settled instruction, not a proposal.                                                                                             |
+| **PROPOSED**  | From the workflow specification, the mockup, or a related client document. Not yet approved as a requirement. Included here so it is not lost and can be approved or rejected deliberately. |
+| **PENDING**   | A decision that has not been made. Listed so it blocks the right things and is not accidentally answered by an implementation choice.                                                       |
+| **OUT**       | Explicitly excluded from the current scope. Recorded so it is not re-proposed.                                                                                                              |
 
 Nothing in this document is an implementation decision. Where a
 requirement is CONFIRMED, document 04 may turn it into feature
@@ -358,6 +359,7 @@ points.
 
 **EVT-02 (PROPOSED).** Five-stage lifecycle shared by all church
 categories:
+
 1. Proposal
 2. Planning & Approval
 3. Preparation
@@ -422,6 +424,7 @@ count-only attendance is needed for services.
 participant-plus-occurrence. From workflow spec section 2.2.
 
 **ATT-06 (PROPOSED).** Category-specific attendance features:
+
 - Services -- recurring attendance, history per participant
 - Fellowship -- attendance by group
 - Discipleship -- attendance per session, progress
@@ -610,4 +613,3 @@ finalized.
   scoping prompt (CONFIRMED items), from the workflow spec and
   mockup (PROPOSED items), and as open questions (PENDING items).
   Ten unresolved decisions carried into document 03.
-

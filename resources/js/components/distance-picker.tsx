@@ -88,9 +88,7 @@ function NumberCombobox({
     }, [open]);
 
     const filtered =
-        filter === ''
-            ? options
-            : options.filter((o) => o.startsWith(filter));
+        filter === '' ? options : options.filter((o) => o.startsWith(filter));
 
     const handleInputChange = (raw: string) => {
         const digitsOnly = raw.replace(/\D/g, '').slice(0, maxDigits);
@@ -128,12 +126,12 @@ function NumberCombobox({
                 placeholder={placeholder}
                 className="border-input bg-input placeholder:text-muted-foreground focus-visible:ring-ring h-9 w-full rounded-md border pr-7 pl-3 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             />
-            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 -translate-y-1/2" />
 
             {open && !disabled && (
                 <div className="border-input bg-popover absolute top-full left-0 z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border shadow-lg">
                     {filtered.length === 0 ? (
-                        <div className="px-3 py-2 text-xs text-muted-foreground">
+                        <div className="text-muted-foreground px-3 py-2 text-xs">
                             No matches
                         </div>
                     ) : (
@@ -146,7 +144,7 @@ function NumberCombobox({
                                 className={cn(
                                     'block w-full px-3 py-1.5 text-left text-sm transition-colors hover:bg-white/5',
                                     value === opt
-                                        ? 'bg-lime-brand/10 font-medium text-lime-brand'
+                                        ? 'bg-lime-brand/10 text-lime-brand font-medium'
                                         : 'text-foreground',
                                 )}
                             >
@@ -237,7 +235,7 @@ export default function DistancePicker({
                     placeholder="0"
                     className="flex-[2]"
                 />
-                <span className="text-sm text-muted-foreground select-none">
+                <span className="text-muted-foreground text-sm select-none">
                     .
                 </span>
                 <NumberCombobox
@@ -260,7 +258,7 @@ export default function DistancePicker({
                         'px-3 text-xs font-semibold transition-colors',
                         unit === 'km'
                             ? 'bg-lime-brand text-navy-900'
-                            : 'text-muted-foreground hover:bg-white/5 hover:text-foreground',
+                            : 'text-muted-foreground hover:text-foreground hover:bg-white/5',
                     )}
                 >
                     KM
@@ -273,7 +271,7 @@ export default function DistancePicker({
                         'border-input border-l px-3 text-xs font-semibold transition-colors',
                         unit === 'mi'
                             ? 'bg-lime-brand text-navy-900'
-                            : 'text-muted-foreground hover:bg-white/5 hover:text-foreground',
+                            : 'text-muted-foreground hover:text-foreground hover:bg-white/5',
                     )}
                 >
                     Miles

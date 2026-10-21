@@ -13,9 +13,9 @@
    Fellowship, Discipleship. Add Reports.
 2. Move three modules under a shared prefix:
 
-   /services     →  /events/church/services
-   /fellowship   →  /events/church/fellowship
-   /discipleship →  /events/church/discipleship
+    /services → /events/church/services
+    /fellowship → /events/church/fellowship
+    /discipleship → /events/church/discipleship
 
 Route **names** stay unchanged. `services.index`,
 `fellowship.attendance.show`, `discipleship.programs.show`, and

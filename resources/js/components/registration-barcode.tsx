@@ -7,12 +7,24 @@ export default function RegistrationBarcode({ code }: { code: string }) {
     useEffect(() => {
         if (!svg.current) return;
         JsBarcode(svg.current, code, {
-            format: 'CODE128', width: 2, height: 80, margin: 20,
-            background: '#ffffff', lineColor: '#000000', displayValue: false,
+            format: 'CODE128',
+            width: 2,
+            height: 80,
+            margin: 20,
+            background: '#ffffff',
+            lineColor: '#000000',
+            displayValue: false,
         });
     }, [code]);
 
-    return <div className="flex justify-center overflow-x-auto rounded-lg bg-white p-2">
-        <svg ref={svg} role="img" aria-label={`Registration barcode ${code}`} className="max-w-full" />
-    </div>;
+    return (
+        <div className="flex justify-center overflow-x-auto rounded-lg bg-white p-2">
+            <svg
+                ref={svg}
+                role="img"
+                aria-label={`Registration barcode ${code}`}
+                className="max-w-full"
+            />
+        </div>
+    );
 }

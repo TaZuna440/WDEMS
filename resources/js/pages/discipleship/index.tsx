@@ -40,9 +40,9 @@ export default function DiscipleshipIndex({ programs }: Props) {
             <Head title="Discipleship" />
 
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
-                                <Link
+                <Link
                     href="/events?kind=church"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Church Events
@@ -65,21 +65,21 @@ export default function DiscipleshipIndex({ programs }: Props) {
                             <Link
                                 key={program.id}
                                 href={`/events/church/discipleship/programs/${program.slug}`}
-                                className="glass-panel group flex gap-4 rounded-xl p-5 transition-colors hover:border-lime-brand/40"
+                                className="glass-panel group hover:border-lime-brand/40 flex gap-4 rounded-xl p-5 transition-colors"
                             >
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-lime-brand/15 text-lime-700 dark:text-lime-brand">
+                                <div className="bg-lime-brand/15 dark:text-lime-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lime-700">
                                     <Icon className="h-5 w-5" />
                                 </div>
                                 <div className="flex flex-1 flex-col gap-1">
-                                    <p className="text-sm font-semibold text-foreground">
+                                    <p className="text-foreground text-sm font-semibold">
                                         {program.name}
                                     </p>
                                     {program.description && (
-                                        <p className="line-clamp-2 text-xs text-muted-foreground">
+                                        <p className="text-muted-foreground line-clamp-2 text-xs">
                                             {program.description}
                                         </p>
                                     )}
-                                    <p className="mt-1 text-xs text-muted-foreground">
+                                    <p className="text-muted-foreground mt-1 text-xs">
                                         {program.batches_count === 0
                                             ? 'No batches yet'
                                             : `${program.batches_count} ${

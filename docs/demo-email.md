@@ -13,13 +13,13 @@ dashboard.
 
 ## 1. The demo account
 
-| Field | Value |
-|---|---|
-| Email | `pomasinejboy@gmail.com` |
-| Password | `TaZuna@440` |
-| Role | `staff` |
-| Verified | **no** (on purpose) |
-| 2FA | **on** (on purpose) |
+| Field    | Value                    |
+| -------- | ------------------------ |
+| Email    | `pomasinejboy@gmail.com` |
+| Password | `TaZuna@440`             |
+| Role     | `staff`                  |
+| Verified | **no** (on purpose)      |
+| 2FA      | **on** (on purpose)      |
 
 This account is created by `database/seeders/DemoUsersSeeder.php`.
 It must be unverified for the demo to show both gates. If it has
@@ -126,6 +126,7 @@ No 2FA challenge yet.
 On `/email/verify`, click **Resend verification email**.
 
 **Expected:**
+
 - Success banner: "A new verification link has been sent to the email
   address you provided during registration."
 - New row appears in the Resend dashboard within seconds
@@ -152,6 +153,7 @@ On `/verify-device`, the page auto-sends the OTP code on first load.
 No click needed.
 
 **Expected:**
+
 - "Sending…" appears briefly
 - New email arrives within seconds
 - The email subject is **"WDEMS — Login Verification Code"**
@@ -204,10 +206,10 @@ the browser is still trusted.
 
 The two emails behave differently in Gmail:
 
-| Email | Sender | Typical landing |
-|---|---|---|
-| Verify your email address (contains a link/button) | `onboarding@resend.dev` | **Spam** |
-| WDEMS — Login Verification Code (plain code) | `onboarding@resend.dev` | **Inbox** |
+| Email                                              | Sender                  | Typical landing |
+| -------------------------------------------------- | ----------------------- | --------------- |
+| Verify your email address (contains a link/button) | `onboarding@resend.dev` | **Spam**        |
+| WDEMS — Login Verification Code (plain code)       | `onboarding@resend.dev` | **Inbox**       |
 
 Gmail classifies link-emails from shared sandbox senders more
 aggressively. This is a heuristic on Gmail's side, not a bug in WDEMS.
@@ -260,16 +262,16 @@ To restore Resend afterward:
 
 ## 9. Troubleshooting
 
-| Symptom | Likely cause | Fix |
-|---|---|---|
-| Login: "These credentials do not match our records" | Account missing or password changed | `php artisan db:seed` recreates if missing; the seeder does **not** reset the password of an existing account. Delete and re-seed: `User::where('email', 'pomasinejboy@gmail.com')->delete()` then `db:seed` |
-| Login succeeds but lands on `/dashboard` (skipping email verify) | The user is verified, or is an admin | Check `email_verified_at` in Tinker. If set, run §6's reset command |
-| Login lands on `/email/verify` but "Resend" button does nothing | Rate limited (6 sends/hour default), or the mailer errored | Check `storage/logs/laravel.log` and the Resend dashboard |
-| Verification link in email gives "Invalid signature" | The link was generated for an older user row (from before a database reset) | Send a fresh link — old links do not survive a `migrate:fresh` |
-| 2FA code email never arrives | Resend accepted it but Gmail filtered it | Check Gmail Spam, then the Resend dashboard → Logs |
-| Resend dashboard shows "Delivered" but nothing in Gmail | Gmail classified it as Spam / Promotions / Updates | Use Gmail search: `from:onboarding@resend.dev in:anywhere` |
-| `config('mail.default')` still says `log` after `.env` change | Config cache is stale | `php artisan config:clear` — see `docs/AI-CONTEXT.md` §13 |
-| `migrate:fresh` takes more than a minute | Another artisan process is holding MySQL | `ps aux | grep artisan` — kill all, then re-run |
+| Symptom                                                          | Likely cause                                                                | Fix                                                                                                                                                                                                          |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Login: "These credentials do not match our records"              | Account missing or password changed                                         | `php artisan db:seed` recreates if missing; the seeder does **not** reset the password of an existing account. Delete and re-seed: `User::where('email', 'pomasinejboy@gmail.com')->delete()` then `db:seed` |
+| Login succeeds but lands on `/dashboard` (skipping email verify) | The user is verified, or is an admin                                        | Check `email_verified_at` in Tinker. If set, run §6's reset command                                                                                                                                          |
+| Login lands on `/email/verify` but "Resend" button does nothing  | Rate limited (6 sends/hour default), or the mailer errored                  | Check `storage/logs/laravel.log` and the Resend dashboard                                                                                                                                                    |
+| Verification link in email gives "Invalid signature"             | The link was generated for an older user row (from before a database reset) | Send a fresh link — old links do not survive a `migrate:fresh`                                                                                                                                               |
+| 2FA code email never arrives                                     | Resend accepted it but Gmail filtered it                                    | Check Gmail Spam, then the Resend dashboard → Logs                                                                                                                                                           |
+| Resend dashboard shows "Delivered" but nothing in Gmail          | Gmail classified it as Spam / Promotions / Updates                          | Use Gmail search: `from:onboarding@resend.dev in:anywhere`                                                                                                                                                   |
+| `config('mail.default')` still says `log` after `.env` change    | Config cache is stale                                                       | `php artisan config:clear` — see `docs/AI-CONTEXT.md` §13                                                                                                                                                    |
+| `migrate:fresh` takes more than a minute                         | Another artisan process is holding MySQL                                    | `ps aux                                                                                                                                                                                                      | grep artisan` — kill all, then re-run |
 
 ---
 

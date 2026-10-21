@@ -24,7 +24,8 @@ type Props = {
 
 const confirmButtonStyles: Record<ConfirmVariant, string> = {
     primary: 'bg-lime-brand text-navy-900 hover:bg-lime-brand/90',
-    warning: 'bg-[#13253B] text-white hover:bg-[#13253B]/90 dark:bg-yellow-500 dark:text-navy-900 dark:hover:bg-yellow-500/90',
+    warning:
+        'bg-[#13253B] text-white hover:bg-[#13253B]/90 dark:bg-yellow-500 dark:text-navy-900 dark:hover:bg-yellow-500/90',
     danger: '',
 };
 

@@ -110,9 +110,7 @@ export default function FellowshipAttendance({
     const [search, setSearch] = useState('');
     const [addOpen, setAddOpen] = useState(false);
     const [groupDialog, setGroupDialog] = useState<
-        | { mode: 'create' }
-        | { mode: 'edit'; group: GroupRow }
-        | null
+        { mode: 'create' } | { mode: 'edit'; group: GroupRow } | null
     >(null);
     const { dialog, openConfirm } = useConfirmDialog();
 
@@ -139,8 +137,7 @@ export default function FellowshipAttendance({
         },
     ) => {
         const payload = {
-            attendance_status:
-                patch.attendance_status ?? row.attendance_status,
+            attendance_status: patch.attendance_status ?? row.attendance_status,
             fellowship_group_id:
                 patch.fellowship_group_id !== undefined
                     ? patch.fellowship_group_id
@@ -188,14 +185,12 @@ export default function FellowshipAttendance({
 
     return (
         <>
-            <Head
-                title={`Attendance — ${event.fellowship_type_label}`}
-            />
+            <Head title={`Attendance — ${event.fellowship_type_label}`} />
 
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
                 <Link
                     href={`/fellowship/${event.fellowship_type}`}
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     {event.fellowship_type_label}
@@ -204,13 +199,13 @@ export default function FellowshipAttendance({
                 {/* Header */}
                 <div className="glass-panel rounded-xl p-6">
                     <div className="pl-10">
-                        <h1 className="text-xl font-semibold text-foreground">
+                        <h1 className="text-foreground text-xl font-semibold">
                             {event.name}
                         </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                        <p className="text-muted-foreground mt-1 text-sm">
                             {formatDate(event.event_date)}
                         </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                             {event.start_time && event.end_time && (
                                 <span className="inline-flex items-center gap-1.5">
                                     <Clock className="h-3 w-3" />
@@ -243,12 +238,12 @@ export default function FellowshipAttendance({
                 <div className="glass-panel rounded-xl p-5">
                     <div className="mb-3 flex items-center justify-between">
                         <div>
-                            <h2 className="text-sm font-semibold text-foreground">
+                            <h2 className="text-foreground text-sm font-semibold">
                                 Groups
                             </h2>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
-                                Optional. Assign participants to a group
-                                to track attendance by subgroup.
+                            <p className="text-muted-foreground mt-0.5 text-xs">
+                                Optional. Assign participants to a group to
+                                track attendance by subgroup.
                             </p>
                         </div>
                         <Button
@@ -263,18 +258,18 @@ export default function FellowshipAttendance({
                     </div>
 
                     {groups.length === 0 ? (
-                        <p className="text-xs italic text-muted-foreground">
-                            No groups yet. Participants can be marked
-                            without a group.
+                        <p className="text-muted-foreground text-xs italic">
+                            No groups yet. Participants can be marked without a
+                            group.
                         </p>
                     ) : (
                         <div className="flex flex-wrap gap-2">
                             {groups.map((g) => (
                                 <div
                                     key={g.id}
-                                    className="inline-flex items-center gap-2 rounded-full border border-border bg-card/40 py-1 pl-3 pr-1.5 text-xs"
+                                    className="border-border bg-card/40 inline-flex items-center gap-2 rounded-full border py-1 pr-1.5 pl-3 text-xs"
                                 >
-                                    <span className="font-medium text-foreground">
+                                    <span className="text-foreground font-medium">
                                         {g.name}
                                     </span>
                                     <span className="text-muted-foreground">
@@ -288,17 +283,15 @@ export default function FellowshipAttendance({
                                                 group: g,
                                             })
                                         }
-                                        className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                                        className="text-muted-foreground hover:bg-secondary hover:text-foreground rounded p-0.5 transition-colors"
                                         aria-label={`Edit group ${g.name}`}
                                     >
                                         <Pencil className="h-3 w-3" />
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() =>
-                                            confirmDeleteGroup(g)
-                                        }
-                                        className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                        onClick={() => confirmDeleteGroup(g)}
+                                        className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded p-0.5 transition-colors"
                                         aria-label={`Delete group ${g.name}`}
                                     >
                                         <X className="h-3 w-3" />
@@ -312,7 +305,7 @@ export default function FellowshipAttendance({
                 {/* Toolbar */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="relative max-w-sm flex-1">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                         <Input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -332,15 +325,15 @@ export default function FellowshipAttendance({
                 {/* Roster */}
                 {visibleRows.length === 0 ? (
                     <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-16 text-center">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-lime-brand/15">
-                            <UserPlus className="h-8 w-8 text-lime-brand" />
+                        <div className="bg-lime-brand/15 mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                            <UserPlus className="text-lime-brand h-8 w-8" />
                         </div>
-                        <h2 className="mb-2 text-lg font-semibold text-foreground">
+                        <h2 className="text-foreground mb-2 text-lg font-semibold">
                             {search !== ''
                                 ? 'No matches'
                                 : 'No one is marked yet'}
                         </h2>
-                        <p className="mb-6 max-w-sm text-sm text-muted-foreground">
+                        <p className="text-muted-foreground mb-6 max-w-sm text-sm">
                             {search !== ''
                                 ? 'Try a different search term.'
                                 : 'Add the first participant to begin recording attendance.'}
@@ -351,23 +344,23 @@ export default function FellowshipAttendance({
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-border text-left">
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    <tr className="border-border border-b text-left">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Status
                                         </th>
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Name
                                         </th>
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Age
                                         </th>
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Contact
                                         </th>
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Group
                                         </th>
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Actions
                                         </th>
                                     </tr>
@@ -376,7 +369,7 @@ export default function FellowshipAttendance({
                                     {visibleRows.map((row) => (
                                         <tr
                                             key={row.id}
-                                            className="border-b border-border transition-colors last:border-b-0 hover:bg-card/40"
+                                            className="border-border hover:bg-card/40 border-b transition-colors last:border-b-0"
                                         >
                                             <td className="px-3 py-3">
                                                 <select
@@ -407,13 +400,13 @@ export default function FellowshipAttendance({
                                                     ))}
                                                 </select>
                                             </td>
-                                            <td className="px-3 py-3 text-sm font-medium text-foreground">
+                                            <td className="text-foreground px-3 py-3 text-sm font-medium">
                                                 {row.full_name ?? '—'}
                                             </td>
-                                            <td className="px-3 py-3 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground px-3 py-3 text-sm">
                                                 {row.age ?? '—'}
                                             </td>
-                                            <td className="px-3 py-3 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground px-3 py-3 text-sm">
                                                 {row.contact_number ?? '—'}
                                             </td>
                                             <td className="px-3 py-3">
@@ -557,8 +550,8 @@ function AddParticipantDialog({
                 <DialogHeader>
                     <DialogTitle>Add Participant</DialogTitle>
                     <DialogDescription>
-                        {eventName}. If the phone number matches an
-                        existing participant, that record is reused.
+                        {eventName}. If the phone number matches an existing
+                        participant, that record is reused.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -573,16 +566,11 @@ function AddParticipantDialog({
                                 id="attn-first-name"
                                 value={form.data.first_name}
                                 onChange={(e) =>
-                                    form.setData(
-                                        'first_name',
-                                        e.target.value,
-                                    )
+                                    form.setData('first_name', e.target.value)
                                 }
                                 autoFocus
                             />
-                            <InputError
-                                message={form.errors.first_name}
-                            />
+                            <InputError message={form.errors.first_name} />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="attn-last-name">
@@ -593,10 +581,7 @@ function AddParticipantDialog({
                                 id="attn-last-name"
                                 value={form.data.last_name}
                                 onChange={(e) =>
-                                    form.setData(
-                                        'last_name',
-                                        e.target.value,
-                                    )
+                                    form.setData('last_name', e.target.value)
                                 }
                             />
                             <InputError message={form.errors.last_name} />
@@ -625,15 +610,10 @@ function AddParticipantDialog({
                                 type="date"
                                 value={form.data.birthday}
                                 onChange={(e) =>
-                                    form.setData(
-                                        'birthday',
-                                        e.target.value,
-                                    )
+                                    form.setData('birthday', e.target.value)
                                 }
                             />
-                            <InputError
-                                message={form.errors.birthday}
-                            />
+                            <InputError message={form.errors.birthday} />
                         </div>
                     </div>
 
@@ -643,16 +623,11 @@ function AddParticipantDialog({
                             id="attn-contact"
                             value={form.data.contact_number}
                             onChange={(e) =>
-                                form.setData(
-                                    'contact_number',
-                                    e.target.value,
-                                )
+                                form.setData('contact_number', e.target.value)
                             }
                             placeholder="09171234567"
                         />
-                        <InputError
-                            message={form.errors.contact_number}
-                        />
+                        <InputError message={form.errors.contact_number} />
                     </div>
 
                     <div className="grid gap-2">
@@ -683,18 +658,13 @@ function AddParticipantDialog({
                                     No group
                                 </SelectItem>
                                 {groups.map((g) => (
-                                    <SelectItem
-                                        key={g.id}
-                                        value={String(g.id)}
-                                    >
+                                    <SelectItem key={g.id} value={String(g.id)}>
                                         {g.name}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
-                        <InputError
-                            message={form.errors.fellowship_group_id}
-                        />
+                        <InputError message={form.errors.fellowship_group_id} />
                     </div>
 
                     <DialogFooter>
@@ -750,10 +720,10 @@ function GroupFormDialog({
         };
 
         if (isEdit && existing) {
-            form.put(
-                `/fellowship/events/${eventId}/groups/${existing.id}`,
-                { onSuccess, preserveScroll: true },
-            );
+            form.put(`/fellowship/events/${eventId}/groups/${existing.id}`, {
+                onSuccess,
+                preserveScroll: true,
+            });
         } else {
             form.post(`/fellowship/events/${eventId}/groups`, {
                 onSuccess,
@@ -808,7 +778,7 @@ function GroupFormDialog({
                                 )
                             }
                         />
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                             Lower numbers appear first.
                         </p>
                         <InputError message={form.errors.display_order} />

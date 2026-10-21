@@ -20,6 +20,7 @@ text that could not be read confidently, it is flagged. No code,
 migration, model, or test was changed to produce this document.
 
 **Related:**
+
 - `docs/church-events/01-current-system-audit.md` -- the
   original system audit
 - `docs/church-events/02-product-scope-and-requirements.md` --
@@ -67,19 +68,19 @@ Shipped as of commit `e859fe1` (2026-10-16).
 
 ### 2.1 Modules
 
-| Module | Status | Doc |
-|---|---|---|
-| Auth (Fortify + custom email 2FA + trusted devices + passkeys) | Shipped | `authentication.md` |
-| Events (Community Run model) | Shipped | `event-creation.md`, `event-creation-wizard.md` |
-| Event deletion (admin + staff OTP) | Shipped | `event-deletion.md` |
-| Public registration + contact verification | Shipped | `registration.md`, `registration-contact-verification.md` |
-| Attendance (mark / confirm / batch + code lookup + live/deferred encoding) | Shipped | `attendance-redesign.md`, `attendance-code.md` |
-| Event finalize + end-of-event report | Shipped | `attendance-encoding-and-reporting.md` |
-| Services (Morning, Midweek, Youth, Other) | Shipped (Phase 3) | (no dedicated doc) |
-| Fellowship (six types, groups, attendance) | Shipped (Phase 4) | (no dedicated doc) |
-| Discipleship programs | Shipped (Phase 5A) | `progress.md` entry |
-| Discipleship batches | Shipped (Phase 5B) | `progress.md` entry |
-| Discipleship enrollment | Shipped (Phase 5C) | `progress.md` entry |
+| Module                                                                     | Status             | Doc                                                       |
+| -------------------------------------------------------------------------- | ------------------ | --------------------------------------------------------- |
+| Auth (Fortify + custom email 2FA + trusted devices + passkeys)             | Shipped            | `authentication.md`                                       |
+| Events (Community Run model)                                               | Shipped            | `event-creation.md`, `event-creation-wizard.md`           |
+| Event deletion (admin + staff OTP)                                         | Shipped            | `event-deletion.md`                                       |
+| Public registration + contact verification                                 | Shipped            | `registration.md`, `registration-contact-verification.md` |
+| Attendance (mark / confirm / batch + code lookup + live/deferred encoding) | Shipped            | `attendance-redesign.md`, `attendance-code.md`            |
+| Event finalize + end-of-event report                                       | Shipped            | `attendance-encoding-and-reporting.md`                    |
+| Services (Morning, Midweek, Youth, Other)                                  | Shipped (Phase 3)  | (no dedicated doc)                                        |
+| Fellowship (six types, groups, attendance)                                 | Shipped (Phase 4)  | (no dedicated doc)                                        |
+| Discipleship programs                                                      | Shipped (Phase 5A) | `progress.md` entry                                       |
+| Discipleship batches                                                       | Shipped (Phase 5B) | `progress.md` entry                                       |
+| Discipleship enrollment                                                    | Shipped (Phase 5C) | `progress.md` entry                                       |
 
 ### 2.2 Sidebar (as currently shipped)
 
@@ -103,10 +104,10 @@ contact_number_normalized, email, age, birthday, address.
 
 There is no `members` table concept at the user-facing level.
 There is a `members` table (Phase 3, church membership records
-with a UNIQUE on participant_id) but no Members *page*.
+with a UNIQUE on participant_id) but no Members _page_.
 
 There is a `first_timers` table (Phase 3) but no First-Timers
-*page*.
+_page_.
 
 ### 2.4 What WDEMS does NOT have
 
@@ -202,20 +203,20 @@ that are not built.
 **Status badge values shown.** Enrolled, In Progress,
 Completed, Not Started. The shipped enum has five values:
 enrolled, in_progress, completed, withdrawn, on_hold. The
-mockup shows "Not Started" as a status. That is a *sixth*
+mockup shows "Not Started" as a status. That is a _sixth_
 status. Question below.
 
 #### 3.2.2 Youth (new module)
 
 Sub-modules per the hub card set (screenshot 2):
 
-| Sub-module | What the detail page shows |
-|---|---|
-| **Youth Camp** | Participants table (Name, Grade/Year, Contact No, Payment, Status) with tabs: Participants, Payments, Requirements, Attendance. "+ Register Participant" button. Payment badge (Paid / For Payment / Partial). Status badge (Confirmed). |
-| **Youth Service** | Schedule table (Date, Topic, Speaker, Status, Attendees, Actions). Tabs: Schedule, Attendance. "+ Add Session" button. |
-| **Huddle** | Huddle Groups table (Group Name, Leader, Day & Time, Members). Tabs: Huddle Groups, Schedule, Attendance. "+ Add Huddle" button. |
-| **Campus Ministry** | Grade tabs (Grade 7, Grade 8, Grade 9, Grade 10, Grade 11, Grade 12, College). Each grade has its own participant list. Tabs: Participants, Schedule, Attendance, Progress. "+ Add Participant" button. |
-| **Timothy Class** | Participants table (Name, Grade/Year, Email, Progress, Status, Actions). Tabs: Participants, Schedule, Attendance, Progress. Status badge: Completed, In Progress, Upcoming. "+ Enroll Participant" button. |
+| Sub-module          | What the detail page shows                                                                                                                                                                                                               |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Youth Camp**      | Participants table (Name, Grade/Year, Contact No, Payment, Status) with tabs: Participants, Payments, Requirements, Attendance. "+ Register Participant" button. Payment badge (Paid / For Payment / Partial). Status badge (Confirmed). |
+| **Youth Service**   | Schedule table (Date, Topic, Speaker, Status, Attendees, Actions). Tabs: Schedule, Attendance. "+ Add Session" button.                                                                                                                   |
+| **Huddle**          | Huddle Groups table (Group Name, Leader, Day & Time, Members). Tabs: Huddle Groups, Schedule, Attendance. "+ Add Huddle" button.                                                                                                         |
+| **Campus Ministry** | Grade tabs (Grade 7, Grade 8, Grade 9, Grade 10, Grade 11, Grade 12, College). Each grade has its own participant list. Tabs: Participants, Schedule, Attendance, Progress. "+ Add Participant" button.                                  |
+| **Timothy Class**   | Participants table (Name, Grade/Year, Email, Progress, Status, Actions). Tabs: Participants, Schedule, Attendance, Progress. Status badge: Completed, In Progress, Upcoming. "+ Enroll Participant" button.                              |
 
 Consistency issues visible in the mockups:
 
@@ -231,10 +232,10 @@ Consistency issues visible in the mockups:
 
 Two sub-modules:
 
-| Sub-module | What it shows |
-|---|---|
-| **Vacation Bible School** | Participants table with Name, Age/Grade, Contact No., Registration Date, Status (Registered, Attended). Tabs: Participants, Sessions, Attendance, Details. "+ Register Participant" button. |
-| **Outreaches** | Location cards (Wawang Pulo, Pasolo, Balubaran, Coloong). Each card shows Participant count and Activity count. Location detail page (Wawang Pulo shown) has: hero image, Total Participants, Activities, Last Activity, tabs (Participants, Activities, Attendance, Details). Participant table with Name, Age/Grade, Contact No., Last Attended, Status (Attended, In Progress, Registered). "+ Add Activity" button. |
+| Sub-module                | What it shows                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Vacation Bible School** | Participants table with Name, Age/Grade, Contact No., Registration Date, Status (Registered, Attended). Tabs: Participants, Sessions, Attendance, Details. "+ Register Participant" button.                                                                                                                                                                                                                             |
+| **Outreaches**            | Location cards (Wawang Pulo, Pasolo, Balubaran, Coloong). Each card shows Participant count and Activity count. Location detail page (Wawang Pulo shown) has: hero image, Total Participants, Activities, Last Activity, tabs (Participants, Activities, Attendance, Details). Participant table with Name, Age/Grade, Contact No., Last Attended, Status (Attended, In Progress, Registered). "+ Add Activity" button. |
 
 #### 3.2.4 Young Adult (new module)
 
@@ -254,14 +255,14 @@ Graduation).
 
 Each occasion has a detail page with **six tabs**:
 
-| Tab | Contents |
-|---|---|
-| **Details** | Event Title, Theme, Date, Time, Venue, Overall Organizer, Description. Status dropdown (Planning / Upcoming / Ongoing / Completed). |
-| **Program** | Table of Order, Time, Program Item, In-Charge, Team. "+ Add Program Item" button. |
-| **Roles & Ministries** | Table of Role, Assigned To, Ministry, Responsibilities, Status. "+ Add Role" button. |
-| **Budget** | Table of Category, Description, Budget Amount, Actual Spent, Status (Paid / Partial / For Approval), Actions. "+ Add Expense" button. Shows Total Budget, Total Spent, and a "View Detailed Budget" link. |
-| **Tasks** | Table of Task, Assigned To, Due Date, Status (Completed / Upcoming / Overdue). "+ Add Task" button. |
-| **Documents** | Tab present in mockups. Contents not shown. Question below. |
+| Tab                    | Contents                                                                                                                                                                                                  |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Details**            | Event Title, Theme, Date, Time, Venue, Overall Organizer, Description. Status dropdown (Planning / Upcoming / Ongoing / Completed).                                                                       |
+| **Program**            | Table of Order, Time, Program Item, In-Charge, Team. "+ Add Program Item" button.                                                                                                                         |
+| **Roles & Ministries** | Table of Role, Assigned To, Ministry, Responsibilities, Status. "+ Add Role" button.                                                                                                                      |
+| **Budget**             | Table of Category, Description, Budget Amount, Actual Spent, Status (Paid / Partial / For Approval), Actions. "+ Add Expense" button. Shows Total Budget, Total Spent, and a "View Detailed Budget" link. |
+| **Tasks**              | Table of Task, Assigned To, Due Date, Status (Completed / Upcoming / Overdue). "+ Add Task" button.                                                                                                       |
+| **Documents**          | Tab present in mockups. Contents not shown. Question below.                                                                                                                                               |
 
 Sidebar "Quick Info" panel on the details page shows: activities
 count, people assigned count, total budget, tasks count.
@@ -270,9 +271,9 @@ count, people assigned count, total budget, tasks count.
 
 Two sub-modules:
 
-| Sub-module | Detail page shape |
-|---|---|
-| **Church Planning** | List of plans with Title, Type (Vision Plan, Facility Development, Outreach Expansion, Strategic Plan, Leadership Development, Community Engagement), Start Date, End Date, Status (Ongoing / In Progress / Upcoming). Tabs: Plans, Timeline, Tasks, Documents. "+ Add Plan" button. |
+| Sub-module           | Detail page shape                                                                                                                                                                                                                                                                                                                              |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Church Planning**  | List of plans with Title, Type (Vision Plan, Facility Development, Outreach Expansion, Strategic Plan, Leadership Development, Community Engagement), Start Date, End Date, Status (Ongoing / In Progress / Upcoming). Tabs: Plans, Timeline, Tasks, Documents. "+ Add Plan" button.                                                           |
 | **Ministry Meeting** | Seven ministry cards (Worship, Technical, Multimedia, Social Media, Finance Team, Light Kids, Young-adult). Each ministry has its own detail page. Worship Team page shown: Meetings table (Date, Time, Agenda, Facilitator, Status, Actions). Tabs: Meetings, Agenda, Minutes, Action Items, Team Members, Documents. "+ Add Meeting" button. |
 
 ---
@@ -291,19 +292,19 @@ Two sub-modules:
 
 Each requires a schema and a controller and a UI surface:
 
-| Feature | Used by |
-|---|---|
-| Payments (fee, paid/partial/for-payment, status) | Youth Camp, potentially Kids Ministry and Special Occasions |
-| Budget (line items, amount, actual spent, approval status) | Special Occasions |
-| Tasks (assignment, due date, status) | Special Occasions, Church Planning |
-| Roles & Ministries (per-event role assignment) | Special Occasions |
-| Documents (file attachments per record) | Special Occasions, Church Planning, Ministry Meeting |
-| Progress percentages (attended / applicable) | Discipleship, Timothy Class, Campus Ministry |
-| Grade/Year level | Youth Camp, Kids Ministry, Campus Ministry, Timothy Class |
-| Location entity | Kids Ministry Outreaches |
-| Ministry entity (7 fixed or editable) | Church Administration Ministry Meeting |
-| Plan entity | Church Planning |
-| Meeting minutes + agenda + action items | Ministry Meeting |
+| Feature                                                    | Used by                                                     |
+| ---------------------------------------------------------- | ----------------------------------------------------------- |
+| Payments (fee, paid/partial/for-payment, status)           | Youth Camp, potentially Kids Ministry and Special Occasions |
+| Budget (line items, amount, actual spent, approval status) | Special Occasions                                           |
+| Tasks (assignment, due date, status)                       | Special Occasions, Church Planning                          |
+| Roles & Ministries (per-event role assignment)             | Special Occasions                                           |
+| Documents (file attachments per record)                    | Special Occasions, Church Planning, Ministry Meeting        |
+| Progress percentages (attended / applicable)               | Discipleship, Timothy Class, Campus Ministry                |
+| Grade/Year level                                           | Youth Camp, Kids Ministry, Campus Ministry, Timothy Class   |
+| Location entity                                            | Kids Ministry Outreaches                                    |
+| Ministry entity (7 fixed or editable)                      | Church Administration Ministry Meeting                      |
+| Plan entity                                                | Church Planning                                             |
+| Meeting minutes + agenda + action items                    | Ministry Meeting                                            |
 
 ### 4.3 UX patterns not yet in the codebase
 
@@ -520,7 +521,7 @@ processing.
 - It does not commit to a build order.
 - It does not modify any existing module.
 - It does not supersede `docs/church-events/07-scope-and-task-
-  division.md`. That document remains the current authoritative
+division.md`. That document remains the current authoritative
   plan until the client answers the questions here.
 - It does not estimate the value or priority of any module --
   only the size.

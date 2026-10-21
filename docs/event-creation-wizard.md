@@ -29,31 +29,31 @@ itself: its data model, its UI, and its persistence.
 
 ### 1.1 New columns added to `events` table
 
-| Column | Type | Default | Purpose |
-|---|---|---|---|
-| `venue_address` | varchar(500) | NULL | Full address resolved from map |
-| `venue_latitude` | decimal(10,7) | NULL | Marker latitude |
-| `venue_longitude` | decimal(10,7) | NULL | Marker longitude |
-| `distance_value` | decimal(6,2) | NULL | Distance number |
-| `distance_unit` | varchar(2) | `'km'` | `'km'` or `'mi'` |
-| `course_url` | varchar(500) | NULL | External course link |
-| `rsvp_required` | tinyint(1) | `0` | Hard RSVP vs soft signup |
-| `partners` | json | NULL | `[{name, type}, ...]` |
-| `faq` | json | NULL | `[{question, answer}, ...]` |
-| `walkers_welcome` | tinyint(1) | `0` | Accessibility flag |
-| `all_paces_welcome` | tinyint(1) | `0` | Accessibility flag |
-| `all_ages_welcome` | tinyint(1) | `0` | Accessibility flag |
-| `stroller_friendly` | tinyint(1) | `0` | Accessibility flag |
-| `wheelchair_accessible` | tinyint(1) | `0` | Accessibility flag |
-| `sweeper_present` | tinyint(1) | `0` | Accessibility flag |
-| `service_animals_allowed` | tinyint(1) | `0` | Accessibility flag |
-| `leashed_pets_allowed` | tinyint(1) | `0` | Accessibility flag |
-| `quiet_space_available` | tinyint(1) | `0` | Accessibility flag |
+| Column                    | Type          | Default | Purpose                        |
+| ------------------------- | ------------- | ------- | ------------------------------ |
+| `venue_address`           | varchar(500)  | NULL    | Full address resolved from map |
+| `venue_latitude`          | decimal(10,7) | NULL    | Marker latitude                |
+| `venue_longitude`         | decimal(10,7) | NULL    | Marker longitude               |
+| `distance_value`          | decimal(6,2)  | NULL    | Distance number                |
+| `distance_unit`           | varchar(2)    | `'km'`  | `'km'` or `'mi'`               |
+| `course_url`              | varchar(500)  | NULL    | External course link           |
+| `rsvp_required`           | tinyint(1)    | `0`     | Hard RSVP vs soft signup       |
+| `partners`                | json          | NULL    | `[{name, type}, ...]`          |
+| `faq`                     | json          | NULL    | `[{question, answer}, ...]`    |
+| `walkers_welcome`         | tinyint(1)    | `0`     | Accessibility flag             |
+| `all_paces_welcome`       | tinyint(1)    | `0`     | Accessibility flag             |
+| `all_ages_welcome`        | tinyint(1)    | `0`     | Accessibility flag             |
+| `stroller_friendly`       | tinyint(1)    | `0`     | Accessibility flag             |
+| `wheelchair_accessible`   | tinyint(1)    | `0`     | Accessibility flag             |
+| `sweeper_present`         | tinyint(1)    | `0`     | Accessibility flag             |
+| `service_animals_allowed` | tinyint(1)    | `0`     | Accessibility flag             |
+| `leashed_pets_allowed`    | tinyint(1)    | `0`     | Accessibility flag             |
+| `quiet_space_available`   | tinyint(1)    | `0`     | Accessibility flag             |
 
 ### 1.2 Column removed
 
-| Column | Reason |
-|---|---|
+| Column           | Reason                                         |
+| ---------------- | ---------------------------------------------- |
 | `distance_label` | Replaced by `distance_value` + `distance_unit` |
 
 ### 1.3 Migrations
@@ -73,16 +73,16 @@ All 17 new columns added to `#[Fillable]`.
 
 ### 2.2 Added casts
 
-| Field | Cast |
-|---|---|
-| `distance_value` | `decimal:2` |
-| `distance_unit` | *(string, no cast)* |
-| `partners` | `array` |
-| `faq` | `array` |
-| All 9 accessibility flags | `boolean` |
-| `rsvp_required` | `boolean` |
-| `venue_latitude` | `decimal:7` |
-| `venue_longitude` | `decimal:7` |
+| Field                     | Cast                |
+| ------------------------- | ------------------- |
+| `distance_value`          | `decimal:2`         |
+| `distance_unit`           | _(string, no cast)_ |
+| `partners`                | `array`             |
+| `faq`                     | `array`             |
+| All 9 accessibility flags | `boolean`           |
+| `rsvp_required`           | `boolean`           |
+| `venue_latitude`          | `decimal:7`         |
+| `venue_longitude`         | `decimal:7`         |
 
 ### 2.3 Helper method — `distanceLabel()`
 
@@ -106,24 +106,24 @@ stored.
 
 ### 2.4 Relations
 
-| Method | Returns |
-|---|---|
-| `creator()` | `belongsTo(User::class, 'created_by')` |
-| `eventOptions()` | `hasMany(EventOption::class)` |
-| `registrations()` | `hasMany(Registration::class)` |
+| Method            | Returns                                |
+| ----------------- | -------------------------------------- |
+| `creator()`       | `belongsTo(User::class, 'created_by')` |
+| `eventOptions()`  | `hasMany(EventOption::class)`          |
+| `registrations()` | `hasMany(Registration::class)`         |
 
 Plus `relatedRecordCounts()` — returns an array of counts used by the
 show page's deletion confirmation.
 
 ### 2.5 Workflow guard methods
 
-| Method | True when status is |
-|---|---|
-| `canEdit()` | `draft`, `configured`, `registration_open`, `registration_closed` |
-| `canConfigure()` | `draft`, `configured` |
-| `canOpenRegistration()` | `configured` |
-| `canCloseRegistration()` | `registration_open` |
-| `canRecordAttendance()` | `registration_open`, `registration_closed`, `ongoing` |
+| Method                   | True when status is                                               |
+| ------------------------ | ----------------------------------------------------------------- |
+| `canEdit()`              | `draft`, `configured`, `registration_open`, `registration_closed` |
+| `canConfigure()`         | `draft`, `configured`                                             |
+| `canOpenRegistration()`  | `configured`                                                      |
+| `canCloseRegistration()` | `registration_open`                                               |
+| `canRecordAttendance()`  | `registration_open`, `registration_closed`, `ongoing`             |
 
 These guards are checked by the controller before allowing edits and by
 the frontend before showing action buttons. See `event-creation.md` §7
@@ -214,9 +214,7 @@ step whose `fields` array contains one of the failing keys and jumps
 there:
 
 ```ts
-const failingIndex = steps.findIndex((s) =>
-    s.fields.some((f) => f in errors),
-);
+const failingIndex = steps.findIndex((s) => s.fields.some((f) => f in errors));
 if (failingIndex !== -1 && failingIndex !== currentStep) {
     setCurrentStep(failingIndex);
 }
@@ -234,12 +232,12 @@ current — usually the wrong one.
 Renders one pill per step, connected by thin lines. Each pill shows
 either the step number or a checkmark (if visited). States:
 
-| State | Visual |
-|---|---|
-| Current | Filled lime background, navy text |
-| Visited (`index < maxReachedStep`) | Subtle white/5 background, checkmark icon |
-| Reachable but not visited (`index <= maxReachedStep`) | White/5 background, muted text |
-| Locked (`index > maxReachedStep`) | Opacity 50%, cursor-not-allowed, click disabled |
+| State                                                 | Visual                                          |
+| ----------------------------------------------------- | ----------------------------------------------- |
+| Current                                               | Filled lime background, navy text               |
+| Visited (`index < maxReachedStep`)                    | Subtle white/5 background, checkmark icon       |
+| Reachable but not visited (`index <= maxReachedStep`) | White/5 background, muted text                  |
+| Locked (`index > maxReachedStep`)                     | Opacity 50%, cursor-not-allowed, click disabled |
 
 Clicking a reachable pill calls `onStepClick(index)`. The wizard's
 `handleStepJump` then switches `currentStep` without touching
@@ -258,10 +256,10 @@ where they left off.
 
 ### 4.1 Storage keys
 
-| Flow | Key |
-|---|---|
-| Create | `wdems-wizard-create` |
-| Edit | `wdems-wizard-edit-{eventId}` |
+| Flow   | Key                           |
+| ------ | ----------------------------- |
+| Create | `wdems-wizard-create`         |
+| Edit   | `wdems-wizard-edit-{eventId}` |
 
 The create and edit flows use separate keys so a user can have a
 half-finished new event and a half-finished edit of an existing event
@@ -326,7 +324,7 @@ save(currentStep: number, data: T)
 But the wizard calls it as:
 
 ```ts
-save(maxStep, data)
+save(maxStep, data);
 ```
 
 So the persisted JSON field `currentStep` actually contains the
@@ -410,11 +408,11 @@ places.
 
 **Component:** `resources/js/pages/events/step/BasicsStep.tsx`
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `event_type` | select | Yes | Locked in edit mode |
-| `event_name` | text | Yes | 3–100 chars, custom regex rules (§7.3) |
-| `description` | textarea | No | Max 2000 chars |
+| Field         | Type     | Required | Notes                                  |
+| ------------- | -------- | -------- | -------------------------------------- |
+| `event_type`  | select   | Yes      | Locked in edit mode                    |
+| `event_name`  | text     | Yes      | 3–100 chars, custom regex rules (§7.3) |
+| `description` | textarea | No       | Max 2000 chars                         |
 
 In create mode, `eventTypes` prop is the full list from
 `EventType::cases()`. In edit mode, it is a single-element array
@@ -425,14 +423,14 @@ has one option in edit mode — see §9.
 
 **Component:** `resources/js/pages/events/step/ScheduleStep.tsx`
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `event_date` | DatePicker | Yes | Custom calendar (§6.1) |
-| `start_time` | TimePicker | Yes | 5-minute snapping (§6.2) |
-| `end_time` | TimePicker | No | Optional |
-| `distance_value` | DistancePicker | Yes | 0.01 – 9999.99 |
-| `distance_unit` | toggle | Yes | `km` or `mi` |
-| `course_url` | text (url) | No | Max 500 chars |
+| Field            | Type           | Required | Notes                    |
+| ---------------- | -------------- | -------- | ------------------------ |
+| `event_date`     | DatePicker     | Yes      | Custom calendar (§6.1)   |
+| `start_time`     | TimePicker     | Yes      | 5-minute snapping (§6.2) |
+| `end_time`       | TimePicker     | No       | Optional                 |
+| `distance_value` | DistancePicker | Yes      | 0.01 – 9999.99           |
+| `distance_unit`  | toggle         | Yes      | `km` or `mi`             |
+| `course_url`     | text (url)     | No       | Max 500 chars            |
 
 `distance_value` and `distance_unit` are owned by the same component
 (`DistancePicker`). Changing the unit calls `setData` for both fields
@@ -442,12 +440,12 @@ in one handler.
 
 **Component:** `resources/js/pages/events/step/VenueStep.tsx`
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `venue` | text | Yes | Short name, max 255 |
-| `venue_address` | text | Yes | Full address, max 500. Filled by map picker |
-| `venue_latitude` | number | Yes | -90 to 90. Set only via map picker |
-| `venue_longitude` | number | Yes | -180 to 180. Set only via map picker |
+| Field             | Type   | Required | Notes                                       |
+| ----------------- | ------ | -------- | ------------------------------------------- |
+| `venue`           | text   | Yes      | Short name, max 255                         |
+| `venue_address`   | text   | Yes      | Full address, max 500. Filled by map picker |
+| `venue_latitude`  | number | Yes      | -90 to 90. Set only via map picker          |
+| `venue_longitude` | number | Yes      | -180 to 180. Set only via map picker        |
 
 Latitude and longitude are not directly editable. They come from the
 map picker dialog. The VenueStep shows the current coordinates as
@@ -457,11 +455,11 @@ read-only text when set.
 
 **Component:** `resources/js/pages/events/step/ExtrasStep.tsx`
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `rsvp_required` | checkbox | No | Boolean |
-| `partners` | PartnerEditor | No | Array of `{name, type}` |
-| 9 accessibility flags | AccessibilityGrid | No | All default false |
+| Field                 | Type              | Required | Notes                   |
+| --------------------- | ----------------- | -------- | ----------------------- |
+| `rsvp_required`       | checkbox          | No       | Boolean                 |
+| `partners`            | PartnerEditor     | No       | Array of `{name, type}` |
+| 9 accessibility flags | AccessibilityGrid | No       | All default false       |
 
 The `partners` array is validated server-side with two rules:
 
@@ -520,9 +518,9 @@ KM/Miles segmented toggle.
 - **Decimal** — 0 to 9, two digits max
 - Combined value is rounded to 2 decimals
 - Toggling the unit converts the current value live:
-  - `KM_TO_MI = 0.621371`
-  - Conversion rounds to 2 decimals
-  - The whole/decimal pair is re-split after conversion
+    - `KM_TO_MI = 0.621371`
+    - Conversion rounds to 2 decimals
+    - The whole/decimal pair is re-split after conversion
 
 Each `NumberCombobox` is a filtered dropdown — clicking or focusing
 opens a scrollable list of options, typing filters it, Enter selects
@@ -534,6 +532,7 @@ the server rejects — `distance_value` is required).
 ### 6.4 MapPicker / MapPickerLeaflet
 
 **Files:**
+
 - `resources/js/components/map-picker.tsx` — dialog wrapper
 - `resources/js/components/map-picker-leaflet.tsx` — the actual map
 
@@ -591,12 +590,12 @@ grey text below the label).
 
 The groups and their fields:
 
-| Group | Fields |
-|---|---|
-| Pace & Ability | `walkers_welcome`, `all_paces_welcome`, `all_ages_welcome`, `sweeper_present` |
-| Physical Access | `stroller_friendly`, `wheelchair_accessible` |
-| Companion & Support | `service_animals_allowed`, `leashed_pets_allowed` |
-| Sensory | `quiet_space_available` |
+| Group               | Fields                                                                        |
+| ------------------- | ----------------------------------------------------------------------------- |
+| Pace & Ability      | `walkers_welcome`, `all_paces_welcome`, `all_ages_welcome`, `sweeper_present` |
+| Physical Access     | `stroller_friendly`, `wheelchair_accessible`                                  |
+| Companion & Support | `service_animals_allowed`, `leashed_pets_allowed`                             |
+| Sensory             | `quiet_space_available`                                                       |
 
 The `AccessibilityField` union type is exported and used by
 `ExtrasStep` to type its `data` prop.
@@ -640,13 +639,13 @@ Full rule table is in `event-creation.md` §5. The short version:
 
 Five regex rules layered on top of `required`, `min:3`, `max:100`:
 
-| Rule | Rejects |
-|---|---|
-| `/^[A-Za-z0-9]/` | Names starting with punctuation or space |
-| `/[aeiouyAEIOUY]/` | Names with no vowel — "dfdsfdsfd" |
-| `/[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]/` | Names with no consonant — "aeiou" |
-| `not_regex:/(.)\1\1/` | 3+ identical characters in a row — "aaaa" |
-| Length | 3–100 chars |
+| Rule                                           | Rejects                                   |
+| ---------------------------------------------- | ----------------------------------------- |
+| `/^[A-Za-z0-9]/`                               | Names starting with punctuation or space  |
+| `/[aeiouyAEIOUY]/`                             | Names with no vowel — "dfdsfdsfd"         |
+| `/[bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]/` | Names with no consonant — "aeiou"         |
+| `not_regex:/(.)\1\1/`                          | 3+ identical characters in a row — "aaaa" |
+| Length                                         | 3–100 chars                               |
 
 These exist to catch keyboard mashing before it becomes a real event.
 They are deliberately inclusive — Y counts as a vowel, case is
@@ -729,12 +728,12 @@ true. Otherwise aborts with 403.
 
 ### 9.1 Differences from create
 
-| Aspect | Create | Edit |
-|---|---|---|
-| Storage key | `wdems-wizard-create` | `wdems-wizard-edit-{id}` |
-| Submit method | POST `/events` | PUT `/events/{id}` |
-| `event_type` | Full dropdown, editable | Single-option dropdown, disabled |
-| FAQ | Seeded on store | Not touched on update |
+| Aspect        | Create                  | Edit                             |
+| ------------- | ----------------------- | -------------------------------- |
+| Storage key   | `wdems-wizard-create`   | `wdems-wizard-edit-{id}`         |
+| Submit method | POST `/events`          | PUT `/events/{id}`               |
+| `event_type`  | Full dropdown, editable | Single-option dropdown, disabled |
+| FAQ           | Seeded on store         | Not touched on update            |
 
 ### 9.2 Why `event_type` is locked
 
@@ -887,12 +886,12 @@ but have no controller actions or routes. See `event-creation.md`
 
 ## 12. References
 
-| Document | Covers |
-|---|---|
-| `authentication.md` | Login, 2FA, trusted devices |
-| `architecture.md` | Whole-system overview |
-| `event-creation.md` | Code reference for event creation, options, and workflow. **Read this for the file map, validation table, and the "things AI will break" list.** |
-| This file (`event-creation-wizard.md`) | Wizard feature itself: schema, model, shell, steps, field components, persistence |
+| Document                               | Covers                                                                                                                                           |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `authentication.md`                    | Login, 2FA, trusted devices                                                                                                                      |
+| `architecture.md`                      | Whole-system overview                                                                                                                            |
+| `event-creation.md`                    | Code reference for event creation, options, and workflow. **Read this for the file map, validation table, and the "things AI will break" list.** |
+| This file (`event-creation-wizard.md`) | Wizard feature itself: schema, model, shell, steps, field components, persistence                                                                |
 
 Where this file and `event-creation.md` overlap, they describe the
 same code from different angles. This file is feature-focused; that
@@ -1021,7 +1020,6 @@ duplicated the intent of the map link.
     app/Concerns/EventValidationRules.php
     app/Http/Controllers/EventController.php
     app/Http/Controllers/PublicRegistrationController.php
-
 
 ## Running Events audit addendum — 2026-10-21
 

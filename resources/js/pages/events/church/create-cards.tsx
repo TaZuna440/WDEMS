@@ -10,7 +10,7 @@ export default function ChurchCreateCards() {
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
                 <Link
                     href="/events/create"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back

@@ -25,7 +25,7 @@ For architectural details, see `architecture.md`. For Google setup, see `google-
 10. Development timeline
 11. Open questions
 12. Next phases
-Appendices — Environment, external services, naming
+    Appendices — Environment, external services, naming
 
 ---
 
@@ -59,25 +59,25 @@ This pivot is documented in the design authority: `aside.txt`.
 
 ### 1.3 Current state summary
 
-| Layer | Status |
-|---|---|
-| Authentication (Fortify) | Complete |
-| Role system (admin/staff) | Complete |
-| Event CRUD | Complete |
-| Event lifecycle (state machine) | Complete |
-| Event configuration (options) | Complete |
-| Delete Event with OTP verification | Complete |
-| Production email (Resend) | Complete |
-| Google OAuth connection | Complete |
-| Google Form creation | Complete |
-| Google Form question editor | Complete |
-| Google Sheet linkage (A2) | Complete |
-| Copy Registration Link sharing | Complete |
-| Action Feed dashboard | Complete |
-| Sheet response sync | Not started (Phase D) |
-| Walk-in / paper registration | Not started (schema ready) |
-| Attendance recording UI | Not started |
-| Monitoring dashboard | Not started |
+| Layer                              | Status                     |
+| ---------------------------------- | -------------------------- |
+| Authentication (Fortify)           | Complete                   |
+| Role system (admin/staff)          | Complete                   |
+| Event CRUD                         | Complete                   |
+| Event lifecycle (state machine)    | Complete                   |
+| Event configuration (options)      | Complete                   |
+| Delete Event with OTP verification | Complete                   |
+| Production email (Resend)          | Complete                   |
+| Google OAuth connection            | Complete                   |
+| Google Form creation               | Complete                   |
+| Google Form question editor        | Complete                   |
+| Google Sheet linkage (A2)          | Complete                   |
+| Copy Registration Link sharing     | Complete                   |
+| Action Feed dashboard              | Complete                   |
+| Sheet response sync                | Not started (Phase D)      |
+| Walk-in / paper registration       | Not started (schema ready) |
+| Attendance recording UI            | Not started                |
+| Monitoring dashboard               | Not started                |
 
 ---
 
@@ -102,26 +102,26 @@ These pieces existed before the current development arc and remain unchanged. Li
 
 ### 2.3 Event domain models
 
-| Model | Table | Purpose |
-|---|---|---|
-| `Event` | `events` | Core event record |
-| `EventOption` | `event_options` | Configurable event choices |
-| `Participant` | `participants` | Person record (shared across events) |
-| `Registration` | `registrations` | Participant ↔ Event link |
-| `RegistrationOption` | `registration_options` | Chosen options per registration |
-| `Attendance` | `attendances` | Event-day presence |
+| Model                | Table                  | Purpose                              |
+| -------------------- | ---------------------- | ------------------------------------ |
+| `Event`              | `events`               | Core event record                    |
+| `EventOption`        | `event_options`        | Configurable event choices           |
+| `Participant`        | `participants`         | Person record (shared across events) |
+| `Registration`       | `registrations`        | Participant ↔ Event link             |
+| `RegistrationOption` | `registration_options` | Chosen options per registration      |
+| `Attendance`         | `attendances`          | Event-day presence                   |
 
 ### 2.4 Foreign-key rules (critical)
 
-| Relationship | On delete |
-|---|---|
-| `events.created_by` → `users` | RESTRICT |
-| `event_options.event_id` → `events` | CASCADE |
-| `registrations.event_id` → `events` | CASCADE |
-| `registrations.participant_id` → `participants` | RESTRICT |
-| `registration_options.registration_id` → `registrations` | CASCADE |
+| Relationship                                             | On delete    |
+| -------------------------------------------------------- | ------------ |
+| `events.created_by` → `users`                            | RESTRICT     |
+| `event_options.event_id` → `events`                      | CASCADE      |
+| `registrations.event_id` → `events`                      | CASCADE      |
+| `registrations.participant_id` → `participants`          | RESTRICT     |
+| `registration_options.registration_id` → `registrations` | CASCADE      |
 | `registration_options.event_option_id` → `event_options` | **RESTRICT** |
-| `attendances.registration_id` → `registrations` | CASCADE |
+| `attendances.registration_id` → `registrations`          | CASCADE      |
 
 The **RESTRICT** on `registration_options.event_option_id` is the single most important constraint in the schema. It prevents MySQL from blindly cascading an event delete.
 
@@ -144,7 +144,6 @@ Guards on the `Event` model: `canEdit()`, `canConfigure()`, `canOpenRegistration
 ### 2.7 Event type
 
 Two values: `community_run`, `fun_run`. Required on creation, fixed thereafter.
-
 
 ---
 
@@ -233,12 +232,12 @@ For historical context, see:
 Four subsystem guides were written, in a style aimed at junior
 developers using AI tools:
 
-| Doc | Covers |
-|---|---|
-| `docs/authentication.md` | Login, email 2FA, trusted devices, password management |
-| `docs/event-creation.md` | Event creation code reference, options, workflow |
+| Doc                             | Covers                                                   |
+| ------------------------------- | -------------------------------------------------------- |
+| `docs/authentication.md`        | Login, email 2FA, trusted devices, password management   |
+| `docs/event-creation.md`        | Event creation code reference, options, workflow         |
 | `docs/event-creation-wizard.md` | Wizard as a feature: steps, checkpoint, field components |
-| `docs/event-deletion.md` | Two delete paths, OTP flow, deletion algorithm |
+| `docs/event-deletion.md`        | Two delete paths, OTP flow, deletion algorithm           |
 
 `docs/architecture.md` was updated to correct the auth section and to
 point at `authentication.md`. `README.md` was rewritten to remove
@@ -251,14 +250,14 @@ Google references and to point at all four guides.
 The following claims in the body above no longer match the code. They
 are listed here rather than edited in place.
 
-| Section | Earlier claim | Current reality |
-|---|---|---|
-| §1.1 | "Participant registration (via Google Forms, not WDEMS)" | Google integration removed. Registration flow being rebuilt. |
-| §1.2 | "Participant registration happens outside WDEMS via Google Forms" | Same as above. |
-| §1.3 | Google OAuth / Form / Sheet rows marked Complete | Removed. |
-| §2.1 | "2FA: disabled (feature exists in Fortify, not enabled)" | Fortify TOTP still disabled, but WDEMS has custom email 2FA. |
-| §2.2 | "`auth` + `verified` group — gates all event routes" | Now `auth` + `verified` + `device.trusted`. |
-| Table of Contents | Lists 12 sections | Body only has §1 and §2. §3–§12 were never written. |
+| Section           | Earlier claim                                                     | Current reality                                              |
+| ----------------- | ----------------------------------------------------------------- | ------------------------------------------------------------ |
+| §1.1              | "Participant registration (via Google Forms, not WDEMS)"          | Google integration removed. Registration flow being rebuilt. |
+| §1.2              | "Participant registration happens outside WDEMS via Google Forms" | Same as above.                                               |
+| §1.3              | Google OAuth / Form / Sheet rows marked Complete                  | Removed.                                                     |
+| §2.1              | "2FA: disabled (feature exists in Fortify, not enabled)"          | Fortify TOTP still disabled, but WDEMS has custom email 2FA. |
+| §2.2              | "`auth` + `verified` group — gates all event routes"              | Now `auth` + `verified` + `device.trusted`.                  |
+| Table of Contents | Lists 12 sections                                                 | Body only has §1 and §2. §3–§12 were never written.          |
 
 The TOC vs. body mismatch is a pre-existing fact — the log was never
 completed past §2.7. This append does not attempt to fill those
@@ -271,7 +270,6 @@ sections in. It records what has been built since.
 For a structured, dated changelog of every file changed per session,
 see `progress.md`. This file (`development-log.md`) tells the story;
 `progress.md` provides the audit trail.
-
 
 ## Running Events audit addendum — 2026-10-21
 

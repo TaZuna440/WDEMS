@@ -13,6 +13,7 @@ developer.
 section 4. Sign section 6. Return to the developer.
 
 **Reference docs (for anyone who needs deeper context):**
+
 - `docs/church-events/01-current-system-audit.md` -- current state
 - `docs/church-events/02-product-scope-and-requirements.md` -- scope
 - `docs/church-events/03-domain-model-and-workflows.md` -- decisions
@@ -44,14 +45,14 @@ Once answered, Phase 1 (Foundation) can begin.
 Six verifications were required before any implementation could
 begin. All six are finished.
 
-| # | Verification | Result |
-|---|---|---|
-| 6.1 | Baseline test run | 3 skipped, 593 passed (2,279 assertions), 19.51s |
-| 6.2 | Enum consumer inventory | EventType: 5 production files. EventStatus: 14 production files. |
-| 6.3 | Payment grep | Zero matches. Fun Run has no payment code. |
-| 6.4 | Migration status | 36 migrations applied, head at Batch 15 (2026-10-15). |
-| 6.5 | Test infrastructure | Pest 5, `RefreshDatabase` bound to Feature suite. P11 confirmed as live hazard. |
-| 6.6 | Documentation read | 8 of 8 files read. 14 new findings recorded in doc 06. |
+| #   | Verification            | Result                                                                          |
+| --- | ----------------------- | ------------------------------------------------------------------------------- |
+| 6.1 | Baseline test run       | 3 skipped, 593 passed (2,279 assertions), 19.51s                                |
+| 6.2 | Enum consumer inventory | EventType: 5 production files. EventStatus: 14 production files.                |
+| 6.3 | Payment grep            | Zero matches. Fun Run has no payment code.                                      |
+| 6.4 | Migration status        | 36 migrations applied, head at Batch 15 (2026-10-15).                           |
+| 6.5 | Test infrastructure     | Pest 5, `RefreshDatabase` bound to Feature suite. P11 confirmed as live hazard. |
+| 6.6 | Documentation read      | 8 of 8 files read. 14 new findings recorded in doc 06.                          |
 
 **What the verifications confirmed:**
 
@@ -135,9 +136,9 @@ parent.
 
 **Answer:**
 
-___
+---
 
-___
+---
 
 ---
 
@@ -152,9 +153,9 @@ mockup. Every module needs to know what a "member" is.
 
 **Answer:**
 
-___
+---
 
-___
+---
 
 ---
 
@@ -170,9 +171,9 @@ table or a subset of members affects every attendance query.
 
 **Answer:**
 
-___
+---
 
-___
+---
 
 ---
 
@@ -187,9 +188,9 @@ under Youth activities.
 
 **Answer:**
 
-___
+---
 
-___
+---
 
 ---
 
@@ -204,9 +205,9 @@ in layout choices.
 
 **Answer:**
 
-___
+---
 
-___
+---
 
 ---
 
@@ -224,9 +225,9 @@ needs its own stage machine.
 
 **Answer:**
 
-___
+---
 
-___
+---
 
 ---
 
@@ -243,9 +244,9 @@ is a **Phase 2 blocker** if the answer is yes.
 
 **Answer:**
 
-___
+---
 
-___
+---
 
 ---
 
@@ -263,9 +264,9 @@ The fix is small (move the clear call into a success callback).
 
 **Answer:**
 
-___
+---
 
-___
+---
 
 ---
 
@@ -282,9 +283,9 @@ the same exposure. A global fix is cleaner than per-field fixes.
 
 **Answer:**
 
-___
+---
 
-___
+---
 
 ---
 
@@ -316,25 +317,25 @@ questions are received, assuming the developer has capacity.
 
 **Client:**
 
-Name:                              Date:
+Name: Date:
 
-Signature (or initial):            ___
+Signature (or initial): ___
 
 **Developer:**
 
-Name:                              Date:
+Name: Date:
 
-Signature (or initial):            ___
+Signature (or initial): ___
 
 **Notes:** (any additional comments, caveats, or deferrals)
 
-___
+---
 
-___
+---
 
-___
+---
 
-___
+---
 
 ---
 
@@ -390,4 +391,3 @@ nine open questions.
 - No code has been written or modified.
 - All six developer-side verifications are complete.
 - The recommendation remains: phased, incremental, additive.
-

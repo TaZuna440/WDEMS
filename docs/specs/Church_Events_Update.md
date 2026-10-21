@@ -51,17 +51,17 @@ The interactive prototype demonstrates a **single, consistent workflow** for eve
 
 The current interactive demo exposes **nine top-level modules**. The categories below match the navigation demonstrated in the prototype.
 
-| Module | Icon concept | Activity categories in the current demo | Purpose |
-| --- | --- | --- | --- |
-| **Services** | Church | Sunday Service; Special Service | Regular and special worship services. |
-| **Fellowship** | People / group | Church Fellowship; Ministry Fellowship | Community-building and fellowship activities. |
-| **Discipleship** | Open book | Bible Study; Discipleship Class; Leadership Training | Bible instruction, discipleship, and leadership development. |
-| **Youth Ministry** | Tent | **Youth Camp; Huddle; Campus Ministry; Timothy Class** | Youth gatherings, camp, outreach, and training. **Youth Service is intentionally excluded** from this ministry's current categories. |
-| **Kids Ministry** | Child | Kids Service; Vacation Bible School; Outreach · Wawang Pulo; Outreach · Pasolo; Outreach · Balubaran; Outreach · Coloong | Children's services, VBS, and location-based outreach. |
-| **Young Adult** | People | Young Adult Service; Seminar; GRC Care Group; GRC Fellowship | Young-adult services, seminars, care groups, and fellowship. |
-| **Worship & Prayer** | Prayer / heart | Outdoor Prayer Meeting; Worship Night; Prayer & Fasting | Prayer-focused gatherings, worship events, and fasting activities. |
-| **Church Administration** | Clipboard | Church Planning; Ministry Meeting · Worship; Ministry Meeting · Technical; Ministry Meeting · Multimedia; Ministry Meeting · Social Media; Ministry Meeting · Finance Team; Ministry Meeting · Light; Ministry Meeting · Kids; Ministry Meeting · Young Adult | Planning and ministry-team meetings. |
-| **Special Occasions** | Calendar / heart | Church Anniversary; Thanksgiving Celebration; Pastor's Appreciation; Dedication; School of Leaders 1; School of Leaders 2; School of Leaders 3 | Church-wide celebrations, dedications, and graduation activities. |
+| Module                    | Icon concept     | Activity categories in the current demo                                                                                                                                                                                                                       | Purpose                                                                                                                              |
+| ------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Services**              | Church           | Sunday Service; Special Service                                                                                                                                                                                                                               | Regular and special worship services.                                                                                                |
+| **Fellowship**            | People / group   | Church Fellowship; Ministry Fellowship                                                                                                                                                                                                                        | Community-building and fellowship activities.                                                                                        |
+| **Discipleship**          | Open book        | Bible Study; Discipleship Class; Leadership Training                                                                                                                                                                                                          | Bible instruction, discipleship, and leadership development.                                                                         |
+| **Youth Ministry**        | Tent             | **Youth Camp; Huddle; Campus Ministry; Timothy Class**                                                                                                                                                                                                        | Youth gatherings, camp, outreach, and training. **Youth Service is intentionally excluded** from this ministry's current categories. |
+| **Kids Ministry**         | Child            | Kids Service; Vacation Bible School; Outreach · Wawang Pulo; Outreach · Pasolo; Outreach · Balubaran; Outreach · Coloong                                                                                                                                      | Children's services, VBS, and location-based outreach.                                                                               |
+| **Young Adult**           | People           | Young Adult Service; Seminar; GRC Care Group; GRC Fellowship                                                                                                                                                                                                  | Young-adult services, seminars, care groups, and fellowship.                                                                         |
+| **Worship & Prayer**      | Prayer / heart   | Outdoor Prayer Meeting; Worship Night; Prayer & Fasting                                                                                                                                                                                                       | Prayer-focused gatherings, worship events, and fasting activities.                                                                   |
+| **Church Administration** | Clipboard        | Church Planning; Ministry Meeting · Worship; Ministry Meeting · Technical; Ministry Meeting · Multimedia; Ministry Meeting · Social Media; Ministry Meeting · Finance Team; Ministry Meeting · Light; Ministry Meeting · Kids; Ministry Meeting · Young Adult | Planning and ministry-team meetings.                                                                                                 |
+| **Special Occasions**     | Calendar / heart | Church Anniversary; Thanksgiving Celebration; Pastor's Appreciation; Dedication; School of Leaders 1; School of Leaders 2; School of Leaders 3                                                                                                                | Church-wide celebrations, dedications, and graduation activities.                                                                    |
 
 ### Notes on hierarchy and related concepts
 
@@ -132,16 +132,16 @@ The earlier prototypes referred to this as **Event Details → Registration → 
 
 ### Fields supported by the demo
 
-| Field | Required when creating an event? | Description |
-| --- | --- | --- |
-| Ministry | Determined by selected module | The event's top-level owner. |
-| Activity Category | Yes | One category belonging to that ministry. |
-| Event Name | Yes | Descriptive name of the event. |
-| Event Date | Yes | The scheduled date. |
-| Event Time | No | Free-text time input in the demo. |
-| Venue / Location | Yes | Where the event will take place. |
-| Leader / Coordinator | No | Person or team coordinating the activity. |
-| Description / Notes | No | Event theme, speaker, purpose, logistics, or reminders. |
+| Field                | Required when creating an event? | Description                                             |
+| -------------------- | -------------------------------- | ------------------------------------------------------- |
+| Ministry             | Determined by selected module    | The event's top-level owner.                            |
+| Activity Category    | Yes                              | One category belonging to that ministry.                |
+| Event Name           | Yes                              | Descriptive name of the event.                          |
+| Event Date           | Yes                              | The scheduled date.                                     |
+| Event Time           | No                               | Free-text time input in the demo.                       |
+| Venue / Location     | Yes                              | Where the event will take place.                        |
+| Leader / Coordinator | No                               | Person or team coordinating the activity.               |
+| Description / Notes  | No                               | Event theme, speaker, purpose, logistics, or reminders. |
 
 **Create-event flow:** Enter information → select **Save Event** → event appears in the selected category → open its management options.
 
@@ -175,12 +175,12 @@ After **Register Participant**, the person is added to the selected event's part
 
 For a selected event, the demo calculates:
 
-| Metric | Meaning |
-| --- | --- |
-| **Registered** | Total participant registrations linked to the event. |
-| **Present** | Number of linked participants marked Present. |
-| **Absent** | Number of linked participants marked Absent. |
-| **Unmarked** | Number of linked participants with no Present/Absent selection. |
+| Metric         | Meaning                                                         |
+| -------------- | --------------------------------------------------------------- |
+| **Registered** | Total participant registrations linked to the event.            |
+| **Present**    | Number of linked participants marked Present.                   |
+| **Absent**     | Number of linked participants marked Absent.                    |
+| **Unmarked**   | Number of linked participants with no Present/Absent selection. |
 
 The summary also lists individual participants with their statuses and offers **Edit Attendance**.
 
@@ -190,24 +190,24 @@ The summary also lists individual participants with their statuses and offers **
 
 The common fields above work for every category. Earlier ministry prototypes also discussed optional information tailored to certain activities. These are **recommended extended requirements**, **not implemented as separate working fields in the current nine-module full-system demo** unless noted.
 
-| Area | Optional fields or specialized behavior for a later build |
-| --- | --- |
-| Youth Camp | Guardian/parent consent, emergency contact, camp details, dietary and medical notes. The current demo shows only a basic guardian field during Youth Camp registration. |
-| Huddle / Timothy Class | Small-group leader, lesson/topic, class level, or meeting series. |
-| Campus Ministry | Campus/school name, outreach contact, campus coordinator. |
-| Kids Service | Child's name, parent/guardian and contact; date-by-date attendance for recurring weekly services and child attendance history. The demo currently treats every service date as a separate event record. |
-| Vacation Bible School | Program day/session, age grouping, assigned teacher. |
-| Kids Outreaches | Outreach site, local coordinator, specific venue, and attendance per activity. |
-| Young Adult Service / Seminar | Speaker, lesson/theme, facilitator, partner/group details. |
-| Young Adult Partners / GRC | Editable partner list, care-group leader, nested partner/group navigation. Not present as a separate partner-creation screen in the current full-system demo. |
-| Outdoor Prayer Meeting | Outdoor location/meeting point. |
-| Worship Night | Theme, worship leader, speaker. |
-| Prayer & Fasting | Fasting start/end dates and prayer focus. |
-| Church Planning / Ministry Meeting | Meeting agenda, ministry/team, chairperson and decisions/notes. |
-| Dedication | Child's name, mother and father, officiating pastor, Ninong/Ninang. |
-| School of Leaders Graduation | Graduation level, graduate list, guests. |
-| Special Occasions | Special guest or graduate distinctions, relevant officiants and celebration details. |
-| Services / Fellowship / Discipleship | Service leader, fellowship group, speaker/facilitator, session topic or training level. |
+| Area                                 | Optional fields or specialized behavior for a later build                                                                                                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Youth Camp                           | Guardian/parent consent, emergency contact, camp details, dietary and medical notes. The current demo shows only a basic guardian field during Youth Camp registration.                                 |
+| Huddle / Timothy Class               | Small-group leader, lesson/topic, class level, or meeting series.                                                                                                                                       |
+| Campus Ministry                      | Campus/school name, outreach contact, campus coordinator.                                                                                                                                               |
+| Kids Service                         | Child's name, parent/guardian and contact; date-by-date attendance for recurring weekly services and child attendance history. The demo currently treats every service date as a separate event record. |
+| Vacation Bible School                | Program day/session, age grouping, assigned teacher.                                                                                                                                                    |
+| Kids Outreaches                      | Outreach site, local coordinator, specific venue, and attendance per activity.                                                                                                                          |
+| Young Adult Service / Seminar        | Speaker, lesson/theme, facilitator, partner/group details.                                                                                                                                              |
+| Young Adult Partners / GRC           | Editable partner list, care-group leader, nested partner/group navigation. Not present as a separate partner-creation screen in the current full-system demo.                                           |
+| Outdoor Prayer Meeting               | Outdoor location/meeting point.                                                                                                                                                                         |
+| Worship Night                        | Theme, worship leader, speaker.                                                                                                                                                                         |
+| Prayer & Fasting                     | Fasting start/end dates and prayer focus.                                                                                                                                                               |
+| Church Planning / Ministry Meeting   | Meeting agenda, ministry/team, chairperson and decisions/notes.                                                                                                                                         |
+| Dedication                           | Child's name, mother and father, officiating pastor, Ninong/Ninang.                                                                                                                                     |
+| School of Leaders Graduation         | Graduation level, graduate list, guests.                                                                                                                                                                |
+| Special Occasions                    | Special guest or graduate distinctions, relevant officiants and celebration details.                                                                                                                    |
+| Services / Fellowship / Discipleship | Service leader, fellowship group, speaker/facilitator, session topic or training level.                                                                                                                 |
 
 All extended fields should be **optional or context-sensitive** so that adding an ordinary event stays simple.
 
@@ -221,7 +221,7 @@ A production implementation can use the following logical records. This is a **r
 
 ### Category
 
-`category_id`, `ministry_id`, `name`, `parent_category_id` *(optional for nested groups)*, `is_active`
+`category_id`, `ministry_id`, `name`, `parent_category_id` _(optional for nested groups)_, `is_active`
 
 ### Event
 
@@ -229,7 +229,7 @@ A production implementation can use the following logical records. This is a **r
 
 ### Participant
 
-`participant_id`, `full_name`, `age_or_year_level`, `contact_number`, `participant_type`, `guardian_name`, `guardian_contact` *(if needed)*
+`participant_id`, `full_name`, `age_or_year_level`, `contact_number`, `participant_type`, `guardian_name`, `guardian_contact` _(if needed)_
 
 ### Registration
 
@@ -237,7 +237,7 @@ A production implementation can use the following logical records. This is a **r
 
 ### Attendance
 
-`attendance_id`, `event_id`, `registration_id`, `status` *(Present/Absent/Unmarked, with Unmarked also representable as no record)*, `recorded_at`, `recorded_by`
+`attendance_id`, `event_id`, `registration_id`, `status` _(Present/Absent/Unmarked, with Unmarked also representable as no record)_, `recorded_at`, `recorded_by`
 
 ### Modeling principles
 
@@ -267,12 +267,12 @@ The interactive prototype uses a **simple icon-led card layout** with a muted fo
 
 The demonstrated WDEMS prototype starts with sample records to make navigation testable:
 
-| Module | Category | Example event |
-| --- | --- | --- |
-| Services | Sunday Service | Sunday Worship Gathering (Sample) |
-| Youth Ministry | Youth Camp | Youth Camp (Sample) |
-| Kids Ministry | Kids Service | Kids Service (Sample) |
-| Young Adult | GRC Fellowship | GRC Fellowship (Sample) |
+| Module         | Category       | Example event                     |
+| -------------- | -------------- | --------------------------------- |
+| Services       | Sunday Service | Sunday Worship Gathering (Sample) |
+| Youth Ministry | Youth Camp     | Youth Camp (Sample)               |
+| Kids Ministry  | Kids Service   | Kids Service (Sample)             |
+| Young Adult    | GRC Fellowship | GRC Fellowship (Sample)           |
 
 The demo also contains a few fictional registered participants and attendance marks in sample events. They are **illustrative**, not real church records.
 
@@ -296,23 +296,23 @@ The demo also contains a few fictional registered participants and attendance ma
 
 ## 11. Functional Requirements for Implementation
 
-| ID | Requirement | Priority |
-| --- | --- | --- |
-| FR-01 | Display all nine ministry/activity modules on the main dashboard. | Must |
-| FR-02 | Display categories filtered to the selected ministry. | Must |
-| FR-03 | Provide **+ Add Event** within a ministry and category. | Must |
-| FR-04 | Create and edit events with the core Event Details fields. | Must |
-| FR-05 | Show events only in their assigned ministry/category. | Must |
-| FR-06 | Register participants for a specific event. | Must |
-| FR-07 | Display the registration list for the currently selected event. | Must |
-| FR-08 | Record attendance as Present or Absent for each registered participant. | Must |
-| FR-09 | Show Registered, Present, Absent, and Unmarked totals and participant statuses. | Must |
-| FR-10 | Retain event, registration, and attendance records in persistent storage. | Required for production; **not in demo** |
-| FR-11 | Authenticate organizers and limit access by ministry/role. | Required for production; **not in demo** |
-| FR-12 | Handle recurring services with attendance by date and participant history. | Later enhancement |
-| FR-13 | Support optional nested categories, partner management, and activity-specific fields. | Later enhancement |
-| FR-14 | Provide printable/exportable reports and historical statistics. | Later enhancement |
-| FR-15 | Provide validation, duplicate handling, data protection, and audit logging. | Required for production; **not in demo** |
+| ID    | Requirement                                                                           | Priority                                 |
+| ----- | ------------------------------------------------------------------------------------- | ---------------------------------------- |
+| FR-01 | Display all nine ministry/activity modules on the main dashboard.                     | Must                                     |
+| FR-02 | Display categories filtered to the selected ministry.                                 | Must                                     |
+| FR-03 | Provide **+ Add Event** within a ministry and category.                               | Must                                     |
+| FR-04 | Create and edit events with the core Event Details fields.                            | Must                                     |
+| FR-05 | Show events only in their assigned ministry/category.                                 | Must                                     |
+| FR-06 | Register participants for a specific event.                                           | Must                                     |
+| FR-07 | Display the registration list for the currently selected event.                       | Must                                     |
+| FR-08 | Record attendance as Present or Absent for each registered participant.               | Must                                     |
+| FR-09 | Show Registered, Present, Absent, and Unmarked totals and participant statuses.       | Must                                     |
+| FR-10 | Retain event, registration, and attendance records in persistent storage.             | Required for production; **not in demo** |
+| FR-11 | Authenticate organizers and limit access by ministry/role.                            | Required for production; **not in demo** |
+| FR-12 | Handle recurring services with attendance by date and participant history.            | Later enhancement                        |
+| FR-13 | Support optional nested categories, partner management, and activity-specific fields. | Later enhancement                        |
+| FR-14 | Provide printable/exportable reports and historical statistics.                       | Later enhancement                        |
+| FR-15 | Provide validation, duplicate handling, data protection, and audit logging.           | Required for production; **not in demo** |
 
 ## 12. Acceptance Scenarios
 
@@ -423,7 +423,7 @@ events never enter the running-events lifecycle.
   (challenge, 100s resend cooldown, 24h challenge TTL, 7-day email
   device trust, server-side reCAPTCHA).
 - **There is no phone verification anywhere in WDEMS** (Mark, 2026-10-20).
-  The earlier channel-choice design (email *or* phone) is superseded:
+  The earlier channel-choice design (email _or_ phone) is superseded:
   no channel-choice screen, no SMS code, no Firebase. A contact number
   is still collected and still serves as a matching key — it is simply
   never verified. Firebase's only role was phone verification; it is
@@ -437,12 +437,12 @@ events never enter the running-events lifecycle.
   scheduling date: generic events, Fellowship events, single service
   occurrences, recurring-service first dates, Discipleship dates.
 - Mechanics: the shared date picker gets `min = today`, `max = today
-  + 2 years`, and the server enforces the same bounds
-  (`after_or_equal:today` + the 2-year cap) — picker and server must
-  agree. The previous deliberate allowance of past dates for Fellowship
-  events and single service occurrences ("log a gathering after the
-  fact") is **removed**, including its docblocks: a gathering not created
-  before it happened cannot be entered afterwards.
+    - 2 years`, and the server enforces the same bounds
+(`after_or_equal:today` + the 2-year cap) — picker and server must
+      agree. The previous deliberate allowance of past dates for Fellowship
+      events and single service occurrences ("log a gathering after the
+      fact") is **removed**, including its docblocks: a gathering not created
+      before it happened cannot be entered afterwards.
 - The birthdate picker is out of scope (its bounds are opposite by
   purpose: past required, future disallowed).
 
@@ -488,7 +488,7 @@ Build order (full plan: companion spec, Appendix E):
    record → organizer is flagged; never an automatic block or merge).
 5. The database backstops already exist (`unique(event, participant)`
    on registrations and the Services/Fellowship attendance tables) —
-   duplicates today are duplicate *people*, so the fix is resolution,
+   duplicates today are duplicate _people_, so the fix is resolution,
    not new constraints. Any new church registration storage keeps an
    (event, participant) unique guard.
 6. Acceptance: the 10 church test cases in companion spec Appendix E

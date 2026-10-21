@@ -228,8 +228,8 @@ instead.
   `partners` to `array`, `venue_latitude`/`venue_longitude` to
   `decimal:7`, and the eight accessibility flags to `boolean`.
 - Constants: `COMMON_FIELDS_ALWAYS_REQUIRED = ['first_name',
-  'last_name', 'age']`, `COMMON_FIELDS_TOGGLEABLE = ['email',
-  'contact_number', 'address']`,
+'last_name', 'age']`, `COMMON_FIELDS_TOGGLEABLE = ['email',
+'contact_number', 'address']`,
   `ATTENDANCE_WINDOW_MINUTES_BEFORE = 60`.
 - Methods (verified present): `isCommonFieldRequired`,
   `creator()`, `registrationFields()`, `registrations()`,
@@ -681,42 +681,42 @@ that is not obviously required to change.
 
 ### 4.1 Must change (given any of the proposed requirements)
 
-| Component | Why |
-|---|---|
-| `app/Enums/EventType.php` | The two running cases do not cover Services, Fellowship, Discipleship, etc. At minimum, some way to distinguish church events from running events is required. |
-| `app/Models/Event.php` | Either new `canX()` guards, new relations (occurrences, categories), or new fillable/cast entries are required. |
-| `app/Http/Controllers/EventController.php` | `index`, `show`, `create`, `store`, `edit`, `update` all assume running-event fields. New fields require new payload entries. |
-| `app/Concerns/EventValidationRules.php` | `eventRules()` hardcodes `distance_value` and `distance_unit` as required and lists accessibility flags. Church events have neither. |
-| `resources/js/pages/events/create.tsx`, `edit.tsx` | The wizard steps assume running-event fields. |
-| `resources/js/components/app-sidebar.tsx` | Adding a Categories or Church Events entry requires editing `mainNavItems`. |
-| `routes/web.php` | New routes for category management, church event creation, occurrence handling. |
+| Component                                          | Why                                                                                                                                                            |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/Enums/EventType.php`                          | The two running cases do not cover Services, Fellowship, Discipleship, etc. At minimum, some way to distinguish church events from running events is required. |
+| `app/Models/Event.php`                             | Either new `canX()` guards, new relations (occurrences, categories), or new fillable/cast entries are required.                                                |
+| `app/Http/Controllers/EventController.php`         | `index`, `show`, `create`, `store`, `edit`, `update` all assume running-event fields. New fields require new payload entries.                                  |
+| `app/Concerns/EventValidationRules.php`            | `eventRules()` hardcodes `distance_value` and `distance_unit` as required and lists accessibility flags. Church events have neither.                           |
+| `resources/js/pages/events/create.tsx`, `edit.tsx` | The wizard steps assume running-event fields.                                                                                                                  |
+| `resources/js/components/app-sidebar.tsx`          | Adding a Categories or Church Events entry requires editing `mainNavItems`.                                                                                    |
+| `routes/web.php`                                   | New routes for category management, church event creation, occurrence handling.                                                                                |
 
 ### 4.2 May need change (depending on A–F decisions)
 
-| Component | Depends on | Note |
-|---|---|---|
-| `app/Enums/EventStatus.php` | Decision A | Adding church states here contaminates every `Event::canX()` method. |
-| `app/Http/Controllers/AttendanceController.php` | Decision D | Church attendance needs to attach to occurrences, not registrations. |
-| `app/Models/Attendance.php` | Decision D | Current FK is `registration_id`. |
-| `app/Services/Reporting/ReportService.php` | Decision D | `cross_event()` scopes on `event_type`; church reports need different scoping. |
-| `app/Models/User.php` | Decision C | If approval introduces a new role or a new permission. |
-| `app/Http/Requests/EventRequest.php` | Decision F | If categories become DB-driven, event_type validation changes. |
-| `app/Services/EventDeletion/EventDeletionService.php` | Any new table | Cascade coverage needs to include new child tables. |
-| `resources/js/app.tsx` | Any new page family | Layout switch may need new cases. |
-| `app/Services/RegistrationVerification/RegistrationVerificationService.php` | Only if church registration reuses it | Otherwise untouched. |
+| Component                                                                   | Depends on                            | Note                                                                           |
+| --------------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------ |
+| `app/Enums/EventStatus.php`                                                 | Decision A                            | Adding church states here contaminates every `Event::canX()` method.           |
+| `app/Http/Controllers/AttendanceController.php`                             | Decision D                            | Church attendance needs to attach to occurrences, not registrations.           |
+| `app/Models/Attendance.php`                                                 | Decision D                            | Current FK is `registration_id`.                                               |
+| `app/Services/Reporting/ReportService.php`                                  | Decision D                            | `cross_event()` scopes on `event_type`; church reports need different scoping. |
+| `app/Models/User.php`                                                       | Decision C                            | If approval introduces a new role or a new permission.                         |
+| `app/Http/Requests/EventRequest.php`                                        | Decision F                            | If categories become DB-driven, event_type validation changes.                 |
+| `app/Services/EventDeletion/EventDeletionService.php`                       | Any new table                         | Cascade coverage needs to include new child tables.                            |
+| `resources/js/app.tsx`                                                      | Any new page family                   | Layout switch may need new cases.                                              |
+| `app/Services/RegistrationVerification/RegistrationVerificationService.php` | Only if church registration reuses it | Otherwise untouched.                                                           |
 
 ### 4.3 Should not change (running path preservation)
 
-| Component | Why |
-|---|---|
-| `app/Enums/EventStatus.php` (existing cases) | Every running-path controller, middleware, and view depends on the current six cases and their transitions. |
-| `app/Services/EventWorkflow.php` | The running lifecycle's only write path. |
-| `app/Http/Middleware/AdvanceEventStatus.php` | Running-event-only; church events do not auto-advance on start time. |
-| `app/Http/Middleware/EnsureRegistrationIsOpen.php` | Running-event public surface. |
-| `app/Http/Controllers/PublicRegistrationController.php` | Running-event-only public surface. |
-| `app/Services/RegistrationVerification/RegistrationVerificationService.php` | If church events do not need contact verification. |
-| `app/Models/Participant.php` | Cross-cutting; reuse rather than modify. |
-| `app/Concerns/HumanNameQualityRules.php`, `ContactAndAddressQualityRules.php` | Shared; reuse rather than modify. |
+| Component                                                                     | Why                                                                                                         |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `app/Enums/EventStatus.php` (existing cases)                                  | Every running-path controller, middleware, and view depends on the current six cases and their transitions. |
+| `app/Services/EventWorkflow.php`                                              | The running lifecycle's only write path.                                                                    |
+| `app/Http/Middleware/AdvanceEventStatus.php`                                  | Running-event-only; church events do not auto-advance on start time.                                        |
+| `app/Http/Middleware/EnsureRegistrationIsOpen.php`                            | Running-event public surface.                                                                               |
+| `app/Http/Controllers/PublicRegistrationController.php`                       | Running-event-only public surface.                                                                          |
+| `app/Services/RegistrationVerification/RegistrationVerificationService.php`   | If church events do not need contact verification.                                                          |
+| `app/Models/Participant.php`                                                  | Cross-cutting; reuse rather than modify.                                                                    |
+| `app/Concerns/HumanNameQualityRules.php`, `ContactAndAddressQualityRules.php` | Shared; reuse rather than modify.                                                                           |
 
 ---
 
@@ -785,8 +785,8 @@ Questions the audit cannot resolve from the repository alone.
 - The workflow specification (client document) describes a
   ten-state chain:
   `Draft → Proposed → Under Review → Approved / Revision Required
-  / Rejected → In Preparation → Ready → Ongoing → Event Ended →
-  Under Evaluation → Completed`.
+/ Rejected → In Preparation → Ready → Ongoing → Event Ended →
+Under Evaluation → Completed`.
 - The mockup shows only four labels: `Upcoming`,
   `Open Registration`, `Ongoing`, `Completed`.
 - `Upcoming` and `Open Registration` are not in either the code
@@ -875,11 +875,11 @@ stays simple.
   route was found in any file inspected.
 - `composer.json` and `package.json` list no payment SDK.
 - The workflow spec does not mention payments.
-- The scoping prompt (this document's source) says: *"Fun Run
+- The scoping prompt (this document's source) says: _"Fun Run
   remains in scope. Do not remove its existing functionality or
-  assume its payment behavior is changing."*
-- The prior conversation said: *"Fun Run might be out of scope
-  because of payments."*
+  assume its payment behavior is changing."_
+- The prior conversation said: _"Fun Run might be out of scope
+  because of payments."_
 
 ### Alternatives
 
@@ -925,8 +925,8 @@ returns hits, they become findings for document 02.
   check event status, not user identity or ownership.
 - `events.created_by` exists and is set by `EventController::store`.
   Nothing reads it for authorization.
-- The workflow spec says: *"Approval permissions must be
-  restricted to authorized leadership or designated approvers."*
+- The workflow spec says: _"Approval permissions must be
+  restricted to authorized leadership or designated approvers."_
   It does not say who that is.
 - The mockup shows a single user identity ("Charish · Admin /
   Event Organizer") without a separate approver view.
@@ -977,11 +977,11 @@ for audit-grade approvals.
 - `Attendance` FK is `registration_id`. For a Sunday service
   with no registration, there is no `registration_id` to attach
   attendance to.
-- The workflow spec says: *"A recurring schedule is not itself
+- The workflow spec says: _"A recurring schedule is not itself
   an attendance record. Every service date needs its own
-  occurrence."*
-- The workflow spec also says: *"Each occurrence/session must
-  have its own date, status, attendance, and notes."*
+  occurrence."_
+- The workflow spec also says: _"Each occurrence/session must
+  have its own date, status, attendance, and notes."_
 
 ### Alternatives
 
@@ -1051,8 +1051,8 @@ cleaner. If the reporting is mostly the same, D2 reuses more.
   item ("budget estimate, resource requirements") and once as a
   Stage 5 item ("record actual expenses and submit
   liquidation/reconciliation documents when applicable").
-- The scoping prompt says: *"Budget and expense management only
-  if approved as part of the scope."*
+- The scoping prompt says: _"Budget and expense management only
+  if approved as part of the scope."_
 
 ### Alternatives
 
@@ -1095,9 +1095,9 @@ document side.
 - The mockup shows a Categories sidebar item, a Church Events
   Categories panel with per-category counts, and an "Add
   Category" button.
-- The workflow spec says: *"Keep dropdown options configurable
+- The workflow spec says: _"Keep dropdown options configurable
   by an authorized administrator so the system can adapt
-  without code changes."*
+  without code changes."_
 
 ### Alternatives
 
@@ -1248,7 +1248,7 @@ workflow is a genuine, approved state machine, or whether some
 stages are a checklist while the dashboard continues to display
 simplified statuses.
 
-**Withdrawn.** The line *"A2 or A3, with A3 preferred"* is
+**Withdrawn.** The line _"A2 or A3, with A3 preferred"_ is
 withdrawn. No alternative is selected.
 
 **Reviewer note on persistence.** Creating a `ChurchEventStatus`
@@ -1278,7 +1278,7 @@ matching references were found in the searched locations. It
 does not establish whether payments were originally intended or
 are required by the client.
 
-**Withdrawn.** The line *"B2 then B1"* is withdrawn. B1's claim
+**Withdrawn.** The line _"B2 then B1"_ is withdrawn. B1's claim
 that Fun Run has no payment behavior is unsupported until the
 search runs **and** the product question is answered separately.
 
@@ -1290,12 +1290,12 @@ grep cannot answer this.
 
 **Reviewer position.** C2 may be simplest if administrators are
 confirmed as the approvers. But the mockup's combined
-*"Admin / Event Organizer"* label does not establish who may
+_"Admin / Event Organizer"_ label does not establish who may
 approve events or whether a creator may approve their own
 submission.
 
-**Withdrawn.** The line *"C2 for the first release, C3 if
-per-event assignment becomes required"* is withdrawn. No
+**Withdrawn.** The line _"C2 for the first release, C3 if
+per-event assignment becomes required"_ is withdrawn. No
 approver schema (`approver_id`, `requires_approval`, or a new
 role) should be added until the policy is confirmed.
 
@@ -1315,7 +1315,7 @@ role) should be added until the policy is confirmed.
 **Reviewer position.** Confirm how attendance is recorded
 before choosing a schema. Against what entity?
 
-**Withdrawn.** The line *"D2 or D3"* is withdrawn. The schema
+**Withdrawn.** The line _"D2 or D3"_ is withdrawn. The schema
 is undecided.
 
 **Prerequisite decisions before D can be selected.**
@@ -1334,8 +1334,8 @@ is undecided.
 
 **Reviewer note on D1.** D1 (each service date is an
 independent Event row) is only compatible with the workflow
-spec's *"each occurrence/session must have its own date,
-status, attendance, and notes"* if each occurrence is treated
+spec's _"each occurrence/session must have its own date,
+status, attendance, and notes"_ if each occurrence is treated
 as a full Event — which defeats the "recurring schedule"
 concept.
 
@@ -1348,7 +1348,7 @@ amount and notes alone may not satisfy those requirements. If
 finance functionality is deferred, the deferral must be
 explicitly agreed.
 
-**Withdrawn.** The line *"E1 for the first release"* is
+**Withdrawn.** The line _"E1 for the first release"_ is
 withdrawn.
 
 **Prerequisite decision.** What is the minimum financial
@@ -1374,7 +1374,7 @@ minimizing disruption, but it is not yet proven to be the safest
 design. Specific verifications are required.
 
 **Retained, not selected.** F2 is retained as a **leading
-candidate**, not a selection. The line *"F2"* as a
+candidate**, not a selection. The line _"F2"_ as a
 recommendation is softened here.
 
 **Prerequisite verifications before F can be selected.**
@@ -1442,4 +1442,3 @@ document 02 can proceed on accurate scope.
 The audit's §4 impact map stands unchanged. The audit's
 conclusion that no code, schema, migrations, enums, or tests
 were modified stands unchanged.
-

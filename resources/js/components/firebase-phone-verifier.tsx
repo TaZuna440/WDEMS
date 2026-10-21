@@ -1,4 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
+import {
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+    type FormEvent,
+} from 'react';
 import {
     RecaptchaVerifier,
     signInWithPhoneNumber,
@@ -76,7 +82,9 @@ export default function FirebasePhoneVerifier({
     onStageChange,
 }: Props) {
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
-    const [stage, setStage] = useState<PhoneStage>(verified ? 'verified' : 'idle');
+    const [stage, setStage] = useState<PhoneStage>(
+        verified ? 'verified' : 'idle',
+    );
     const [code, setCode] = useState('');
     const [message, setMessage] = useState('');
     const [recaptchaReady, setRecaptchaReady] = useState(false);
@@ -266,7 +274,9 @@ export default function FirebasePhoneVerifier({
                         id="firebase-phone-code"
                         value={code}
                         onChange={(e) =>
-                            setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                            setCode(
+                                e.target.value.replace(/\D/g, '').slice(0, 6),
+                            )
                         }
                         inputMode="numeric"
                         autoComplete="one-time-code"
@@ -289,7 +299,7 @@ export default function FirebasePhoneVerifier({
             )}
 
             {message !== '' && (
-                <p role="alert" className="text-sm text-destructive">
+                <p role="alert" className="text-destructive text-sm">
                     {message}
                 </p>
             )}

@@ -79,12 +79,12 @@ Month, Dedication, School of Leaders Graduation.
 
 All use the shared journey. Additional details:
 
-| Category | Additional data |
-| --- | --- |
-| Dedication | Mother's name, father's name, child's name, officiating pastor, ninongs/ninangs list |
-| School of Leaders Graduation | Separate graduate lists for School of Leaders 1, 2, and 3 |
-| Pastor's Appreciation Month | One or more pastors being honored |
-| Church Anniversary / Thanksgiving Celebration | Common event details |
+| Category                                      | Additional data                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Dedication                                    | Mother's name, father's name, child's name, officiating pastor, ninongs/ninangs list |
+| School of Leaders Graduation                  | Separate graduate lists for School of Leaders 1, 2, and 3                            |
+| Pastor's Appreciation Month                   | One or more pastors being honored                                                    |
+| Church Anniversary / Thanksgiving Celebration | Common event details                                                                 |
 
 Dedication adds Ninongs/Ninangs to its roster presentation. Graduation adds
 Graduates and preserves each graduate's SOL level. These are event roles;

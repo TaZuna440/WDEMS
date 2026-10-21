@@ -14,6 +14,7 @@ line. The question text stays as written -- per P7, the log is
 append-only at the entry level.
 
 **Related:**
+
 - `docs/church-events/09-mockup-scope-inventory.md` -- the full
   inventory of what the mockups show vs what exists. This file
   is the answer-tracking companion.
@@ -41,29 +42,29 @@ block below the Answer.
 
 ## Status at a glance
 
-| # | Theme | Blocks | Status |
-|---|---|---|---|
-| Q1  | Services in the new sidebar | Services doc, sidebar rework | Answered |
-| Q2  | Flat vs expandable sidebar | Navigation rework | Answered |
-| Q3  | Timothy Class nav placement | Youth module | Answered |
-| Q4  | Young Adult module contents | Young Adult module | Answered |
-| Q5  | Worship & Prayer module contents | Worship & Prayer module | Answered |
-| Q6  | Special Occasions Documents tab | Special Occasions module | Answered |
-| Q7  | Church Planning Timeline tab | Church Administration module | Answered |
-| Q8  | Outreaches location entity | Kids Ministry module | Answered |
-| Q9  | Ministry list (fixed vs editable) | Church Administration module | Answered |
-| Q10 | Payment tracking real vs bookkeeping | Youth Camp, Kids Ministry, Special Occasions | Answered |
-| Q11 | Payment gateway choice | Same as Q10 | Answered |
-| Q12 | Budget approval chain | Special Occasions module | Answered |
-| Q13 | Task assignment scope | Special Occasions, Church Planning | Answered |
-| Q14 | Progress calculation rule | Discipleship confirmation, Timothy Class, Campus Ministry | Answered |
-| Q15 | Discipleship "Not Started" status | Discipleship enum | Answered |
-| Q16 | Grade/Year level scope | Youth Camp, Kids Ministry, Campus Ministry, Timothy Class | Answered |
-| Q17 | Members / First-Timers pages | Navigation and first-timers promotion | Answered |
-| Q18 | Cell Group vs Services overlap | Cell Group module | Answered |
-| Q19 | Design system replacement | Every shipped page | Answered |
-| Q20 | Multi-tab URL semantics | Special Occasions, Ministry Meeting, VBS | Answered |
-| Q21 | Final role model | Four-role proposal, approval workflow | Answered |
+| #   | Theme                                | Blocks                                                    | Status   |
+| --- | ------------------------------------ | --------------------------------------------------------- | -------- |
+| Q1  | Services in the new sidebar          | Services doc, sidebar rework                              | Answered |
+| Q2  | Flat vs expandable sidebar           | Navigation rework                                         | Answered |
+| Q3  | Timothy Class nav placement          | Youth module                                              | Answered |
+| Q4  | Young Adult module contents          | Young Adult module                                        | Answered |
+| Q5  | Worship & Prayer module contents     | Worship & Prayer module                                   | Answered |
+| Q6  | Special Occasions Documents tab      | Special Occasions module                                  | Answered |
+| Q7  | Church Planning Timeline tab         | Church Administration module                              | Answered |
+| Q8  | Outreaches location entity           | Kids Ministry module                                      | Answered |
+| Q9  | Ministry list (fixed vs editable)    | Church Administration module                              | Answered |
+| Q10 | Payment tracking real vs bookkeeping | Youth Camp, Kids Ministry, Special Occasions              | Answered |
+| Q11 | Payment gateway choice               | Same as Q10                                               | Answered |
+| Q12 | Budget approval chain                | Special Occasions module                                  | Answered |
+| Q13 | Task assignment scope                | Special Occasions, Church Planning                        | Answered |
+| Q14 | Progress calculation rule            | Discipleship confirmation, Timothy Class, Campus Ministry | Answered |
+| Q15 | Discipleship "Not Started" status    | Discipleship enum                                         | Answered |
+| Q16 | Grade/Year level scope               | Youth Camp, Kids Ministry, Campus Ministry, Timothy Class | Answered |
+| Q17 | Members / First-Timers pages         | Navigation and first-timers promotion                     | Answered |
+| Q18 | Cell Group vs Services overlap       | Cell Group module                                         | Answered |
+| Q19 | Design system replacement            | Every shipped page                                        | Answered |
+| Q20 | Multi-tab URL semantics              | Special Occasions, Ministry Meeting, VBS                  | Answered |
+| Q21 | Final role model                     | Four-role proposal, approval workflow                     | Answered |
 
 **Coverage:** 21 questions, 21 answered, 0 pending.
 

@@ -49,7 +49,7 @@ export default function NoteDialog({
     );
 
     useEffect(() => {
-        if (! open) {
+        if (!open) {
             return;
         }
 
@@ -98,7 +98,7 @@ export default function NoteDialog({
                             autoFocus
                             maxLength={MAX_LENGTH}
                             placeholder="Anything the organizer should know about this registration."
-                            className="flex min-h-[120px] w-full rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-foreground focus:border-lime-brand/50 focus:outline-none focus:ring-1 focus:ring-lime-brand/50"
+                            className="text-foreground focus:border-lime-brand/50 focus:ring-lime-brand/50 flex min-h-[120px] w-full rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm focus:ring-1 focus:outline-none"
                         />
                         <div className="flex items-center justify-between">
                             <InputError message={form.errors.note} />

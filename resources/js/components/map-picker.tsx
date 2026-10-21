@@ -71,7 +71,7 @@ export default function MapPicker({
 
                 <Suspense
                     fallback={
-                        <div className="flex h-[400px] items-center justify-center rounded-lg border border-white/10 bg-white/5 text-sm text-muted-foreground">
+                        <div className="text-muted-foreground flex h-[400px] items-center justify-center rounded-lg border border-white/10 bg-white/5 text-sm">
                             Loading map...
                         </div>
                     }
@@ -98,7 +98,7 @@ export default function MapPicker({
                 </div>
 
                 {lat !== null && lng !== null && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                         <MapPin className="mr-1 inline h-3 w-3" />
                         {lat.toFixed(6)}, {lng.toFixed(6)}
                     </p>
@@ -113,7 +113,7 @@ export default function MapPicker({
                     </Button>
                     <Button
                         onClick={handleConfirm}
-                        disabled={! canConfirm}
+                        disabled={!canConfirm}
                         className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
                     >
                         Use this location

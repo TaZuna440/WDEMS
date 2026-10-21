@@ -1,5 +1,12 @@
 import { Form, Head, router } from '@inertiajs/react';
-import { AlertCircle, CheckCircle2, Mail, Monitor, ShieldCheck, X } from 'lucide-react';
+import {
+    AlertCircle,
+    CheckCircle2,
+    Mail,
+    Monitor,
+    ShieldCheck,
+    X,
+} from 'lucide-react';
 import { useRef } from 'react';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import Heading from '@/components/heading';
@@ -51,15 +58,23 @@ export default function Security({
                     'Anyone with your password will be able to log in from a new device without a verification code. All trusted devices will be forgotten.',
                 confirmLabel: 'Turn off 2FA',
                 onConfirm: () => {
-                    router.put('/settings/security/two-factor', {}, {
-                        preserveScroll: true,
-                    });
+                    router.put(
+                        '/settings/security/two-factor',
+                        {},
+                        {
+                            preserveScroll: true,
+                        },
+                    );
                 },
             });
         } else {
-            router.put('/settings/security/two-factor', {}, {
-                preserveScroll: true,
-            });
+            router.put(
+                '/settings/security/two-factor',
+                {},
+                {
+                    preserveScroll: true,
+                },
+            );
         }
     };
 
@@ -122,7 +137,9 @@ export default function Security({
                                         autoComplete="current-password"
                                         placeholder="Current password"
                                     />
-                                    <InputError message={errors.current_password} />
+                                    <InputError
+                                        message={errors.current_password}
+                                    />
                                 </div>
 
                                 <div className="grid gap-2">
@@ -153,7 +170,9 @@ export default function Security({
                                         placeholder="Confirm password"
                                         passwordrules={passwordRules}
                                     />
-                                    <InputError message={errors.password_confirmation} />
+                                    <InputError
+                                        message={errors.password_confirmation}
+                                    />
                                 </div>
 
                                 <div className="flex items-center gap-4">
@@ -183,13 +202,15 @@ export default function Security({
                                 {emailTwoFactorEnabled ? (
                                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-700 dark:text-green-400" />
                                 ) : (
-                                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                                    <AlertCircle className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
                                 )}
                                 <div>
-                                    <p className="text-sm font-medium text-foreground">
-                                        {emailTwoFactorEnabled ? 'Enabled' : 'Disabled'}
+                                    <p className="text-foreground text-sm font-medium">
+                                        {emailTwoFactorEnabled
+                                            ? 'Enabled'
+                                            : 'Disabled'}
                                     </p>
-                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                    <p className="text-muted-foreground mt-0.5 text-xs">
                                         {emailTwoFactorEnabled
                                             ? 'You will be asked for a code when logging in from a device we don\u2019t recognize.'
                                             : 'Anyone with your password can log in from any device.'}
@@ -199,7 +220,11 @@ export default function Security({
 
                             <Button
                                 type="button"
-                                variant={emailTwoFactorEnabled ? 'outline' : 'default'}
+                                variant={
+                                    emailTwoFactorEnabled
+                                        ? 'outline'
+                                        : 'default'
+                                }
                                 onClick={handleToggle}
                                 className={
                                     emailTwoFactorEnabled
@@ -224,13 +249,13 @@ export default function Security({
 
                         {trustedDevices.length === 0 ? (
                             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-white/10 py-8 text-center">
-                                <ShieldCheck className="mb-2 h-8 w-8 text-muted-foreground/40" />
-                                <p className="text-sm text-muted-foreground">
+                                <ShieldCheck className="text-muted-foreground/40 mb-2 h-8 w-8" />
+                                <p className="text-muted-foreground text-sm">
                                     No trusted devices yet.
                                 </p>
-                                <p className="mt-0.5 text-xs text-muted-foreground">
-                                    Check &ldquo;Remember this device&rdquo; on the verification
-                                    screen to trust a browser.
+                                <p className="text-muted-foreground mt-0.5 text-xs">
+                                    Check &ldquo;Remember this device&rdquo; on
+                                    the verification screen to trust a browser.
                                 </p>
                             </div>
                         ) : (
@@ -241,15 +266,16 @@ export default function Security({
                                         className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3"
                                     >
                                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white/5">
-                                            <Monitor className="h-4 w-4 text-muted-foreground" />
+                                            <Monitor className="text-muted-foreground h-4 w-4" />
                                         </div>
 
                                         <div className="flex flex-1 flex-col">
-                                            <span className="text-sm font-medium text-foreground">
+                                            <span className="text-foreground text-sm font-medium">
                                                 {device.label}
                                             </span>
-                                            <span className="text-xs text-muted-foreground">
-                                                {device.ip ?? 'Unknown IP'} · Added{' '}
+                                            <span className="text-muted-foreground text-xs">
+                                                {device.ip ?? 'Unknown IP'} ·
+                                                Added{' '}
                                                 {formatDate(device.added_at)}
                                             </span>
                                         </div>
@@ -273,13 +299,14 @@ export default function Security({
 
                 {/* Info panel */}
                 <div className="flex items-start gap-2 rounded-lg border border-white/5 bg-white/[0.02] p-4">
-                    <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground">
+                    <Mail className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
+                    <p className="text-muted-foreground text-xs">
                         Verification codes are sent to{' '}
-                        <span className="font-medium text-foreground">
+                        <span className="text-foreground font-medium">
                             your registered email address
                         </span>
-                        . If you lose access to your email, contact your administrator.
+                        . If you lose access to your email, contact your
+                        administrator.
                     </p>
                 </div>
             </div>

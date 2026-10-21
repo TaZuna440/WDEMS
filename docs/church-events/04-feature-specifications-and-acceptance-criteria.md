@@ -17,6 +17,7 @@ they can be turned into automated tests without further design
 work where the underlying decision is settled.
 
 **Related:**
+
 - `docs/church-events/01-current-system-audit.md`
 - `docs/church-events/02-product-scope-and-requirements.md`
 - `docs/church-events/03-domain-model-and-workflows.md`
@@ -130,6 +131,7 @@ resolves.
 ### 2.3 User flows
 
 **Flow 1 -- Administrator adds a category (F2/F3/F5 only):**
+
 1. Administrator opens Categories page.
 2. Clicks "Add Category".
 3. Enters category name and sort order.
@@ -138,6 +140,7 @@ resolves.
    category dropdown.
 
 **Flow 2 -- Administrator adds an event type (F2/F3/F5 only):**
+
 1. Administrator selects a category.
 2. Clicks "Add Event Type".
 3. Enters type name, optional feature configuration, and sort
@@ -148,6 +151,7 @@ resolves.
 
 **Flow 3 -- Administrator deactivates a category or type
 (F2/F3/F5 only):**
+
 1. Administrator opens the Categories page.
 2. Selects a category or type.
 3. Clicks "Deactivate".
@@ -170,12 +174,12 @@ resolves.
 
 ### 2.5 Error states
 
-| Condition | Message |
-|---|---|
-| Duplicate category name | "A category with this name already exists." |
-| Duplicate type name in category | "This category already has a type with this name." |
-| Empty name | "Name is required." |
-| Invalid sort order | "Sort order must be a number." |
+| Condition                                  | Message                                                                                                                          |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Duplicate category name                    | "A category with this name already exists."                                                                                      |
+| Duplicate type name in category            | "This category already has a type with this name."                                                                               |
+| Empty name                                 | "Name is required."                                                                                                              |
+| Invalid sort order                         | "Sort order must be a number."                                                                                                   |
 | Deactivating a category with active events | "This category has N active events. Deactivating it will hide it from new events but will not affect existing events. Continue?" |
 
 ### 2.6 Permissions
@@ -295,11 +299,13 @@ Fields NOT applicable to church events (must not be shown):
 ### 3.4 User flows
 
 **Flow 1 -- Create a running event:**
+
 1. User visits `/events/create`.
 2. Selects "Running Event".
 3. Existing wizard proceeds unchanged.
 
 **Flow 2 -- Create a church event:**
+
 1. User visits `/events/create`.
 2. Selects "Church Event".
 3. Selects category from dropdown.
@@ -332,13 +338,13 @@ Fields NOT applicable to church events (must not be shown):
 
 ### 3.6 Error states
 
-| Condition | Message |
-|---|---|
-| No category selected | "Please select a category." |
-| No type selected | "Please select an event type." |
-| Type does not belong to category | "The selected type does not belong to this category." |
-| Invalid date | Existing messages from `eventMessages()` |
-| Invalid time range | Existing messages from `eventMessages()` |
+| Condition                          | Message                                                  |
+| ---------------------------------- | -------------------------------------------------------- |
+| No category selected               | "Please select a category."                              |
+| No type selected                   | "Please select an event type."                           |
+| Type does not belong to category   | "The selected type does not belong to this category."    |
+| Invalid date                       | Existing messages from `eventMessages()`                 |
+| Invalid time range                 | Existing messages from `eventMessages()`                 |
 | Required field missing on proposal | "This field is required before submitting the proposal." |
 
 ### 3.7 Permissions
@@ -503,18 +509,21 @@ PND-02, PND-04.
 ### 6.2 User flows
 
 **Flow 1 -- Submit a proposal:**
+
 1. Organizer creates a church event, saves as draft.
 2. Reviews event details.
 3. Clicks "Submit Proposal".
 4. Event moves to a pending-review state.
 
 **Flow 2 -- Approve a proposal (approver only):**
+
 1. Approver opens the pending event.
 2. Reviews details.
 3. Clicks "Approve" or "Request Revision" or "Reject".
 4. Event moves to the corresponding state.
 
 **Flow 3 -- Revise a proposal:**
+
 1. Organizer receives "Revision Required".
 2. Edits event details.
 3. Resubmits.
@@ -527,12 +536,12 @@ PND-02, PND-04.
 
 ### 6.4 Error states
 
-| Condition | Message |
-|---|---|
-| Non-approver attempts approval | 403 |
-| Approving an already-approved event | "This event is already approved." |
-| Revision without reason | "Please provide a reason for the revision request." |
-| Rejection without reason | "Please provide a reason for rejection." |
+| Condition                           | Message                                             |
+| ----------------------------------- | --------------------------------------------------- |
+| Non-approver attempts approval      | 403                                                 |
+| Approving an already-approved event | "This event is already approved."                   |
+| Revision without reason             | "Please provide a reason for the revision request." |
+| Rejection without reason            | "Please provide a reason for rejection."            |
 
 ### 6.5 Permissions
 
@@ -589,6 +598,7 @@ REC-04, PND-03, PND-10.
 ### 7.2 User flows
 
 **Flow 1 -- Create a recurring event (D2/D3/D4):**
+
 1. User creates a church event.
 2. Selects "Recurring".
 3. Sets schedule (e.g., weekly, day, time).
@@ -597,11 +607,13 @@ REC-04, PND-03, PND-10.
 6. System generates occurrence rows.
 
 **Flow 2 -- View occurrences:**
+
 1. User opens a recurring event.
 2. Sees a list of occurrences with dates and statuses.
 3. Clicks an occurrence to see attendance for that date.
 
 **Flow 3 -- Cancel an individual occurrence (D2/D3/D4):**
+
 1. User opens the occurrence.
 2. Clicks "Cancel this occurrence".
 3. Provides a reason.
@@ -617,11 +629,11 @@ REC-04, PND-03, PND-10.
 
 ### 7.4 Error states
 
-| Condition | Message |
-|---|---|
-| Invalid schedule | "The recurrence pattern is not valid." |
-| End before start | "End date must be after start date." |
-| Cancelling a past occurrence | "This occurrence has already occurred." |
+| Condition                         | Message                                      |
+| --------------------------------- | -------------------------------------------- |
+| Invalid schedule                  | "The recurrence pattern is not valid."       |
+| End before start                  | "End date must be after start date."         |
+| Cancelling a past occurrence      | "This occurrence has already occurred."      |
 | Duplicate occurrence on same date | "An occurrence already exists on this date." |
 
 ### 7.5 Permissions
@@ -663,6 +675,7 @@ REG-03, REG-04, REG-05 (PENDING).
 ### 8.2 User flows
 
 **Flow 1 -- Enable registration on a church event:**
+
 1. Organizer toggles registration on.
 2. Configures common fields (reuse existing
    `registration_common_field_requirements`).
@@ -723,6 +736,7 @@ through ATT-06 (PENDING/PROPOSED).
 ### 9.2 User flows
 
 **Flow 1 -- Record attendance for a service (AT2/AT3):**
+
 1. Staff opens the service for a specific date (occurrence).
 2. Sees a list of expected attendees (church members, or
    registered participants).
@@ -730,6 +744,7 @@ through ATT-06 (PENDING/PROPOSED).
 4. Saves.
 
 **Flow 2 -- Record attendance with walk-ins:**
+
 1. Staff adds a walk-in by name (or by participant lookup).
 2. Marks them present.
 3. Saves.
@@ -745,12 +760,12 @@ through ATT-06 (PENDING/PROPOSED).
 
 ### 9.4 Error states
 
-| Condition | Message |
-|---|---|
-| Duplicate attendance | "Attendance already recorded for this participant." |
-| Unknown participant | "This person is not on the expected list." |
-| No occurrence selected | "Please select an occurrence." |
-| Attendance already closed | "Attendance for this occurrence is closed." |
+| Condition                 | Message                                             |
+| ------------------------- | --------------------------------------------------- |
+| Duplicate attendance      | "Attendance already recorded for this participant." |
+| Unknown participant       | "This person is not on the expected list."          |
+| No occurrence selected    | "Please select an occurrence."                      |
+| Attendance already closed | "Attendance for this occurrence is closed."         |
 
 ### 9.5 Permissions
 
@@ -799,17 +814,20 @@ Any authenticated staff or admin. Per Decision 10.
 ### 10.2 User flows
 
 **Flow 1 -- Enroll a participant:**
+
 1. Organizer opens a Discipleship event.
 2. Clicks "Enroll Participant".
 3. Selects an existing participant or creates one.
 4. Enrollment record created with status "Enrolled".
 
 **Flow 2 -- Track progress:**
+
 1. After each session, staff records attendance.
 2. Enrollment status updates based on attendance count against
    required sessions.
 
 **Flow 3 -- Mark completion:**
+
 1. Program reaches completion criteria.
 2. Organizer marks participant "Completed".
 3. Completion date recorded.
@@ -824,11 +842,11 @@ Any authenticated staff or admin. Per Decision 10.
 
 ### 10.4 Error states
 
-| Condition | Message |
-|---|---|
-| Duplicate enrollment | "This participant is already enrolled." |
+| Condition                   | Message                                        |
+| --------------------------- | ---------------------------------------------- |
+| Duplicate enrollment        | "This participant is already enrolled."        |
 | Missing completion criteria | "Define completion criteria before enrolling." |
-| Invalid status transition | "Cannot transition from {from} to {to}." |
+| Invalid status transition   | "Cannot transition from {from} to {to}."       |
 
 ### 10.5 Permissions
 
@@ -863,10 +881,12 @@ Any authenticated staff or admin. Per Decision 10.
 ### 11.2 User flows
 
 **Flow 1 -- Assign a subgroup (SG1 or SG2):**
+
 1. Organizer selects a subgroup for the event.
 2. The subgroup is stored and displayed.
 
 **Flow 2 -- Manage subgroups (SG2, admin only):**
+
 1. Admin opens the Subgroups page (if it exists).
 2. Adds, renames, deactivates subgroups within a category.
 
@@ -878,10 +898,10 @@ Any authenticated staff or admin. Per Decision 10.
 
 ### 11.4 Error states
 
-| Condition | Message |
-|---|---|
+| Condition                      | Message                                                   |
+| ------------------------------ | --------------------------------------------------------- |
 | Subgroup not in category (SG2) | "The selected subgroup does not belong to this category." |
-| Empty subgroup (SG1) | "Please enter a subgroup." |
+| Empty subgroup (SG1)           | "Please enter a subgroup."                                |
 
 ### 11.5 Permissions
 
@@ -913,11 +933,13 @@ PND-05.
 ### 12.2 User flows
 
 **Flow 1 -- Enter budget (E1/E2/E3):**
+
 1. Organizer opens the event's Budget tab.
 2. Enters amount and notes.
 3. Saves.
 
 **Flow 2 -- Submit liquidation (E1/E2/E3):**
+
 1. After the event, organizer opens Budget tab.
 2. Uploads the reconciliation document.
 3. Records actual expenses (per candidate).
@@ -930,11 +952,11 @@ PND-05.
 
 ### 12.4 Error states
 
-| Condition | Message |
-|---|---|
-| Negative amount | "Amount cannot be negative." |
+| Condition            | Message                                     |
+| -------------------- | ------------------------------------------- |
+| Negative amount      | "Amount cannot be negative."                |
 | Attachment too large | "File exceeds the maximum size of {limit}." |
-| Invalid file type | "Only PDF, JPG, or PNG files are accepted." |
+| Invalid file type    | "Only PDF, JPG, or PNG files are accepted." |
 
 ### 12.5 Permissions
 
@@ -982,8 +1004,7 @@ PND-06.
 
 ### 13.5 Permissions
 
-Any authenticated user today. Whether this changes is Decision
-10.
+Any authenticated user today. Whether this changes is Decision 10.
 
 ### 13.6 Acceptance criteria
 
@@ -1147,18 +1168,18 @@ pending decision.
 For traceability, the criteria that cannot be tested until each
 decision resolves.
 
-| Decision | Blocking criteria |
-|---|---|
-| 1 | AC-01.5 through AC-01.12, AC-14.3 |
-| 2 | AC-02.11, AC-02.12, AC-04.4, AC-05.6, AC-05.7, AC-14.2 |
-| 3 | AC-06.1 through AC-06.6, AC-08.5 through AC-08.9, AC-12.5 |
-| 4 | AC-02.12, AC-05.1 through AC-05.12 |
-| 5 | AC-11.1 through AC-11.5 |
-| 6 | AC-07.7, AC-09.1 through AC-09.5 |
-| 7 | AC-10.1 through AC-10.3 |
-| 8 | AC-07.5, AC-07.6, AC-08.9 |
-| 9 | AC-12.5 |
-| 10 | AC-13.1 through AC-13.5 |
+| Decision | Blocking criteria                                         |
+| -------- | --------------------------------------------------------- |
+| 1        | AC-01.5 through AC-01.12, AC-14.3                         |
+| 2        | AC-02.11, AC-02.12, AC-04.4, AC-05.6, AC-05.7, AC-14.2    |
+| 3        | AC-06.1 through AC-06.6, AC-08.5 through AC-08.9, AC-12.5 |
+| 4        | AC-02.12, AC-05.1 through AC-05.12                        |
+| 5        | AC-11.1 through AC-11.5                                   |
+| 6        | AC-07.7, AC-09.1 through AC-09.5                          |
+| 7        | AC-10.1 through AC-10.3                                   |
+| 8        | AC-07.5, AC-07.6, AC-08.9                                 |
+| 9        | AC-12.5                                                   |
+| 10       | AC-13.1 through AC-13.5                                   |
 
 ---
 
@@ -1215,4 +1236,3 @@ should follow the same convention. See NFR-05 (PROPOSED).
   acceptance criteria recorded for fourteen features. Test-ready
   criteria separated from blocked criteria. No selection made;
   no code, migrations, or configuration changed.
-

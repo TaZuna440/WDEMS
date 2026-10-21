@@ -89,7 +89,7 @@ its row from Attendance and the Summary counts adjust.
   applies to the public link form only.)
 - **Email is the only verification channel — there is no phone verification**
   (Mark, 2026-10-20). No channel-choice screen, no SMS code, no Firebase.
-  A contact number may still be *collected* as an input and still works as a
+  A contact number may still be _collected_ as an input and still works as a
   composite matching key, but it is never verified.
 - Link submissions land in the **same Registration list** as manual adds, as
   Unmarked, and the organizer monitors them there as they arrive. The list
@@ -98,8 +98,8 @@ its row from Attendance and the Summary counts adjust.
 - Identity: the same composite rule as running events — normalized name AND
   (email OR normalized phone) — with the per-event duplicate guard
   (same name + same contact on the same event = rejected). Applies to both
-  channels. *(Spec is written on the proposed composite identity rule for
-  church, presented 2026-10-20; Mark's approval is the remaining gate.)*
+  channels. _(Spec is written on the proposed composite identity rule for
+  church, presented 2026-10-20; Mark's approval is the remaining gate.)_
 - Plumbing note (from earlier grounding): public links today hang only off the
   Event model (`r/{event:registration_slug}`). ServiceOccurrence and
   FellowshipEvent are standalone models with no slug, so links for those
@@ -135,7 +135,7 @@ Mark's rule, focused on Appendix D problem 1 (duplicate people):
   verified by OTP, and reCAPTCHA gates the form — so the email in the
   check is proven to belong to the submitter and can't be typed as someone
   else's. (Mark's reasoning, confirmed.)
-- **Where it runs:** on the link, at verification *begin* — before any OTP
+- **Where it runs:** on the link, at verification _begin_ — before any OTP
   is sent — reusing the running side's `assertNoDuplicateRegistration()`
   (RegistrationVerificationService, called from `begin()`). Rejection is
   non-revealing: "This registration cannot be started. If you believe this
@@ -144,8 +144,8 @@ Mark's rule, focused on Appendix D problem 1 (duplicate people):
   (unverified, so the staff-side check is only as good as the typing —
   and the staff form needs the email field it currently lacks,
   Appendix B #1).
-- **Not duplicates (allowed):** same email, *different* name — the family
-  case (siblings under a parent's email); same name, *different* email —
+- **Not duplicates (allowed):** same email, _different_ name — the family
+  case (siblings under a parent's email); same name, _different_ email —
   treated as a different person under strict matching. Known limit: one
   person using two different emails is not caught by the exact rule.
 - **Likely duplicates are held (DECIDED 2026-10-21; Church MD
@@ -201,7 +201,7 @@ removals below.
    Church Attendance has **no mode tabs and no mode caption** ("Mark
    participants one at a time." goes with them). There is exactly one view:
    the monitoring list, where each person is marked Present/Absent inline.
-   Removing the Check-in *tab* does not remove checking people in — marking
+   Removing the Check-in _tab_ does not remove checking people in — marking
    from the list is the check-in. The Walk-in tab is out for the same reason
    as Add Walk-In and Live/Deferred: adding people is Registration's job
    (Add/Edit/Delete, Section 2), never Attendance's.
@@ -228,7 +228,7 @@ removals below.
   (no running finalize/report pipeline).
 - Guideline §6.2 ("attendance list is built from registered participants")
   stands and is strengthened: the list is not just built from Registration,
-  it is the *only* source — Attendance adds nobody.
+  it is the _only_ source — Attendance adds nobody.
 
 ## 5. Still open (not decided by this update)
 
@@ -254,19 +254,19 @@ are NOT participant inputs — they belong to the per-event Registration.
 
 ### Input matrix (✓ asked, — not asked)
 
-| Input | Run public form | Church staff add (Services/Fellowship) | Guideline §6.1 | Church link (decided) |
-|---|---|---|---|---|
-| First name | ✓ required | ✓ | as one full_name | ✓ |
-| Last name | ✓ required | ✓ | as one full_name | ✓ |
-| Middle name | ✓ optional | — | — | ? |
-| Suffix | ✓ optional | — | — | ? |
-| Email | ✓ required, OTP | **— no field exists** | — | ✓ required, OTP |
-| Contact number | ✓ req/opt per organizer | ✓ | ✓ optional | ? |
-| Birthday | ✓ (age derived) | ✓ | — | ? |
-| Age | derived | ✓ entered separately | ✓ | ? |
-| Address | Barangay & City → address | free-text Address | — | ? |
-| Participant type | n/a | implicit (Members vs First-Timers track) | ✓ per registration | ✓ per registration |
-| Guardian | n/a | — | Kids / Youth Camp only | Kids / Youth Camp only |
+| Input            | Run public form           | Church staff add (Services/Fellowship)   | Guideline §6.1         | Church link (decided)  |
+| ---------------- | ------------------------- | ---------------------------------------- | ---------------------- | ---------------------- |
+| First name       | ✓ required                | ✓                                        | as one full_name       | ✓                      |
+| Last name        | ✓ required                | ✓                                        | as one full_name       | ✓                      |
+| Middle name      | ✓ optional                | —                                        | —                      | ?                      |
+| Suffix           | ✓ optional                | —                                        | —                      | ?                      |
+| Email            | ✓ required, OTP           | **— no field exists**                    | —                      | ✓ required, OTP        |
+| Contact number   | ✓ req/opt per organizer   | ✓                                        | ✓ optional             | ?                      |
+| Birthday         | ✓ (age derived)           | ✓                                        | —                      | ?                      |
+| Age              | derived                   | ✓ entered separately                     | ✓                      | ?                      |
+| Address          | Barangay & City → address | free-text Address                        | —                      | ?                      |
+| Participant type | n/a                       | implicit (Members vs First-Timers track) | ✓ per registration     | ✓ per registration     |
+| Guardian         | n/a                       | —                                        | Kids / Youth Camp only | Kids / Youth Camp only |
 
 ### What's wrong
 
@@ -322,13 +322,13 @@ The rule for every **scheduling** date:
 
 **Current state (dc34933) — deliberately inconsistent, which is the problem:**
 
-| Scheduling date | Picker bounds | Server rule | Past pickable? |
-|---|---|---|---|
-| Generic event (wizard Schedule) | min today / max +2y | after_or_equal:today, +2y | No ✓ |
-| Recurring service first_date | **none passed** | after_or_equal:today, +2y | In UI yes → server rejects |
-| Fellowship event_date | **none passed** | +2y only | **Yes, by design** |
-| Single service occurrence_date | **none passed** | +2y only | **Yes, by design** |
-| Discipleship batch/session dates | **none passed** | (not audited) | In UI yes |
+| Scheduling date                  | Picker bounds       | Server rule               | Past pickable?             |
+| -------------------------------- | ------------------- | ------------------------- | -------------------------- |
+| Generic event (wizard Schedule)  | min today / max +2y | after_or_equal:today, +2y | No ✓                       |
+| Recurring service first_date     | **none passed**     | after_or_equal:today, +2y | In UI yes → server rejects |
+| Fellowship event_date            | **none passed**     | +2y only                  | **Yes, by design**         |
+| Single service occurrence_date   | **none passed**     | +2y only                  | **Yes, by design**         |
+| Discipleship batch/session dates | **none passed**     | (not audited)             | In UI yes                  |
 
 The Fellowship and single-occurrence past-allowance is documented in the
 code as intentional: "Past dates are allowed so the organizer can log a
@@ -435,7 +435,7 @@ the decided composite rule (§2D).
 `unique(service_occurrence_id, participant_id)`;
 `fellowship_attendances` has `unique(fellowship_event_id, participant_id)`.
 Duplicates today are **different participant rows for the same person**, so
-the constraints never fire. The fix is identity *resolution*, not new
+the constraints never fire. The fix is identity _resolution_, not new
 constraints.
 
 ### Step 0 — Dependency

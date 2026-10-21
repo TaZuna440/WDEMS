@@ -1,12 +1,5 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import {
-    ArrowLeft,
-    Clock,
-    Plus,
-    Search,
-    Trash2,
-    UserPlus,
-} from 'lucide-react';
+import { ArrowLeft, Clock, Plus, Search, Trash2, UserPlus } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -118,10 +111,14 @@ export default function ServiceAttendance({
             ? `/services/occurrences/${occurrence.id}/attendance/members/${row.id}`
             : `/services/occurrences/${occurrence.id}/attendance/first-timers/${row.id}`;
 
-        router.put(url, { attendance_status: status }, {
-            preserveScroll: true,
-            preserveState: true,
-        });
+        router.put(
+            url,
+            { attendance_status: status },
+            {
+                preserveScroll: true,
+                preserveState: true,
+            },
+        );
     };
 
     const confirmDelete = (row: MemberRow | FirstTimerRow) => {
@@ -151,7 +148,7 @@ export default function ServiceAttendance({
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
                 <Link
                     href={`/services/${occurrence.service_type}`}
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     {occurrence.service_type_label}
@@ -166,7 +163,7 @@ export default function ServiceAttendance({
                         <p className="text-muted-foreground mt-1 text-sm">
                             {formatDate(occurrence.occurrence_date)}
                         </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                             {occurrence.start_time && occurrence.end_time && (
                                 <span className="inline-flex items-center gap-1.5">
                                     <Clock className="h-3 w-3" />
@@ -175,13 +172,11 @@ export default function ServiceAttendance({
                                 </span>
                             )}
                             {occurrence.service_leader && (
-                                <span>
-                                    Led by {occurrence.service_leader}
-                                </span>
+                                <span>Led by {occurrence.service_leader}</span>
                             )}
                         </div>
                         {occurrence.notes && (
-                            <p className="mt-3 max-w-2xl text-sm italic text-muted-foreground">
+                            <p className="text-muted-foreground mt-3 max-w-2xl text-sm italic">
                                 {occurrence.notes}
                             </p>
                         )}
@@ -198,7 +193,7 @@ export default function ServiceAttendance({
                         }}
                         className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
                             isMembersTab
-                                ? 'border-lime-brand/40 bg-lime-brand/25 text-lime-700 dark:bg-lime-brand/20 dark:text-lime-brand'
+                                ? 'border-lime-brand/40 bg-lime-brand/25 dark:bg-lime-brand/20 dark:text-lime-brand text-lime-700'
                                 : 'border-border bg-card/70 text-foreground hover:bg-card'
                         }`}
                     >
@@ -221,7 +216,7 @@ export default function ServiceAttendance({
                         }}
                         className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
                             !isMembersTab
-                                ? 'border-lime-brand/40 bg-lime-brand/25 text-lime-700 dark:bg-lime-brand/20 dark:text-lime-brand'
+                                ? 'border-lime-brand/40 bg-lime-brand/25 dark:bg-lime-brand/20 dark:text-lime-brand text-lime-700'
                                 : 'border-border bg-card/70 text-foreground hover:bg-card'
                         }`}
                     >
@@ -241,7 +236,7 @@ export default function ServiceAttendance({
                 {/* Toolbar */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="relative max-w-sm flex-1">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                         <Input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -265,25 +260,21 @@ export default function ServiceAttendance({
                 {/* Table */}
                 {visibleRows.length === 0 ? (
                     <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-16 text-center">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-lime-brand/15">
-                            <UserPlus className="h-8 w-8 text-lime-brand" />
+                        <div className="bg-lime-brand/15 mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                            <UserPlus className="text-lime-brand h-8 w-8" />
                         </div>
-                        <h2 className="mb-2 text-lg font-semibold text-foreground">
+                        <h2 className="text-foreground mb-2 text-lg font-semibold">
                             {search !== ''
                                 ? 'No matches'
                                 : `No ${
-                                      isMembersTab
-                                          ? 'members'
-                                          : 'first-timers'
+                                      isMembersTab ? 'members' : 'first-timers'
                                   } yet`}
                         </h2>
-                        <p className="mb-6 max-w-sm text-sm text-muted-foreground">
+                        <p className="text-muted-foreground mb-6 max-w-sm text-sm">
                             {search !== ''
                                 ? 'Try a different search term.'
                                 : `Add the first ${
-                                      isMembersTab
-                                          ? 'member'
-                                          : 'first-timer'
+                                      isMembersTab ? 'member' : 'first-timer'
                                   } to this service.`}
                         </p>
                     </div>
@@ -292,31 +283,31 @@ export default function ServiceAttendance({
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-border text-left">
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    <tr className="border-border border-b text-left">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Status
                                         </th>
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Name
                                         </th>
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Age
                                         </th>
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Address
                                         </th>
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Birthday
                                         </th>
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Contact
                                         </th>
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             {isMembersTab
                                                 ? 'Cell Leader'
                                                 : 'Invited By'}
                                         </th>
-                                        <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-3 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Actions
                                         </th>
                                     </tr>
@@ -325,7 +316,7 @@ export default function ServiceAttendance({
                                     {visibleRows.map((row) => (
                                         <tr
                                             key={row.id}
-                                            className="border-b border-border transition-colors last:border-b-0 hover:bg-card/40"
+                                            className="border-border hover:bg-card/40 border-b transition-colors last:border-b-0"
                                         >
                                             <td className="px-3 py-3">
                                                 <select
@@ -356,22 +347,22 @@ export default function ServiceAttendance({
                                                     ))}
                                                 </select>
                                             </td>
-                                            <td className="px-3 py-3 text-sm font-medium text-foreground">
+                                            <td className="text-foreground px-3 py-3 text-sm font-medium">
                                                 {row.full_name ?? '—'}
                                             </td>
-                                            <td className="px-3 py-3 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground px-3 py-3 text-sm">
                                                 {row.age ?? '—'}
                                             </td>
-                                            <td className="max-w-[220px] truncate px-3 py-3 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground max-w-[220px] truncate px-3 py-3 text-sm">
                                                 {row.address ?? '—'}
                                             </td>
-                                            <td className="px-3 py-3 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground px-3 py-3 text-sm">
                                                 {row.birthday ?? '—'}
                                             </td>
-                                            <td className="px-3 py-3 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground px-3 py-3 text-sm">
                                                 {row.contact_number ?? '—'}
                                             </td>
-                                            <td className="px-3 py-3 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground px-3 py-3 text-sm">
                                                 {isMembersTab
                                                     ? ((row as MemberRow)
                                                           .cell_leader ?? '—')
@@ -445,16 +436,13 @@ function AddAttendanceDialog({
 
     const onSubmit = (e: FormEvent) => {
         e.preventDefault();
-        form.post(
-            `/services/occurrences/${occurrenceId}/attendance`,
-            {
-                onSuccess: () => {
-                    form.reset();
-                    onOpenChange(false);
-                },
-                preserveScroll: true,
+        form.post(`/services/occurrences/${occurrenceId}/attendance`, {
+            onSuccess: () => {
+                form.reset();
+                onOpenChange(false);
             },
-        );
+            preserveScroll: true,
+        });
     };
 
     return (
@@ -462,8 +450,7 @@ function AddAttendanceDialog({
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>
-                        Add{' '}
-                        {track === 'members' ? 'Member' : 'First-Timer'}
+                        Add {track === 'members' ? 'Member' : 'First-Timer'}
                     </DialogTitle>
                     <DialogDescription>
                         {serviceTypeLabel}. If the email or phone matches an
@@ -482,15 +469,10 @@ function AddAttendanceDialog({
                                 id="first_name"
                                 value={form.data.first_name}
                                 onChange={(e) =>
-                                    form.setData(
-                                        'first_name',
-                                        e.target.value,
-                                    )
+                                    form.setData('first_name', e.target.value)
                                 }
                             />
-                            <InputError
-                                message={form.errors.first_name}
-                            />
+                            <InputError message={form.errors.first_name} />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="last_name">
@@ -501,10 +483,7 @@ function AddAttendanceDialog({
                                 id="last_name"
                                 value={form.data.last_name}
                                 onChange={(e) =>
-                                    form.setData(
-                                        'last_name',
-                                        e.target.value,
-                                    )
+                                    form.setData('last_name', e.target.value)
                                 }
                             />
                             <InputError message={form.errors.last_name} />
@@ -533,36 +512,24 @@ function AddAttendanceDialog({
                                 type="date"
                                 value={form.data.birthday}
                                 onChange={(e) =>
-                                    form.setData(
-                                        'birthday',
-                                        e.target.value,
-                                    )
+                                    form.setData('birthday', e.target.value)
                                 }
                             />
-                            <InputError
-                                message={form.errors.birthday}
-                            />
+                            <InputError message={form.errors.birthday} />
                         </div>
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="contact_number">
-                            Contact Number
-                        </Label>
+                        <Label htmlFor="contact_number">Contact Number</Label>
                         <Input
                             id="contact_number"
                             value={form.data.contact_number}
                             onChange={(e) =>
-                                form.setData(
-                                    'contact_number',
-                                    e.target.value,
-                                )
+                                form.setData('contact_number', e.target.value)
                             }
                             placeholder="09171234567"
                         />
-                        <InputError
-                            message={form.errors.contact_number}
-                        />
+                        <InputError message={form.errors.contact_number} />
                     </div>
 
                     <div className="grid gap-2">
@@ -584,16 +551,11 @@ function AddAttendanceDialog({
                                 id="invited_by"
                                 value={form.data.invited_by}
                                 onChange={(e) =>
-                                    form.setData(
-                                        'invited_by',
-                                        e.target.value,
-                                    )
+                                    form.setData('invited_by', e.target.value)
                                 }
                                 placeholder="Who invited them?"
                             />
-                            <InputError
-                                message={form.errors.invited_by}
-                            />
+                            <InputError message={form.errors.invited_by} />
                         </div>
                     )}
 

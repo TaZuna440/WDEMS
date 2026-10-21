@@ -51,10 +51,10 @@ export default function ScheduleStep({ data, setData, errors }: Props) {
     return (
         <div className="flex flex-col gap-6">
             <div>
-                <h2 className="text-lg font-semibold text-foreground">
+                <h2 className="text-foreground text-lg font-semibold">
                     Schedule
                 </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-sm">
                     When the event happens and how far it is.
                 </p>
             </div>
@@ -72,7 +72,7 @@ export default function ScheduleStep({ data, setData, errors }: Props) {
                     maxDate={bounds.max}
                 />
                 <InputError message={errors.event_date} />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                     Today or later, up to 2 years from today.
                 </p>
                 {isScheduledForToday && (
@@ -98,7 +98,7 @@ export default function ScheduleStep({ data, setData, errors }: Props) {
                         onChange={(v) => setData('start_time', v)}
                     />
                     <InputError message={errors.start_time} />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                         When participants should arrive.
                     </p>
                 </div>
@@ -112,9 +112,9 @@ export default function ScheduleStep({ data, setData, errors }: Props) {
                         clearable
                     />
                     <InputError message={errors.end_time} />
-                    <p className="text-xs text-muted-foreground">
-                        Optional. When set, must be at least 1 hour after
-                        start time.
+                    <p className="text-muted-foreground text-xs">
+                        Optional. When set, must be at least 1 hour after start
+                        time.
                     </p>
                 </div>
             </div>
@@ -133,13 +133,11 @@ export default function ScheduleStep({ data, setData, errors }: Props) {
                     }}
                 />
                 <InputError
-                    message={
-                        errors.distance_value ?? errors.distance_unit
-                    }
+                    message={errors.distance_value ?? errors.distance_unit}
                 />
-                <p className="text-xs text-muted-foreground">
-                    Choose a standard distance and switch between KM and Miles
-                    — the value converts automatically.
+                <p className="text-muted-foreground text-xs">
+                    Choose a standard distance and switch between KM and Miles —
+                    the value converts automatically.
                 </p>
             </div>
         </div>

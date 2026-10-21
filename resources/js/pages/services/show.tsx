@@ -100,13 +100,16 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
 
     const submitAdd = (e: React.FormEvent) => {
         e.preventDefault();
-        addForm.post(`/events/church/services/${service_type.value}/occurrences`, {
-            onSuccess: () => {
-                setAddOpen(false);
-                addForm.reset();
+        addForm.post(
+            `/events/church/services/${service_type.value}/occurrences`,
+            {
+                onSuccess: () => {
+                    setAddOpen(false);
+                    addForm.reset();
+                },
+                preserveScroll: true,
             },
-            preserveScroll: true,
-        });
+        );
     };
 
     const submitRecurring = (e: React.FormEvent) => {
@@ -130,9 +133,12 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
             description: `The service on ${formatDate(occurrence.occurrence_date)} and its attendance records will be permanently removed.`,
             confirmLabel: 'Delete',
             onConfirm: () =>
-                router.delete(`/events/church/services/occurrences/${occurrence.id}`, {
-                    preserveScroll: true,
-                }),
+                router.delete(
+                    `/events/church/services/occurrences/${occurrence.id}`,
+                    {
+                        preserveScroll: true,
+                    },
+                ),
         });
     };
 
@@ -143,7 +149,7 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
                 <Link
                     href="/events/church/services"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     All Services
@@ -185,13 +191,13 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
 
                 {occurrences.length === 0 ? (
                     <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-16 text-center">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-lime-brand/15">
-                            <CalendarDays className="h-8 w-8 text-lime-brand" />
+                        <div className="bg-lime-brand/15 mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                            <CalendarDays className="text-lime-brand h-8 w-8" />
                         </div>
-                        <h2 className="mb-2 text-lg font-semibold text-foreground">
+                        <h2 className="text-foreground mb-2 text-lg font-semibold">
                             No records yet
                         </h2>
-                        <p className="mb-6 max-w-sm text-sm text-muted-foreground">
+                        <p className="text-muted-foreground mb-6 max-w-sm text-sm">
                             Add a service record to begin tracking attendance.
                         </p>
                         <Button
@@ -214,19 +220,19 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
                                     className="flex flex-1 flex-col gap-2"
                                 >
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm font-semibold text-foreground">
+                                        <CalendarDays className="text-muted-foreground h-4 w-4" />
+                                        <span className="text-foreground text-sm font-semibold">
                                             {formatDate(
                                                 occurrence.occurrence_date,
                                             )}
                                         </span>
                                         {occurrence.topic && (
-                                            <span className="text-sm text-muted-foreground">
+                                            <span className="text-muted-foreground text-sm">
                                                 · {occurrence.topic}
                                             </span>
                                         )}
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                    <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                                         {occurrence.start_time &&
                                             occurrence.end_time && (
                                                 <span className="inline-flex items-center gap-1.5">
@@ -300,9 +306,7 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
                             <div className="grid gap-2">
                                 <Label htmlFor="add_start">
                                     Start Time{' '}
-                                    <span className="text-destructive">
-                                        *
-                                    </span>
+                                    <span className="text-destructive">*</span>
                                 </Label>
                                 <TimePicker
                                     id="add_start"
@@ -326,9 +330,7 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
                                     }
                                     clearable
                                 />
-                                <InputError
-                                    message={addForm.errors.end_time}
-                                />
+                                <InputError message={addForm.errors.end_time} />
                             </div>
                         </div>
 
@@ -357,16 +359,11 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
                                     id="add_topic"
                                     value={addForm.data.topic}
                                     onChange={(e) =>
-                                        addForm.setData(
-                                            'topic',
-                                            e.target.value,
-                                        )
+                                        addForm.setData('topic', e.target.value)
                                     }
                                     placeholder="e.g. Faith in Action"
                                 />
-                                <InputError
-                                    message={addForm.errors.topic}
-                                />
+                                <InputError message={addForm.errors.topic} />
                             </div>
                         )}
 
@@ -484,16 +481,14 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
                             <InputError
                                 message={recurringForm.errors.first_date}
                             />
-                            <p className="text-xs text-muted-foreground">
-                                If this date is not the selected day, it will
-                                be adjusted forward.
+                            <p className="text-muted-foreground text-xs">
+                                If this date is not the selected day, it will be
+                                adjusted forward.
                             </p>
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="weeks">
-                                Number of Occurrences
-                            </Label>
+                            <Label htmlFor="weeks">Number of Occurrences</Label>
                             <Input
                                 id="weeks"
                                 type="number"

@@ -77,7 +77,7 @@ export default function YouthIndex() {
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
                 <Link
                     href="/events?kind=church"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Church Events
@@ -101,21 +101,21 @@ export default function YouthIndex() {
                                 href={sub.href}
                                 className="glass-panel glass-panel-hover flex items-start gap-4 rounded-xl p-5"
                             >
-                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-lime-brand/15">
-                                    <Icon className="h-5 w-5 text-lime-700 dark:text-lime-brand" />
+                                <div className="bg-lime-brand/15 flex h-11 w-11 shrink-0 items-center justify-center rounded-full">
+                                    <Icon className="dark:text-lime-brand h-5 w-5 text-lime-700" />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2">
-                                        <h3 className="font-semibold text-foreground">
+                                        <h3 className="text-foreground font-semibold">
                                             {sub.label}
                                         </h3>
                                         {!sub.live && (
-                                            <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                                            <span className="bg-secondary text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider uppercase">
                                                 Soon
                                             </span>
                                         )}
                                     </div>
-                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                    <p className="text-muted-foreground mt-0.5 text-sm">
                                         {sub.description}
                                     </p>
                                 </div>

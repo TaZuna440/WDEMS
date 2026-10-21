@@ -9,7 +9,7 @@ export default function EventsCreateEntry() {
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
                 <Link
                     href="/events"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Events
@@ -29,13 +29,13 @@ export default function EventsCreateEntry() {
                         href="/events/create/community-run"
                         className="glass-panel glass-panel-hover flex flex-col gap-3 rounded-xl p-6"
                     >
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-lime-brand/15">
-                            <Calendar className="h-6 w-6 text-lime-700 dark:text-lime-brand" />
+                        <div className="bg-lime-brand/15 flex h-12 w-12 items-center justify-center rounded-full">
+                            <Calendar className="dark:text-lime-brand h-6 w-6 text-lime-700" />
                         </div>
-                        <h2 className="text-lg font-semibold text-foreground">
+                        <h2 className="text-foreground text-lg font-semibold">
                             Community Run
                         </h2>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                             Running events with registration, check-in, and
                             end-of-event reports.
                         </p>
@@ -45,13 +45,13 @@ export default function EventsCreateEntry() {
                         href="/events/create/church"
                         className="glass-panel glass-panel-hover flex flex-col gap-3 rounded-xl p-6"
                     >
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-lime-brand/15">
-                            <Church className="h-6 w-6 text-lime-700 dark:text-lime-brand" />
+                        <div className="bg-lime-brand/15 flex h-12 w-12 items-center justify-center rounded-full">
+                            <Church className="dark:text-lime-brand h-6 w-6 text-lime-700" />
                         </div>
-                        <h2 className="text-lg font-semibold text-foreground">
+                        <h2 className="text-foreground text-lg font-semibold">
                             Church Event
                         </h2>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                             Services, Fellowship, Discipleship, Youth, Kids
                             Ministry, and other church activities.
                         </p>

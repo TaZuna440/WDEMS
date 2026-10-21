@@ -22,26 +22,26 @@ function EventCard({ event }: { event: EventRow }) {
     return (
         <Link
             href={`/registrations/monitor/${event.id}`}
-            className="glass-panel group flex items-center gap-4 rounded-xl p-4 transition-colors hover:border-lime-brand/30"
+            className="glass-panel group hover:border-lime-brand/30 flex items-center gap-4 rounded-xl p-4 transition-colors"
         >
             <div className="flex flex-1 flex-col gap-1">
                 <div className="flex items-center gap-3">
-                    <h3 className="text-sm font-semibold text-foreground">
+                    <h3 className="text-foreground text-sm font-semibold">
                         {event.event_name}
                     </h3>
-                    <span className="inline-flex rounded-full bg-lime-brand/20 px-2 py-0.5 text-xs font-medium text-lime-brand">
+                    <span className="bg-lime-brand/20 text-lime-brand inline-flex rounded-full px-2 py-0.5 text-xs font-medium">
                         {event.status_label}
                     </span>
                 </div>
 
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                     {event.event_date ?? '—'}
                     {event.venue !== null && ` · ${event.venue}`}
                 </p>
 
-                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                     <span>
-                        <span className="font-medium text-foreground">
+                        <span className="text-foreground font-medium">
                             {event.total}
                         </span>{' '}
                         registered
@@ -57,7 +57,7 @@ function EventCard({ event }: { event: EventRow }) {
                 </div>
             </div>
 
-            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+            <ChevronRight className="text-muted-foreground group-hover:text-foreground h-4 w-4 shrink-0 transition-colors" />
         </Link>
     );
 }
@@ -66,17 +66,17 @@ function EmptyState() {
     return (
         <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-12 text-center">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/5">
-                <Monitor className="h-6 w-6 text-muted-foreground" />
+                <Monitor className="text-muted-foreground h-6 w-6" />
             </div>
-            <h2 className="text-base font-semibold text-foreground">
+            <h2 className="text-foreground text-base font-semibold">
                 No events with open registration right now.
             </h2>
-            <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+            <p className="text-muted-foreground mt-2 max-w-sm text-sm">
                 Open registration for an event to see live submissions here.
             </p>
             <Link
                 href="/events"
-                className="mt-6 text-sm font-medium text-lime-brand hover:underline"
+                className="text-lime-brand mt-6 text-sm font-medium hover:underline"
             >
                 → Go to events
             </Link>

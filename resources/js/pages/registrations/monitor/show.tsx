@@ -117,7 +117,7 @@ function PublicLinkButton({ slug }: { slug: string }) {
             type="button"
             onClick={() => copy(url)}
             title={url}
-            className="inline-flex items-center gap-1.5 rounded-md border border-lime-brand/40 bg-card/80 px-2.5 py-1 text-xs font-medium text-lime-700 shadow-xs backdrop-blur-sm dark:bg-lime-brand/10 dark:text-lime-brand transition-colors hover:bg-lime-brand/20"
+            className="border-lime-brand/40 bg-card/80 dark:bg-lime-brand/10 dark:text-lime-brand hover:bg-lime-brand/20 inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium text-lime-700 shadow-xs backdrop-blur-sm transition-colors"
         >
             {isCopied ? (
                 <>
@@ -134,20 +134,14 @@ function PublicLinkButton({ slug }: { slug: string }) {
     );
 }
 
-function StatsStrip({
-    stats,
-    isOpen,
-}: {
-    stats: Stats;
-    isOpen: boolean;
-}) {
+function StatsStrip({ stats, isOpen }: { stats: Stats; isOpen: boolean }) {
     const showHour = isOpen && stats.last_hour > 0;
     const show15 = isOpen && stats.last_15min > 0;
 
     return (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span>
-                <span className="font-semibold text-foreground">
+                <span className="text-foreground font-semibold">
                     {stats.total}
                 </span>{' '}
                 <span className="text-muted-foreground">registered</span>
@@ -185,7 +179,7 @@ function Chip({
     count: number;
     show: boolean;
 }) {
-    if (! show) return null;
+    if (!show) return null;
 
     return (
         <button
@@ -198,7 +192,11 @@ function Chip({
             }`}
         >
             {label}
-            <span className={active ? 'text-lime-brand' : 'text-muted-foreground/60'}>
+            <span
+                className={
+                    active ? 'text-lime-brand' : 'text-muted-foreground/60'
+                }
+            >
                 ({count})
             </span>
         </button>
@@ -228,7 +226,8 @@ function RegistrationCard({
     canEdit: boolean;
 }) {
     const name = row.participant.full_name ?? '—';
-    const contact = row.participant.email ?? row.participant.contact_number ?? '—';
+    const contact =
+        row.participant.email ?? row.participant.contact_number ?? '—';
     const BadgeIcon = row.is_returning ? UserRound : UserPlus;
 
     return (
@@ -241,10 +240,10 @@ function RegistrationCard({
         >
             <div className="flex items-start justify-between gap-3">
                 <div className="flex flex-col gap-0.5">
-                    <span className="text-sm font-semibold text-foreground">
+                    <span className="text-foreground text-sm font-semibold">
                         {name}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground text-xs">
                         {contact}
                     </span>
                 </div>
@@ -255,7 +254,7 @@ function RegistrationCard({
                             title="Has a note"
                             className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/5"
                         >
-                            <StickyNote className="h-3 w-3 text-muted-foreground" />
+                            <StickyNote className="text-muted-foreground h-3 w-3" />
                         </span>
                     )}
                     {row.has_shared_phone && (
@@ -270,7 +269,7 @@ function RegistrationCard({
                         className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                             row.is_returning
                                 ? 'bg-accent/20 text-accent'
-                                : 'bg-white/5 text-muted-foreground'
+                                : 'text-muted-foreground bg-white/5'
                         }`}
                     >
                         <BadgeIcon className="h-3 w-3" />
@@ -284,29 +283,23 @@ function RegistrationCard({
                                     type="button"
                                     size="sm"
                                     variant="ghost"
-                                    className="h-7 w-7 p-0 text-muted-foreground"
+                                    className="text-muted-foreground h-7 w-7 p-0"
                                 >
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                    onSelect={() => onEdit(row)}
-                                >
+                                <DropdownMenuItem onSelect={() => onEdit(row)}>
                                     <Pencil className="mr-2 h-3.5 w-3.5" />
                                     Edit participant
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onSelect={() => onNote(row)}
-                                >
+                                <DropdownMenuItem onSelect={() => onNote(row)}>
                                     <StickyNote className="mr-2 h-3.5 w-3.5" />
                                     {row.notes === null || row.notes === ''
                                         ? 'Add note'
                                         : 'Edit note'}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onSelect={() => onFlag(row)}
-                                >
+                                <DropdownMenuItem onSelect={() => onFlag(row)}>
                                     <Flag className="mr-2 h-3.5 w-3.5" />
                                     {row.is_flagged
                                         ? 'Clear flag'
@@ -335,7 +328,7 @@ function RegistrationCard({
                 </div>
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                 {row.created_at_absolute !== null && (
                     <span>{row.created_at_absolute}</span>
                 )}
@@ -345,14 +338,16 @@ function RegistrationCard({
             </div>
 
             {row.is_returning && row.other_events_count > 0 && (
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-2 text-xs">
                     Registered for {row.other_events_count}{' '}
-                    {row.other_events_count === 1 ? 'previous event' : 'previous events'}
+                    {row.other_events_count === 1
+                        ? 'previous event'
+                        : 'previous events'}
                 </p>
             )}
 
             {row.custom_fields.length > 0 && (
-                <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-2 line-clamp-2 text-xs">
                     {row.custom_fields.map((field, i) => (
                         <span key={`${field.label}-${i}`}>
                             {i > 0 && ' · '}
@@ -366,7 +361,7 @@ function RegistrationCard({
             )}
 
             {row.notes !== null && row.notes !== '' && (
-                <p className="mt-2 line-clamp-2 rounded-md border border-white/5 bg-white/[0.02] px-2 py-1 text-xs italic text-muted-foreground">
+                <p className="text-muted-foreground mt-2 line-clamp-2 rounded-md border border-white/5 bg-white/[0.02] px-2 py-1 text-xs italic">
                     {row.notes}
                 </p>
             )}
@@ -378,12 +373,12 @@ function EmptyFeed() {
     return (
         <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-12 text-center">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/5">
-                <UserPlus className="h-6 w-6 text-muted-foreground" />
+                <UserPlus className="text-muted-foreground h-6 w-6" />
             </div>
-            <h2 className="text-base font-semibold text-foreground">
+            <h2 className="text-foreground text-base font-semibold">
                 No one has registered yet.
             </h2>
-            <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+            <p className="text-muted-foreground mt-2 max-w-sm text-sm">
                 Share the public link to get started.
             </p>
         </div>
@@ -400,11 +395,11 @@ function FilteredEmpty({ filter }: { filter: Filter }) {
 
     return (
         <div className="rounded-xl border border-dashed border-white/10 p-8 text-center">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
                 No submissions match this filter.
             </p>
             {messages[filter] !== null && (
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-xs">
                     {messages[filter]}
                 </p>
             )}
@@ -412,7 +407,12 @@ function FilteredEmpty({ filter }: { filter: Filter }) {
     );
 }
 
-export default function MonitorShow({ event, stats, registrations, is_admin }: Props) {
+export default function MonitorShow({
+    event,
+    stats,
+    registrations,
+    is_admin,
+}: Props) {
     const [filter, setFilter] = useState<Filter>('all');
     const [search, setSearch] = useState('');
     const [now, setNow] = useState(() => new Date());
@@ -443,7 +443,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
     useEffect(() => {
         if (deleteRow === null) return;
         const stillExists = registrations.some((r) => r.id === deleteRow.id);
-        if (! stillExists) {
+        if (!stillExists) {
             setDeleteRow(null);
         }
     }, [registrations, deleteRow]);
@@ -470,8 +470,14 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
             if (filter === 'returning' && !row.is_returning) return false;
             if (filter === 'new' && row.is_returning) return false;
             if (filter === 'flagged' && !row.is_flagged) return false;
-            return !query || [row.participant.full_name, row.participant.email, row.participant.contact_number]
-                .some((value) => value?.toLocaleLowerCase().includes(query));
+            return (
+                !query ||
+                [
+                    row.participant.full_name,
+                    row.participant.email,
+                    row.participant.contact_number,
+                ].some((value) => value?.toLocaleLowerCase().includes(query))
+            );
         });
     }, [registrations, filter, search]);
 
@@ -481,7 +487,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
     const flagRow = (row: RegistrationRow) => {
         router.post(
             `/registrations/${row.id}/flag`,
-            { flagged: ! row.is_flagged },
+            { flagged: !row.is_flagged },
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -496,7 +502,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
             const ok = window.confirm(
                 `Permanently delete ${name}'s registration? This cannot be undone.`,
             );
-            if (! ok) return;
+            if (!ok) return;
 
             router.delete(`/registrations/${row.id}`, {
                 preserveScroll: true,
@@ -515,7 +521,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
                 <Link
                     href="/registrations/monitor"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     All monitors
@@ -537,7 +543,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                             {event.is_open ? 'OPEN' : 'CLOSED'}
                         </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                         {event.event_date ?? '—'}
                         {event.venue !== null && ` · ${event.venue}`}
                     </p>
@@ -548,16 +554,21 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                     <StatsStrip stats={stats} isOpen={event.is_open} />
 
                     <div className="flex flex-wrap items-center gap-3 text-xs">
-                        <RegistrationStatusToggle eventId={event.id} isOpen={event.is_open} />
+                        <RegistrationStatusToggle
+                            eventId={event.id}
+                            isOpen={event.is_open}
+                        />
                         {event.registration_slug !== null && (
                             <PublicLinkButton slug={event.registration_slug} />
                         )}
-                        <span className="text-muted-foreground">Updated {relativeSeconds(secondsAgo)}</span>
+                        <span className="text-muted-foreground">
+                            Updated {relativeSeconds(secondsAgo)}
+                        </span>
                         <button
                             type="button"
                             onClick={refresh}
                             disabled={isRefreshing}
-                            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card/80 px-2 py-1 text-xs shadow-xs backdrop-blur-sm transition-colors hover:bg-card disabled:cursor-not-allowed disabled:opacity-50"
+                            className="border-border bg-card/80 hover:bg-card inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs shadow-xs backdrop-blur-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <RefreshCw
                                 className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`}
@@ -566,7 +577,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                         </button>
                         <a
                             href={`/registrations/monitor/${event.id}/export`}
-                            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card/80 px-2 py-1 text-xs shadow-xs backdrop-blur-sm transition-colors hover:bg-card"
+                            className="border-border bg-card/80 hover:bg-card inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs shadow-xs backdrop-blur-sm transition-colors"
                         >
                             <Download className="h-3 w-3" />
                             Export CSV
@@ -575,8 +586,17 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                 </div>
 
                 <div className="space-y-2">
-                    <Input aria-label="Search recent registrations" placeholder="Search recent registrations by name, email, or phone" value={search} onChange={(e) => setSearch(e.target.value)} />
-                    <p className="text-xs text-muted-foreground">Showing the latest {registrations.length} registrations (up to 100). Existing verification sessions may finish after registration closes.</p>
+                    <Input
+                        aria-label="Search recent registrations"
+                        placeholder="Search recent registrations by name, email, or phone"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                    <p className="text-muted-foreground text-xs">
+                        Showing the latest {registrations.length} registrations
+                        (up to 100). Existing verification sessions may finish
+                        after registration closes.
+                    </p>
                 </div>
                 {/* Filters */}
                 {registrations.length > 0 && (
@@ -638,7 +658,7 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                 <EditParticipantDialog
                     open={editRow !== null}
                     onOpenChange={(open) => {
-                        if (! open) setEditRow(null);
+                        if (!open) setEditRow(null);
                     }}
                     registrationId={editRow.id}
                     participant={editRow.participant}
@@ -649,10 +669,12 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
                 <NoteDialog
                     open={noteRow !== null}
                     onOpenChange={(open) => {
-                        if (! open) setNoteRow(null);
+                        if (!open) setNoteRow(null);
                     }}
                     registrationId={noteRow.id}
-                    participantName={noteRow.participant.full_name ?? 'this participant'}
+                    participantName={
+                        noteRow.participant.full_name ?? 'this participant'
+                    }
                     initialNote={noteRow.notes}
                 />
             )}
@@ -660,10 +682,12 @@ export default function MonitorShow({ event, stats, registrations, is_admin }: P
             {deleteRow !== null && (
                 <RegistrationDeletionOtpDialog
                     registrationId={deleteRow.id}
-                    participantName={deleteRow.participant.full_name ?? 'this participant'}
+                    participantName={
+                        deleteRow.participant.full_name ?? 'this participant'
+                    }
                     open={deleteRow !== null}
                     onOpenChange={(open) => {
-                        if (! open) setDeleteRow(null);
+                        if (!open) setDeleteRow(null);
                     }}
                 />
             )}

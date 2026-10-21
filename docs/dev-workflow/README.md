@@ -1,8 +1,8 @@
 # WDEMS — Development Workflow
 
 **Audience:** Whoever picks up WDEMS development — human or AI — and
-needs to know how work actually gets done here. Not how it *should* be
-done in theory. How it *is* done, based on what worked and what broke.
+needs to know how work actually gets done here. Not how it _should_ be
+done in theory. How it _is_ done, based on what worked and what broke.
 
 **Purpose:** Reduce the cost of every future session by writing down the
 rules once. When a new person (or AI) joins, they read this and skip the
@@ -30,14 +30,14 @@ what the developer shows it.
 
 ## 2. How communication works
 
-| Developer sends | AI responds with |
-|---|---|
-| `cat file.php` output | Reads, confirms what it sees, asks clarifying questions if the file's intent is ambiguous |
-| Multiple files in one message | Full assessment of the subsystem |
-| Answers to clarifying questions | A proposal: rationale, blast radius, exact heredoc to run |
-| Verification output (`wc`, `grep`, `diff`) | Confirms or corrects |
-| Test failure, log tail, `ps` output | Diagnosis and one specific next command |
-| A pushback ("was that really needed?") | Retraction or refinement |
+| Developer sends                            | AI responds with                                                                          |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `cat file.php` output                      | Reads, confirms what it sees, asks clarifying questions if the file's intent is ambiguous |
+| Multiple files in one message              | Full assessment of the subsystem                                                          |
+| Answers to clarifying questions            | A proposal: rationale, blast radius, exact heredoc to run                                 |
+| Verification output (`wc`, `grep`, `diff`) | Confirms or corrects                                                                      |
+| Test failure, log tail, `ps` output        | Diagnosis and one specific next command                                                   |
+| A pushback ("was that really needed?")     | Retraction or refinement                                                                  |
 
 The loop is short. The AI never writes and runs code. The developer never
 asks the AI to "look at the repo." Every message either provides input
@@ -143,14 +143,14 @@ copilot that guesses.
 
 Concretely:
 
-| Role | Example |
-|---|---|
-| **Diagnostician** | Paste a test failure → AI reads the SQLSTATE, points at `config:cache` as root cause |
-| **Writer with style memory** | Every doc matches the ones before it without restating the house style |
-| **Second reader** | Catches mischaracterizations and simplifications the developer missed |
-| **Enumeration engine** | "List the phases of the login system" → table. "Define the test accounts" → table |
-| **Verifier** | Reads a diff, confirms the change is what was intended |
-| **Retractor** | Corrects its own wrong proposals when the developer pushes back |
+| Role                         | Example                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| **Diagnostician**            | Paste a test failure → AI reads the SQLSTATE, points at `config:cache` as root cause |
+| **Writer with style memory** | Every doc matches the ones before it without restating the house style               |
+| **Second reader**            | Catches mischaracterizations and simplifications the developer missed                |
+| **Enumeration engine**       | "List the phases of the login system" → table. "Define the test accounts" → table    |
+| **Verifier**                 | Reads a diff, confirms the change is what was intended                               |
+| **Retractor**                | Corrects its own wrong proposals when the developer pushes back                      |
 
 The AI is closer to a colleague who has read every file you pasted but
 has never seen the actual repository.
@@ -235,12 +235,12 @@ use `forceCreate()` if it needs to write non-fillable fields.
 
 ## 7. Files that define this workflow
 
-| File | Purpose |
-|---|---|
-| `docs/dev-workflow/README.md` | This document — the rules |
-| `docs/AI-CONTEXT.md` | The paste-me-at-start-of-chat file that teaches a new AI session the project and the traps |
-| `docs/known-issues.md` | Backlog of problems found but not yet fixed |
-| `docs/architecture.md` | Whole-system overview |
+| File                          | Purpose                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------ |
+| `docs/dev-workflow/README.md` | This document — the rules                                                                  |
+| `docs/AI-CONTEXT.md`          | The paste-me-at-start-of-chat file that teaches a new AI session the project and the traps |
+| `docs/known-issues.md`        | Backlog of problems found but not yet fixed                                                |
+| `docs/architecture.md`        | Whole-system overview                                                                      |
 
 ---
 
@@ -315,8 +315,8 @@ For each staged file, either:
 
 1. It was read in this session (before the change, or the diff was read
    after), **or**
-2. It is explicitly listed in the commit message as *"not reviewed this
-   session — carried from prior work."*
+2. It is explicitly listed in the commit message as _"not reviewed this
+   session — carried from prior work."_
 
 Files in the second category must not carry FIX-NNN claims. The commit
 message must be honest about which files were verified and which were
@@ -328,9 +328,9 @@ the four `.bak` removals) had never been read this session. The commit
 message said "files that were on disk but not tracked" — accurately —
 but the surrounding context implied a review that did not happen.
 
-**Application.** For a *state-capture* commit (bringing disk and git
+**Application.** For a _state-capture_ commit (bringing disk and git
 into agreement), the message should say so explicitly. For a
-*feature-fix* commit, every file must have been read.
+_feature-fix_ commit, every file must have been read.
 
 ---
 
@@ -350,7 +350,7 @@ their diffs. All fourteen files match their commit-message claims:
 - `a82b5d3` — FIX-001 through FIX-007 — 8/8 correct
 - `6f11f40` — FIX-008 through FIX-016 — 6/6 correct
 
-P9 remains in effect as a *process* rule. The commit messages were
+P9 remains in effect as a _process_ rule. The commit messages were
 composed from docs rather than diffs, which is exactly what P9 forbids.
 That they turned out to be accurate is a lucky consequence, not a
 vindication. The rule stands: verification before message, not after.
@@ -422,16 +422,16 @@ request so future sessions start with the standard in hand.
 
 ### 10.1 — Response shape by task type
 
-| The task is... | The response is... |
-|---|---|
-| A decision needed | Trade-offs, one recommendation, ask for yes/no |
-| A cat request | File list, one-line reason per file, expected observations |
-| A code block | One file per message, heredoc with a unique delimiter, verify commands, expected values |
-| A commit | Read the diff first, message sourced from what the diff shows (P9) |
-| A doc append | Single heredoc, verify with wc -l + delimiter grep + tail |
-| A browser test | Numbered steps, expected observation per step, stop condition |
-| A failure diagnostic | Ask for the missing output. Do not infer from a partial paste |
-| A claim about the code | Verify with a fresh cat or grep before stating it as fact |
+| The task is...         | The response is...                                                                      |
+| ---------------------- | --------------------------------------------------------------------------------------- |
+| A decision needed      | Trade-offs, one recommendation, ask for yes/no                                          |
+| A cat request          | File list, one-line reason per file, expected observations                              |
+| A code block           | One file per message, heredoc with a unique delimiter, verify commands, expected values |
+| A commit               | Read the diff first, message sourced from what the diff shows (P9)                      |
+| A doc append           | Single heredoc, verify with wc -l + delimiter grep + tail                               |
+| A browser test         | Numbered steps, expected observation per step, stop condition                           |
+| A failure diagnostic   | Ask for the missing output. Do not infer from a partial paste                           |
+| A claim about the code | Verify with a fresh cat or grep before stating it as fact                               |
 
 ### 10.2 — What to do consistently
 
@@ -742,8 +742,8 @@ leave an angle-bracket token like `<hash>` or `<N>`. Either:
         Commit: ${HASH}
         EOF
 
-  Note: unquoted heredoc delimiter (`<<EOF` not `<<'EOF'`) so
-  variables expand.
+    Note: unquoted heredoc delimiter (`<<EOF` not `<<'EOF'`) so
+    variables expand.
 
 - **Or leave an explicit `<!-- FILL IN -->` comment** so the gap
   is visible to the operator.
@@ -935,7 +935,6 @@ That extends the checklist from five items to seven.
   during the 2026-10-19 doc merge. Both share §11's "pipeline
   boundary" shape. Checklist additions extend §11's checklist to
   seven items.
-
 
 ## Direct-workspace session addendum — 2026-10-21
 

@@ -85,7 +85,7 @@ export default function FellowshipShow({ fellowship_type, events }: Props) {
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
                 <Link
                     href="/events/church/fellowship"
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     All Fellowship
@@ -118,13 +118,13 @@ export default function FellowshipShow({ fellowship_type, events }: Props) {
 
                 {events.length === 0 ? (
                     <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-16 text-center">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-lime-brand/15">
-                            <Users className="h-8 w-8 text-lime-brand" />
+                        <div className="bg-lime-brand/15 mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                            <Users className="text-lime-brand h-8 w-8" />
                         </div>
-                        <h2 className="mb-2 text-lg font-semibold text-foreground">
+                        <h2 className="text-foreground mb-2 text-lg font-semibold">
                             No gatherings yet
                         </h2>
-                        <p className="mb-6 max-w-sm text-sm text-muted-foreground">
+                        <p className="text-muted-foreground mb-6 max-w-sm text-sm">
                             Add the first gathering to begin tracking
                             attendance.
                         </p>
@@ -148,18 +148,20 @@ export default function FellowshipShow({ fellowship_type, events }: Props) {
                                     className="flex flex-1 flex-col gap-2"
                                 >
                                     <div className="flex items-center gap-2">
-                                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm font-semibold text-foreground">
+                                        <CalendarDays className="text-muted-foreground h-4 w-4" />
+                                        <span className="text-foreground text-sm font-semibold">
                                             {event.name}
                                         </span>
                                     </div>
                                     {event.description && (
-                                        <p className="line-clamp-2 text-xs text-muted-foreground">
+                                        <p className="text-muted-foreground line-clamp-2 text-xs">
                                             {event.description}
                                         </p>
                                     )}
-                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                                        <span>{formatDate(event.event_date)}</span>
+                                    <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                                        <span>
+                                            {formatDate(event.event_date)}
+                                        </span>
                                         {event.start_time && event.end_time && (
                                             <span className="inline-flex items-center gap-1.5">
                                                 <Clock className="h-3 w-3" />
@@ -290,7 +292,7 @@ function EventFormDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>
                         {isEdit ? 'Edit Gathering' : 'Add Gathering'}
@@ -305,8 +307,7 @@ function EventFormDialog({
                 <form onSubmit={onSubmit} className="grid gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="fellowship-name">
-                            Name{' '}
-                            <span className="text-destructive">*</span>
+                            Name <span className="text-destructive">*</span>
                         </Label>
                         <Input
                             id="fellowship-name"
@@ -339,15 +340,12 @@ function EventFormDialog({
 
                     <div className="grid gap-2">
                         <Label htmlFor="fellowship-date">
-                            Date{' '}
-                            <span className="text-destructive">*</span>
+                            Date <span className="text-destructive">*</span>
                         </Label>
                         <DatePicker
                             id="fellowship-date"
                             value={form.data.event_date}
-                            onChange={(v) =>
-                                form.setData('event_date', v)
-                            }
+                            onChange={(v) => form.setData('event_date', v)}
                             placeholder="Pick a date"
                         />
                         <InputError message={form.errors.event_date} />
@@ -355,28 +353,20 @@ function EventFormDialog({
 
                     <div className="grid grid-cols-2 gap-3">
                         <div className="grid gap-2">
-                            <Label htmlFor="fellowship-start">
-                                Start Time
-                            </Label>
+                            <Label htmlFor="fellowship-start">Start Time</Label>
                             <TimePicker
                                 id="fellowship-start"
                                 value={form.data.start_time}
-                                onChange={(v) =>
-                                    form.setData('start_time', v)
-                                }
+                                onChange={(v) => form.setData('start_time', v)}
                             />
                             <InputError message={form.errors.start_time} />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="fellowship-end">
-                                End Time
-                            </Label>
+                            <Label htmlFor="fellowship-end">End Time</Label>
                             <TimePicker
                                 id="fellowship-end"
                                 value={form.data.end_time}
-                                onChange={(v) =>
-                                    form.setData('end_time', v)
-                                }
+                                onChange={(v) => form.setData('end_time', v)}
                                 clearable
                             />
                             <InputError message={form.errors.end_time} />

@@ -13,7 +13,7 @@
 WDEMS is a web-based event management system with **two sides in one system**:
 
 - **Running Events** — community fun runs (e.g., the JRV Community Run): organizers create events, open online registration, verify participants, record attendance on event day, and produce reports.
-- **Church Events** — a centralized church event management system. In Mark's official wording: *"WDEMS is also a centralized church event management system designed to help church administrators and ministry leaders organize activities across different church ministries. It allows users to create events, register participants, maintain attendance records, and generate attendance summaries through a consistent and organized workflow."*
+- **Church Events** — a centralized church event management system. In Mark's official wording: _"WDEMS is also a centralized church event management system designed to help church administrators and ministry leaders organize activities across different church ministries. It allows users to create events, register participants, maintain attendance records, and generate attendance summaries through a consistent and organized workflow."_
 
 The two sides share one codebase and one database but are **strictly kind-isolated**: their workflows, lifecycles, and participant pools are separate (see Decision D-03 and D-10).
 
@@ -73,24 +73,24 @@ Public registration uses `RegistrationVerificationService`: a challenge is creat
 
 Every product decision made by Mark, with its status. "Secured in" points to the document that carries the decision.
 
-| # | Decision | Date | Secured in |
-|---|---|---|---|
-| D-01 | **Composite identity** (Option A): a person = normalized full name + (email OR phone). Global UNIQUE(email)/UNIQUE(phone) dropped. Duplicate names allowed; duplicate name+contact on the same event forbidden. | 2026-10-19 | Running MD §1; docs/participant-identity.md |
-| D-02 | **Identity includes middle name + suffix** in the composite key; matching stays case-insensitive; strict exact match; NULL → empty string. | 2026-10-19 | Running MD §1/§11; Church MD B.4 |
-| D-03 | **Kind isolation is the system's major structural rule**: running and church workflows are walled off (model guards + UI separation). Shared traits between the two sides were identified by Mark as "the major problem of our system right now." | 2026-10-19 | Running MD §14 |
-| D-04 | **Verification is EMAIL-ONLY.** "There is no more phone verification" — no channel-choice screen, no SMS, no Firebase flow on new forms. Phone is still collected and still a composite matching key; it is never verified. reCAPTCHA v2 stays on the email channel. | 2026-10-20 | Church MD B.2 |
-| D-05 | **No past dates anywhere, no exception.** Every scheduling date: picker min = today, max = +2 years, AND server rule `after_or_equal:today`. The former Fellowship/occurrence retrospective-logging allowance is removed. Birthdate picker is out of scope (opposite bounds by purpose). | 2026-10-20 | Church MD B.3; spec Appendix C |
-| D-06 | **Church Registration shape**: ONE list per church event, fed by staff Add Participant (no OTP) + a per-event public link (same fields, email required, OTP-verified). EVERY completed church registration gets a registration code (code YES, scanning NO). | 2026-10-20 | Church MD Amendment A |
-| D-07 | **Church Registration owns Add/Edit/Delete** (overrides guideline §6.1). Edit re-runs the per-event duplicate check (excluding itself); delete removes the attendance row and adjusts counts. Delete removes the registration, never the person. **Church Attendance is monitoring only** — no Check-in/Walk-in tabs, no camera scan, no Live/Deferred modes; statuses Present/Absent/Unmarked only. | 2026-10-20 | Church MD Amendments A, A.1 |
-| D-08 | **Church participant types: Member, First-Timer, Guest only** (Graduate and Ninong/Ninang dropped). Stored per registration, with guardian. | 2026-10-20 | Church MD Amendment A.2 |
-| D-09 | **Duplicate handling — three outcomes** (both sides, inside each pool): (1) exact duplicate in the same event → **BLOCK**, first record kept, non-revealing message, check runs before OTP; (2) **likely duplicate** (same contact + highly similar name, incl. additions/omissions) → **HOLD for organizer review**: stored as Held/For Review, excluded from confirmed counts, does not flow to Attendance, no kit entitlement, until the organizer confirms duplicate (first/master kept), confirms separate person (release), corrects + rechecks, or removes it; public detection after email verification with a generic message; (3) same contact + clearly different name → **allow** (family/proxy), flag at most. **Nothing is ever auto-merged.** Logic modeled on Corsizio/Mailchimp/Google Forms/Salesforce patterns — Salesforce's *logic* only, no integration. | 2026-10-20 (rule) / 2026-10-21 (hold) | Church MD Amendments A.3, C; Running MD §11 |
-| D-10 | **Participant separation by side** (supersedes B.4's cross-side shared identity and the old panel line). Two pools — running and church. Same person in both pools is by design, never a duplicate, never matched or merged across. Rationale: each side monitors its own people's history (running: how many Community Runs attended; church: attendance count + types of church events joined), and duplicates matter because a duplicate record inside a pool splits that person's history. New panel line: *"Duplicate is judged per event; identity is shared within each side."* | 2026-10-21 | Church MD Amendment D |
-| D-11 | **Church participant HISTORY is in scope** (attendance count + church event types per participant), superseding the guideline's FR-12 deferral for the church side. | 2026-10-21 | Church MD Amendment D |
-| D-12 | **Quick walk-in = provisional person**: name-only walk-ins create a flagged, event-local provisional participant — never auto-matched or merged across events; staff review before linking. | 2026-10-21 | Running MD §9 (as built); Church MD B.6 (provisional isolation for church) |
-| D-13 | **Paper forms = staff attestation**: encoder creates the registration immediately without participant OTP, recording encoder user ID + attestation time (+ consent timestamp and privacy-notice version); public-form validation applies; Live/Deferred timing. | 2026-10-21 | Church MD B.6; repo attendance docs |
-| D-14 | **Running UX specifics**: Create Event and View Event unchanged; end-of-event report Participants section shows Age + Birthdate with Export CSV and a "View Detailed Participants" button; opening a form goes straight to the registrations monitor; close/reopen requires the organizer's password. | 2026-10-19 | Running MD §§5, 12, 13 |
-| D-15 | **The Church MD is THE guideline** for the Church Events update; where any document conflicts with it on church events, it prevails. One system, two sides, kind-isolated (official definition, Part 1.1). | 2026-10-20/21 | Church MD Amendment B |
-| D-16 | **Firebase is dead code** for new forms (its only role was phone verification). Removal planned once published forms offering phone verification finish their lifecycle. | 2026-10-20 | Church MD B.2 |
+| #    | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Date                                  | Secured in                                                                 |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- | -------------------------------------------------------------------------- |
+| D-01 | **Composite identity** (Option A): a person = normalized full name + (email OR phone). Global UNIQUE(email)/UNIQUE(phone) dropped. Duplicate names allowed; duplicate name+contact on the same event forbidden.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | 2026-10-19                            | Running MD §1; docs/participant-identity.md                                |
+| D-02 | **Identity includes middle name + suffix** in the composite key; matching stays case-insensitive; strict exact match; NULL → empty string.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 2026-10-19                            | Running MD §1/§11; Church MD B.4                                           |
+| D-03 | **Kind isolation is the system's major structural rule**: running and church workflows are walled off (model guards + UI separation). Shared traits between the two sides were identified by Mark as "the major problem of our system right now."                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 2026-10-19                            | Running MD §14                                                             |
+| D-04 | **Verification is EMAIL-ONLY.** "There is no more phone verification" — no channel-choice screen, no SMS, no Firebase flow on new forms. Phone is still collected and still a composite matching key; it is never verified. reCAPTCHA v2 stays on the email channel.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | 2026-10-20                            | Church MD B.2                                                              |
+| D-05 | **No past dates anywhere, no exception.** Every scheduling date: picker min = today, max = +2 years, AND server rule `after_or_equal:today`. The former Fellowship/occurrence retrospective-logging allowance is removed. Birthdate picker is out of scope (opposite bounds by purpose).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 2026-10-20                            | Church MD B.3; spec Appendix C                                             |
+| D-06 | **Church Registration shape**: ONE list per church event, fed by staff Add Participant (no OTP) + a per-event public link (same fields, email required, OTP-verified). EVERY completed church registration gets a registration code (code YES, scanning NO).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | 2026-10-20                            | Church MD Amendment A                                                      |
+| D-07 | **Church Registration owns Add/Edit/Delete** (overrides guideline §6.1). Edit re-runs the per-event duplicate check (excluding itself); delete removes the attendance row and adjusts counts. Delete removes the registration, never the person. **Church Attendance is monitoring only** — no Check-in/Walk-in tabs, no camera scan, no Live/Deferred modes; statuses Present/Absent/Unmarked only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | 2026-10-20                            | Church MD Amendments A, A.1                                                |
+| D-08 | **Church participant types: Member, First-Timer, Guest only** (Graduate and Ninong/Ninang dropped). Stored per registration, with guardian.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 2026-10-20                            | Church MD Amendment A.2                                                    |
+| D-09 | **Duplicate handling — three outcomes** (both sides, inside each pool): (1) exact duplicate in the same event → **BLOCK**, first record kept, non-revealing message, check runs before OTP; (2) **likely duplicate** (same contact + highly similar name, incl. additions/omissions) → **HOLD for organizer review**: stored as Held/For Review, excluded from confirmed counts, does not flow to Attendance, no kit entitlement, until the organizer confirms duplicate (first/master kept), confirms separate person (release), corrects + rechecks, or removes it; public detection after email verification with a generic message; (3) same contact + clearly different name → **allow** (family/proxy), flag at most. **Nothing is ever auto-merged.** Logic modeled on Corsizio/Mailchimp/Google Forms/Salesforce patterns — Salesforce's _logic_ only, no integration. | 2026-10-20 (rule) / 2026-10-21 (hold) | Church MD Amendments A.3, C; Running MD §11                                |
+| D-10 | **Participant separation by side** (supersedes B.4's cross-side shared identity and the old panel line). Two pools — running and church. Same person in both pools is by design, never a duplicate, never matched or merged across. Rationale: each side monitors its own people's history (running: how many Community Runs attended; church: attendance count + types of church events joined), and duplicates matter because a duplicate record inside a pool splits that person's history. New panel line: _"Duplicate is judged per event; identity is shared within each side."_                                                                                                                                                                                                                                                                                         | 2026-10-21                            | Church MD Amendment D                                                      |
+| D-11 | **Church participant HISTORY is in scope** (attendance count + church event types per participant), superseding the guideline's FR-12 deferral for the church side.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 2026-10-21                            | Church MD Amendment D                                                      |
+| D-12 | **Quick walk-in = provisional person**: name-only walk-ins create a flagged, event-local provisional participant — never auto-matched or merged across events; staff review before linking.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 2026-10-21                            | Running MD §9 (as built); Church MD B.6 (provisional isolation for church) |
+| D-13 | **Paper forms = staff attestation**: encoder creates the registration immediately without participant OTP, recording encoder user ID + attestation time (+ consent timestamp and privacy-notice version); public-form validation applies; Live/Deferred timing.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | 2026-10-21                            | Church MD B.6; repo attendance docs                                        |
+| D-14 | **Running UX specifics**: Create Event and View Event unchanged; end-of-event report Participants section shows Age + Birthdate with Export CSV and a "View Detailed Participants" button; opening a form goes straight to the registrations monitor; close/reopen requires the organizer's password.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 2026-10-19                            | Running MD §§5, 12, 13                                                     |
+| D-15 | **The Church MD is THE guideline** for the Church Events update; where any document conflicts with it on church events, it prevails. One system, two sides, kind-isolated (official definition, Part 1.1).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 2026-10-20/21                         | Church MD Amendment B                                                      |
+| D-16 | **Firebase is dead code** for new forms (its only role was phone verification). Removal planned once published forms offering phone verification finish their lifecycle.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 2026-10-20                            | Church MD B.2                                                              |
 
 ---
 
@@ -99,12 +99,14 @@ Every product decision made by Mark, with its status. "Secured in" points to the
 The finalized feature list (reviewed manually with Mark, 2026-10-21).
 
 ## 4.1 Event management
+
 - Create / view / edit running events (name, date, time, venue, distance, type).
 - Lifecycle: Draft → Registration Open → Registration Closed → Ongoing → Completed.
 - No past dates (D-05). Events list: Running/Church tabs only; Running tab has search + column filters (name, type, date, distance, venue, status, created by).
 - **Finalize Event**: confirmation popup with totals (registered / checked in / walk-ins) before confirming; organizer password re-authentication; event becomes read-only.
 
 ## 4.2 Registration form builder (organizer)
+
 - Displays the participant workflow (Disclaimer → Personal Info → Emergency Contact) with explanations.
 - **Editable disclaimer**: rich-text popup editor (H1/H2/bold/italic); a default disclaimer exists if not edited.
 - Personal details config: email always required; contact number toggleable required/optional.
@@ -115,6 +117,7 @@ The finalized feature list (reviewed manually with Mark, 2026-10-21).
 - **View Registration Form**: read-only preview reusing the public wizard (preview mode), free step navigation, inputs disabled, sample data shown, submit replaced by Close Preview.
 
 ## 4.3 Public registration — 5-step wizard
+
 - **Step 1 Disclaimer & Consent**: fixed template with `{event_name}` injected + exact Data Privacy Consent text; single agreement checkbox; consent + privacy version recorded at finalize.
 - **Step 2 Personal Information**: first/last required; middle name and suffix optional; date of birth via year-first drill-down DatePicker (ages 3–120); Barangay & City (replaces free-form address); email; PH phone input with real-time validation (`09…` / `+639…`); "* indicates required question" legend; draft kept in browser storage.
 - **Step 3 Emergency Contact** (required): name, relationship, number; amber **warning only** if it equals the participant's own number; stored on the registration.
@@ -123,19 +126,23 @@ The finalized feature list (reviewed manually with Mark, 2026-10-21).
 - All inputs validated before advancing; no step advance on any error (Part 4.8).
 
 ## 4.4 Identity and duplicate protection (Duplicate Defense Stack)
+
 1. **Composite duplicate check** — exact normalized name + contact in the same event → blocked, non-revealing message, before OTP (D-01/D-02).
 2. **Likely-duplicate hold** — same contact + highly similar name (incl. name additions/omissions) → Held / For Review with organizer resolution actions (D-09).
 3. **Encoder live search** — typing a name surfaces similar existing registrations; the encoder decides.
-4. **Kit claiming checkpoint** — valid-ID check at distribution, one kit per verified person. *(Status note: implemented as a staff procedure outside the app per the HEAD README; see Part 6.)*
+4. **Kit claiming checkpoint** — valid-ID check at distribution, one kit per verified person. _(Status note: implemented as a staff procedure outside the app per the HEAD README; see Part 6.)_
 5. **Possible Duplicates audit** — per-event report of suspicious pairs with match reasons; high-confidence pairs feed the review queue.
+
 - A returning participant re-registering for another run reuses their record within the running pool; reports show per-participant appearances.
 
 ## 4.5 Registration monitor and open/close
+
 - Opening registration redirects to the registration monitor (`/registrations/monitor/{id}`): count, copy link, refresh, export CSV.
 - Close / Reopen: Google-Forms-style confirmation modal + **organizer account password**.
 - While closed, the public form shows "no longer accepting responses"; in-progress challenges remain honored (24h TTL); no new submissions.
 
 ## 4.6 Attendance
+
 - Marking window opens **1 hour before** event start; stays open after start (paper encoders); organizer closes manually.
 - **Check-in mode**: large auto-focused code input; barcode scanner (keyboard-wedge) or in-page **camera scanning of Code 128** (phone-as-scanner via app is the no-code alternative); valid code → participant card (name, photo if available, event, T-shirt size, custom answers) + big **Present** button (no confirm step) → green flash, input clears and refocuses; invalid code → error + suggestion to use walk-in; side panel with live counter (X / Y) and recent check-ins feed.
 - **Walk-in mode** (two entry types): **Quick walk-in** — name only, provisional record (D-12), marked present on the spot; **Encode paper form** — condensed single-page staff form with all public-form inputs (disclaimer auto-accepted), staff attestation (D-13), creates a proper registration. Live search while typing: match found → mark present on the existing record (no duplicate created).
@@ -144,11 +151,13 @@ The finalized feature list (reviewed manually with Mark, 2026-10-21).
 - Statuses simplified to **Present / Absent** in reporting (Late/Excused/Unmarked removed on the running side); re-marking preserves the original `verified_at`.
 
 ## 4.7 Reports
+
 - Cards kept: **Registered (Form)**, **Walk-ins by source** (Online / Paper Form / Quick Walk-in), **No-shows**, **Show Rate**. Removed: Verification Rate, Attended—Verified, Attended—Override, Total Physical Attendance, Attendance Breakdown section.
 - Cross-events section: heading "CROSS-EVENTS"; simple searchable/filterable event list (summary-details line and detail table removed).
 - Participants table: search + filters; **Age and Birthdate** columns added; "Last Appearance" column removed; **Export CSV**; **View Detailed Participants** — combined view of report data (status, source, appearances) + full form data (personal info, emergency contact, T-shirt, custom answers).
 
 ## 4.8 Validation summary
+
 Checkbox required (Step 1). Names: required, min 2 / max 50, letters/spaces/hyphens/apostrophes. Suffix: optional, max 10. Email: required, valid format. Contact: per organizer toggle; PH format when provided. DOB: required, valid, not future, age 3–120. Barangay & City: required, min 3 / max 255. Emergency: names required; relationship from the fixed list; Other-specify required ≤15; number required PH format; same-as-own = warning only. T-shirt choice required if the field is required. Custom fields validated per type + required flag. reCAPTCHA must pass before Send Email; OTP rules per 4.3.
 
 ---
@@ -158,18 +167,22 @@ Checkbox required (Step 1). Names: required, min 2 / max 50, letters/spaces/hyph
 The finalized definition (Church MD Amendment D, approved 2026-10-21).
 
 ## 5.1 Coverage — nine modules
+
 Services (Sunday Service; Special Service) · Fellowship (Church Fellowship; Ministry Fellowship) · Discipleship (Bible Study; Discipleship Class; Leadership Training) · Youth Ministry (Youth Camp; Huddle; Campus Ministry; Timothy Class — **Youth Service intentionally excluded**) · Kids Ministry (Kids Service; Vacation Bible School; Outreach · Wawang Pulo; Outreach · Pasolo; Outreach · Balubaran; Outreach · Coloong) · Young Adult (Young Adult Service; Seminar; GRC Care Group; GRC Fellowship) · Worship & Prayer (Outdoor Prayer Meeting; Worship Night; Prayer & Fasting) · Church Administration (Church Planning; Ministry Meeting per team — Worship, Technical, Multimedia, Social Media, Finance Team, Light, Kids, Young Adult) · Special Occasions (Church Anniversary; Thanksgiving Celebration; Pastor's Appreciation; Dedication; School of Leaders 1/2/3).
 
 ## 5.2 Shared workflow
+
 Select ministry → select category → Event Details → **Registration → Attendance → Summary**, for every church event. Records are kept per event; for Services, per **occurrence**. Counting rule: `Registered = Present + Absent + Unmarked`.
 
 ## 5.3 Event management
+
 Create/edit events with basic details (name, date, time, venue, description). Church events run on their own lifecycle (`ChurchEventStatus`). No past dates (D-05) applies to every church scheduling date, pickers and server rules alike.
 
 ## 5.4 Registration (D-06, D-07, D-08)
+
 - **One list per event**, two channels:
-  - **Staff Add Participant** — manual, no OTP; system records who encoded it and when (attestation pattern, D-13).
-  - **Per-event public link** — same fields; email required and verified by email OTP + reCAPTCHA via the running side's verification service (Fellowship/ServiceOccurrence targets need the challenge bridged); **no phone verification** (D-04).
+    - **Staff Add Participant** — manual, no OTP; system records who encoded it and when (attestation pattern, D-13).
+    - **Per-event public link** — same fields; email required and verified by email OTP + reCAPTCHA via the running side's verification service (Fellowship/ServiceOccurrence targets need the challenge bridged); **no phone verification** (D-04).
 - Fields: first/middle/last name + suffix; email; contact number; birthday (age derived); Barangay & City address; emergency contact.
 - **Participant type per registration: Member / First-Timer / Guest** (D-08). Guardian field shown for Kids Ministry and Youth Camp.
 - Every completed registration gets a **registration code** (e.g., KM4X-P2N7) — for lookup only, **no scanning** on the church side.
@@ -177,25 +190,30 @@ Create/edit events with basic details (name, date, time, venue, description). Ch
 - The Add Member / Add First-Timer dialogs move from the attendance pages into Registration.
 
 ## 5.5 Identity and duplicates (D-09, D-10)
+
 - Church pool is **separate** from the running pool (D-10). Within the church pool, the composite rule applies; a returning church participant is recognized and reused across church events.
 - "Same event" for Services = the same occurrence (this Sunday vs next Sunday = a new registration, same church participant).
 - Three outcomes exactly as D-09: exact → block; likely (same contact + similar name incl. additions) → **hold for organizer review**; same contact + clearly different name → allow/flag.
 - Staff adds/edits run the same duplicate check; when both contacts are empty, warn, don't block.
 
 ## 5.6 Attendance (D-07) — monitoring only
+
 - Registrations flow in automatically as **Unmarked**; Attendance adds nobody.
 - Code input + Look up; search by name/email/phone; filter chips **All / Unmarked / Present / Absent** with counts; inline marking from the single list.
 - Statuses: **Present / Absent / Unmarked only** (no Late, no Excused).
 - **Removed vs the running page:** camera scanning, Add Walk-In, Live/Deferred modes, bulk batch entry, Check-in/Walk-in mode tabs.
 
 ## 5.7 Summary and participant history (D-11)
+
 - Per event: Registered / Present / Absent / Unmarked totals; participant list with statuses; Edit Attendance to correct marks.
 - **Participant history** across the church pool: how many times a participant attended and what types of church events they joined.
 
 ## 5.8 Module specifics retained
+
 Services are recurring (service → occurrences, one attendance record per occurrence). Fellowship keeps its events + groups structure. Discipleship keeps programs → batches → sessions → enrollments → per-session attendance.
 
 ## 5.9 Explicitly out of scope (church)
+
 Payments, donations, church finance; payroll; inventory; facility booking; SMS/notifications/automatic reminders; phone verification; camera scanning; automatic merging; participant accounts; per-person revocable links.
 
 ---
@@ -249,11 +267,13 @@ Verification method: static audit of the pulled clone, item by item (controllers
 Ordered by dependency and Mark's stated priorities (duplicate integrity first, then the church build, then hardening).
 
 ## Phase 1 — Duplicate integrity completion (running side first)
+
 - **B-1. Implement the HOLD** (D-09): held state on registrations; exclusion from counts/Attendance/kit; organizer review queue with the four resolution actions + audit trail; public detection after email verification with the generic review message; staff encoding shows the candidate with resolve-now or queue options. Upgrade the Possible Duplicates page from view-only audit to the queue front-end; high-confidence audit pairs feed the same queue.
 - **B-2. Acceptance tests for the hold**: EJ-case (omitted middle name) held; exact still blocked pre-OTP; siblings released correctly; held row absent from counts/Attendance; resolve actions audited.
 - **B-3. Run the possible-duplicates audit** on existing running + church data to size pre-existing duplicates before any cleanup decision (Church MD B.8).
 
 ## Phase 2 — Church Events build (Part 5; Church MD Amendments A–D prevail)
+
 - **B-4. Participant pool scoping** (D-10): add the side scope (kind) to participant matching; scope `findByComposite`/`resolveFrom` per pool; migrate existing rows to their correct pool; regression tests that cross-pool matches never resolve.
 - **B-5. Church Registration step**: unified Registration per church event (staff Add/Edit/Delete with duplicate check on add and edit; attestation fields); `participant_type` + `guardian` columns; Guest type; registration codes for church registrations; move Add Member/Add First-Timer dialogs from attendance pages into Registration.
 - **B-6. Church public link**: per-event link reusing `RegistrationVerificationService` for Event-based church events; bridge the challenge for FellowshipEvent/ServiceOccurrence targets; email required on the link form.
@@ -262,6 +282,7 @@ Ordered by dependency and Mark's stated priorities (duplicate integrity first, t
 - **B-9. Church acceptance tests**: the spec Appendix E Step 5 set (cross-channel block with no OTP sent, siblings, Jr/Sr, next-occurrence reuse, edit collision, double-submit, resolver regressions).
 
 ## Phase 3 — Hardening and cleanup (updates to existing code)
+
 - **U-1. Date-rule completion** (D-05): add `after_or_equal:today` to Fellowship event and single-occurrence server rules; bound their date pickers (min today / max +2y); correct the retrospective-logging docblocks.
 - **U-2. Church authorization pass**: authorization checks across the church module controllers (deferred from B.7; pairs with the outside-the-event-day rules once ruled, Part 8 O-4).
 - **U-3. Suffix max alignment**: make all public rule branches max 10 per spec §11.
@@ -269,6 +290,7 @@ Ordered by dependency and Mark's stated priorities (duplicate integrity first, t
 - **U-5. Documentation consolidation**: bring RUNNING_EVENTS_UPDATE.md current (email-only as built, provisionals, attestation, hold policy + separation rule, P4 fixed, guards applied, 923/3 baseline, Still Open table corrected); mirror Church MD Amendment D into the companion spec (its §2D/Appendix E predate the separation rule); reconcile Codex's `docs/church-events/11-shared-workflow-spec-2026-10-21.md` against the Church MD (MD prevails); fix the Running MD §2 Step 4 channel-choice text.
 
 ## Phase 4 — Acceptance and workflow
+
 - **A-1. Investigate the failing GitHub Actions check on main**; get the suite green and recorded at the current HEAD (`php artisan test` on Mark's machine + CI).
 - **A-2. Live acceptance pass**: reCAPTCHA end-to-end on the production hostname (authorize the hostname in Google settings first); camera scanning on a phone/tablet; physical Code 128 scanner test.
 - **A-3. Adopt the branch → PR → CodeRabbit review → merge workflow** for all new changes (so CodeRabbit actually reviews application code); close stale PR #1 and let Dependabot recreate it against current main; delete the leftover coderabbit branch.
@@ -278,15 +300,15 @@ Ordered by dependency and Mark's stated priorities (duplicate integrity first, t
 
 # Part 8 — Open Decisions (rulings still needed from Mark / the client)
 
-| # | Question | State |
-|---|---|---|
+| #   | Question                                                                                                                                                                                                                                                                                                                                                                  | State                    |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
 | O-1 | **Birthday clause** in Church MD Amendment C — "with birthday as a corroborating signal when available" was added without a ruling. **Keep** (and mirror into the other three policy documents) or **strike**? Note: the pushed `DuplicateReview::reasons()` already treats birthday as a corroborating key in the advisory layer, so "keep" aligns the MD with the code. | Pending since 2026-10-21 |
-| O-2 | **Church link v1 scope** — Services first, or Fellowship in the same phase? Discipleship self-enrollment is a separate question. | Open (Church MD B.9) |
-| O-3 | **Prototype vs client-docs conflict ruling** — where the ChatGPT-prototype guideline and the client-confirmed church documents (docs/church-events/02/07/09/10: Youth Camp payments + per-day attendance, Timothy progress, Campus grade levels, Church Planning Timeline, Special Occasions Documents, Youth Service in client scope) disagree, which wins? | Open (Church MD B.9) |
-| O-4 | **Authorization + outside-the-event-day rules** — in scope for the church build, or formally deferred? (CRUD-risk Appendix D problems 6 and 3.) | Deferred (Church MD B.7) |
-| O-5 | **Similarity-warning placement** — when the hold is built (B-1), public detection after email verification is the Amendment D recommendation; confirm, or keep the current form-side advisory placement for the warning layer. | Open |
-| O-6 | **Kit-claiming checkpoint record** — Running MD §11 layer 4 (system feature) vs HEAD README (staff procedure outside the app). One record must be amended. | Open |
-| O-7 | **Church summary export** — CSV/print export for the church summary: in or out? (Running side has CSV; the church definition is silent.) | Open |
+| O-2 | **Church link v1 scope** — Services first, or Fellowship in the same phase? Discipleship self-enrollment is a separate question.                                                                                                                                                                                                                                          | Open (Church MD B.9)     |
+| O-3 | **Prototype vs client-docs conflict ruling** — where the ChatGPT-prototype guideline and the client-confirmed church documents (docs/church-events/02/07/09/10: Youth Camp payments + per-day attendance, Timothy progress, Campus grade levels, Church Planning Timeline, Special Occasions Documents, Youth Service in client scope) disagree, which wins?              | Open (Church MD B.9)     |
+| O-4 | **Authorization + outside-the-event-day rules** — in scope for the church build, or formally deferred? (CRUD-risk Appendix D problems 6 and 3.)                                                                                                                                                                                                                           | Deferred (Church MD B.7) |
+| O-5 | **Similarity-warning placement** — when the hold is built (B-1), public detection after email verification is the Amendment D recommendation; confirm, or keep the current form-side advisory placement for the warning layer.                                                                                                                                            | Open                     |
+| O-6 | **Kit-claiming checkpoint record** — Running MD §11 layer 4 (system feature) vs HEAD README (staff procedure outside the app). One record must be amended.                                                                                                                                                                                                                | Open                     |
+| O-7 | **Church summary export** — CSV/print export for the church summary: in or out? (Running side has CSV; the church definition is silent.)                                                                                                                                                                                                                                  | Open                     |
 
 ---
 
@@ -294,17 +316,17 @@ Ordered by dependency and Mark's stated priorities (duplicate integrity first, t
 
 ## 9.1 Workspace documents (planning, specs, decisions)
 
-| Document | Role |
-|---|---|
-| `WDEMS_MASTER_PROJECT_DOCUMENT.md` (this file) | Consolidated record: decisions applied, feature specs, code state, backlog. |
-| `user/files/Church_Events_Update.md` (763 lines) | **THE church guideline** — v1.0 (§§1–13) + Amendment A (registration/attendance shape), A.1 (CRUD, no mode tabs), A.2 (participant types), A.3 (duplicates), B (consolidated conclusions B.1–B.9), C (hold policy), D (finalized feature definition + participant separation). Prevails on church matters. |
-| `wdems-church-events-update-spec.md` (538 lines) | Companion church spec: flow, Appendices B (input audit), C (date rule), D (CRUD risks), E (duplicate implementation plan, Steps 0–5). Predates Amendment D — mirror pending (U-5). |
-| `wdems-composite-rule/RUNNING_EVENTS_UPDATE.md` (423 lines) | Running-events update spec, §§1–15 + Duplicate Defense Stack. Predates part of the pushed code — consolidation pending (U-5). |
-| `wdems-registration-workflow-spec.md` | The 5-step wizard spec (2026-10-19); its channel-choice verification design is superseded by D-04 (email-only). |
-| `wdems-panel-duplicate-participants.md` (254 lines) | Panel prep: 60-second duplicate script, worked examples (incl. the EJ case), MVP one-liner + in/out scope, separation one-liner, Q&A. |
-| `wdems-running-md-gap-audit-2026-10-21.md` | Section-by-section audit of the Running MD against code @ 5755c75 (evidence for Part 6.1–6.2). |
-| `wdems-audit/AUDIT_REPORT.md` | Full docs + static code audit @ dc34933 (2026-10-19): kind leakage, church authorization absence, Q14/Q16/Q17 gaps. |
-| `wdems-composite-rule/` (checklist + progress files) | Composite-rule implementation checklist and progress records (W1–W7). |
+| Document                                                    | Role                                                                                                                                                                                                                                                                                                       |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WDEMS_MASTER_PROJECT_DOCUMENT.md` (this file)              | Consolidated record: decisions applied, feature specs, code state, backlog.                                                                                                                                                                                                                                |
+| `user/files/Church_Events_Update.md` (763 lines)            | **THE church guideline** — v1.0 (§§1–13) + Amendment A (registration/attendance shape), A.1 (CRUD, no mode tabs), A.2 (participant types), A.3 (duplicates), B (consolidated conclusions B.1–B.9), C (hold policy), D (finalized feature definition + participant separation). Prevails on church matters. |
+| `wdems-church-events-update-spec.md` (538 lines)            | Companion church spec: flow, Appendices B (input audit), C (date rule), D (CRUD risks), E (duplicate implementation plan, Steps 0–5). Predates Amendment D — mirror pending (U-5).                                                                                                                         |
+| `wdems-composite-rule/RUNNING_EVENTS_UPDATE.md` (423 lines) | Running-events update spec, §§1–15 + Duplicate Defense Stack. Predates part of the pushed code — consolidation pending (U-5).                                                                                                                                                                              |
+| `wdems-registration-workflow-spec.md`                       | The 5-step wizard spec (2026-10-19); its channel-choice verification design is superseded by D-04 (email-only).                                                                                                                                                                                            |
+| `wdems-panel-duplicate-participants.md` (254 lines)         | Panel prep: 60-second duplicate script, worked examples (incl. the EJ case), MVP one-liner + in/out scope, separation one-liner, Q&A.                                                                                                                                                                      |
+| `wdems-running-md-gap-audit-2026-10-21.md`                  | Section-by-section audit of the Running MD against code @ 5755c75 (evidence for Part 6.1–6.2).                                                                                                                                                                                                             |
+| `wdems-audit/AUDIT_REPORT.md`                               | Full docs + static code audit @ dc34933 (2026-10-19): kind leakage, church authorization absence, Q14/Q16/Q17 gaps.                                                                                                                                                                                        |
+| `wdems-composite-rule/` (checklist + progress files)        | Composite-rule implementation checklist and progress records (W1–W7).                                                                                                                                                                                                                                      |
 
 ## 9.2 Repository documents (in the repo, `docs/`)
 
@@ -319,4 +341,4 @@ Architecture (`architecture.md`, `AI-CONTEXT.md`), identity (`participant-identi
 
 ---
 
-*End of the Master Project Document — compiled 2026-10-21. Append corrections as dated notes; do not silently rewrite decided sections.*
+_End of the Master Project Document — compiled 2026-10-21. Append corrections as dated notes; do not silently rewrite decided sections._

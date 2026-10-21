@@ -10,7 +10,10 @@
    Fixed brand tokens — never change between modes
    ===================================================== */
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans:
+        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -69,35 +72,35 @@
     --radius: 0.5rem;
 
     /* Brand lime — bright, matches dark-mode hue, readable on white */
-    --lime-brand: #84CC16;
+    --lime-brand: #84cc16;
 
-    --background: #F3F7FB;
-    --foreground: #13253B;
-    --card: #FFFFFF;
-    --card-foreground: #13253B;
-    --popover: #FFFFFF;
-    --popover-foreground: #13253B;
-    --primary: #84CC16;
-    --primary-foreground: #0B1A2E;
+    --background: #f3f7fb;
+    --foreground: #13253b;
+    --card: #ffffff;
+    --card-foreground: #13253b;
+    --popover: #ffffff;
+    --popover-foreground: #13253b;
+    --primary: #84cc16;
+    --primary-foreground: #0b1a2e;
     --secondary: oklch(0.95 0.005 250);
-    --secondary-foreground: #13253B;
+    --secondary-foreground: #13253b;
     --muted: oklch(0.96 0.005 250);
-    --muted-foreground: #3D4F63;
+    --muted-foreground: #3d4f63;
     --accent: oklch(0.7 0.15 180);
-    --accent-foreground: #FFFFFF;
+    --accent-foreground: #ffffff;
     --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: #FFFFFF;
-    --border: #CBD7E3;
+    --destructive-foreground: #ffffff;
+    --border: #cbd7e3;
     --input: oklch(0.95 0.005 250);
-    --ring: #84CC16;
-    --sidebar: #FFFFFF;
-    --sidebar-foreground: #13253B;
-    --sidebar-primary: #84CC16;
-    --sidebar-primary-foreground: #0B1A2E;
+    --ring: #84cc16;
+    --sidebar: #ffffff;
+    --sidebar-foreground: #13253b;
+    --sidebar-primary: #84cc16;
+    --sidebar-primary-foreground: #0b1a2e;
     --sidebar-accent: oklch(0.95 0.005 250);
-    --sidebar-accent-foreground: #13253B;
-    --sidebar-border: #CBD7E3;
-    --sidebar-ring: #84CC16;
+    --sidebar-accent-foreground: #13253b;
+    --sidebar-border: #cbd7e3;
+    --sidebar-ring: #84cc16;
 }
 
 /* =====================================================
@@ -149,19 +152,27 @@
 @layer utilities {
     /* Theme-adaptive glass panels — no photos needed */
     .glass-panel {
-        @apply backdrop-blur-2xl border shadow-xl;
-        background-color: color-mix(in oklch, var(--card) var(--glass-card-tint), transparent);
+        @apply border shadow-xl backdrop-blur-2xl;
+        background-color: color-mix(
+            in oklch,
+            var(--card) var(--glass-card-tint),
+            transparent
+        );
         border-color: var(--border);
     }
 
     .glass-panel-heavy {
-        @apply backdrop-blur-2xl border shadow-2xl;
-        background-color: color-mix(in oklch, var(--card) calc(var(--glass-card-tint) + 15%), transparent);
+        @apply border shadow-2xl backdrop-blur-2xl;
+        background-color: color-mix(
+            in oklch,
+            var(--card) calc(var(--glass-card-tint) + 15%),
+            transparent
+        );
         border-color: var(--border);
     }
 
     .nav-group-label {
-        @apply text-xs font-semibold uppercase tracking-wider mb-2 px-3;
+        @apply mb-2 px-3 text-xs font-semibold tracking-wider uppercase;
         color: var(--muted-foreground);
     }
 }
@@ -194,7 +205,7 @@
     --app-bg-1: oklch(0.985 0.006 250);
     --app-bg-2: oklch(0.955 0.014 220);
     --app-bg-3: oklch(0.925 0.022 190);
-    --app-bg-glow: oklch(0.82 0.07 175 / 0.40);
+    --app-bg-glow: oklch(0.82 0.07 175 / 0.4);
     --app-bg-texture-opacity: 0.035;
 
     /* Glass tint strengths — light mode needs higher opacity for contrast */
@@ -208,8 +219,8 @@
     /* Dark mode background — WDEMS navy → teal gradient */
     --app-bg-1: oklch(0.14 0.045 250);
     --app-bg-2: oklch(0.17 0.052 235);
-    --app-bg-3: oklch(0.20 0.062 195);
-    --app-bg-glow: oklch(0.60 0.15 175 / 0.20);
+    --app-bg-3: oklch(0.2 0.062 195);
+    --app-bg-glow: oklch(0.6 0.15 175 / 0.2);
     --app-bg-texture-opacity: 0.05;
 
     --glass-card-tint: 32%;
@@ -229,9 +240,22 @@
         z-index: -1;
         pointer-events: none;
         background:
-            radial-gradient(60% 50% at 15% 10%, var(--app-bg-glow), transparent 70%),
-            radial-gradient(50% 60% at 85% 80%, var(--app-bg-glow), transparent 70%),
-            linear-gradient(135deg, var(--app-bg-1) 0%, var(--app-bg-2) 55%, var(--app-bg-3) 100%);
+            radial-gradient(
+                60% 50% at 15% 10%,
+                var(--app-bg-glow),
+                transparent 70%
+            ),
+            radial-gradient(
+                50% 60% at 85% 80%,
+                var(--app-bg-glow),
+                transparent 70%
+            ),
+            linear-gradient(
+                135deg,
+                var(--app-bg-1) 0%,
+                var(--app-bg-2) 55%,
+                var(--app-bg-3) 100%
+            );
     }
 
     /* Layer 2 — subtle dot texture. No image file: 1px dots rendered
@@ -243,7 +267,10 @@
         z-index: -1;
         pointer-events: none;
         opacity: var(--app-bg-texture-opacity);
-        background-image: radial-gradient(currentColor 0.5px, transparent 0.5px);
+        background-image: radial-gradient(
+            currentColor 0.5px,
+            transparent 0.5px
+        );
         background-size: 14px 14px;
         color: var(--foreground);
     }
@@ -261,32 +288,64 @@
        upcoming events, activity feed, quick access buttons).
        Tint and border opacity come from the theme variables. */
     .glass-card {
-        @apply backdrop-blur-xl border rounded-xl shadow-lg;
-        background-color: color-mix(in oklch, var(--card) var(--glass-card-tint), transparent);
-        border-color: color-mix(in oklch, var(--border) var(--glass-border-strength), transparent);
+        @apply rounded-xl border shadow-lg backdrop-blur-xl;
+        background-color: color-mix(
+            in oklch,
+            var(--card) var(--glass-card-tint),
+            transparent
+        );
+        border-color: color-mix(
+            in oklch,
+            var(--border) var(--glass-border-strength),
+            transparent
+        );
     }
 
     /* Stronger variant — for panels where text contrast matters more
        than depth. Same recipe, higher tint. */
     .glass-card-strong {
-        @apply backdrop-blur-2xl border rounded-xl shadow-xl;
-        background-color: color-mix(in oklch, var(--card) calc(var(--glass-card-tint) + 18%), transparent);
-        border-color: color-mix(in oklch, var(--border) calc(var(--glass-border-strength) + 10%), transparent);
+        @apply rounded-xl border shadow-xl backdrop-blur-2xl;
+        background-color: color-mix(
+            in oklch,
+            var(--card) calc(var(--glass-card-tint) + 18%),
+            transparent
+        );
+        border-color: color-mix(
+            in oklch,
+            var(--border) calc(var(--glass-border-strength) + 10%),
+            transparent
+        );
     }
 
     /* Sidebar surface — denser than cards so navigation labels remain
        legible over the gradient. Applied to the sidebar wrapper. */
     .glass-sidebar {
-        @apply backdrop-blur-2xl border-r;
-        background-color: color-mix(in oklch, var(--sidebar) var(--glass-sidebar-tint), transparent);
-        border-color: color-mix(in oklch, var(--sidebar-border) var(--glass-border-strength), transparent);
+        @apply border-r backdrop-blur-2xl;
+        background-color: color-mix(
+            in oklch,
+            var(--sidebar) var(--glass-sidebar-tint),
+            transparent
+        );
+        border-color: color-mix(
+            in oklch,
+            var(--sidebar-border) var(--glass-border-strength),
+            transparent
+        );
     }
 
     /* Header surface — the top bar inside the main content area. */
     .glass-header {
-        @apply backdrop-blur-xl border-b;
-        background-color: color-mix(in oklch, var(--card) var(--glass-header-tint), transparent);
-        border-color: color-mix(in oklch, var(--border) var(--glass-border-strength), transparent);
+        @apply border-b backdrop-blur-xl;
+        background-color: color-mix(
+            in oklch,
+            var(--card) var(--glass-header-tint),
+            transparent
+        );
+        border-color: color-mix(
+            in oklch,
+            var(--border) var(--glass-border-strength),
+            transparent
+        );
     }
 
     /* Optional inner specular highlight — a soft 1px light edge at the
@@ -340,9 +399,22 @@
         z-index: -1;
         pointer-events: none;
         background:
-            radial-gradient(60% 50% at 15% 10%, var(--app-bg-glow), transparent 70%),
-            radial-gradient(50% 60% at 85% 80%, var(--app-bg-glow), transparent 70%),
-            linear-gradient(135deg, var(--app-bg-1) 0%, var(--app-bg-2) 55%, var(--app-bg-3) 100%);
+            radial-gradient(
+                60% 50% at 15% 10%,
+                var(--app-bg-glow),
+                transparent 70%
+            ),
+            radial-gradient(
+                50% 60% at 85% 80%,
+                var(--app-bg-glow),
+                transparent 70%
+            ),
+            linear-gradient(
+                135deg,
+                var(--app-bg-1) 0%,
+                var(--app-bg-2) 55%,
+                var(--app-bg-3) 100%
+            );
     }
 
     /* Portrait mobile: anchor the crop to the top of the image
@@ -350,7 +422,12 @@
        focal content in the upper two-thirds. */
     @media (max-width: 768px) {
         body::before {
-            background-position: center top, center top, center, center, center;
+            background-position:
+                center top,
+                center top,
+                center,
+                center,
+                center;
         }
     }
 }
@@ -369,27 +446,27 @@
    as .glass-sidebar, applied directly so it also catches
    the mobile sheet (which does not go through the
    AppSidebar component's className channel). */
-[data-sidebar="sidebar"] {
-  background-color: color-mix(
-    in oklch,
-    var(--sidebar) var(--glass-sidebar-tint),
-    transparent
-  );
-  backdrop-filter: blur(24px) saturate(140%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
+[data-sidebar='sidebar'] {
+    background-color: color-mix(
+        in oklch,
+        var(--sidebar) var(--glass-sidebar-tint),
+        transparent
+    );
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
 }
 
 /* Main content column. Was opaque via bg-background; now
    transparent so the image shows through the whole page. */
-[data-slot="sidebar-inset"] {
-  background-color: transparent;
+[data-slot='sidebar-inset'] {
+    background-color: transparent;
 }
 
 /* Defensive: if a wrapper ever carries bg-sidebar (from
    variant="inset"), override it. Harmless when the variant
    does not apply. */
-[data-slot="sidebar-wrapper"] {
-  background-color: transparent;
+[data-slot='sidebar-wrapper'] {
+    background-color: transparent;
 }
 
 /* =====================================================
@@ -444,7 +521,7 @@ body::before {
 /* Header bar in the main content column: give it a subtle
    glass so breadcrumbs read over the image in both modes,
    without editing AppSidebarHeader. */
-[data-slot="sidebar-inset"] > header {
+[data-slot='sidebar-inset'] > header {
     background-color: color-mix(
         in oklch,
         var(--card) var(--glass-header-tint),
@@ -470,11 +547,7 @@ body::before {
             var(--card) calc(var(--glass-card-tint) + 12%),
             transparent
         );
-        border-color: color-mix(
-            in oklch,
-            var(--lime-brand) 45%,
-            transparent
-        );
+        border-color: color-mix(in oklch, var(--lime-brand) 45%, transparent);
     }
 }
 
@@ -489,13 +562,31 @@ body.wdems-with-bg::before {
     background:
         linear-gradient(var(--app-bg-overlay), var(--app-bg-overlay)),
         var(--app-bg-image) center center / cover no-repeat,
-        radial-gradient(60% 50% at 15% 10%, var(--app-bg-glow), transparent 70%),
-        radial-gradient(50% 60% at 85% 80%, var(--app-bg-glow), transparent 70%),
-        linear-gradient(135deg, var(--app-bg-1) 0%, var(--app-bg-2) 55%, var(--app-bg-3) 100%);
+        radial-gradient(
+            60% 50% at 15% 10%,
+            var(--app-bg-glow),
+            transparent 70%
+        ),
+        radial-gradient(
+            50% 60% at 85% 80%,
+            var(--app-bg-glow),
+            transparent 70%
+        ),
+        linear-gradient(
+            135deg,
+            var(--app-bg-1) 0%,
+            var(--app-bg-2) 55%,
+            var(--app-bg-3) 100%
+        );
 }
 
 @media (max-width: 768px) {
     body.wdems-with-bg::before {
-        background-position: center top, center top, center, center, center;
+        background-position:
+            center top,
+            center top,
+            center,
+            center,
+            center;
     }
 }

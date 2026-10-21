@@ -23,7 +23,11 @@ type Props = {
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
-export default function EventDeletionOtpDialog({ eventId, open, onOpenChange }: Props) {
+export default function EventDeletionOtpDialog({
+    eventId,
+    open,
+    onOpenChange,
+}: Props) {
     const page = usePage<{ errors: Record<string, string> }>();
     const serverError = page.props.errors?.code ?? null;
 
@@ -112,8 +116,8 @@ export default function EventDeletionOtpDialog({ eventId, open, onOpenChange }: 
                         Verify Event Deletion
                     </DialogTitle>
                     <DialogDescription>
-                        We sent a 6-digit verification code to your registered email.
-                        Enter it below to permanently delete this event.
+                        We sent a 6-digit verification code to your registered
+                        email. Enter it below to permanently delete this event.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -126,7 +130,9 @@ export default function EventDeletionOtpDialog({ eventId, open, onOpenChange }: 
 
                 {!locked && (
                     <div className="flex flex-col gap-2">
-                        <Label htmlFor="event-deletion-otp">Verification code</Label>
+                        <Label htmlFor="event-deletion-otp">
+                            Verification code
+                        </Label>
                         <Input
                             id="event-deletion-otp"
                             inputMode="numeric"
@@ -144,7 +150,11 @@ export default function EventDeletionOtpDialog({ eventId, open, onOpenChange }: 
 
                 <DialogFooter className="gap-2">
                     {locked ? (
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => onOpenChange(false)}
+                        >
                             Dismiss
                         </Button>
                     ) : (

@@ -38,13 +38,13 @@ export default function ReportsIndex({ events }: Props) {
 
                 {events.length === 0 ? (
                     <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-16 text-center">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-lime-brand/15">
-                            <BarChart3 className="h-8 w-8 text-lime-700 dark:text-lime-brand" />
+                        <div className="bg-lime-brand/15 mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                            <BarChart3 className="dark:text-lime-brand h-8 w-8 text-lime-700" />
                         </div>
-                        <h2 className="mb-2 text-lg font-semibold text-foreground">
+                        <h2 className="text-foreground mb-2 text-lg font-semibold">
                             No completed events yet
                         </h2>
-                        <p className="max-w-sm text-sm text-muted-foreground">
+                        <p className="text-muted-foreground max-w-sm text-sm">
                             Reports appear here once an event has been
                             finalized.
                         </p>
@@ -54,23 +54,23 @@ export default function ReportsIndex({ events }: Props) {
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-border text-left">
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    <tr className="border-border border-b text-left">
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Event
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Type
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Date
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Venue
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Created by
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Report
                                         </th>
                                     </tr>
@@ -79,17 +79,17 @@ export default function ReportsIndex({ events }: Props) {
                                     {events.map((event) => (
                                         <tr
                                             key={event.id}
-                                            className="border-b border-border transition-colors last:border-b-0 hover:bg-card/40"
+                                            className="border-border hover:bg-card/40 border-b transition-colors last:border-b-0"
                                         >
                                             <td className="px-6 py-4">
                                                 <Link
                                                     href={`/events/${event.id}`}
-                                                    className="font-medium text-foreground hover:text-lime-brand"
+                                                    className="text-foreground hover:text-lime-brand font-medium"
                                                 >
                                                     {event.event_name}
                                                 </Link>
                                                 {event.church_category && (
-                                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                                    <p className="text-muted-foreground mt-0.5 text-xs">
                                                         {event.church_category}
                                                     </p>
                                                 )}
@@ -98,7 +98,8 @@ export default function ReportsIndex({ events }: Props) {
                                                 <span
                                                     className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
                                                         typeStyles[
-                                                            event.event_kind === 'church'
+                                                            event.event_kind ===
+                                                            'church'
                                                                 ? 'church'
                                                                 : 'community_run'
                                                         ] ??
@@ -108,19 +109,19 @@ export default function ReportsIndex({ events }: Props) {
                                                     {event.event_type_label}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground px-6 py-4 text-sm">
                                                 <span className="inline-flex items-center gap-2">
                                                     <Calendar className="h-3.5 w-3.5" />
                                                     {event.event_date ?? '—'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground px-6 py-4 text-sm">
                                                 <span className="inline-flex items-center gap-2">
                                                     <MapPin className="h-3.5 w-3.5" />
                                                     {event.venue ?? '—'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-muted-foreground">
+                                            <td className="text-muted-foreground px-6 py-4 text-sm">
                                                 <span className="inline-flex items-center gap-2">
                                                     <User className="h-3.5 w-3.5" />
                                                     {event.creator ?? '—'}
@@ -128,10 +129,18 @@ export default function ReportsIndex({ events }: Props) {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <Link
-                                                    href={event.event_kind === 'running' ? `/events/${event.id}/report` : `/events/${event.id}`}
-                                                    className="text-sm font-medium text-lime-700 hover:text-lime-800 dark:text-lime-brand dark:hover:text-lime-brand/80"
+                                                    href={
+                                                        event.event_kind ===
+                                                        'running'
+                                                            ? `/events/${event.id}/report`
+                                                            : `/events/${event.id}`
+                                                    }
+                                                    className="dark:text-lime-brand dark:hover:text-lime-brand/80 text-sm font-medium text-lime-700 hover:text-lime-800"
                                                 >
-                                                    {event.event_kind === 'running' ? 'View report →' : 'View church event →'}
+                                                    {event.event_kind ===
+                                                    'running'
+                                                        ? 'View report →'
+                                                        : 'View church event →'}
                                                 </Link>
                                             </td>
                                         </tr>

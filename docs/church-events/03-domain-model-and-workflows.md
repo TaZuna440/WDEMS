@@ -14,6 +14,7 @@ what could change, what the consequences of each change are, and
 which decisions block which implementation phases.
 
 **Related:**
+
 - `docs/church-events/01-current-system-audit.md` -- verified
   findings about the current system
 - `docs/church-events/02-product-scope-and-requirements.md` --
@@ -32,13 +33,13 @@ require a command to be run by the developer.
 
 Tags follow document 02:
 
-| Tag | Meaning |
-|---|---|
-| **CURRENT** | Describes an existing implementation. Verified or inferred, per doc 01. |
-| **CANDIDATE** | One of several alternatives for a pending decision. Not a recommendation. |
-| **BLOCKED** | Cannot be settled until a specific product decision is made. |
-| **CONSTRAINT** | A rule that limits the design space. Derived from the existing system or from the scoping prompt. |
-| **PENDING-DATA** | Requires a command to be run; the auditor cannot verify this from pasted files. |
+| Tag              | Meaning                                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| **CURRENT**      | Describes an existing implementation. Verified or inferred, per doc 01.                           |
+| **CANDIDATE**    | One of several alternatives for a pending decision. Not a recommendation.                         |
+| **BLOCKED**      | Cannot be settled until a specific product decision is made.                                      |
+| **CONSTRAINT**   | A rule that limits the design space. Derived from the existing system or from the scoping prompt. |
+| **PENDING-DATA** | Requires a command to be run; the auditor cannot verify this from pasted files.                   |
 
 This document does not select. Where the audit (doc 01) made a
 provisional recommendation, that recommendation was withdrawn by
@@ -245,13 +246,13 @@ only by `kind = 'church'` rows.
 
 ### 2.3 Consequences table
 
-| Candidate | Admin-configurable types | Running path untouched | Migration added | Frontend rework |
-|---|---|---|---|---|
-| F1 | No | Yes | None | Small |
-| F2 | Yes | Yes | events migration, event_categories, event_types | Medium |
-| F3 | Yes | No | event_types, event_categories, seed migration | Large |
-| F4 | No | Yes | None | Small |
-| F5 | Yes | Partially | event_types, event_categories, data migration | Large |
+| Candidate | Admin-configurable types | Running path untouched | Migration added                                 | Frontend rework |
+| --------- | ------------------------ | ---------------------- | ----------------------------------------------- | --------------- |
+| F1        | No                       | Yes                    | None                                            | Small           |
+| F2        | Yes                      | Yes                    | events migration, event_categories, event_types | Medium          |
+| F3        | Yes                      | No                     | event_types, event_categories, seed migration   | Large           |
+| F4        | No                       | Yes                    | None                                            | Small           |
+| F5        | Yes                      | Partially              | event_types, event_categories, data migration   | Large           |
 
 ### 2.4 Blocking questions
 
@@ -324,12 +325,12 @@ Stages are pure UI.
 
 ### 3.3 Consequences table
 
-| Candidate | Running status untouched | Ten stages representable as state | Migration added | Frontend rework |
-|---|---|---|---|---|
-| A1 | No | Yes | None (enum change) | Medium |
-| A2 | Yes | Yes | Possibly a column | Medium |
-| A3 | Yes | Only as stage field | Yes (stage table or column) | Medium |
-| A4 | Yes | No | None | Small |
+| Candidate | Running status untouched | Ten stages representable as state | Migration added             | Frontend rework |
+| --------- | ------------------------ | --------------------------------- | --------------------------- | --------------- |
+| A1        | No                       | Yes                               | None (enum change)          | Medium          |
+| A2        | Yes                      | Yes                               | Possibly a column           | Medium          |
+| A3        | Yes                      | Only as stage field               | Yes (stage table or column) | Medium          |
+| A4        | Yes                      | No                                | None                        | Small           |
 
 ### 3.4 Blocking questions
 
@@ -473,7 +474,7 @@ reads it.
 
 - Cost: role management UI. Modifies `User::$fillable` (for
   `role`), which is currently `['name', 'email', 'password',
-  'role']`.
+'role']`.
 - Blast radius: every place that checks `isAdmin()` may need a
   parallel check.
 
@@ -489,7 +490,7 @@ gated on `isAdmin()`.
 
 - Cost: medium. Requires a UI to select the approver at
   proposal time. Approval gate: `auth()->id() ===
-  $event->approver_id || isAdmin()`.
+$event->approver_id || isAdmin()`.
 - Satisfies: flexibility without a new role.
 
 **C4 -- Approval deferred.** No formal approval. Stage 2's
@@ -559,7 +560,7 @@ Any budget tier requires an attachments mechanism. Options:
 - **A single `event_attachments` table** shared by budget,
   minutes, photos, and documents. Columns:
   `id, event_id, category, filename, mime, size, path,
-  uploaded_by, uploaded_at`.
+uploaded_by, uploaded_at`.
 - **A generic `attachments` table** with
   `attachable_type`/`attachable_id` (polymorphic). Supports
   attachments on any model, not just events.
@@ -697,8 +698,8 @@ Requires every church attendee to have a `Registration` row.
 running attendance.
 
 - Columns candidate: `id, occurrence_id, participant_id,
-  attendance_status, recorded_at, recorded_by, notes,
-  verified_at`.
+attendance_status, recorded_at, recorded_by, notes,
+verified_at`.
 - Unique on `(occurrence_id, participant_id)`.
 
 **AT4 -- Count-only on occurrences.** `occurrences.present_count`
@@ -804,37 +805,37 @@ model. This section names them.
 
 ### 12.1 Migrations required, by candidate
 
-| Candidate | New migrations |
-|---|---|
-| F1, F4 | None |
-| F2 | `event_categories`, `event_types`, `add_category_type_to_events` |
-| F3, F5 | `event_types`, `event_categories`, `seed_types`, `deprecate_event_type_enum` |
-| A1 | None (enum change requires no migration) |
-| A2 | Possibly `add_church_status_to_events` |
-| A3 | `church_event_stages` (side table) or `add_workflow_stage_to_events` |
-| A4 | None |
-| D1 | None |
-| D2 | `event_occurrences`, `add_occurrence_id_to_attendance` |
-| D3 | `event_occurrences`, `occurrence_attendances` |
-| D4 | `event_occurrences`, `add_occurrence_id_to_attendance` |
-| C1 | `add_approver_role_column` or reuse `role` |
-| C2 | None |
-| C3 | `add_approver_id_to_events` |
-| C4 | None |
-| E1 | `add_budget_to_events`, `event_attachments` |
-| E2 | `budget_line_items`, `event_attachments` |
-| E3 | `budget_line_items`, `budget_receipts`, `event_attachments`, reconciliation columns |
-| EN1 | None (enum change) plus `add_completed_at_to_registrations` |
-| EN2, EN3 | `program_enrollments` (and `program_session_attendance`) |
-| SG1 | `add_subgroup_to_events` |
-| SG2 | `subgroups`, `add_subgroup_id_to_events` |
-| SG3 | `event_tags` |
-| AT1 | None |
-| AT2, AT4 | `add_occurrence_id_to_attendance` |
-| AT3 | `occurrence_attendances` |
-| RP1 | None |
-| RP2, RP3 | None |
-| OWN1, OWN2 | None |
+| Candidate  | New migrations                                                                      |
+| ---------- | ----------------------------------------------------------------------------------- |
+| F1, F4     | None                                                                                |
+| F2         | `event_categories`, `event_types`, `add_category_type_to_events`                    |
+| F3, F5     | `event_types`, `event_categories`, `seed_types`, `deprecate_event_type_enum`        |
+| A1         | None (enum change requires no migration)                                            |
+| A2         | Possibly `add_church_status_to_events`                                              |
+| A3         | `church_event_stages` (side table) or `add_workflow_stage_to_events`                |
+| A4         | None                                                                                |
+| D1         | None                                                                                |
+| D2         | `event_occurrences`, `add_occurrence_id_to_attendance`                              |
+| D3         | `event_occurrences`, `occurrence_attendances`                                       |
+| D4         | `event_occurrences`, `add_occurrence_id_to_attendance`                              |
+| C1         | `add_approver_role_column` or reuse `role`                                          |
+| C2         | None                                                                                |
+| C3         | `add_approver_id_to_events`                                                         |
+| C4         | None                                                                                |
+| E1         | `add_budget_to_events`, `event_attachments`                                         |
+| E2         | `budget_line_items`, `event_attachments`                                            |
+| E3         | `budget_line_items`, `budget_receipts`, `event_attachments`, reconciliation columns |
+| EN1        | None (enum change) plus `add_completed_at_to_registrations`                         |
+| EN2, EN3   | `program_enrollments` (and `program_session_attendance`)                            |
+| SG1        | `add_subgroup_to_events`                                                            |
+| SG2        | `subgroups`, `add_subgroup_id_to_events`                                            |
+| SG3        | `event_tags`                                                                        |
+| AT1        | None                                                                                |
+| AT2, AT4   | `add_occurrence_id_to_attendance`                                                   |
+| AT3        | `occurrence_attendances`                                                            |
+| RP1        | None                                                                                |
+| RP2, RP3   | None                                                                                |
+| OWN1, OWN2 | None                                                                                |
 
 ### 12.2 Services and controllers affected
 
@@ -950,21 +951,20 @@ cause of silent bugs.
 
 For quick reference, the ten decisions and their current state:
 
-| # | Decision | Blocking product question | Documents affected |
-|---|---|---|---|
-| 1 | Category and event type modeling | Administrator-managed or code-level? | 04, 05, 06 |
-| 2 | Event status and lifecycle | Ten-stage machine or checklist? | 04, 05, 06 |
-| 3 | Occurrence model | Is recurring in scope? Attendance per what? | 04, 05, 06 |
-| 4 | Approval workflow | Who approves, with what audit? | 04, 05, 06 |
-| 5 | Budget and expenses | In scope? Which tier? | 04, 05, 06 |
-| 6 | Enrollment and completion | Distinct from registration? | 04, 05, 06 |
-| 7 | Subgroups | First-class or label? | 04, 05, 06 |
-| 8 | Attendance entity and identity | Per-person or count? | 04, 05, 06 |
-| 9 | Reports and aggregation | Which reports, which page? | 04, 05, 06 |
-| 10 | Event ownership and authorization | Policy change scoped to church, or all? | 04, 05, 06 |
+| #   | Decision                          | Blocking product question                   | Documents affected |
+| --- | --------------------------------- | ------------------------------------------- | ------------------ |
+| 1   | Category and event type modeling  | Administrator-managed or code-level?        | 04, 05, 06         |
+| 2   | Event status and lifecycle        | Ten-stage machine or checklist?             | 04, 05, 06         |
+| 3   | Occurrence model                  | Is recurring in scope? Attendance per what? | 04, 05, 06         |
+| 4   | Approval workflow                 | Who approves, with what audit?              | 04, 05, 06         |
+| 5   | Budget and expenses               | In scope? Which tier?                       | 04, 05, 06         |
+| 6   | Enrollment and completion         | Distinct from registration?                 | 04, 05, 06         |
+| 7   | Subgroups                         | First-class or label?                       | 04, 05, 06         |
+| 8   | Attendance entity and identity    | Per-person or count?                        | 04, 05, 06         |
+| 9   | Reports and aggregation           | Which reports, which page?                  | 04, 05, 06         |
+| 10  | Event ownership and authorization | Policy change scoped to church, or all?     | 04, 05, 06         |
 
-Each row's answers determine which candidates survive to doc
-04.
+Each row's answers determine which candidates survive to doc 04.
 
 ---
 
@@ -973,4 +973,3 @@ Each row's answers determine which candidates survive to doc
 - **2026-10-16** -- File created. Domain model candidates mapped
   for ten pending decisions. No selection made. No code,
   migrations, or configuration changed.
-

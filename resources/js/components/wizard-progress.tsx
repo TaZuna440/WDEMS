@@ -54,14 +54,12 @@ export default function WizardProgress({
                         <button
                             type="button"
                             disabled={isLocked}
-                            onClick={() =>
-                                !isLocked && onStepClick?.(index)
-                            }
+                            onClick={() => !isLocked && onStepClick?.(index)}
                             className={`flex items-center gap-2 rounded-full px-2 py-1.5 text-xs font-medium shadow-xs backdrop-blur-sm transition-all sm:px-3 ${
                                 isCurrent
                                     ? 'bg-lime-brand text-navy-900'
                                     : isLocked
-                                      ? 'cursor-not-allowed bg-card/50 text-muted-foreground opacity-60'
+                                      ? 'bg-card/50 text-muted-foreground cursor-not-allowed opacity-60'
                                       : 'bg-card/80 text-foreground hover:bg-card'
                             }`}
                             aria-current={isCurrent ? 'step' : undefined}

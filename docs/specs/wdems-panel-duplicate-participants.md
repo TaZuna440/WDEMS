@@ -32,13 +32,13 @@
 1. Participant submits the registration form (public link) or staff encode
    the participant (manual add).
 2. The system normalizes the name (case and extra spaces removed) and the
-   contact number, then checks: *same name + same email/phone already
-   registered in this event?*
+   contact number, then checks: _same name + same email/phone already
+   registered in this event?_
 3. **Exact match** → duplicate. First record is kept; the new submission
    is rejected with a non-revealing message. (On the link, this happens
    before any OTP is sent.)
 4. **No match** → registration proceeds. If the same identity exists from
-   a *previous* event, that participant record is reused — no new person
+   a _previous_ event, that participant record is reused — no new person
    is created.
 5. **Possible duplicate** → records that are merely similar may be
    flagged or listed for the organizer. They are not automatically
@@ -55,14 +55,14 @@
 
 Sunday Service, one family email `santos.family@gmail.com`:
 
-| Submission | Result | Why |
-|---|---|---|
-| Maria Santos + family email | Accepted | First registration |
-| Maria Santos + family email (again) | **Rejected** | Same name + same contact, same event |
-| Jose Santos (son) + family email | Accepted | Same email, different person |
-| Maria Santos + a different email | Possible-duplicate flag | Strict rule: different identity; organizer is warned it may be the same person |
-| EJ Rubi Pomasin + same email | Accepted | First registration |
-| EJ Pomasin + same email | **Held for review** | Same contact and highly similar name; one entry omitted the middle name |
+| Submission                          | Result                  | Why                                                                            |
+| ----------------------------------- | ----------------------- | ------------------------------------------------------------------------------ |
+| Maria Santos + family email         | Accepted                | First registration                                                             |
+| Maria Santos + family email (again) | **Rejected**            | Same name + same contact, same event                                           |
+| Jose Santos (son) + family email    | Accepted                | Same email, different person                                                   |
+| Maria Santos + a different email    | Possible-duplicate flag | Strict rule: different identity; organizer is warned it may be the same person |
+| EJ Rubi Pomasin + same email        | Accepted                | First registration                                                             |
+| EJ Pomasin + same email             | **Held for review**     | Same contact and highly similar name; one entry omitted the middle name        |
 
 ## Church events — the same rule, scoped per event
 
@@ -80,7 +80,7 @@ specific event:
 - **Different church event** → a new registration, which is expected and
   allowed; the existing participant record is reused, so the person is
   never duplicated.
-- **Services nuance:** "same event" = the same service *occurrence*. This
+- **Services nuance:** "same event" = the same service _occurrence_. This
   Sunday vs. next Sunday are different occurrences — same person, two
   registrations, no duplicate.
 
@@ -93,7 +93,7 @@ shared across all events.**
 Because our users are church members and community runners, not account
 holders. Parents register children and siblings under one email. An
 email-only key would either block those legitimate registrations or —
-worse — register the child *as* the parent. The composite key (name +
+worse — register the child _as_ the parent. The composite key (name +
 contact) is the same approach used by event-registration platforms such
 as Corsizio, which block an identical attendee name + email combination
 for the same event while allowing one email to register several people.

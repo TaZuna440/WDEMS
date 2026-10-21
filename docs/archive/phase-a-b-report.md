@@ -31,13 +31,13 @@ deliver items 3 and 4.
 
 ### 1.1 Phase split
 
-| Phase | Deliverable | Status |
-|-------|-------------|--------|
-| A | Google OAuth connection: WDEMS can link to a Google account and store its token | Complete |
-| B | Google Form creation + question editor: WDEMS can create a real Google Form per event and edit its questions | Complete |
-| C | Sheet creation + Form↔Sheet linkage via Apps Script | Not started |
-| D | Sheet response polling / webhook + Participant/Registration import | Not started |
-| E | Monitoring dashboard, recurring-participant detection | Not started |
+| Phase | Deliverable                                                                                                  | Status      |
+| ----- | ------------------------------------------------------------------------------------------------------------ | ----------- |
+| A     | Google OAuth connection: WDEMS can link to a Google account and store its token                              | Complete    |
+| B     | Google Form creation + question editor: WDEMS can create a real Google Form per event and edit its questions | Complete    |
+| C     | Sheet creation + Form↔Sheet linkage via Apps Script                                                          | Not started |
+| D     | Sheet response polling / webhook + Participant/Registration import                                           | Not started |
+| E     | Monitoring dashboard, recurring-participant detection                                                        | Not started |
 
 ---
 
@@ -57,17 +57,17 @@ falls back to the creator's connection so that the workflow is not blocked.
 
 Table: `google_integrations`
 
-| Column | Type | Purpose |
-|--------|------|---------|
-| `id` | bigint, PK | |
-| `user_id` | bigint, FK → users, unique | One connection per WDEMS user |
-| `google_account_id` | string, nullable | Google's stable account ID |
-| `google_email` | string, nullable | Human-readable email shown in UI |
-| `access_token` | text | OAuth 2.0 access token |
-| `refresh_token` | text, nullable | OAuth 2.0 refresh token |
-| `expires_at` | timestamp, nullable | Access token expiry (checked before use) |
-| `scopes` | json, nullable | Granted OAuth scopes |
-| timestamps | | |
+| Column              | Type                       | Purpose                                  |
+| ------------------- | -------------------------- | ---------------------------------------- |
+| `id`                | bigint, PK                 |                                          |
+| `user_id`           | bigint, FK → users, unique | One connection per WDEMS user            |
+| `google_account_id` | string, nullable           | Google's stable account ID               |
+| `google_email`      | string, nullable           | Human-readable email shown in UI         |
+| `access_token`      | text                       | OAuth 2.0 access token                   |
+| `refresh_token`     | text, nullable             | OAuth 2.0 refresh token                  |
+| `expires_at`        | timestamp, nullable        | Access token expiry (checked before use) |
+| `scopes`            | json, nullable             | Granted OAuth scopes                     |
+| timestamps          |                            |                                          |
 
 Foreign-key behavior: cascade on user delete (deleting a WDEMS user removes
 the associated Google connection).
@@ -80,28 +80,28 @@ serialization (e.g. Inertia props, API responses).
 
 The following scopes are requested during the OAuth consent flow:
 
-| Scope | Purpose |
-|-------|---------|
-| `openid` | User identity |
-| `.../userinfo.email` | Read account email |
-| `.../userinfo.profile` | Read account name |
-| `.../forms.body` | Create and edit Forms |
-| `.../forms.responses.readonly` | Read Form responses (Phase D) |
-| `.../spreadsheets` | Create and read Sheets (Phase C/D) |
-| `.../drive.file` | Access files created by WDEMS only |
-| `.../script.projects` | Deploy Apps Script projects (Phase C) |
+| Scope                          | Purpose                               |
+| ------------------------------ | ------------------------------------- |
+| `openid`                       | User identity                         |
+| `.../userinfo.email`           | Read account email                    |
+| `.../userinfo.profile`         | Read account name                     |
+| `.../forms.body`               | Create and edit Forms                 |
+| `.../forms.responses.readonly` | Read Form responses (Phase D)         |
+| `.../spreadsheets`             | Create and read Sheets (Phase C/D)    |
+| `.../drive.file`               | Access files created by WDEMS only    |
+| `.../script.projects`          | Deploy Apps Script projects (Phase C) |
 
 `drive.file` is deliberately narrow: WDEMS can only see files it has
 created, not the user's whole Drive.
 
 ### 2.4 Endpoints
 
-| Method | URL | Handler | Purpose |
-|--------|-----|---------|---------|
-| GET | `/settings/google` | `GoogleIntegrationController@show` | Settings page |
-| GET | `/auth/google/redirect` | `GoogleIntegrationController@redirect` | Start OAuth |
-| GET | `/auth/google/callback` | `GoogleIntegrationController@callback` | OAuth return |
-| DELETE | `/settings/google` | `GoogleIntegrationController@destroy` | Revoke + delete |
+| Method | URL                     | Handler                                | Purpose         |
+| ------ | ----------------------- | -------------------------------------- | --------------- |
+| GET    | `/settings/google`      | `GoogleIntegrationController@show`     | Settings page   |
+| GET    | `/auth/google/redirect` | `GoogleIntegrationController@redirect` | Start OAuth     |
+| GET    | `/auth/google/callback` | `GoogleIntegrationController@callback` | OAuth return    |
+| DELETE | `/settings/google`      | `GoogleIntegrationController@destroy`  | Revoke + delete |
 
 All four live inside the existing `auth` + `verified` middleware group.
 
@@ -116,7 +116,6 @@ Public methods:
 - `client(): GoogleClient` — returns a configured `Google\Client` instance used by other services.
 
 ### 2.6 Flow: connecting
-
 
 ### 2.7 Flow: token refresh
 
@@ -167,29 +166,29 @@ single batched API call.
 
 Table: `registration_setups` — one row per event
 
-| Column | Type | Purpose |
-|--------|------|---------|
-| `id` | bigint, PK | |
-| `event_id` | bigint, FK → events, unique | One Form per event |
-| `google_form_id` | string, nullable | Google's Form ID |
-| `form_url` | string(500), nullable | Public responder URL |
-| `status` | string, default 'draft' | `draft` \| `published` |
-| `created_by` | bigint, FK → users | The user who created it |
-| timestamps | | |
+| Column           | Type                        | Purpose                 |
+| ---------------- | --------------------------- | ----------------------- |
+| `id`             | bigint, PK                  |                         |
+| `event_id`       | bigint, FK → events, unique | One Form per event      |
+| `google_form_id` | string, nullable            | Google's Form ID        |
+| `form_url`       | string(500), nullable       | Public responder URL    |
+| `status`         | string, default 'draft'     | `draft` \| `published`  |
+| `created_by`     | bigint, FK → users          | The user who created it |
+| timestamps       |                             |                         |
 
 Table: `registration_setup_changes` — append-only audit log
 
-| Column | Type | Purpose |
-|--------|------|---------|
-| `id` | bigint, PK | |
-| `registration_setup_id` | bigint, FK → registration_setups | |
-| `user_id` | bigint, FK → users | Acting user |
-| `google_email_used` | string | Which Google account executed the API call |
-| `action` | string | See actions list below |
-| `google_item_id` | string, nullable | Google Form item ID (for question-level changes) |
-| `item_title` | string, nullable | Snapshot of the question title |
-| `changes` | json, nullable | Before/after snapshots |
-| `created_at` | timestamp | Append-only; no `updated_at` |
+| Column                  | Type                             | Purpose                                          |
+| ----------------------- | -------------------------------- | ------------------------------------------------ |
+| `id`                    | bigint, PK                       |                                                  |
+| `registration_setup_id` | bigint, FK → registration_setups |                                                  |
+| `user_id`               | bigint, FK → users               | Acting user                                      |
+| `google_email_used`     | string                           | Which Google account executed the API call       |
+| `action`                | string                           | See actions list below                           |
+| `google_item_id`        | string, nullable                 | Google Form item ID (for question-level changes) |
+| `item_title`            | string, nullable                 | Snapshot of the question title                   |
+| `changes`               | json, nullable                   | Before/after snapshots                           |
+| `created_at`            | timestamp                        | Append-only; no `updated_at`                     |
 
 Actions logged:
 
@@ -202,14 +201,14 @@ Actions logged:
 
 Every newly-created Form is seeded with these six questions, all required:
 
-| # | Title | Type |
-|---|-------|------|
-| 1 | First name | Short answer |
-| 2 | Last name | Short answer |
-| 3 | Contact number | Short answer |
-| 4 | Email address | Short answer |
-| 5 | Age | Short answer |
-| 6 | Address | Paragraph |
+| #   | Title          | Type         |
+| --- | -------------- | ------------ |
+| 1   | First name     | Short answer |
+| 2   | Last name      | Short answer |
+| 3   | Contact number | Short answer |
+| 4   | Email address  | Short answer |
+| 5   | Age            | Short answer |
+| 6   | Address        | Paragraph    |
 
 Additionally, for each distinct `event_options.option_type` on the event,
 one multiple-choice question is generated. For example, if the event has
@@ -220,11 +219,11 @@ The organizer can edit, remove, or add to these questions after creation.
 
 ### 3.4 Endpoints
 
-| Method | URL | Handler | Purpose |
-|--------|-----|---------|---------|
-| GET | `/events/{event}/registration/setup` | `show` | Setup page |
-| POST | `/events/{event}/registration/setup` | `store` | Create the Form |
-| POST | `/events/{event}/registration/setup/questions/sync` | `syncQuestions` | Batched diff-and-apply |
+| Method | URL                                                 | Handler         | Purpose                |
+| ------ | --------------------------------------------------- | --------------- | ---------------------- |
+| GET    | `/events/{event}/registration/setup`                | `show`          | Setup page             |
+| POST   | `/events/{event}/registration/setup`                | `store`         | Create the Form        |
+| POST   | `/events/{event}/registration/setup/questions/sync` | `syncQuestions` | Batched diff-and-apply |
 
 State gating: setup creation is only enabled when the event status is
 `configured`; question editing is only enabled in the same state. Later
@@ -243,19 +242,18 @@ Public methods:
 
 ### 3.6 Flow: creating a Form
 
-
 ### 3.7 Flow: editing questions (draft-then-save)
 
 The original design issued one HTTP request per question mutation. That
 produced one Google API call per change and took several seconds per
 keystroke of change. The current design stages all mutations locally.
 
-
 Result: **one Google API call regardless of how many changes were made.**
 
 ### 3.8 Algorithm: diff-based sync
 
 Given:
+
 - `serverItems` — the Form's current items (from `forms.get`)
 - `desired` — the client's requested final list
 
@@ -352,13 +350,13 @@ the MVP phase.
 
 ### 4.4 Google Cloud project structure
 
-| Item | Value |
-|------|-------|
-| Project | `wdems` (ID: `wdems-509007`) |
-| APIs enabled | Forms, Sheets, Drive |
-| OAuth consent screen | External, Testing |
-| Test users | 1 (the developer's account) |
-| OAuth client | Web application, 2 redirect URIs |
+| Item                 | Value                            |
+| -------------------- | -------------------------------- |
+| Project              | `wdems` (ID: `wdems-509007`)     |
+| APIs enabled         | Forms, Sheets, Drive             |
+| OAuth consent screen | External, Testing                |
+| Test users           | 1 (the developer's account)      |
+| OAuth client         | Web application, 2 redirect URIs |
 
 ---
 
@@ -385,29 +383,29 @@ If this becomes a thesis chapter, here's a natural structure:
 **Chapter: Google Integration Subsystem**
 
 - 6.1 Architectural overview
-  - Why Google Forms as the participant-registration surface
-  - Why per-organizer OAuth
-  - The three-layer split: OAuth → Form creation → Response sync
+    - Why Google Forms as the participant-registration surface
+    - Why per-organizer OAuth
+    - The three-layer split: OAuth → Form creation → Response sync
 - 6.2 Phase A: OAuth connection
-  - Data model
-  - Flow diagram
-  - Security properties
+    - Data model
+    - Flow diagram
+    - Security properties
 - 6.3 Phase B: Form creation and editing
-  - Data model (setups + audit log)
-  - The default question template
-  - The batched sync algorithm (this is the interesting bit)
-  - The draft-then-save UI pattern
+    - Data model (setups + audit log)
+    - The default question template
+    - The batched sync algorithm (this is the interesting bit)
+    - The draft-then-save UI pattern
 - 6.4 Audit trail
-  - Design rationale
-  - What it records and why
+    - Design rationale
+    - What it records and why
 - 6.5 Constraints
-  - Google Cloud free tier
-  - Testing-mode OAuth
-  - No Apps Script yet
+    - Google Cloud free tier
+    - Testing-mode OAuth
+    - No Apps Script yet
 - 6.6 Evaluation
-  - Manual verification results
-  - Performance characteristics (single-call saves)
-  - Outstanding limitations
+    - Manual verification results
+    - Performance characteristics (single-call saves)
+    - Outstanding limitations
 
 The **batched sync algorithm** (§3.8) is the strongest technical
 contribution of this chapter. It's the piece worth a diagram.
@@ -419,32 +417,39 @@ contribution of this chapter. It's the piece worth a diagram.
 Files created or modified across Phases A and B:
 
 **Models:**
+
 - `app/Models/GoogleIntegration.php`
 - `app/Models/RegistrationSetup.php`
 - `app/Models/RegistrationSetupChange.php`
 
 **Services:**
+
 - `app/Services/Google/GoogleOAuthService.php`
 - `app/Services/Google/GoogleFormService.php`
 
 **Controllers:**
+
 - `app/Http/Controllers/GoogleIntegrationController.php`
 - `app/Http/Controllers/RegistrationSetupController.php`
 
 **Routes:**
+
 - `routes/web.php` (Google + registration routes)
 - `routes/settings.php` (Google settings page)
 
 **Migrations:**
+
 - `xxxx_create_google_integrations_table.php`
 - `xxxx_create_registration_setups_and_changes_tables.php`
 
 **React pages/components:**
+
 - `resources/js/pages/settings/google.tsx`
 - `resources/js/pages/events/registration-setup.tsx`
 - `resources/js/components/question-editor-dialog.tsx`
 
 **Modified:**
+
 - `app/Models/Event.php` (added `registrationSetup()` relation)
 - `app/Models/User.php` (added `googleIntegration()` relation)
 - `app/Http/Controllers/EventController.php` (added `has_registration_setup` prop)

@@ -69,10 +69,10 @@ export default function BasicsStep({
     return (
         <div className="flex flex-col gap-6">
             <div>
-                <h2 className="text-lg font-semibold text-foreground">
+                <h2 className="text-foreground text-lg font-semibold">
                     Event Details
                 </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-sm">
                     The core details of your event.
                 </p>
             </div>
@@ -106,7 +106,7 @@ export default function BasicsStep({
                     </SelectContent>
                 </Select>
                 <InputError message={errors.event_type} />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                     Event type cannot be changed after creation.
                 </p>
             </div>
@@ -174,14 +174,14 @@ export default function BasicsStep({
             {!isChurch && (
                 <section className="flex flex-col gap-3 border-t border-white/5 pt-6">
                     <div>
-                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h3 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                             Accessibility
                         </h3>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                            Everything is on by default. Uncheck any that do
-                            not apply. These appear on the event page so
-                            participants know what to expect and can decide
-                            if the event suits them.
+                        <p className="text-muted-foreground mt-1 text-xs">
+                            Everything is on by default. Uncheck any that do not
+                            apply. These appear on the event page so
+                            participants know what to expect and can decide if
+                            the event suits them.
                         </p>
                     </div>
 

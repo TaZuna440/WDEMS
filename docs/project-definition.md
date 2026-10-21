@@ -77,6 +77,7 @@ what they present at the door.
 There is **no public self-service sign-up**. Accounts are created by
 admins. This is deliberate — the system is designed for a known set
 of organizers, not open registration.
+
 ## 3. The two event worlds
 
 ### 3.1 Running events
@@ -115,21 +116,23 @@ Creating a community run walks the organizer through a four-step
 wizard:
 
 **Step 1 — Details**
+
 - Event Type (Community Run; locked after creation)
 - Event Name (3–100 chars, quality-checked against keyboard mashing)
 - Description (optional, up to 2,000 chars)
 - Accessibility flags (9 flags, all default to on):
-  - walkers welcome
-  - all paces welcome
-  - all ages welcome
-  - stroller friendly
-  - wheelchair accessible
-  - sweeper present
-  - service animals allowed
-  - leashed pets allowed
-  - (quiet space was removed on 2026-10-15)
+    - walkers welcome
+    - all paces welcome
+    - all ages welcome
+    - stroller friendly
+    - wheelchair accessible
+    - sweeper present
+    - service animals allowed
+    - leashed pets allowed
+    - (quiet space was removed on 2026-10-15)
 
 **Step 2 — Schedule**
+
 - Event Date (custom calendar picker, no past dates, max 2 years ahead)
 - Start Time (5-minute intervals, 24-hour storage)
 - End Time (optional, minimum 60-minute duration when set)
@@ -137,17 +140,20 @@ wizard:
 - Venue Map Link (Google Maps URLs only — validated)
 
 **Step 3 — Venue**
+
 - Venue Name
 - Venue Address
 - Interactive map picker (Leaflet, OpenStreetMap tiles, reverse geocoding)
 - Coordinates captured from the map, editable
 
 **Step 4 — Extras**
+
 - Partners (up to 20 rows, each with a name and a type from nine
   predefined categories: host, sponsor, food, beverage, medical,
   organization, media, logistics, other)
 
 **Wizard features:**
+
 - Draft checkpoint: progress is saved to the browser every step and
   restored on return within 24 hours
 - Error jumping: server-side validation errors route to the correct
@@ -163,14 +169,14 @@ Draft → Configured → Registration Open → Registration Closed → Ongoing �
 
 Cancellation is reachable from any non-terminal state.
 
-| State | What happens |
-|---|---|
-| **Draft** | Event exists but is not yet ready to accept registrations |
-| **Configured** | Organizer has prepared the registration form |
-| **Registration Open** | Public link is live; participants can register |
-| **Registration Closed** | Registration is closed; no new submissions |
-| **Ongoing** | Event day; attendance can be recorded |
-| **Completed** | Event is over; data is read-only |
+| State                   | What happens                                              |
+| ----------------------- | --------------------------------------------------------- |
+| **Draft**               | Event exists but is not yet ready to accept registrations |
+| **Configured**          | Organizer has prepared the registration form              |
+| **Registration Open**   | Public link is live; participants can register            |
+| **Registration Closed** | Registration is closed; no new submissions                |
+| **Ongoing**             | Event day; attendance can be recorded                     |
+| **Completed**           | Event is over; data is read-only                          |
 
 The `Registration Closed → Ongoing` transition happens automatically
 once the event's start moment passes. Every other transition is
@@ -182,6 +188,7 @@ Before opening registration, the organizer configures a form for
 participants to fill in.
 
 **Common fields (always present):**
+
 - First Name
 - Last Name
 - Contact Number
@@ -194,6 +201,7 @@ toggled required or optional per event. First Name, Last Name, and
 Age are always required.
 
 **Custom fields (up to 5 per event):**
+
 - Text
 - Textarea
 - Number
@@ -207,6 +215,7 @@ Custom fields are drag-to-reorder. Each has a label and, for choice
 fields, up to 10 options.
 
 **Label quality rules:**
+
 - Strict vowel + consonant checks at 5+ characters
 - Relaxed rules below 5 characters
 - Collision guard against the six common field names (with
@@ -232,6 +241,7 @@ yet.
 
 **Phase 2 — Verify.** The participant must verify their contact
 details:
+
 - Email: a 6-digit code sent by email, entered on the verification page
 - Phone: an SMS challenge completed in the browser via Firebase
 
@@ -241,6 +251,7 @@ least one channel must be verifiable.
 **Phase 3 — Finalize.** Once all required channels are verified, the
 Participant, Registration, and custom field responses are committed
 in a single transaction. The participant receives:
+
 - A **Registration Code** — a unique identifier they present at the
   door
 - A **confirmation email** with the code and event details
@@ -276,6 +287,7 @@ submission. Each row is committed independently; if one fails, the
 others still succeed.
 
 **Attendance statuses:**
+
 - Present
 - Absent
 - Excused
@@ -320,6 +332,7 @@ across events and survive the event's removal.
 
 A live monitoring page shows the flow of registrations in real time.
 Organizers can:
+
 - See the total submissions, the last-hour count, and the pace
 - Filter by status (new, returning, flagged)
 - Edit participant details inline
@@ -333,6 +346,7 @@ The CSV export includes one column per custom field.
 ### 4.8 End-of-event report
 
 After the event is finalized, an end-of-event report shows:
+
 - Total registrations
 - Total attendance (broken down by verified vs. override)
 - Show rate (attended ÷ registered)
@@ -369,12 +383,14 @@ selected:
 **Purpose:** recurring worship services with attendance tracking.
 
 **Structure:**
+
 - Service types: Morning, Midweek, Youth, Other
 - Each service type has its own occurrence list
 - Occurrences can be created one at a time or generated as a recurring
   batch (weekly or fortnightly, up to 52 occurrences)
 
 **Attendance:**
+
 - Two tracks per occurrence: **Members** and **First-Timers**
 - A participant cannot be on both tracks for the same occurrence
 - First-Timer records are created automatically the first time a
@@ -388,6 +404,7 @@ selected:
 **Purpose:** named gatherings grouped by type.
 
 **Structure:**
+
 - Fellowship types: Family, Church, Pastors, Leaders, Women's, Men's
 - Each event has a name, description, and date
 - Events can have their own set of **groups** (Parents, Youth,
@@ -395,6 +412,7 @@ selected:
 - Group assignment is optional per participant
 
 **Attendance:**
+
 - One unified roster (not two tracks like Services)
 - Per-group attendance counts
 - Each attendance row can be assigned to a group
@@ -407,6 +425,7 @@ selected:
 progress tracking.
 
 **Structure:**
+
 - **Programs** — six seeded (Life Class, Encounter God Retreat,
   School of Leaders 1–3, Cell Convergence). Programs are seeded, not
   created through the UI.
@@ -418,6 +437,7 @@ progress tracking.
   topic.
 
 **Enrollment statuses:**
+
 - Enrolled
 - In Progress
 - Completed
@@ -425,18 +445,21 @@ progress tracking.
 - On Hold
 
 **Attendance matrix:**
+
 - One row per enrollment, one column per session
 - Per-cell status: Present, Absent, Excused
 - Bulk upsert — the operator marks all changed cells and saves once
 - Progress column shows attended / applicable and a percentage
 
 **Progress calculation:**
+
 - Attended = count of present + excused sessions
 - Applicable = sessions between the enrollment's start date and today
 - Completion criteria: nullable `required_sessions` per program; if
   null, completion requires 100% of applicable sessions
 
 **Dashboard features:**
+
 - Program overview with completion rate donut
 - Search by participant name, email, or phone
 - Filter by status and batch
@@ -451,6 +474,7 @@ window). See §11.
 **Purpose:** youth activities across five sub-modules.
 
 **Sub-modules (per client Q3):**
+
 - Youth Camp
 - Youth Service
 - Huddle
@@ -464,6 +488,7 @@ window). See §11.
 **Purpose:** kids activities tracked per outreach location.
 
 **Structure:**
+
 - Dynamic outreach locations (staff can add new ones)
 - Four locations seeded in the mockup: Wawang Pulo, Pasolo,
   Balubaran, Coloong
@@ -475,12 +500,13 @@ window). See §11.
 **Purpose:** young adult ministry activities.
 
 **Sub-modules (per client Q4):**
+
 - Service
 - Seminar
 - Partner
-  - Nested: GRC
-    - Care Group
-    - Fellowship
+    - Nested: GRC
+        - Care Group
+        - Fellowship
 
 **Status:** Scoped. Not yet built.
 
@@ -489,6 +515,7 @@ window). See §11.
 **Purpose:** worship and prayer activities.
 
 **Sub-modules (per client Q5):**
+
 - Outdoor Prayer Meeting
 - Worship Night
 - Prayer and Fasting
@@ -500,6 +527,7 @@ window). See §11.
 **Purpose:** church celebrations and one-off events.
 
 **Features (per mockup and client Q6, Q7, Q20):**
+
 - Multi-tab detail page (URL-persisted tabs)
 - Gantt-style planning timeline
 - Auto-generated documents (system-generated, not uploads, not
@@ -514,6 +542,7 @@ window). See §11.
 **Purpose:** administration and planning activities.
 
 **Sub-modules:**
+
 - Ministry Meeting — editable list of seven ministries (Worship,
   Technical, Multimedia, Social Media, Finance Team, Light Kids,
   Young-adult)
@@ -550,6 +579,7 @@ These apply to both event worlds.
 ### 6.3 Contact verification
 
 Two channels:
+
 - **Email** — 6-digit code sent via transactional email service
 - **Phone** — Firebase Phone Auth (SMS challenge in the browser)
 
@@ -578,6 +608,7 @@ report is exportable to CSV.
 ### 6.7 Notifications
 
 Transactional email:
+
 - Registration confirmation with the participant's attendance code
 - Email verification link
 - 2FA login code
@@ -587,6 +618,7 @@ Transactional email:
 ### 6.8 Design system
 
 A consistent visual language across every page:
+
 - Four-layer model (base, image, glass surfaces, content)
 - Three glass tiers (structural, content panels, internal rows)
 - Semantic colors with light/dark mode variants
@@ -598,6 +630,7 @@ A consistent visual language across every page:
 ## 7. What's shipped today
 
 ### 7.1 Running events
+
 - Event creation wizard with checkpoint restore
 - Event lifecycle (draft through completed)
 - Registration form builder with custom fields
@@ -611,6 +644,7 @@ A consistent visual language across every page:
 - Automatic event status advancement
 
 ### 7.2 Church events
+
 - Church event schema on the shared events table
 - **Services** — complete
 - **Fellowship** — complete
@@ -619,6 +653,7 @@ A consistent visual language across every page:
 - Nine-category dropdown with server-side validation
 
 ### 7.3 Platform
+
 - Authentication with email 2FA and trusted devices
 - Admin / staff roles
 - Settings pages for password, security, profile
@@ -626,6 +661,7 @@ A consistent visual language across every page:
 - Design system with automated audit
 
 ### 7.4 Test coverage
+
 The system has **791 automated tests** covering all shipped features.
 
 ---
@@ -634,17 +670,17 @@ The system has **791 automated tests** covering all shipped features.
 
 Modules confirmed in scope but not yet built:
 
-| Module | Scope |
-|---|---|
-| **Youth** | Five sub-modules |
-| **Young Adult** | Three sub-modules plus nested GRC |
-| **Worship & Prayer** | Three sub-modules |
-| **Kids Ministry** | Dynamic outreach locations |
-| **Special Occasions** | Gantt timeline + auto-generated documents |
-| **Church Administration** | Editable ministry list, Ministry Meeting, Church Planning |
-| **Members / First-Timers pages** | Dedicated top-level pages for existing backend models |
-| **Services sidebar restructure** | Services becomes a parent; Attendance nests beneath it |
-| **Participant grade tracking** | Global column on the participant record, plus edit/delete actions |
+| Module                           | Scope                                                             |
+| -------------------------------- | ----------------------------------------------------------------- |
+| **Youth**                        | Five sub-modules                                                  |
+| **Young Adult**                  | Three sub-modules plus nested GRC                                 |
+| **Worship & Prayer**             | Three sub-modules                                                 |
+| **Kids Ministry**                | Dynamic outreach locations                                        |
+| **Special Occasions**            | Gantt timeline + auto-generated documents                         |
+| **Church Administration**        | Editable ministry list, Ministry Meeting, Church Planning         |
+| **Members / First-Timers pages** | Dedicated top-level pages for existing backend models             |
+| **Services sidebar restructure** | Services becomes a parent; Attendance nests beneath it            |
+| **Participant grade tracking**   | Global column on the participant record, plus edit/delete actions |
 
 ---
 
@@ -688,6 +724,7 @@ Controllers handle HTTP. Services hold domain logic. No controller
 touches a domain rule directly.
 
 **Service layer:**
+
 - Event workflow — lifecycle state machine
 - Event deletion — ordered delete with OTP
 - Registration verification — three-phase public flow
@@ -698,6 +735,7 @@ touches a domain rule directly.
 ### 10.3 Data model
 
 Core tables:
+
 - `users` — accounts with roles
 - `events` — both running and church events
 - `participants` — shared across events
@@ -708,6 +746,7 @@ Core tables:
 - `registration_verification_challenges` — pending public submissions
 
 Church-event tables:
+
 - `members`, `first_timers`
 - `service_occurrences`, `service_attendance_members`,
   `service_attendance_first_timers`
@@ -721,6 +760,7 @@ Church-event tables:
 Running events and church events share one `events` table. They are
 distinguished by an `event_kind` column (`'running'` or `'church'`).
 Two additional columns hold church-specific values:
+
 - `church_category` — the nine categories
 - `church_status` — the church lifecycle (Upcoming, Ongoing,
   Completed, Cancelled)
@@ -742,6 +782,7 @@ nesting is pending.
 
 **3. Discipleship progress calculation change.** The client has
 requested three behavioral changes:
+
 - Drop the "excused" status; use only Present and Absent
 - Expand the applicable-session window to all sessions in the batch,
   not bounded by enrollment date
@@ -756,45 +797,45 @@ Existing data will need migration before the change ships.
 The repository has additional subsystem docs for readers who need
 more detail.
 
-| Document | What it covers |
-|---|---|
-| `docs/architecture.md` | System-wide overview and data model |
-| `docs/authentication.md` | Login, 2FA, trusted devices |
-| `docs/event-creation.md` | Event creation code reference |
-| `docs/event-creation-wizard.md` | Wizard as a feature |
-| `docs/event-deletion.md` | Two deletion paths |
-| `docs/attendance-code.md` | Per-registration codes and encoding modes |
-| `docs/attendance-redesign.md` | The three-mode attendance workspace |
-| `docs/registration.md` | Public registration feature spec |
-| `docs/registration-monitoring.md` | Live submission monitoring |
-| `docs/fellowship.md` | Fellowship module |
-| `docs/discipleship.md` | Discipleship module |
-| `docs/design-system.md` | Visual contract |
-| `docs/church-events/` | Client engagement docs (scope, decisions, mockups) |
-| `docs/known-issues.md` | Open backlog |
-| `docs/fixes.md` | Fixed problems reference |
-| `docs/progress.md` | Chronological changelog |
+| Document                          | What it covers                                     |
+| --------------------------------- | -------------------------------------------------- |
+| `docs/architecture.md`            | System-wide overview and data model                |
+| `docs/authentication.md`          | Login, 2FA, trusted devices                        |
+| `docs/event-creation.md`          | Event creation code reference                      |
+| `docs/event-creation-wizard.md`   | Wizard as a feature                                |
+| `docs/event-deletion.md`          | Two deletion paths                                 |
+| `docs/attendance-code.md`         | Per-registration codes and encoding modes          |
+| `docs/attendance-redesign.md`     | The three-mode attendance workspace                |
+| `docs/registration.md`            | Public registration feature spec                   |
+| `docs/registration-monitoring.md` | Live submission monitoring                         |
+| `docs/fellowship.md`              | Fellowship module                                  |
+| `docs/discipleship.md`            | Discipleship module                                |
+| `docs/design-system.md`           | Visual contract                                    |
+| `docs/church-events/`             | Client engagement docs (scope, decisions, mockups) |
+| `docs/known-issues.md`            | Open backlog                                       |
+| `docs/fixes.md`                   | Fixed problems reference                           |
+| `docs/progress.md`                | Chronological changelog                            |
 
 ---
 
 ## 13. Glossary
 
-| Term | Plain meaning |
-|---|---|
-| **2FA** | Two-factor authentication — a second proof of identity beyond the password |
-| **OTP** | One-time password — a code valid for a single use |
-| **Trusted device** | A browser remembered by the system for 30 days |
-| **Event** | An activity managed in WDEMS — either a community run or a church event |
-| **Event kind** | The top-level discriminator: `running` or `church` |
-| **Event type** | For running events: Community Run. For church events: one of nine categories. |
-| **Participant** | A person who registers for events; not a user |
-| **Registration** | A participant's link to a specific event |
-| **Attendance** | The record of whether a participant showed up |
-| **Registration code** | A per-registration identifier presented at the door |
-| **Slug** | The short 8-character identifier in a public registration URL |
-| **Wayfinder** | A Laravel tool that generates typed route helpers from PHP routes |
-| **Inertia** | The bridge between the backend and the React frontend |
+| Term                  | Plain meaning                                                                 |
+| --------------------- | ----------------------------------------------------------------------------- |
+| **2FA**               | Two-factor authentication — a second proof of identity beyond the password    |
+| **OTP**               | One-time password — a code valid for a single use                             |
+| **Trusted device**    | A browser remembered by the system for 30 days                                |
+| **Event**             | An activity managed in WDEMS — either a community run or a church event       |
+| **Event kind**        | The top-level discriminator: `running` or `church`                            |
+| **Event type**        | For running events: Community Run. For church events: one of nine categories. |
+| **Participant**       | A person who registers for events; not a user                                 |
+| **Registration**      | A participant's link to a specific event                                      |
+| **Attendance**        | The record of whether a participant showed up                                 |
+| **Registration code** | A per-registration identifier presented at the door                           |
+| **Slug**              | The short 8-character identifier in a public registration URL                 |
+| **Wayfinder**         | A Laravel tool that generates typed route helpers from PHP routes             |
+| **Inertia**           | The bridge between the backend and the React frontend                         |
 
 ---
 
-*End of project definition.*
+_End of project definition._

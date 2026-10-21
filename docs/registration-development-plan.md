@@ -29,15 +29,15 @@ Each phase is one coherent unit of work. Every phase ends with:
 Phases ship independently. If a phase stalls, the previous commit is the
 recovery point.
 
-| Phase | Goal | Sessions (estimate) |
-|---|---|---|
-| 0 | Reconnaissance — read everything, no changes | 1 |
-| 1 | State machine collapse + sidebar Registration tab | 1 |
-| 2 | Create Registration Form page (replaces Configure Options) | 1–2 |
-| 3 | Public URL + anonymous form | 1–2 |
-| 4 | Attendance rebuild | 1–2 |
-| 5 | Delete registration with OTP | 1 |
-| 6 | Docs convert from spec to reference; cleanup | 1 |
+| Phase | Goal                                                       | Sessions (estimate) |
+| ----- | ---------------------------------------------------------- | ------------------- |
+| 0     | Reconnaissance — read everything, no changes               | 1                   |
+| 1     | State machine collapse + sidebar Registration tab          | 1                   |
+| 2     | Create Registration Form page (replaces Configure Options) | 1–2                 |
+| 3     | Public URL + anonymous form                                | 1–2                 |
+| 4     | Attendance rebuild                                         | 1–2                 |
+| 5     | Delete registration with OTP                               | 1                   |
+| 6     | Docs convert from spec to reference; cleanup               | 1                   |
 
 Rough total: 7–10 sessions.
 
@@ -367,7 +367,7 @@ attribute. Casts include `EventStatus::class`. Guards: `canEdit()`,
 `canConfigure()`, `canOpenRegistration()`, `canCloseRegistration()`,
 `canRecordAttendance()`. `canEdit()` currently allows editing events in
 `RegistrationOpen` and `RegistrationClosed` — deliberate; the spec
-locks the *registration form*, not the event. `canConfigure()` is used
+locks the _registration form_, not the event. `canConfigure()` is used
 only by `EventOptionController`. Phase 1: rename or re-scope
 `canConfigure()`, drop `Configured` from `canEdit()`. Phase 3: add
 `registration_slug` (string, nullable) and `registration_form_locked_at`
@@ -581,13 +581,13 @@ Phase 1/2 boundary.**
 These files were not in the original Phase 1–6 lists but are required
 based on the reconnaissance:
 
-| Phase | File | Reason |
-|---|---|---|
-| 1 | `resources/js/app.tsx` (read only) | Confirms C-2; no edit yet |
-| 1 | Grep of `events.configure` across `resources/js/` | C-3 |
-| 3 | `resources/js/app.tsx` | Layout case for `registrations/public` (C-2) |
-| 3 | Middleware for `/r/{slug}` close-time check | C-4 |
-| 4 | Migration for `participants.first_name` and `participants.last_name` indexes | C-5 |
+| Phase | File                                                                         | Reason                                       |
+| ----- | ---------------------------------------------------------------------------- | -------------------------------------------- |
+| 1     | `resources/js/app.tsx` (read only)                                           | Confirms C-2; no edit yet                    |
+| 1     | Grep of `events.configure` across `resources/js/`                            | C-3                                          |
+| 3     | `resources/js/app.tsx`                                                       | Layout case for `registrations/public` (C-2) |
+| 3     | Middleware for `/r/{slug}` close-time check                                  | C-4                                          |
+| 4     | Migration for `participants.first_name` and `participants.last_name` indexes | C-5                                          |
 
 ---
 
@@ -648,7 +648,7 @@ list. Changes required:
 - Lines 70–74 — delete the entire `$status === EventStatus::Configured`
   match arm, including its reason text
 - Line 61–65 — the `Draft` arm's reason text (`'Draft — needs
-  configuration'`) reworded to reflect the new workflow. Proposal:
+configuration'`) reworded to reflect the new workflow. Proposal:
   `'Draft — no registration form yet'`
 - `nextActionFor()` — unchanged for Phase 1 (still returns
   `"Configure event"` as the label for Draft). Label rename deferred to
@@ -708,6 +708,7 @@ commits.
 ### What shipped
 
 Backend:
+
 - `EventStatus` — Configured case removed; six cases remain
 - `EventWorkflow::configure()` — removed
 - `Event::canConfigure()` renamed to `canEditRegistrationForm()`;
@@ -723,12 +724,14 @@ Backend:
 - New route `registrations.index`
 
 Frontend:
+
 - Sidebar Registration tab (between Dashboard and Events)
 - New page `resources/js/pages/registrations/index.tsx` — three
   sections (Needs Registration Form, Open, Closed), empty states
 - Three `statusStyles` maps cleaned of the `configured:` key
 
 Tests:
+
 - `EventWorkflowTest.php` — 17 tests pinning the collapsed state
   machine. Full Events suite 71 passed / 167 assertions.
 
@@ -794,14 +797,14 @@ the next session sees them before starting.
 
 ### Verification at close
 
-| Check | Result |
-|---|---|
-| `php artisan test tests/Feature/Events` | 71 passed / 167 assertions |
-| `php artisan test tests/Feature/Auth` | 44 passed / 119 assertions |
-| `npx tsc --noEmit` | silent |
-| Browser: `/registrations` renders three sections | confirmed |
-| Browser: sidebar shows three items with Registration active | confirmed |
-| Browser: existing `/dashboard`, `/events`, `/events/{id}` still render | confirmed |
+| Check                                                                                    | Result                                              |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `php artisan test tests/Feature/Events`                                                  | 71 passed / 167 assertions                          |
+| `php artisan test tests/Feature/Auth`                                                    | 44 passed / 119 assertions                          |
+| `npx tsc --noEmit`                                                                       | silent                                              |
+| Browser: `/registrations` renders three sections                                         | confirmed                                           |
+| Browser: sidebar shows three items with Registration active                              | confirmed                                           |
+| Browser: existing `/dashboard`, `/events`, `/events/{id}` still render                   | confirmed                                           |
 | `grep -rn "events.configure\|EventStatus::Configured" app/ routes/ resources/js/ tests/` | only the intentional comment on `routes/web.php:55` |
 
 ## Changelog addendum
@@ -882,14 +885,14 @@ Concrete plan for Phase 2:
 
 **HTML5 input mapping:**
 
-| Field type | Rendered input |
-|---|---|
-| `text` | `<input type="text">` |
-| `textarea` | `<textarea>` with character counter |
-| `number` | `<input type="number" inputmode="numeric">` |
-| `email` | `<input type="email" inputmode="email" autocomplete="email">` |
-| `date` | `<input type="date">` |
-| `select` / `radio` / `checkbox` | native controls |
+| Field type                      | Rendered input                                                |
+| ------------------------------- | ------------------------------------------------------------- |
+| `text`                          | `<input type="text">`                                         |
+| `textarea`                      | `<textarea>` with character counter                           |
+| `number`                        | `<input type="number" inputmode="numeric">`                   |
+| `email`                         | `<input type="email" inputmode="email" autocomplete="email">` |
+| `date`                          | `<input type="date">`                                         |
+| `select` / `radio` / `checkbox` | native controls                                               |
 
 **Autocomplete hints** on common participant fields — `given-name`,
 `family-name`, `email`, `tel` — for browser autofill from the user's
@@ -984,14 +987,14 @@ the confirm modal a natural scope.
 Dropping `event_options` and `registration_options` breaks five
 dependents. All five must be updated in the same commit sequence:
 
-| File | Change |
-|---|---|
-| `app/Models/RegistrationOption.php` | **Delete** — the table is gone |
-| `app/Models/EventOption.php` | **Delete** — the table is gone |
-| `app/Models/Event.php` | Swap `eventOptions()` relation for `registrationFields()`. Update `relatedRecordCounts()` to drop `event_options` and `registration_options` keys |
-| `app/Services/EventDeletion/EventDeletionService.php` | Drop steps 3 (delete registration_options) and 5 (delete event_options) from the ordered delete. The remaining order is: collect registration IDs, delete attendances, delete registrations, delete event |
-| `tests/Feature/Events/EventDeletionAdminTest.php` | Rename the test "it removes event options, registrations, registration options and attendances" and drop the event-options assertions. The renamed test becomes "it removes registrations and attendances" |
-| `app/Http/Controllers/EventController.php` | `show()` payload sends `related.event_options` and `related.registration_options` — remove those keys |
+| File                                                  | Change                                                                                                                                                                                                     |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/Models/RegistrationOption.php`                   | **Delete** — the table is gone                                                                                                                                                                             |
+| `app/Models/EventOption.php`                          | **Delete** — the table is gone                                                                                                                                                                             |
+| `app/Models/Event.php`                                | Swap `eventOptions()` relation for `registrationFields()`. Update `relatedRecordCounts()` to drop `event_options` and `registration_options` keys                                                          |
+| `app/Services/EventDeletion/EventDeletionService.php` | Drop steps 3 (delete registration_options) and 5 (delete event_options) from the ordered delete. The remaining order is: collect registration IDs, delete attendances, delete registrations, delete event  |
+| `tests/Feature/Events/EventDeletionAdminTest.php`     | Rename the test "it removes event options, registrations, registration options and attendances" and drop the event-options assertions. The renamed test becomes "it removes registrations and attendances" |
+| `app/Http/Controllers/EventController.php`            | `show()` payload sends `related.event_options` and `related.registration_options` — remove those keys                                                                                                      |
 
 ### File inventory
 
@@ -1035,17 +1038,17 @@ dependents. All five must be updated in the same commit sequence:
 
 ### New table — `registration_fields`
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | bigint PK | |
-| `event_id` | FK → `events`, cascade | |
-| `label` | string(255) | Human-readable field name |
-| `field_type` | string(20) | One of the eight types |
-| `options` | JSON nullable | Only for `select`, `radio`, `checkbox` |
-| `validation_rules` | JSON nullable | min/max, regex, length — shape TBD during implementation |
-| `is_required` | boolean default false | |
-| `display_order` | integer | Sort key |
-| `created_at`, `updated_at` | timestamps | |
+| Column                     | Type                   | Notes                                                    |
+| -------------------------- | ---------------------- | -------------------------------------------------------- |
+| `id`                       | bigint PK              |                                                          |
+| `event_id`                 | FK → `events`, cascade |                                                          |
+| `label`                    | string(255)            | Human-readable field name                                |
+| `field_type`               | string(20)             | One of the eight types                                   |
+| `options`                  | JSON nullable          | Only for `select`, `radio`, `checkbox`                   |
+| `validation_rules`         | JSON nullable          | min/max, regex, length — shape TBD during implementation |
+| `is_required`              | boolean default false  |                                                          |
+| `display_order`            | integer                | Sort key                                                 |
+| `created_at`, `updated_at` | timestamps             |                                                          |
 
 Index on `[event_id, display_order]`.
 
@@ -1097,28 +1100,28 @@ No per-field store/update/destroy. The batch update replaces everything.
 - Top: page header + status pill + locked banner if !canEditRegistrationForm
 - Section: Common Fields (read-only list — six fixed fields, no editing)
 - Section: Custom Fields
-  - Sortable list via `@dnd-kit/sortable`
-  - Each row: drag handle, label input, field_type select, options textarea (only for select/radio/checkbox), required toggle, remove button
-  - Add Field button appends a new row
+    - Sortable list via `@dnd-kit/sortable`
+    - Each row: drag handle, label input, field_type select, options textarea (only for select/radio/checkbox), required toggle, remove button
+    - Add Field button appends a new row
 - Bottom: Save Registration Form button + confirm modal
 
 When the form locks, drag/inputs/add/remove all disable.
 
 ### Block structure — 11 blocks
 
-| Block | Concern |
-|---|---|
-| 1 | Migrations — create + drop |
-| 2 | `RegistrationField` model + `HumanNameQualityRules` extraction |
-| 3 | `RegistrationFieldValidationRules` trait + `RegistrationFieldRequest` |
-| 4 | `RegistrationFormController` |
-| 5 | Routes + `Event` model relation + `EventDeletionService` + `EventController::show` cleanup |
-| 6 | Delete four files + test update |
-| 7 | `registration-field-types.ts` + `registration-field-validation.ts` |
-| 8 | `sortable-field-list.tsx` + `registration-field-editor.tsx` |
-| 9 | `registration-form.tsx` page |
-| 10 | `events/show.tsx` link relabel + related-counts block |
-| 11 | Tests — new + updated |
+| Block | Concern                                                                                    |
+| ----- | ------------------------------------------------------------------------------------------ |
+| 1     | Migrations — create + drop                                                                 |
+| 2     | `RegistrationField` model + `HumanNameQualityRules` extraction                             |
+| 3     | `RegistrationFieldValidationRules` trait + `RegistrationFieldRequest`                      |
+| 4     | `RegistrationFormController`                                                               |
+| 5     | Routes + `Event` model relation + `EventDeletionService` + `EventController::show` cleanup |
+| 6     | Delete four files + test update                                                            |
+| 7     | `registration-field-types.ts` + `registration-field-validation.ts`                         |
+| 8     | `sortable-field-list.tsx` + `registration-field-editor.tsx`                                |
+| 9     | `registration-form.tsx` page                                                               |
+| 10    | `events/show.tsx` link relabel + related-counts block                                      |
+| 11    | Tests — new + updated                                                                      |
 
 Estimate: 2–3 sessions.
 
@@ -1159,13 +1162,13 @@ the test environment the moment the file was saved.
 Three tests failed on the next run:
 
 - `EventDeletionAdminTest::it lets an admin delete an event with no
-  related records` — `Event::relatedRecordCounts()` queries
+related records` — `Event::relatedRecordCounts()` queries
   `event_options`
 - `EventDeletionAdminTest::it removes event options, registrations,
-  registration options and attendances` — the test itself inserts
+registration options and attendances` — the test itself inserts
   into `event_options`
 - `EventDeletionStaffTest::it deletes the event when staff verifies
-  with the correct code` — same `relatedRecordCounts()` path
+with the correct code` — same `relatedRecordCounts()` path
 
 Recovery: move the drop migration file out of `database/migrations/`
 (`mv ... /tmp/wdems-drop-migration.php`). Both suites immediately
@@ -1173,19 +1176,19 @@ returned to green (71/167 Events, 44/119 Auth).
 
 ### Revised block table
 
-| Block | Concern |
-|---|---|
-| 1 | **Create migration only** — `registration_fields` |
-| 2 | `RegistrationField` model + `HumanNameQualityRules` extraction |
-| 3 | `RegistrationFieldValidationRules` + `RegistrationFieldRequest` |
-| 4 | `RegistrationFormController` |
-| 5 | Routes + `Event` model relation + `EventController::show` payload cleanup |
-| 6 | **Drop migration** + delete four files + `EventDeletionService` update + `EventDeletionAdminTest` update |
-| 7 | `registration-field-types.ts` + `registration-field-validation.ts` |
-| 8 | `sortable-field-list.tsx` + `registration-field-editor.tsx` |
-| 9 | `registration-form.tsx` page |
-| 10 | `events/show.tsx` link relabel + related-counts block |
-| 11 | Tests — new + updated |
+| Block | Concern                                                                                                  |
+| ----- | -------------------------------------------------------------------------------------------------------- |
+| 1     | **Create migration only** — `registration_fields`                                                        |
+| 2     | `RegistrationField` model + `HumanNameQualityRules` extraction                                           |
+| 3     | `RegistrationFieldValidationRules` + `RegistrationFieldRequest`                                          |
+| 4     | `RegistrationFormController`                                                                             |
+| 5     | Routes + `Event` model relation + `EventController::show` payload cleanup                                |
+| 6     | **Drop migration** + delete four files + `EventDeletionService` update + `EventDeletionAdminTest` update |
+| 7     | `registration-field-types.ts` + `registration-field-validation.ts`                                       |
+| 8     | `sortable-field-list.tsx` + `registration-field-editor.tsx`                                              |
+| 9     | `registration-form.tsx` page                                                                             |
+| 10    | `events/show.tsx` link relabel + related-counts block                                                    |
+| 11    | Tests — new + updated                                                                                    |
 
 The drop migration currently lives at `/tmp/wdems-drop-migration.php`.
 Block 6 moves it back into `database/migrations/` as part of the same
@@ -1234,6 +1237,7 @@ Feature-complete. Eleven commits across two calendar days.
 ### What shipped
 
 Schema
+
 - New `registration_fields` table (label, field_type, options,
   validation_rules, is_required, display_order)
 - New `events.registration_form_saved_at` timestamp column
@@ -1241,6 +1245,7 @@ Schema
 - `events.faq` column preserved but no longer read/written
 
 Backend
+
 - `RegistrationField` model
 - `RegistrationFormController` (show + batch update)
 - `RegistrationFieldRequest` + `RegistrationFieldValidationRules` trait
@@ -1249,6 +1254,7 @@ Backend
   `Event::canOpenRegistration()`
 
 Frontend
+
 - `registration-field-types.ts` and `registration-field-validation.ts`
 - `sortable-field-list.tsx` (dnd-kit wrapper)
 - `registration-field-editor.tsx` (row editor with choices counter)
@@ -1257,6 +1263,7 @@ Frontend
   Registration Form DetailRow
 
 Rules and caps
+
 - MAX_FIELDS = 5
 - MAX_OPTIONS_PER_FIELD = 10
 - MIN_OPTIONS_PER_CHOICE_FIELD = 2
@@ -1280,6 +1287,7 @@ restoration that precedes the migration -- do so with an explicit
 UPDATE against the events table, not by editing the file.
 
 See also:
+
 - The migration docblock records this at the schema level.
 - The Event::canOpenRegistration() docblock records it at the guard
   level.
@@ -1469,14 +1477,14 @@ Store logic:
    on `email`.
 3. `DB::transaction`:
    a. Find or create Participant by (email, first_name, last_name).
-      Reuse if all three match. Otherwise create new. The `email`
-      column is not unique — the composite match on all three is what
-      preserves identity.
+   Reuse if all three match. Otherwise create new. The `email`
+   column is not unique — the composite match on all three is what
+   preserves identity.
    b. Create Registration with `event_id`, `participant_id`,
-      `registration_status = Confirmed`, `source = 'form'`,
-      `registered_at = now()`.
+   `registration_status = Confirmed`, `source = 'form'`,
+   `registered_at = now()`.
    c. For each custom field with a submitted non-null value, create
-      a `RegistrationFieldResponse`.
+   a `RegistrationFieldResponse`.
 4. Redirect to `public-registration.show` with a success flash.
 
 Concurrency note: two simultaneous submissions with the same email
@@ -1513,16 +1521,16 @@ the user clicks submit.
 
 ### Block structure — 8 blocks
 
-| Block | Concern |
-|---|---|
-| 1 | Migrations — add `registration_slug` + create `registration_field_responses` |
-| 2 | `RegistrationFieldResponse` model + `Registration::fieldResponses()` relation |
-| 3 | Slug generation in `EventController::openRegistration()` + test |
-| 4 | `PublicRegistrationRequest` + `PublicRegistrationController` (show + store) |
-| 5 | Middleware + routes + rate limiter + `bootstrap/app.php` alias |
-| 6 | Public layout + `app.tsx` case |
-| 7 | `registrations/public.tsx` page + `public-registration-validation.ts` |
-| 8 | `RegistrationSubmissionTest` + Phase 3 close docs |
+| Block | Concern                                                                       |
+| ----- | ----------------------------------------------------------------------------- |
+| 1     | Migrations — add `registration_slug` + create `registration_field_responses`  |
+| 2     | `RegistrationFieldResponse` model + `Registration::fieldResponses()` relation |
+| 3     | Slug generation in `EventController::openRegistration()` + test               |
+| 4     | `PublicRegistrationRequest` + `PublicRegistrationController` (show + store)   |
+| 5     | Middleware + routes + rate limiter + `bootstrap/app.php` alias                |
+| 6     | Public layout + `app.tsx` case                                                |
+| 7     | `registrations/public.tsx` page + `public-registration-validation.ts`         |
+| 8     | `RegistrationSubmissionTest` + Phase 3 close docs                             |
 
 Estimate: 2–3 sessions.
 
@@ -1597,16 +1605,16 @@ progress.md and event-creation-issues.md (EC-13).
 
 ### What shipped — by block
 
-| Block | Concern | State |
-|---|---|---|
-| 1 | Migrations: registration_slug + registration_field_responses | shipped |
-| 2 | RegistrationFieldResponse model + Registration::fieldResponses() | shipped |
-| 3 | Slug generation in EventController::openRegistration() | shipped |
-| 4 | Public submission surface (middleware + request + controller + tests) | shipped |
-| 5 | Frontend pages (public-layout, public.tsx, closed.tsx, validation) | shipped |
-| A | Common field requirements: migration + Event model | shipped |
-| B | Form builder toggles | shipped |
-| C | Public side reads requirements | shipped |
+| Block | Concern                                                               | State   |
+| ----- | --------------------------------------------------------------------- | ------- |
+| 1     | Migrations: registration_slug + registration_field_responses          | shipped |
+| 2     | RegistrationFieldResponse model + Registration::fieldResponses()      | shipped |
+| 3     | Slug generation in EventController::openRegistration()                | shipped |
+| 4     | Public submission surface (middleware + request + controller + tests) | shipped |
+| 5     | Frontend pages (public-layout, public.tsx, closed.tsx, validation)    | shipped |
+| A     | Common field requirements: migration + Event model                    | shipped |
+| B     | Form builder toggles                                                  | shipped |
+| C     | Public side reads requirements                                        | shipped |
 
 ### Deviations from the plan
 
@@ -1812,7 +1820,7 @@ this scale. A generated `full_name` column is deferred.
 
 - `show()` gate changes from `canRecordAttendanceToday()` to the more
   permissive `canViewAttendance()` — status in `[registration_open,
-  registration_closed, ongoing, completed]`. Draft / configured /
+registration_closed, ongoing, completed]`. Draft / configured /
   cancelled / future-dated events still return 403.
 - `mark()` gate stays on `canRecordAttendanceToday()`. Post-event
   marking is disabled.
@@ -1822,8 +1830,8 @@ this scale. A generated `full_name` column is deferred.
 
 If the walk-in's email/phone resolves to an existing participant who is
 already registered for this event, the controller returns a validation
-error: *"This person is already registered for this event. Search the
-list and mark their attendance instead."*
+error: _"This person is already registered for this event. Search the
+list and mark their attendance instead."_
 
 ### Verification
 
@@ -1834,7 +1842,6 @@ list and mark their attendance instead."*
 
 Browser: attendance page with 200+ registrations — paginate, search,
 filter, mark, add walk-in.
-
 
 ---
 
@@ -1892,7 +1899,6 @@ None. All planned features shipped.
   reachable by URL, but there is no in-app path. Small follow-up.
 - Walk-in does not collect custom field answers. Intentional scope
   decision; the fast path is prioritized.
-
 
 ## Running Events audit addendum — 2026-10-21
 

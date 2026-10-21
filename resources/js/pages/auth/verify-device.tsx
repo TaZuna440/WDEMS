@@ -95,15 +95,15 @@ export default function VerifyDevice({
 
             <div className="mx-auto flex w-full max-w-md flex-col gap-6">
                 <div className="flex flex-col items-center gap-2 text-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-lime-brand/15">
-                        <Mail className="h-6 w-6 text-lime-brand" />
+                    <div className="bg-lime-brand/15 flex h-12 w-12 items-center justify-center rounded-full">
+                        <Mail className="text-lime-brand h-6 w-6" />
                     </div>
-                    <h1 className="text-2xl font-semibold text-foreground">
+                    <h1 className="text-foreground text-2xl font-semibold">
                         Verify your device
                     </h1>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                         We sent a 6-digit code to{' '}
-                        <span className="font-medium text-foreground">
+                        <span className="text-foreground font-medium">
                             {email}
                         </span>
                         .
@@ -148,7 +148,7 @@ export default function VerifyDevice({
                             >
                                 Remember this device for 30 days
                             </Label>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
+                            <p className="text-muted-foreground mt-0.5 text-xs">
                                 You won&apos;t need a code on this browser for
                                 the next 30 days.
                             </p>
@@ -159,7 +159,7 @@ export default function VerifyDevice({
                         type="button"
                         onClick={verify}
                         disabled={verifying || code.length !== 6}
-                        className="w-full bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
+                        className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90 w-full"
                     >
                         {verifying ? (
                             <>
@@ -201,7 +201,7 @@ export default function VerifyDevice({
                     href="/logout"
                     method="post"
                     as="button"
-                    className="text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground text-center text-xs transition-colors"
                 >
                     <ArrowLeft className="mr-1 inline h-3 w-3" />
                     Sign out

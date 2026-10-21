@@ -10,6 +10,7 @@ doc converts to a reference.
 **Status:** Planned. No code exists yet.
 
 **Related:**
+
 - `docs/participant-identity.md` — the identity model that makes
   "returning participant" flags meaningful
 - `docs/participant-identity-and-monitoring-plan.md` — the phased build plan
@@ -50,10 +51,10 @@ submission, read-only after the registration window closes.
 
 ## 3. Where it lives — routes
 
-| Route | Purpose |
-|---|---|
-| `GET /registrations/monitor` | Landing — all events with open registration |
-| `GET /registrations/monitor/{event}` | Per-event feed |
+| Route                                | Purpose                                     |
+| ------------------------------------ | ------------------------------------------- |
+| `GET /registrations/monitor`         | Landing — all events with open registration |
+| `GET /registrations/monitor/{event}` | Per-event feed                              |
 
 Both under the existing `auth`, `verified.or.admin`, `device.trusted`
 middleware group. Any logged-in staff member sees any event's
@@ -202,7 +203,7 @@ Fields:
 **Same-phone warning.** If a participant's normalized phone matches
 another participant already in this event's registrations, a small
 warning icon appears next to the badge. Tooltip:
-*"This phone number matches another registration."* This surfaces
+_"This phone number matches another registration."_ This surfaces
 shared-phone situations without blocking them.
 
 ## 8. Rate indicators
@@ -245,12 +246,12 @@ bottom. Full history is available via the attendance page.
 
 Five actions, standard menu:
 
-| Action | Effect | Confirmation |
-|---|---|---|
-| **Edit participant** | Modal to correct name, email, or phone. Display-only — does not re-resolve identity. | None |
-| **Flag for review** | Toggles `flagged_at` on the registration. Badge appears on the card. | None |
-| **Add note** | Free-form note attached to the registration, capped at 2000 chars. | None |
-| **Export CSV** | Downloads all registrations for the event. | None |
+| Action                  | Effect                                                                                    | Confirmation                                                 |
+| ----------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **Edit participant**    | Modal to correct name, email, or phone. Display-only — does not re-resolve identity.      | None                                                         |
+| **Flag for review**     | Toggles `flagged_at` on the registration. Badge appears on the card.                      | None                                                         |
+| **Add note**            | Free-form note attached to the registration, capped at 2000 chars.                        | None                                                         |
+| **Export CSV**          | Downloads all registrations for the event.                                                | None                                                         |
 | **Delete registration** | Removes the `Registration` row. Cascades to `field_responses`. Admin: direct. Staff: OTP. | Modal requiring the participant's last name typed to confirm |
 
 **Edit participant** — the modal shows the participant's current
@@ -273,7 +274,7 @@ phase, not with this one.
 When `status !== registration_open`:
 
 - Header pill changes from `[ OPEN ]` to `[ CLOSED ]`
-- A line appears: *"Closed 2026-10-29 18:00"* — uses
+- A line appears: _"Closed 2026-10-29 18:00"_ — uses
   `registration_end` if set, else the timestamp of the last
   transition to `registration_closed`
 - Polling stops. The interval is cleared on mount when status is not
@@ -590,7 +591,6 @@ joining.
 - Section 10 — the actions menu, minus delete
 - `docs/participant-identity-and-monitoring-plan.md` — Phase 8
 - Phase 9 of the same plan — the delete endpoint
-
 
 ## Running Events audit addendum — 2026-10-21
 

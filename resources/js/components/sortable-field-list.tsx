@@ -47,7 +47,7 @@ function SortableItem({ id, disabled = false, children }: SortableItemProps) {
             disabled={disabled}
             aria-label="Drag to reorder"
             title={disabled ? 'Reordering is locked' : 'Drag to reorder'}
-            className="mt-1 flex h-8 w-6 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40"
+            className="text-muted-foreground hover:text-foreground mt-1 flex h-8 w-6 shrink-0 cursor-grab items-center justify-center rounded transition-colors hover:bg-white/5 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40"
         >
             <GripVertical className="h-4 w-4" />
         </button>

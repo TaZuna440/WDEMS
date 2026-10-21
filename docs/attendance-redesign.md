@@ -14,6 +14,7 @@ the same fields as the online form.
 authoritative spec; each phase ships independently.
 
 **Related:**
+
 - `docs/registration.md` §7 (attendance)
 - `docs/participant-identity.md` §6 (identity resolution)
 - `docs/participant-identity-and-monitoring-plan.md` (identity plan)
@@ -120,31 +121,31 @@ The following decisions were made before writing this plan. Each is
 binding for the implementation. Changing any of them changes the
 build.
 
-| # | Rule | Value |
-|---|---|---|
-| D1 | When batch entry is available | Same gate as single walk-in — `canRecordAttendanceNow()` |
-| D2 | Source of paper-transcribed registration | `paper` for new people; existing pre-reg keeps `form` |
-| D3 | Does batch create pre-reg confirmations | Yes — Confirm mode is bulk mark, not new registration |
-| D4 | Custom fields on walk-in | Required per event, per `RegistrationField.is_required` |
-| D5 | Walk-in one mode or two | Two entry points in Add mode: dialog and batch table |
-| D6 | Batch row errors | Per-row accept/reject — one bad row does not fail the batch |
-| D7 | `recorded_by` for bulk | The batch submitter (single user) |
-| D8 | Can batch mix walk-in and confirm | No — modes separated |
-| D9 | Paper signature capture | Deferred to ISSUE-010 (legal layer) |
-| D10 | "Mark all visible" scope | Current filter and search — WYSIWYG |
-| E1 | Rate limiter for batch | `walk-in-batch` — 10/min/user. Single walk-in keeps no limiter |
-| E2 | Two devices same batch | UNIQUE catches it; UI shows "already registered" per row |
-| E3 | Optimistic vs sequential | Sequential with progress indicator |
-| E4 | Idempotency | Client UUID per row, server dedupes within 60s |
-| F1 | `paper` source | Live value |
-| F2 | Post-hoc custom responses | No — deferred to Phase 8 (monitor actions) |
-| F3 | First-write-wins on batch | Yes, same as single walk-in |
-| F4 | Edit participants from batch | No |
-| G1 | Device layouts | Tabs on desktop, dropdown on mobile |
-| G2 | Keyboard | Enter = next row, Tab = next field, Ctrl/Cmd+Enter = submit |
-| G3 | Where batch lives | Same attendance page, mode toggle at top |
-| G4 | Mode toggle placement | Top toolbar, above search |
-| G5 | Undo | Not in v1 — re-mark to correct |
+| #   | Rule                                     | Value                                                          |
+| --- | ---------------------------------------- | -------------------------------------------------------------- |
+| D1  | When batch entry is available            | Same gate as single walk-in — `canRecordAttendanceNow()`       |
+| D2  | Source of paper-transcribed registration | `paper` for new people; existing pre-reg keeps `form`          |
+| D3  | Does batch create pre-reg confirmations  | Yes — Confirm mode is bulk mark, not new registration          |
+| D4  | Custom fields on walk-in                 | Required per event, per `RegistrationField.is_required`        |
+| D5  | Walk-in one mode or two                  | Two entry points in Add mode: dialog and batch table           |
+| D6  | Batch row errors                         | Per-row accept/reject — one bad row does not fail the batch    |
+| D7  | `recorded_by` for bulk                   | The batch submitter (single user)                              |
+| D8  | Can batch mix walk-in and confirm        | No — modes separated                                           |
+| D9  | Paper signature capture                  | Deferred to ISSUE-010 (legal layer)                            |
+| D10 | "Mark all visible" scope                 | Current filter and search — WYSIWYG                            |
+| E1  | Rate limiter for batch                   | `walk-in-batch` — 10/min/user. Single walk-in keeps no limiter |
+| E2  | Two devices same batch                   | UNIQUE catches it; UI shows "already registered" per row       |
+| E3  | Optimistic vs sequential                 | Sequential with progress indicator                             |
+| E4  | Idempotency                              | Client UUID per row, server dedupes within 60s                 |
+| F1  | `paper` source                           | Live value                                                     |
+| F2  | Post-hoc custom responses                | No — deferred to Phase 8 (monitor actions)                     |
+| F3  | First-write-wins on batch                | Yes, same as single walk-in                                    |
+| F4  | Edit participants from batch             | No                                                             |
+| G1  | Device layouts                           | Tabs on desktop, dropdown on mobile                            |
+| G2  | Keyboard                                 | Enter = next row, Tab = next field, Ctrl/Cmd+Enter = submit    |
+| G3  | Where batch lives                        | Same attendance page, mode toggle at top                       |
+| G4  | Mode toggle placement                    | Top toolbar, above search                                      |
+| G5  | Undo                                     | Not in v1 — re-mark to correct                                 |
 
 ## 5. Data model impact
 
@@ -473,6 +474,7 @@ because:
 3. The bypass is an escape hatch, not a blocker.
 
 A follow-up commit will add:
+
 - Admin-only `?force_open=1` handling in `AttendanceController::show`
   and `AttendanceController::mark`.
 - A small toggle button in the attendance page header, visible only
@@ -550,6 +552,7 @@ compliance need arises.
     tests/Feature/Events/AttendanceForceOpenTest.php  (new, 9 tests)
 
 Covers:
+
 - admin without param — can_mark false, is_admin true, force_open false
 - admin with param — can_mark true, force_open true
 - admin with param — mark succeeds on a completed event
@@ -583,24 +586,24 @@ Covers:
 
 - New `App\Http\Requests\BulkMarkAttendanceRequest`. Two accepted
   shapes, mutually exclusive:
-  - `registration_ids: int[]` — explicit list, all-or-nothing
-    (any ID belonging to another event rejects the whole batch
-    with 422).
-  - `mark_all_visible: true` + `filter` + `q` — marks every
-    registration matching the current filter and search. Scope is
-    the search result, not the current page (D10).
+    - `registration_ids: int[]` — explicit list, all-or-nothing
+      (any ID belonging to another event rejects the whole batch
+      with 422).
+    - `mark_all_visible: true` + `filter` + `q` — marks every
+      registration matching the current filter and search. Scope is
+      the search result, not the current page (D10).
 
 - `AttendanceController::bulkMark()` — new action. Idempotent via
   `updateOrCreate`. Same status / time / recorded_by shape as the
   single-row `mark()`.
 
 - Two new private helpers on the controller:
-  - `resolveBulkMarkIds()` — normalizes the two request shapes into
-    a flat list of event-scoped registration IDs.
-  - `buildFilteredRegistrationIds()` — rebuilds the search + filter
-    clause the `show()` page uses. Duplicated from the `$baseQuery`
-    closure for now; Phase C will consolidate once the batch
-    walk-in surface also needs it.
+    - `resolveBulkMarkIds()` — normalizes the two request shapes into
+      a flat list of event-scoped registration IDs.
+    - `buildFilteredRegistrationIds()` — rebuilds the search + filter
+      clause the `show()` page uses. Duplicated from the `$baseQuery`
+      closure for now; Phase C will consolidate once the batch
+      walk-in surface also needs it.
 
 - New route: `POST events/{event}/attendance/bulk-mark`
   (`events.attendance.bulk-mark`).
@@ -830,7 +833,7 @@ still the three-mode workspace this file describes.
   the `verified_at` column, and the live / deferred encoding
   modes — shipped 2026-10-14 in commit `d05c7e7`. See this
   file's own `## Correction: live / deferred encoding and the
-  attendance code (2026-10-14)` block below.
+attendance code (2026-10-14)` block below.
 - **The finalize-event action** — shipped 2026-10-14. See the
   encoding doc's `## Pointer: finalize event shipped` section.
 - **The end-of-event report** — shipped 2026-10-15. Same
@@ -846,12 +849,12 @@ still the three-mode workspace this file describes.
 
 **Current authority split:**
 
-| Concern | Authoritative doc |
-|---|---|
-| The shipped attendance page (Mark / Confirm / Batch) | This file |
-| The attendance code + `verified_at` + live / deferred encoding | `attendance-code.md` |
-| The finalize-event action and end-of-event report | `attendance-encoding-and-reporting.md` (its pointer sections) |
-| A future two-tab encoding workspace | `attendance-encoding-and-reporting.md` — spec only, unbuilt |
+| Concern                                                        | Authoritative doc                                             |
+| -------------------------------------------------------------- | ------------------------------------------------------------- |
+| The shipped attendance page (Mark / Confirm / Batch)           | This file                                                     |
+| The attendance code + `verified_at` + live / deferred encoding | `attendance-code.md`                                          |
+| The finalize-event action and end-of-event report              | `attendance-encoding-and-reporting.md` (its pointer sections) |
+| A future two-tab encoding workspace                            | `attendance-encoding-and-reporting.md` — spec only, unbuilt   |
 
 **Do not delete this file.** The encoding-and-reporting doc's
 supersedes line is stale. If a future session reads that line
@@ -881,7 +884,6 @@ birth" label) instead of the age number input:
   rule.
 
 The design narrative above is otherwise unchanged.
-
 
 ## Running Events audit addendum — 2026-10-21
 

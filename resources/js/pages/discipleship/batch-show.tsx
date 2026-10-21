@@ -109,9 +109,7 @@ function cellKey(enrollmentId: number, sessionId: number): string {
 function ProgressCell({ progress }: { progress: ProgressRow | undefined }) {
     if (!progress || progress.applicable === 0) {
         return (
-            <span className="text-xs italic text-muted-foreground/60">
-                —
-            </span>
+            <span className="text-muted-foreground/60 text-xs italic">—</span>
         );
     }
 
@@ -119,13 +117,13 @@ function ProgressCell({ progress }: { progress: ProgressRow | undefined }) {
 
     return (
         <div className="flex items-center gap-2">
-            <div className="h-1.5 w-14 overflow-hidden rounded-full bg-secondary">
+            <div className="bg-secondary h-1.5 w-14 overflow-hidden rounded-full">
                 <div
-                    className="h-full rounded-full bg-lime-brand"
+                    className="bg-lime-brand h-full rounded-full"
                     style={{ width: `${pct}%` }}
                 />
             </div>
-            <span className="text-xs tabular-nums text-muted-foreground">
+            <span className="text-muted-foreground text-xs tabular-nums">
                 {progress.attended}/{progress.applicable}
             </span>
         </div>
@@ -149,7 +147,8 @@ export default function DiscipleshipBatchShow({
     const [cells, setCells] = useState<Record<string, AttendanceStatus>>(() => {
         const initial: Record<string, AttendanceStatus> = {};
         for (const a of attendances) {
-            initial[cellKey(a.enrollment_id, a.session_id)] = a.status as AttendanceStatus;
+            initial[cellKey(a.enrollment_id, a.session_id)] =
+                a.status as AttendanceStatus;
         }
         return initial;
     });
@@ -160,7 +159,8 @@ export default function DiscipleshipBatchShow({
     useEffect(() => {
         const initial: Record<string, AttendanceStatus> = {};
         for (const a of attendances) {
-            initial[cellKey(a.enrollment_id, a.session_id)] = a.status as AttendanceStatus;
+            initial[cellKey(a.enrollment_id, a.session_id)] =
+                a.status as AttendanceStatus;
         }
         setCells(initial);
         setDirty(new Set());
@@ -168,7 +168,11 @@ export default function DiscipleshipBatchShow({
 
     const hasDirty = dirty.size > 0;
 
-    const setCell = (enrollmentId: number, sessionId: number, status: AttendanceStatus) => {
+    const setCell = (
+        enrollmentId: number,
+        sessionId: number,
+        status: AttendanceStatus,
+    ) => {
         const key = cellKey(enrollmentId, sessionId);
         setCells((prev) => ({ ...prev, [key]: status }));
         setDirty((prev) => {
@@ -194,7 +198,15 @@ export default function DiscipleshipBatchShow({
                         status,
                     };
                 })
-                .filter((c): c is { enrollment_id: number; session_id: number; status: 'present' | 'absent' | 'excused' } => c !== null),
+                .filter(
+                    (
+                        c,
+                    ): c is {
+                        enrollment_id: number;
+                        session_id: number;
+                        status: 'present' | 'absent' | 'excused';
+                    } => c !== null,
+                ),
         };
 
         if (payload.cells.length === 0) {
@@ -202,10 +214,14 @@ export default function DiscipleshipBatchShow({
             return;
         }
 
-        router.post(`/discipleship/batches/${batch.id}/attendances/bulk`, payload, {
-            preserveScroll: true,
-            onFinish: () => setSaving(false),
-        });
+        router.post(
+            `/discipleship/batches/${batch.id}/attendances/bulk`,
+            payload,
+            {
+                preserveScroll: true,
+                onFinish: () => setSaving(false),
+            },
+        );
     };
 
     const deleteSession = (session: SessionRow) => {
@@ -228,7 +244,7 @@ export default function DiscipleshipBatchShow({
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
                 <Link
                     href={`/discipleship/programs/${program.slug}`}
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     {program.name}
@@ -237,13 +253,13 @@ export default function DiscipleshipBatchShow({
                 <div className="glass-panel rounded-xl p-6">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="pl-10">
-                            <h1 className="text-xl font-semibold text-foreground">
+                            <h1 className="text-foreground text-xl font-semibold">
                                 {batch.name}
                             </h1>
-                            <p className="mt-1 text-sm text-muted-foreground">
+                            <p className="text-muted-foreground mt-1 text-sm">
                                 Starts {formatDate(batch.start_date)}
                             </p>
-                            <p className="mt-3 text-xs text-muted-foreground">
+                            <p className="text-muted-foreground mt-3 text-xs">
                                 {sessions_count}{' '}
                                 {sessions_count === 1 ? 'session' : 'sessions'}
                                 {' · '}
@@ -264,19 +280,19 @@ export default function DiscipleshipBatchShow({
                 </div>
 
                 <section className="flex flex-col gap-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                    <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                         Sessions
                     </h2>
 
                     {sessions.length === 0 ? (
                         <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-12 text-center">
-                            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-lime-brand/15">
-                                <CalendarDays className="h-7 w-7 text-lime-brand" />
+                            <div className="bg-lime-brand/15 mb-4 flex h-14 w-14 items-center justify-center rounded-full">
+                                <CalendarDays className="text-lime-brand h-7 w-7" />
                             </div>
-                            <p className="mb-1 text-sm font-medium text-foreground">
+                            <p className="text-foreground mb-1 text-sm font-medium">
                                 No sessions yet
                             </p>
-                            <p className="mb-6 max-w-sm text-xs text-muted-foreground">
+                            <p className="text-muted-foreground mb-6 max-w-sm text-xs">
                                 Add the first session to begin scheduling.
                             </p>
                             <Button
@@ -296,16 +312,18 @@ export default function DiscipleshipBatchShow({
                                 >
                                     <div className="flex flex-1 flex-col gap-1">
                                         <div className="flex items-center gap-3">
-                                            <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                                {formatDate(session.session_date)}
+                                            <CalendarDays className="text-muted-foreground h-4 w-4 shrink-0" />
+                                            <span className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                                                {formatDate(
+                                                    session.session_date,
+                                                )}
                                             </span>
                                         </div>
-                                        <p className="text-sm font-medium text-foreground">
+                                        <p className="text-foreground text-sm font-medium">
                                             {session.topic}
                                         </p>
                                         {session.notes && (
-                                            <p className="text-xs text-muted-foreground">
+                                            <p className="text-muted-foreground text-xs">
                                                 {session.notes}
                                             </p>
                                         )}
@@ -314,7 +332,9 @@ export default function DiscipleshipBatchShow({
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => setEditTarget(session)}
+                                            onClick={() =>
+                                                setEditTarget(session)
+                                            }
                                             aria-label={`Edit ${session.topic}`}
                                         >
                                             <Pencil className="h-4 w-4" />
@@ -322,7 +342,9 @@ export default function DiscipleshipBatchShow({
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => deleteSession(session)}
+                                            onClick={() =>
+                                                deleteSession(session)
+                                            }
                                             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                             aria-label={`Delete ${session.topic}`}
                                         >
@@ -337,12 +359,12 @@ export default function DiscipleshipBatchShow({
 
                 <section className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                             Attendance
                         </h2>
                         {hasDirty && (
                             <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-muted-foreground text-xs">
                                     {dirty.size} unsaved{' '}
                                     {dirty.size === 1 ? 'change' : 'changes'}
                                 </span>
@@ -362,20 +384,20 @@ export default function DiscipleshipBatchShow({
 
                     {enrollments.length === 0 ? (
                         <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-12 text-center">
-                            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-lime-brand/15">
-                                <Users className="h-7 w-7 text-lime-brand" />
+                            <div className="bg-lime-brand/15 mb-4 flex h-14 w-14 items-center justify-center rounded-full">
+                                <Users className="text-lime-brand h-7 w-7" />
                             </div>
-                            <p className="mb-1 text-sm font-medium text-foreground">
+                            <p className="text-foreground mb-1 text-sm font-medium">
                                 No enrollments
                             </p>
-                            <p className="max-w-sm text-xs text-muted-foreground">
+                            <p className="text-muted-foreground max-w-sm text-xs">
                                 Enroll participants in this program before
                                 recording attendance.
                             </p>
                         </div>
                     ) : sessions.length === 0 ? (
                         <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-12 text-center">
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-muted-foreground text-sm">
                                 Add at least one session to record attendance.
                             </p>
                         </div>
@@ -384,20 +406,20 @@ export default function DiscipleshipBatchShow({
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="border-b border-border">
-                                            <th className="sticky left-0 z-10 bg-background/80 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground backdrop-blur">
+                                        <tr className="border-border border-b">
+                                            <th className="bg-background/80 text-muted-foreground sticky left-0 z-10 px-4 py-3 text-left text-xs font-medium tracking-wider uppercase backdrop-blur">
                                                 Participant
                                             </th>
                                             {sessions.map((s) => (
                                                 <th
                                                     key={s.id}
-                                                    className="min-w-[100px] px-2 py-3 text-center text-xs font-medium text-muted-foreground"
+                                                    className="text-muted-foreground min-w-[100px] px-2 py-3 text-center text-xs font-medium"
                                                     title={s.topic}
                                                 >
                                                     {formatDate(s.session_date)}
                                                 </th>
                                             ))}
-                                            <th className="min-w-[120px] px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                            <th className="text-muted-foreground min-w-[120px] px-3 py-3 text-left text-xs font-medium tracking-wider uppercase">
                                                 Progress
                                             </th>
                                         </tr>
@@ -406,15 +428,21 @@ export default function DiscipleshipBatchShow({
                                         {enrollments.map((enrollment) => (
                                             <tr
                                                 key={enrollment.id}
-                                                className="border-b border-border last:border-b-0"
+                                                className="border-border border-b last:border-b-0"
                                             >
-                                                <td className="sticky left-0 z-10 bg-background/80 px-4 py-3 font-medium text-foreground backdrop-blur">
-                                                    {enrollment.full_name ?? '—'}
+                                                <td className="bg-background/80 text-foreground sticky left-0 z-10 px-4 py-3 font-medium backdrop-blur">
+                                                    {enrollment.full_name ??
+                                                        '—'}
                                                 </td>
                                                 {sessions.map((s) => {
-                                                    const key = cellKey(enrollment.id, s.id);
-                                                    const value = cells[key] ?? '';
-                                                    const isDirty = dirty.has(key);
+                                                    const key = cellKey(
+                                                        enrollment.id,
+                                                        s.id,
+                                                    );
+                                                    const value =
+                                                        cells[key] ?? '';
+                                                    const isDirty =
+                                                        dirty.has(key);
                                                     return (
                                                         <td
                                                             key={s.id}
@@ -426,29 +454,44 @@ export default function DiscipleshipBatchShow({
                                                                     setCell(
                                                                         enrollment.id,
                                                                         s.id,
-                                                                        e.target.value as AttendanceStatus,
+                                                                        e.target
+                                                                            .value as AttendanceStatus,
                                                                     )
                                                                 }
                                                                 className={`cursor-pointer rounded-full border px-2 py-1 text-xs font-medium outline-none ${CELL_STYLES[value]} ${
                                                                     isDirty
-                                                                        ? 'ring-1 ring-lime-brand/40'
+                                                                        ? 'ring-lime-brand/40 ring-1'
                                                                         : ''
                                                                 }`}
                                                             >
-                                                                {STATUS_OPTIONS.map((o) => (
-                                                                    <option
-                                                                        key={o.value}
-                                                                        value={o.value}
-                                                                    >
-                                                                        {o.label}
-                                                                    </option>
-                                                                ))}
+                                                                {STATUS_OPTIONS.map(
+                                                                    (o) => (
+                                                                        <option
+                                                                            key={
+                                                                                o.value
+                                                                            }
+                                                                            value={
+                                                                                o.value
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                o.label
+                                                                            }
+                                                                        </option>
+                                                                    ),
+                                                                )}
                                                             </select>
                                                         </td>
                                                     );
                                                 })}
                                                 <td className="px-3 py-3">
-                                                    <ProgressCell progress={progress[enrollment.id]} />
+                                                    <ProgressCell
+                                                        progress={
+                                                            progress[
+                                                                enrollment.id
+                                                            ]
+                                                        }
+                                                    />
                                                 </td>
                                             </tr>
                                         ))}
@@ -568,7 +611,9 @@ function SessionFormDialog({
                         <Input
                             id="session-topic"
                             value={form.data.topic}
-                            onChange={(e) => form.setData('topic', e.target.value)}
+                            onChange={(e) =>
+                                form.setData('topic', e.target.value)
+                            }
                             placeholder="e.g. Week 1 — Welcome and Orientation"
                             autoFocus
                         />
@@ -580,7 +625,9 @@ function SessionFormDialog({
                         <textarea
                             id="session-notes"
                             value={form.data.notes}
-                            onChange={(e) => form.setData('notes', e.target.value)}
+                            onChange={(e) =>
+                                form.setData('notes', e.target.value)
+                            }
                             rows={3}
                             className="border-input bg-input placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-20 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
                             placeholder="Optional notes about this session"

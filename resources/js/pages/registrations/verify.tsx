@@ -78,17 +78,17 @@ function RegistrationCodePanel({ code }: { code: string | null }) {
     };
 
     return (
-        <section className="grid gap-4 rounded-xl border border-lime-brand/30 bg-lime-brand/5 p-6">
+        <section className="border-lime-brand/30 bg-lime-brand/5 grid gap-4 rounded-xl border p-6">
             <div className="flex items-center gap-2">
-                <Ticket className="h-4 w-4 text-lime-brand" />
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-lime-brand">
+                <Ticket className="text-lime-brand h-4 w-4" />
+                <h2 className="text-lime-brand text-sm font-semibold tracking-wider uppercase">
                     Your Registration Code
                 </h2>
             </div>
 
             {code !== null && (
                 <p
-                    className="select-all text-center font-mono text-4xl font-semibold tracking-[0.3em] text-foreground"
+                    className="text-foreground text-center font-mono text-4xl font-semibold tracking-[0.3em] select-all"
                     aria-label={`Registration Code ${code}`}
                 >
                     {code}
@@ -98,8 +98,9 @@ function RegistrationCodePanel({ code }: { code: string | null }) {
             {code !== null && <RegistrationBarcode code={code} />}
 
             {code !== null && (
-                <p className="text-center text-sm text-muted-foreground">
-                    Save a screenshot or print this barcode for check-in at the event.
+                <p className="text-muted-foreground text-center text-sm">
+                    Save a screenshot or print this barcode for check-in at the
+                    event.
                 </p>
             )}
 
@@ -118,7 +119,7 @@ function RegistrationCodePanel({ code }: { code: string | null }) {
                     >
                         {copied ? (
                             <>
-                                <Check className="mr-2 h-3.5 w-3.5 text-lime-brand" />
+                                <Check className="text-lime-brand mr-2 h-3.5 w-3.5" />
                                 Registration Code copied
                             </>
                         ) : (
@@ -133,13 +134,13 @@ function RegistrationCodePanel({ code }: { code: string | null }) {
 
             <p
                 role="status"
-                className="text-center text-xs text-muted-foreground"
+                className="text-muted-foreground text-center text-xs"
             >
                 {code === null
                     ? 'Your registration is confirmed. A Registration Code is unavailable on this page.'
                     : copied
-                    ? 'Registration Code copied to clipboard.'
-                    : 'Please copy your Registration Code or take a screenshot now. Once you confirm, it will no longer be displayed on this page.'}
+                      ? 'Registration Code copied to clipboard.'
+                      : 'Please copy your Registration Code or take a screenshot now. Once you confirm, it will no longer be displayed on this page.'}
             </p>
         </section>
     );
@@ -182,7 +183,7 @@ function ContactVerification({
     };
 
     return (
-        <section className="grid gap-4 rounded-xl border border-border p-6">
+        <section className="border-border grid gap-4 rounded-xl border p-6">
             <h2 className="text-lg font-semibold">{label} verification</h2>
             {state.status === 'verified' ? (
                 <p role="status" className="text-lime-brand">
@@ -190,13 +191,17 @@ function ContactVerification({
                 </p>
             ) : state.status === 'locked' ? (
                 <p role="alert">
-                    {captchaRequired ? 'Too many attempts. Please wait 2 hours to try again.' : 'Five incorrect attempts were made. Start a new registration to verify this contact again.'}
+                    {captchaRequired
+                        ? 'Too many attempts. Please wait 2 hours to try again.'
+                        : 'Five incorrect attempts were made. Start a new registration to verify this contact again.'}
                 </p>
             ) : (
                 <>
                     <p className="text-muted-foreground text-sm">
                         {channel === 'email'
-                            ? (state.status === 'sent' ? 'Enter the six-digit code sent to your email address.' : 'Complete reCAPTCHA, then send an email code.')
+                            ? state.status === 'sent'
+                                ? 'Enter the six-digit code sent to your email address.'
+                                : 'Complete reCAPTCHA, then send an email code.'
                             : 'Verify your phone number with the secure Firebase SMS check. Keep this page open while you complete it.'}
                     </p>
                     {state.status === 'waiting' && (
@@ -228,72 +233,78 @@ function ContactVerification({
                             Codes expire after ten minutes.
                         </p>
                     )}
-                    {channel === 'email' && (!captchaRequired || !!captchaToken) && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            disabled={wait > 0 || resend.processing || (captchaRequired && !captchaToken)}
-                            onClick={() => {
-                                resend.transform(() => ({ recaptcha_token: captchaToken }));
-                                resend.post(`${url}/email/resend`, {
-                                    preserveScroll: true,
-                                    onFinish: onSent,
-                                });
-                            }}
-                        >
-                            {wait > 0
-                                ? `Request another code in ${wait}s`
-                                : state.status === 'waiting' ? 'Send code' : 'Send another email code'}
-                        </Button>
-                    )}
-                    {(state.status === 'sent' && !expired) && (
-                    <form onSubmit={submit} className="grid gap-3">
-                        <Label htmlFor={`${channel}-code`}>{label} code</Label>
-                        <Input
-                            id={`${channel}-code`}
-                            value={form.data.code}
-                            onChange={(event) =>
-                                form.setData('code', event.target.value)
-                            }
-                            inputMode="numeric"
-                            autoComplete="one-time-code"
-                            pattern="[0-9]{6}"
-                            maxLength={6}
-                            required
-                            aria-describedby={`${channel}-error`}
-                        />
-                        <div id={`${channel}-error`}>
-                            <InputError message={errors[channel]} />
-                        </div>
-                        <Button
-                            type="submit"
-                            disabled={
-                                form.processing ||
-                                state.status !== 'sent' ||
-                                expired
-                            }
-                        >
-                            Verify {channel}
-                        </Button>
-                    </form>
+                    {channel === 'email' &&
+                        (!captchaRequired || !!captchaToken) && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={
+                                    wait > 0 ||
+                                    resend.processing ||
+                                    (captchaRequired && !captchaToken)
+                                }
+                                onClick={() => {
+                                    resend.transform(() => ({
+                                        recaptcha_token: captchaToken,
+                                    }));
+                                    resend.post(`${url}/email/resend`, {
+                                        preserveScroll: true,
+                                        onFinish: onSent,
+                                    });
+                                }}
+                            >
+                                {wait > 0
+                                    ? `Request another code in ${wait}s`
+                                    : state.status === 'waiting'
+                                      ? 'Send code'
+                                      : 'Send another email code'}
+                            </Button>
+                        )}
+                    {state.status === 'sent' && !expired && (
+                        <form onSubmit={submit} className="grid gap-3">
+                            <Label htmlFor={`${channel}-code`}>
+                                {label} code
+                            </Label>
+                            <Input
+                                id={`${channel}-code`}
+                                value={form.data.code}
+                                onChange={(event) =>
+                                    form.setData('code', event.target.value)
+                                }
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                pattern="[0-9]{6}"
+                                maxLength={6}
+                                required
+                                aria-describedby={`${channel}-error`}
+                            />
+                            <div id={`${channel}-error`}>
+                                <InputError message={errors[channel]} />
+                            </div>
+                            <Button
+                                type="submit"
+                                disabled={
+                                    form.processing ||
+                                    state.status !== 'sent' ||
+                                    expired
+                                }
+                            >
+                                Verify {channel}
+                            </Button>
+                        </form>
                     )}
                     <InputError message={errors[channel]} />
                     <p className="text-muted-foreground text-xs">
                         {state.attempts_remaining} attempts remaining. New codes
                         do not reset this limit.
                     </p>
-
                 </>
             )}
         </section>
     );
 }
 
-function ChannelChoiceScreen({
-    verificationUrl,
-}: {
-    verificationUrl: string;
-}) {
+function ChannelChoiceScreen({ verificationUrl }: { verificationUrl: string }) {
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
     const [busy, setBusy] = useState(false);
 
@@ -307,13 +318,13 @@ function ChannelChoiceScreen({
     };
 
     return (
-        <section className="grid gap-4 rounded-xl border border-border p-6">
+        <section className="border-border grid gap-4 rounded-xl border p-6">
             <h2 className="text-lg font-semibold">
                 How do you want to verify?
             </h2>
             <p className="text-muted-foreground text-sm">
-                Choose one contact to verify. The other stays on file but
-                won't need a code.
+                Choose one contact to verify. The other stays on file but won't
+                need a code.
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
                 <Button
@@ -428,15 +439,17 @@ export default function VerifyRegistration({
                 <h1 className="text-2xl font-semibold">
                     {verification.is_inactive
                         ? 'Registration Received'
-                        : (verification.status === 'finalized'
-                            ? 'You are registered.'
-                            : 'Verify your contacts')}
+                        : verification.status === 'finalized'
+                          ? 'You are registered.'
+                          : 'Verify your contacts'}
                 </h1>
                 <p className="text-muted-foreground">{event_name}</p>
                 <p role="status">
                     {verification.is_inactive
                         ? 'Your submission is not active. Please contact the organizer for its review status.'
-                        : (expired ? messages.expired : messages[verification.status])}
+                        : expired
+                          ? messages.expired
+                          : messages[verification.status]}
                 </p>
                 <InputError message={errors.verification} />
 
@@ -447,8 +460,9 @@ export default function VerifyRegistration({
                                 <h2 className="text-base font-semibold text-yellow-600 dark:text-yellow-400">
                                     Registration Status
                                 </h2>
-                                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                                    Your submission has been received. Please contact the organizer for the review result.
+                                <p className="text-muted-foreground mx-auto max-w-md text-sm">
+                                    Your submission has been received. Please
+                                    contact the organizer for the review result.
                                 </p>
                             </section>
                         ) : (
@@ -461,16 +475,32 @@ export default function VerifyRegistration({
                             disabled={acknowledgement.processing}
                             onClick={() => {
                                 try {
-                                    const slug = new URL(form_url, window.location.origin).pathname.split('/').filter(Boolean).at(-1);
-                                    window.localStorage.removeItem(`wdems-registration-${slug}`);
-                                } catch { /* Storage may be unavailable. */ }
-                                acknowledgement.transform(() => ({ start_another: true }));
-                                acknowledgement.post(`${verification_url}/acknowledge-code`);
+                                    const slug = new URL(
+                                        form_url,
+                                        window.location.origin,
+                                    ).pathname
+                                        .split('/')
+                                        .filter(Boolean)
+                                        .at(-1);
+                                    window.localStorage.removeItem(
+                                        `wdems-registration-${slug}`,
+                                    );
+                                } catch {
+                                    /* Storage may be unavailable. */
+                                }
+                                acknowledgement.transform(() => ({
+                                    start_another: true,
+                                }));
+                                acknowledgement.post(
+                                    `${verification_url}/acknowledge-code`,
+                                );
                             }}
                         >
                             {acknowledgement.processing
                                 ? 'Finishing…'
-                                : (verification.is_inactive ? 'Acknowledge' : 'Confirm')}
+                                : verification.is_inactive
+                                  ? 'Acknowledge'
+                                  : 'Confirm'}
                         </Button>
                     </>
                 )}
@@ -481,7 +511,7 @@ export default function VerifyRegistration({
                             <section
                                 className={
                                     phoneStage === 'idle' || !phoneNeedsWork
-                                        ? 'grid gap-3 rounded-xl border border-border p-6'
+                                        ? 'border-border grid gap-3 rounded-xl border p-6'
                                         : 'hidden'
                                 }
                             >
@@ -494,10 +524,22 @@ export default function VerifyRegistration({
                                 <div id="recaptcha-container" />
                             </section>
                         )}
-                        {email_only && emailNeedsWork && (emailChannel?.status !== 'sent' || !emailChannel.retry_at || Date.parse(emailChannel.retry_at) <= now) && <section className="rounded-xl border border-border p-6">
-                            <h2 className="mb-3 text-lg font-semibold">Email verification</h2>
-                            <RegistrationRecaptcha siteKey={recaptcha_site_key} resetKey={captchaReset} onToken={setCaptchaToken} />
-                        </section>}
+                        {email_only &&
+                            emailNeedsWork &&
+                            (emailChannel?.status !== 'sent' ||
+                                !emailChannel.retry_at ||
+                                Date.parse(emailChannel.retry_at) <= now) && (
+                                <section className="border-border rounded-xl border p-6">
+                                    <h2 className="mb-3 text-lg font-semibold">
+                                        Email verification
+                                    </h2>
+                                    <RegistrationRecaptcha
+                                        siteKey={recaptcha_site_key}
+                                        resetKey={captchaReset}
+                                        onToken={setCaptchaToken}
+                                    />
+                                </section>
+                            )}
                         {needsChannelChoice ? (
                             <ChannelChoiceScreen
                                 verificationUrl={verification_url}
@@ -512,15 +554,24 @@ export default function VerifyRegistration({
                                         now={now}
                                         captchaRequired={email_only}
                                         captchaToken={captchaToken}
-                                        onSent={() => { setCaptchaToken(''); setCaptchaReset((value) => value + 1); }}
+                                        onSent={() => {
+                                            setCaptchaToken('');
+                                            setCaptchaReset(
+                                                (value) => value + 1,
+                                            );
+                                        }}
                                     />
                                 )}
                                 {showPhoneChannel && phoneChannel && (
                                     <FirebasePhoneVerifier
-                                        submittedPhone={verification.submitted_phone ?? ""}
+                                        submittedPhone={
+                                            verification.submitted_phone ?? ''
+                                        }
                                         verifyUrl={`${verification_url}/phone/firebase`}
                                         disabled={false}
-                                        verified={phoneChannel.status === "verified"}
+                                        verified={
+                                            phoneChannel.status === 'verified'
+                                        }
                                         phoneRequired={phoneIsRequired}
                                         recaptchaContainerId="recaptcha-container"
                                         onStageChange={setPhoneStage}
@@ -528,15 +579,17 @@ export default function VerifyRegistration({
                                 )}
                             </>
                         )}
-                        {!email_only && <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() =>
-                                router.reload({ only: ['verification'] })
-                            }
-                        >
-                            Refresh verification status
-                        </Button>}
+                        {!email_only && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                    router.reload({ only: ['verification'] })
+                                }
+                            >
+                                Refresh verification status
+                            </Button>
+                        )}
                         <Button
                             type="button"
                             disabled={

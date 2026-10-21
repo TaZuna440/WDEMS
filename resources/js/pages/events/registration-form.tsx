@@ -12,8 +12,18 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import InputError from '@/components/input-error';
 import RegistrationDisclaimerEditor from '@/components/registration-disclaimer-editor';
-import TshirtFieldBuilder, { validateTshirt, type TshirtDraft, type TshirtPhoto } from '@/components/tshirt-field-builder';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import TshirtFieldBuilder, {
+    validateTshirt,
+    type TshirtDraft,
+    type TshirtPhoto,
+} from '@/components/tshirt-field-builder';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '@/components/ui/dialog';
 import RegistrationFieldEditor, {
     type FieldDraft,
 } from '@/components/registration-field-editor';
@@ -49,13 +59,19 @@ type Props = {
     common_field_requirements: Record<string, boolean>;
     disclaimer_html: string | null;
     default_disclaimer_html: string;
-    tshirt: { label: string; required: boolean; choices: string[]; photos: TshirtPhoto[] } | null;
+    tshirt: {
+        label: string;
+        required: boolean;
+        choices: string[];
+        photos: TshirtPhoto[];
+    } | null;
 };
 
 const statusStyles: Record<string, string> = {
     draft: 'bg-secondary text-foreground',
     registration_open: 'bg-lime-brand/20 text-lime-brand',
-    registration_closed: 'bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500',
+    registration_closed:
+        'bg-[#13253B] text-white dark:bg-yellow-500/15 dark:text-yellow-500',
     ongoing: 'bg-accent/20 text-accent',
     completed: 'bg-green-500/15 text-green-500',
     cancelled: 'bg-destructive/15 text-destructive',
@@ -110,11 +126,13 @@ export default function RegistrationForm({
         [fields],
     );
 
-    const form = useForm<TshirtDraft & {
-        fields: FieldDraft[];
-        common_field_requirements: Record<string, boolean>;
-        disclaimer_html: string | null;
-    }>({
+    const form = useForm<
+        TshirtDraft & {
+            fields: FieldDraft[];
+            common_field_requirements: Record<string, boolean>;
+            disclaimer_html: string | null;
+        }
+    >({
         fields: initialFields,
         disclaimer_html,
         tshirt_enabled: tshirt !== null,
@@ -129,7 +147,10 @@ export default function RegistrationForm({
     });
 
     const clientErrors = hasAttemptedSave
-        ? { ...validateRegistrationForm(form.data.fields), ...validateTshirt(form.data, tshirt?.photos ?? []) }
+        ? {
+              ...validateRegistrationForm(form.data.fields),
+              ...validateTshirt(form.data, tshirt?.photos ?? []),
+          }
         : {};
     const allErrors: Record<string, string> = {
         ...form.errors,
@@ -150,9 +171,7 @@ export default function RegistrationForm({
         );
 
         if (matching.length > 0) {
-            form.clearErrors(
-                ...(matching as (keyof typeof form.data)[]),
-            );
+            form.clearErrors(...(matching as (keyof typeof form.data)[]));
         }
     };
 
@@ -225,9 +244,18 @@ export default function RegistrationForm({
     const saveForm = () => {
         setHasAttemptedSave(true);
 
-        const errors = { ...validateRegistrationForm(form.data.fields), ...validateTshirt(form.data, tshirt?.photos ?? []) };
-        if (form.data.disclaimer_html !== null && !form.data.disclaimer_html.replace(/<[^>]*>/g, '').trim()) {
-            form.setError('disclaimer_html', 'The disclaimer must contain text.');
+        const errors = {
+            ...validateRegistrationForm(form.data.fields),
+            ...validateTshirt(form.data, tshirt?.photos ?? []),
+        };
+        if (
+            form.data.disclaimer_html !== null &&
+            !form.data.disclaimer_html.replace(/<[^>]*>/g, '').trim()
+        ) {
+            form.setError(
+                'disclaimer_html',
+                'The disclaimer must contain text.',
+            );
             return;
         }
         if (Object.keys(errors).length > 0) {
@@ -254,7 +282,9 @@ export default function RegistrationForm({
                     common_field_requirements: data.common_field_requirements,
                     disclaimer_html: data.disclaimer_html,
                 }));
-                form.post(`/events/${event.id}/registration-form`, { forceFormData: true });
+                form.post(`/events/${event.id}/registration-form`, {
+                    forceFormData: true,
+                });
             },
         });
     };
@@ -266,7 +296,7 @@ export default function RegistrationForm({
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
                 <Link
                     href={`/events/${event.id}`}
-                    className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Event
@@ -274,112 +304,202 @@ export default function RegistrationForm({
 
                 <div>
                     <h1 className="text-foreground text-2xl font-semibold">
-                        {event.form_saved ? 'Edit Registration Form' : 'Create Registration Form'}
+                        {event.form_saved
+                            ? 'Edit Registration Form'
+                            : 'Create Registration Form'}
                     </h1>
                     <div className="mt-2 flex items-center gap-3">
                         <span
                             className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                                statusStyles[event.status] ??
-                                statusStyles.draft
+                                statusStyles[event.status] ?? statusStyles.draft
                             }`}
                         >
                             {event.status_label}
                         </span>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-muted-foreground text-sm">
                             {event.event_name}
                         </span>
                     </div>
-                    <p className="mt-3 text-sm text-muted-foreground">
-                        Design the form participants will fill out to
-                        register. Common fields are added automatically.
-                        Add custom fields for anything event-specific.
+                    <p className="text-muted-foreground mt-3 text-sm">
+                        Design the form participants will fill out to register.
+                        Common fields are added automatically. Add custom fields
+                        for anything event-specific.
                     </p>
                 </div>
 
-                <section aria-labelledby="participant-workflow" className="glass-panel rounded-xl p-5">
-                    <h2 id="participant-workflow" className="font-semibold">Participant registration workflow</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">Participants complete these steps in order. Build the form with their experience in mind.</p>
+                <section
+                    aria-labelledby="participant-workflow"
+                    className="glass-panel rounded-xl p-5"
+                >
+                    <h2 id="participant-workflow" className="font-semibold">
+                        Participant registration workflow
+                    </h2>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                        Participants complete these steps in order. Build the
+                        form with their experience in mind.
+                    </p>
                     <ol className="mt-4 grid gap-4 sm:grid-cols-3">
                         {[
-                            ['Disclaimer', 'Read the participant agreement and privacy notice, then give consent.'],
-                            ['Personal Info', 'Enter personal details and answer your event-specific questions.'],
-                            ['Emergency Contact', 'Provide someone we can contact in an emergency.'],
-                            ['Verification', 'Verify contact details before registration is completed.'],
-                            ['Confirmation', 'Receive the registration code for event check-in.'],
+                            [
+                                'Disclaimer',
+                                'Read the participant agreement and privacy notice, then give consent.',
+                            ],
+                            [
+                                'Personal Info',
+                                'Enter personal details and answer your event-specific questions.',
+                            ],
+                            [
+                                'Emergency Contact',
+                                'Provide someone we can contact in an emergency.',
+                            ],
+                            [
+                                'Verification',
+                                'Verify contact details before registration is completed.',
+                            ],
+                            [
+                                'Confirmation',
+                                'Receive the registration code for event check-in.',
+                            ],
                         ].map(([title, description], index) => (
-                            <li key={title} className="rounded-lg border border-border p-3">
-                                <p className="text-sm font-medium">{index + 1}. {title}</p>
-                                <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+                            <li
+                                key={title}
+                                className="border-border rounded-lg border p-3"
+                            >
+                                <p className="text-sm font-medium">
+                                    {index + 1}. {title}
+                                </p>
+                                <p className="text-muted-foreground mt-1 text-xs">
+                                    {description}
+                                </p>
                             </li>
                         ))}
                     </ol>
-                    {event.form_saved && <Button variant="outline" className="mt-4" asChild>
-                        <Link href={`/events/${event.id}/registration-form/preview`}>View Saved Registration Form</Link>
-                    </Button>}
+                    {event.form_saved && (
+                        <Button variant="outline" className="mt-4" asChild>
+                            <Link
+                                href={`/events/${event.id}/registration-form/preview`}
+                            >
+                                View Saved Registration Form
+                            </Link>
+                        </Button>
+                    )}
                 </section>
 
                 <section className="glass-panel space-y-3 rounded-xl p-5">
-                    <h2 className="font-semibold">Participant Disclaimer &amp; Agreement</h2>
-                    <p className="text-sm text-muted-foreground">{canEdit ? 'Do you want to edit the participant agreement? The default applies unless you customize it.' : 'The published participant agreement is locked.'}</p>
-                    <div className="max-h-48 overflow-y-auto text-sm [&_h1]:text-2xl [&_h2]:text-xl [&_p]:my-3" dangerouslySetInnerHTML={{ __html: form.data.disclaimer_html ?? default_disclaimer_html }} />
-                    {canEdit && <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => setDisclaimerOpen(true)}>Edit Disclaimer</Button>
-                        {form.data.disclaimer_html !== null && <Button variant="ghost" onClick={() => form.setData('disclaimer_html', null)}>Use Default</Button>}
-                    </div>}
+                    <h2 className="font-semibold">
+                        Participant Disclaimer &amp; Agreement
+                    </h2>
+                    <p className="text-muted-foreground text-sm">
+                        {canEdit
+                            ? 'Do you want to edit the participant agreement? The default applies unless you customize it.'
+                            : 'The published participant agreement is locked.'}
+                    </p>
+                    <div
+                        className="max-h-48 overflow-y-auto text-sm [&_h1]:text-2xl [&_h2]:text-xl [&_p]:my-3"
+                        dangerouslySetInnerHTML={{
+                            __html:
+                                form.data.disclaimer_html ??
+                                default_disclaimer_html,
+                        }}
+                    />
+                    {canEdit && (
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setDisclaimerOpen(true)}
+                            >
+                                Edit Disclaimer
+                            </Button>
+                            {form.data.disclaimer_html !== null && (
+                                <Button
+                                    variant="ghost"
+                                    onClick={() =>
+                                        form.setData('disclaimer_html', null)
+                                    }
+                                >
+                                    Use Default
+                                </Button>
+                            )}
+                        </div>
+                    )}
                     <InputError message={allErrors.disclaimer_html} />
                 </section>
 
                 <section className="glass-panel space-y-2 rounded-xl p-5">
-                    <h2 className="font-semibold">Emergency contact &amp; verification</h2>
-                    {canEdit ? <>
-                        <p className="text-sm text-muted-foreground">Emergency contact first name, last name, relationship, and phone number are required. Relationships: Parent, Sibling, Spouse, Friend, Guardian, or Other (up to 15 characters).</p>
-                        <p className="text-sm text-muted-foreground">Newly saved forms verify email only. Requiring a contact number does not enable phone verification.</p>
-                    </> : <p className="text-sm text-muted-foreground">Published forms retain the rules they were opened with. View the saved form to inspect the participant experience.</p>}
+                    <h2 className="font-semibold">
+                        Emergency contact &amp; verification
+                    </h2>
+                    {canEdit ? (
+                        <>
+                            <p className="text-muted-foreground text-sm">
+                                Emergency contact first name, last name,
+                                relationship, and phone number are required.
+                                Relationships: Parent, Sibling, Spouse, Friend,
+                                Guardian, or Other (up to 15 characters).
+                            </p>
+                            <p className="text-muted-foreground text-sm">
+                                Newly saved forms verify email only. Requiring a
+                                contact number does not enable phone
+                                verification.
+                            </p>
+                        </>
+                    ) : (
+                        <p className="text-muted-foreground text-sm">
+                            Published forms retain the rules they were opened
+                            with. View the saved form to inspect the participant
+                            experience.
+                        </p>
+                    )}
                 </section>
 
                 {!canEdit && (
                     <div className="glass-panel flex items-start gap-3 rounded-xl p-4">
-                        <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
+                        <Lock className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
+                        <p className="text-muted-foreground text-sm">
                             This form is locked. It was published when
-                            registration opened and can no longer be
-                            edited.
+                            registration opened and can no longer be edited.
                         </p>
                     </div>
                 )}
 
                 <section className="flex flex-col gap-3">
                     <div className="flex items-baseline justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                             Common Fields
                         </h2>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-muted-foreground text-xs">
                             {canEdit
                                 ? 'Toggle required per field'
                                 : 'Automatic · locked'}
                         </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                        Every registration includes these fields. First
-                        name, last name, date of birth, email, and barangay & city
-                        are required on newly saved forms. Contact number can be optional.
+                    <p className="text-muted-foreground text-xs">
+                        Every registration includes these fields. First name,
+                        last name, date of birth, email, and barangay & city are
+                        required on newly saved forms. Contact number can be
+                        optional.
                     </p>
 
                     <div className="glass-panel grid gap-3 rounded-xl p-4 sm:grid-cols-2">
                         {COMMON_FIELDS.map((field) => {
-                            const isRequired = ['middle_name', 'suffix'].includes(field.key) ? false : field.toggleable || !canEdit
-                                ? form.data.common_field_requirements[
-                                      field.key
-                                  ] ?? true
-                                : true;
+                            const isRequired = [
+                                'middle_name',
+                                'suffix',
+                            ].includes(field.key)
+                                ? false
+                                : field.toggleable || !canEdit
+                                  ? (form.data.common_field_requirements[
+                                        field.key
+                                    ] ?? true)
+                                  : true;
 
                             return (
                                 <div
                                     key={field.key}
-                                    className="flex items-center gap-3 rounded-md border border-border bg-card/40 px-3 py-2"
+                                    className="border-border bg-card/40 flex items-center gap-3 rounded-md border px-3 py-2"
                                 >
-                                    <CheckCircle2 className="h-4 w-4 shrink-0 text-lime-brand/60" />
-                                    <span className="text-sm text-foreground">
+                                    <CheckCircle2 className="text-lime-brand/60 h-4 w-4 shrink-0" />
+                                    <span className="text-foreground text-sm">
                                         {field.label}
                                     </span>
 
@@ -395,62 +515,68 @@ export default function RegistrationForm({
                                                 }
                                                 aria-label={`Require ${field.label}`}
                                             />
-                                            <span className="text-xs text-muted-foreground">
+                                            <span className="text-muted-foreground text-xs">
                                                 Required
                                             </span>
                                         </label>
                                     ) : (
                                         <>
                                             {isRequired && (
-                                                <span className="text-xs text-destructive">
+                                                <span className="text-destructive text-xs">
                                                     *
                                                 </span>
                                             )}
                                             {!isRequired && (
-                                                    <span className="ml-auto text-xs text-muted-foreground">
-                                                        Optional
-                                                    </span>
-                                                )}
+                                                <span className="text-muted-foreground ml-auto text-xs">
+                                                    Optional
+                                                </span>
+                                            )}
                                         </>
                                     )}
                                 </div>
                             );
                         })}
                     </div>
-                    <InputError
-                        message={allErrors.common_field_requirements}
-                    />
+                    <InputError message={allErrors.common_field_requirements} />
                 </section>
 
-                <TshirtFieldBuilder data={form.data} photos={tshirt?.photos ?? []} errors={allErrors} disabled={!canEdit}
-                    onChange={(patch) => { form.clearErrors(); form.setData({ ...form.data, ...patch }); }} />
+                <TshirtFieldBuilder
+                    data={form.data}
+                    photos={tshirt?.photos ?? []}
+                    errors={allErrors}
+                    disabled={!canEdit}
+                    onChange={(patch) => {
+                        form.clearErrors();
+                        form.setData({ ...form.data, ...patch });
+                    }}
+                />
 
                 <section className="flex flex-col gap-3">
                     <div className="flex items-baseline justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                             Custom Fields
                         </h2>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-muted-foreground text-xs">
                             {form.data.fields.length} / {MAX_FIELDS}
                         </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                        Drag the handle to reorder. Changes are not saved
-                        until you click Save.
+                    <p className="text-muted-foreground text-xs">
+                        Drag the handle to reorder. Changes are not saved until
+                        you click Save.
                     </p>
 
                     {form.data.fields.length === 0 ? (
                         <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-12 text-center">
-                            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-lime-brand/15">
-                                <FileText className="h-8 w-8 text-lime-brand" />
+                            <div className="bg-lime-brand/15 mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                                <FileText className="text-lime-brand h-8 w-8" />
                             </div>
-                            <h3 className="mb-2 text-base font-semibold text-foreground">
+                            <h3 className="text-foreground mb-2 text-base font-semibold">
                                 No custom fields yet
                             </h3>
-                            <p className="mb-6 max-w-sm text-sm text-muted-foreground">
-                                Add fields like Shirt Size, Emergency
-                                Contact, or Distance Preference. The form
-                                can be saved with just the common fields.
+                            <p className="text-muted-foreground mb-6 max-w-sm text-sm">
+                                Add fields like Shirt Size, Emergency Contact,
+                                or Distance Preference. The form can be saved
+                                with just the common fields.
                             </p>
                             {canEdit && (
                                 <Button
@@ -491,7 +617,9 @@ export default function RegistrationForm({
                                     variant="outline"
                                     onClick={addField}
                                     className="w-fit"
-                                    disabled={form.data.fields.length >= MAX_FIELDS}
+                                    disabled={
+                                        form.data.fields.length >= MAX_FIELDS
+                                    }
                                 >
                                     <Plus className="mr-2 h-4 w-4" />
                                     Add Field
@@ -505,7 +633,7 @@ export default function RegistrationForm({
 
                 {canEdit && (
                     <div className="glass-panel sticky bottom-4 flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                             Fields save as one batch. Until you click Save,
                             nothing has been written.
                         </p>
@@ -527,10 +655,25 @@ export default function RegistrationForm({
             {dialog}
             <Dialog open={disclaimerOpen} onOpenChange={setDisclaimerOpen}>
                 <DialogContent className="sm:max-w-3xl">
-                    <DialogHeader><DialogTitle>Edit participant disclaimer</DialogTitle><DialogDescription>Format the agreement with headings, bold, and italic text.</DialogDescription></DialogHeader>
-                    <RegistrationDisclaimerEditor value={form.data.disclaimer_html ?? default_disclaimer_html}
-                        onChange={(html) => { clearServerErrors('disclaimer_html'); form.setData('disclaimer_html', html); }} />
-                    <Button onClick={() => setDisclaimerOpen(false)}>Done</Button>
+                    <DialogHeader>
+                        <DialogTitle>Edit participant disclaimer</DialogTitle>
+                        <DialogDescription>
+                            Format the agreement with headings, bold, and italic
+                            text.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <RegistrationDisclaimerEditor
+                        value={
+                            form.data.disclaimer_html ?? default_disclaimer_html
+                        }
+                        onChange={(html) => {
+                            clearServerErrors('disclaimer_html');
+                            form.setData('disclaimer_html', html);
+                        }}
+                    />
+                    <Button onClick={() => setDisclaimerOpen(false)}>
+                        Done
+                    </Button>
                 </DialogContent>
             </Dialog>
         </>

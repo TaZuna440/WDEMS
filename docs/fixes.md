@@ -9,13 +9,13 @@ changed before their arrival.
 
 **Relationship to other docs:**
 
-| Doc | What it holds |
-|---|---|
-| `docs/known-issues.md` | Open problems — what is still broken |
-| `docs/progress.md` | Dated changelog — every change made per session |
+| Doc                         | What it holds                                                              |
+| --------------------------- | -------------------------------------------------------------------------- |
+| `docs/known-issues.md`      | Open problems — what is still broken                                       |
+| `docs/progress.md`          | Dated changelog — every change made per session                            |
 | `docs/fixes.md` (this file) | Fixed-only reference — every problem that has been resolved, with evidence |
-| `docs/development-log.md` | Narrative history — the story |
-| Subsystem docs | Deep detail on current state |
+| `docs/development-log.md`   | Narrative history — the story                                              |
+| Subsystem docs              | Deep detail on current state                                               |
 
 **Append-only.** When a fix lands, add an entry. Do not edit existing
 entries — if an earlier entry is found to be wrong, add a note in the
@@ -25,15 +25,15 @@ entry's `Corrections` section rather than rewriting it.
 
 ## Index
 
-| ID | Title | Severity | Date | Subsystem |
-|---|---|---|---|---|
-| FIX-001 | Auth pages showed the Laravel mark | Cosmetic | 2026-09-25 | Auth / UI |
-| FIX-002 | Email verification gate was a no-op (ISSUE-005) | High | 2026-09-25 | Auth |
-| FIX-003 | Admin locked out of email verification gate | Medium | 2026-09-25 | Auth / RBAC |
-| FIX-004 | Logout forced 2FA on every login (ISSUE-006) | Low | 2026-09-25 | Auth / 2FA |
-| FIX-005 | Mail delivery was routed to `log` not Resend | Medium | 2026-09-25 | Environment |
-| FIX-006 | Database wiped by `config:cache` in local dev | High | 2026-09-25 | Environment |
-| FIX-007 | Demo accounts not reproducible after a reset | Low | 2026-09-25 | Database / Seeder |
+| ID      | Title                                           | Severity | Date       | Subsystem         |
+| ------- | ----------------------------------------------- | -------- | ---------- | ----------------- |
+| FIX-001 | Auth pages showed the Laravel mark              | Cosmetic | 2026-09-25 | Auth / UI         |
+| FIX-002 | Email verification gate was a no-op (ISSUE-005) | High     | 2026-09-25 | Auth              |
+| FIX-003 | Admin locked out of email verification gate     | Medium   | 2026-09-25 | Auth / RBAC       |
+| FIX-004 | Logout forced 2FA on every login (ISSUE-006)    | Low      | 2026-09-25 | Auth / 2FA        |
+| FIX-005 | Mail delivery was routed to `log` not Resend    | Medium   | 2026-09-25 | Environment       |
+| FIX-006 | Database wiped by `config:cache` in local dev   | High     | 2026-09-25 | Environment       |
+| FIX-007 | Demo accounts not reproducible after a reset    | Low      | 2026-09-25 | Database / Seeder |
 
 ---
 
@@ -80,8 +80,8 @@ which imports the correct `WdemsLogo` component.
 
 ### What changed
 
-| File | Change |
-|---|---|
+| File                                        | Change                                                                                                                                     |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `resources/js/components/app-logo-icon.tsx` | Replaced the Laravel SVG path with the WDEMS three-bar mark. Uses `currentColor` for the top bar and fixed `#B6FF3B` for the two lime bars |
 
 The component's prop API (`SVGAttributes<SVGElement>`) was preserved,
@@ -139,8 +139,8 @@ explicitly.
 
 ### What changed
 
-| File | Change |
-|---|---|
+| File                  | Change                                                                                                                                                      |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `app/Models/User.php` | Added `use Illuminate\Contracts\Auth\MustVerifyEmail;` and changed the class declaration to `class User extends Authenticatable implements MustVerifyEmail` |
 
 No other code changed. No migration, no config, no route change.
@@ -196,12 +196,12 @@ delegates to Laravel's default check for everyone else.
 
 ### What changed
 
-| File | Change |
-|---|---|
-| `app/Http/Middleware/EnsureEmailIsVerifiedOrAdmin.php` | **New.** Extends `Illuminate\Auth\Middleware\EnsureEmailIsVerified`. Checks `$request->user()?->isAdmin()` first; if true, calls `$next($request)` directly. Otherwise delegates to `parent::handle()` |
-| `bootstrap/app.php` | Registered `'verified.or.admin' => EnsureEmailIsVerifiedOrAdmin::class` as a middleware alias |
-| `routes/web.php` | Main protected group changed from `['auth', 'verified', 'device.trusted']` to `['auth', 'verified.or.admin', 'device.trusted']`. The device-verification routes kept strict `'verified'` — an unverified user must verify before touching 2FA |
-| `routes/settings.php` | Settings group changed from `['auth', 'verified', 'device.trusted']` to `['auth', 'verified.or.admin', 'device.trusted']` |
+| File                                                   | Change                                                                                                                                                                                                                                        |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/Http/Middleware/EnsureEmailIsVerifiedOrAdmin.php` | **New.** Extends `Illuminate\Auth\Middleware\EnsureEmailIsVerified`. Checks `$request->user()?->isAdmin()` first; if true, calls `$next($request)` directly. Otherwise delegates to `parent::handle()`                                        |
+| `bootstrap/app.php`                                    | Registered `'verified.or.admin' => EnsureEmailIsVerifiedOrAdmin::class` as a middleware alias                                                                                                                                                 |
+| `routes/web.php`                                       | Main protected group changed from `['auth', 'verified', 'device.trusted']` to `['auth', 'verified.or.admin', 'device.trusted']`. The device-verification routes kept strict `'verified'` — an unverified user must verify before touching 2FA |
+| `routes/settings.php`                                  | Settings group changed from `['auth', 'verified', 'device.trusted']` to `['auth', 'verified.or.admin', 'device.trusted']`                                                                                                                     |
 
 The framework's `verified` alias was **not** overridden. Routes that
 want strict behavior can still use it. The new alias is explicit —
@@ -258,9 +258,9 @@ The listener added no security — only friction.
 
 ### What changed
 
-| File | Change |
-|---|---|
-| `app/Providers/AppServiceProvider.php` | Removed `configureLogoutCleanup()`, its call in `boot()`, and four now-unused imports (`EmailTwoFactorService`, `Logout`, `Cookie`, `Event`) |
+| File                                           | Change                                                                                                                                             |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/Providers/AppServiceProvider.php`         | Removed `configureLogoutCleanup()`, its call in `boot()`, and four now-unused imports (`EmailTwoFactorService`, `Logout`, `Cookie`, `Event`)       |
 | `tests/Feature/Auth/LogoutDeviceTrustTest.php` | Assertion inverted — from `assertCookieExpired` to `assertCookieMissing`. Test name changed to "does not forget the device trust cookie on logout" |
 
 No changes to `EnsureDeviceIsTrusted`, `EmailTwoFactorService`, the
@@ -306,8 +306,8 @@ delivery. The setting had never been flipped.
 
 ### What changed
 
-| File | Change |
-|---|---|
+| File           | Change                                   |
+| -------------- | ---------------------------------------- |
 | `.env` line 50 | `MAIL_MAILER=log` → `MAIL_MAILER=resend` |
 
 No code changes. No config file changes. Just the environment.
@@ -410,10 +410,10 @@ for the real accounts used in demos and manual testing.
 
 ### What changed
 
-| File | Change |
-|---|---|
+| File                                   | Change                                                                                                                                                                                                  |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `database/seeders/DemoUsersSeeder.php` | **New.** Creates two accounts: `admin@wdems.test` (admin, verified, 2FA off) and `pomasinejboy@gmail.com` (staff, unverified, 2FA on). Idempotent — skips existing accounts. Guarded against production |
-| `database/seeders/DatabaseSeeder.php` | Rewritten to call `DemoUsersSeeder`. Removed the `test@example.com` factory call |
+| `database/seeders/DatabaseSeeder.php`  | Rewritten to call `DemoUsersSeeder`. Removed the `test@example.com` factory call                                                                                                                        |
 
 Both seeders use `WithoutModelEvents` to prevent the `Registered`
 event from firing — which would send a real verification email on
@@ -449,6 +449,7 @@ noting it was broken and fixed. A reader today would not know
 ISSUE-005 existed.
 
 ### GAP-002 — `docs/authentication.md` and `docs/architecture.md` do not
+
 mention FIX-003
 
 Neither doc mentions `EnsureEmailIsVerifiedOrAdmin` or the
@@ -478,11 +479,11 @@ file only records them.
 The three gaps identified at the end of this file have been closed.
 This is an append-only record — the original gap listing stays above.
 
-| Gap | Closed by | Verified by |
-|---|---|---|
-| GAP-001 — `authentication.md` did not mention FIX-002 | `docs/authentication.md` `## Corrections — Email Verification` section appended | `grep -n "FIX-002" docs/authentication.md` returns a hit |
+| Gap                                                                         | Closed by                                                                                               | Verified by                                                     |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| GAP-001 — `authentication.md` did not mention FIX-002                       | `docs/authentication.md` `## Corrections — Email Verification` section appended                         | `grep -n "FIX-002" docs/authentication.md` returns a hit        |
 | GAP-002 — `authentication.md` and `architecture.md` did not mention FIX-003 | Both docs got a new section describing the `verified.or.admin` alias and `EnsureEmailIsVerifiedOrAdmin` | `grep -rn "verified.or.admin" docs/` returns hits in both files |
-| GAP-003 — `AI-CONTEXT.md` never-touch list missing the middleware | `AI-CONTEXT.md` §16 lists both the middleware and the `MustVerifyEmail` interface | `grep -n "^## 16\." docs/AI-CONTEXT.md` returns a hit |
+| GAP-003 — `AI-CONTEXT.md` never-touch list missing the middleware           | `AI-CONTEXT.md` §16 lists both the middleware and the `MustVerifyEmail` interface                       | `grep -n "^## 16\." docs/AI-CONTEXT.md` returns a hit           |
 
 No further documentation follow-ups are pending from this session.
 
@@ -518,8 +519,8 @@ distance value. Latitude and longitude did not get the same treatment.
 
 ### What changed
 
-| File | Change |
-|---|---|
+| File                                 | Change                                                                                                                             |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `resources/js/pages/events/edit.tsx` | Added `normalizeCoordinate()` helper. Wrapped `event.venue_latitude` and `event.venue_longitude` in it before passing to `useForm` |
 
 No changes to `VenueStep.tsx`. The fix normalizes at the boundary.
@@ -566,15 +567,15 @@ step's `fields` array.
 
 ### What changed
 
-| File | Change |
-|---|---|
-| `resources/js/lib/event-validation.ts` | **New.** Four validators: `validateBasics`, `validateSchedule`, `validateVenue`, `validateExtras`. Each returns a `Record<fieldName, errorMessage>` |
-| `resources/js/components/wizard.tsx` | Added optional `validate?: (data) => Record<string, string>` to `WizardStepConfig`. `validateCurrentStep` uses it when present, falls back to emptiness otherwise |
-| `resources/js/components/wizard.tsx` | Error-jump effect now uses prefix matching: `k === f \|\| k.startsWith(f + '.')`, so `partners.0.name` routes to the step whose `fields` contains `partners` |
-| `resources/js/components/wizard.tsx` | `children(stepId, errors)` — render function now receives merged errors so field-level `<InputError>` slots fire |
-| `resources/js/pages/events/create.tsx` | Wired the four validators into `STEPS`. Render callback signature updated |
-| `resources/js/pages/events/edit.tsx` | Same wiring. Also renamed the step label `Basics` → `Details` |
-| `resources/js/pages/events/step/BasicsStep.tsx` | Renamed heading `Event Basics` → `Event Details`. Removed a dead `isEdit` ternary |
+| File                                            | Change                                                                                                                                                            |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resources/js/lib/event-validation.ts`          | **New.** Four validators: `validateBasics`, `validateSchedule`, `validateVenue`, `validateExtras`. Each returns a `Record<fieldName, errorMessage>`               |
+| `resources/js/components/wizard.tsx`            | Added optional `validate?: (data) => Record<string, string>` to `WizardStepConfig`. `validateCurrentStep` uses it when present, falls back to emptiness otherwise |
+| `resources/js/components/wizard.tsx`            | Error-jump effect now uses prefix matching: `k === f \|\| k.startsWith(f + '.')`, so `partners.0.name` routes to the step whose `fields` contains `partners`      |
+| `resources/js/components/wizard.tsx`            | `children(stepId, errors)` — render function now receives merged errors so field-level `<InputError>` slots fire                                                  |
+| `resources/js/pages/events/create.tsx`          | Wired the four validators into `STEPS`. Render callback signature updated                                                                                         |
+| `resources/js/pages/events/edit.tsx`            | Same wiring. Also renamed the step label `Basics` → `Details`                                                                                                     |
+| `resources/js/pages/events/step/BasicsStep.tsx` | Renamed heading `Event Basics` → `Event Details`. Removed a dead `isEdit` ternary                                                                                 |
 
 Server-side rules were also tightened to match: `partners` now has a
 `max:20` cap (was unlimited).
@@ -625,13 +626,13 @@ clear button.
 
 ### What changed
 
-| File | Change |
-|---|---|
-| `app/Concerns/EventValidationRules.php` | Added `public const MIN_EVENT_DURATION_MINUTES = 60`. `end_time` rule gained `after:start_time`. New `validateEventDuration()` method that runs via `Validator::after` and enforces the minimum when end is after start. New `eventMessages()` returns the custom `end_time.after` message |
-| `app/Http/Requests/EventRequest.php` | Added `withValidator()` that calls `validateEventDuration()`. Added `messages()` that returns `eventMessages()` |
-| `resources/js/lib/event-validation.ts` | `validateSchedule` now checks format → ordering → duration, in that order, and reports the most specific error first |
-| `resources/js/components/time-picker.tsx` | Added `clearable` prop. Renders a small X button when set and a value exists |
-| `resources/js/pages/events/step/ScheduleStep.tsx` | Passed `clearable` to the end_time picker only. Start time is required and stays non-clearable |
+| File                                              | Change                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `app/Concerns/EventValidationRules.php`           | Added `public const MIN_EVENT_DURATION_MINUTES = 60`. `end_time` rule gained `after:start_time`. New `validateEventDuration()` method that runs via `Validator::after` and enforces the minimum when end is after start. New `eventMessages()` returns the custom `end_time.after` message |
+| `app/Http/Requests/EventRequest.php`              | Added `withValidator()` that calls `validateEventDuration()`. Added `messages()` that returns `eventMessages()`                                                                                                                                                                            |
+| `resources/js/lib/event-validation.ts`            | `validateSchedule` now checks format → ordering → duration, in that order, and reports the most specific error first                                                                                                                                                                       |
+| `resources/js/components/time-picker.tsx`         | Added `clearable` prop. Renders a small X button when set and a value exists                                                                                                                                                                                                               |
+| `resources/js/pages/events/step/ScheduleStep.tsx` | Passed `clearable` to the end_time picker only. Start time is required and stays non-clearable                                                                                                                                                                                             |
 
 ### Evidence
 
@@ -688,10 +689,10 @@ strict about them at the same time — it accepts `data:` but rejects
 
 ### What changed
 
-| File | Change |
-|---|---|
-| `app/Concerns/EventValidationRules.php` | Replaced `'url'` with `'regex:/^https?:\/\//i'` on `course_url` |
-| `resources/js/lib/event-validation.ts` | Replaced the `new URL()` try/catch with the same regex. Error message changed to `"Course link must start with http:// or https://."` |
+| File                                              | Change                                                                                                                                                           |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/Concerns/EventValidationRules.php`           | Replaced `'url'` with `'regex:/^https?:\/\//i'` on `course_url`                                                                                                  |
+| `resources/js/lib/event-validation.ts`            | Replaced the `new URL()` try/catch with the same regex. Error message changed to `"Course link must start with http:// or https://."`                            |
 | `resources/js/pages/events/step/ScheduleStep.tsx` | Added `normalizeCourseUrl()` helper. Wired it to the input's `onBlur`. If the pasted value is non-empty and has no scheme, `https://` is prepended automatically |
 
 ### Evidence
@@ -747,8 +748,8 @@ uncontrolled mode and froze the display.
 
 ### What changed
 
-| File | Change |
-|---|---|
+| File                                      | Change                                                                                |
+| ----------------------------------------- | ------------------------------------------------------------------------------------- |
 | `resources/js/components/time-picker.tsx` | Both Selects now pass empty string `''` instead of `undefined` when the value is null |
 
 Two lines changed.
@@ -784,8 +785,8 @@ re-evaluate.
 
 ### What changed
 
-| File | Change |
-|---|---|
+| File                                 | Change                                                                                                                                                                                                                                                             |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `resources/js/components/wizard.tsx` | Added a `useEffect` gated on `[data, currentStep]` that re-runs `validateCurrentStep()` only when `stepErrors` is already non-empty. Fresh forms with no errors do not nag on every keystroke; errors only appear after Next/Submit and are then re-evaluated live |
 
 The effect intentionally omits `stepErrors` and `validateCurrentStep`
@@ -839,8 +840,8 @@ design choice, but there was no way for the user to know it existed.
 
 ### What changed
 
-| File | Change |
-|---|---|
+| File                                      | Change                                                                                                                                                                                |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `resources/js/components/time-picker.tsx` | `MINUTES` reduced to `[0, 15, 30, 45]`. Snap logic updated to `Math.min(45, Math.round(m / 15) * 15)`. Helper text was not needed — the dropdown itself only offers 15-minute options |
 
 **Server rules unchanged.** The `date_format:H:i` rule still accepts
@@ -884,13 +885,13 @@ format only, no comparison to the current date. `DatePicker` had no
 
 ### What changed
 
-| File | Change |
-|---|---|
-| `app/Concerns/EventValidationRules.php` | Added `public const MAX_EVENT_YEARS_AHEAD = 2`. `event_date` rules gained `after_or_equal:today` and `before:+2 years`. New messages in `eventMessages()` for both rules |
-| `tests/Feature/Events/EventDateRulesTest.php` | **New.** 8 tests covering: today accepted, tomorrow accepted, yesterday rejected, 5 years ago rejected, 2-years-minus-1-day accepted, 2-years-plus-1-day rejected, 3 years out rejected, 10 years out rejected |
-| `resources/js/lib/event-validation.ts` | Added `MAX_EVENT_YEARS_AHEAD` const and `isoToLocalMidnight()` helper. `validateSchedule` compares the selected date against today and today + 2 years |
-| `resources/js/components/date-picker.tsx` | Added `minDate` and `maxDate` props. Out-of-range day cells render disabled. The "Today" shortcut is disabled when today falls outside the range |
-| `resources/js/pages/events/step/ScheduleStep.tsx` | Added `pickerBounds()` helper. Passed `minDate={bounds.min}` and `maxDate={bounds.max}` to the `<DatePicker>`. Updated helper text to "Today or later, up to 2 years from today." |
+| File                                              | Change                                                                                                                                                                                                         |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/Concerns/EventValidationRules.php`           | Added `public const MAX_EVENT_YEARS_AHEAD = 2`. `event_date` rules gained `after_or_equal:today` and `before:+2 years`. New messages in `eventMessages()` for both rules                                       |
+| `tests/Feature/Events/EventDateRulesTest.php`     | **New.** 8 tests covering: today accepted, tomorrow accepted, yesterday rejected, 5 years ago rejected, 2-years-minus-1-day accepted, 2-years-plus-1-day rejected, 3 years out rejected, 10 years out rejected |
+| `resources/js/lib/event-validation.ts`            | Added `MAX_EVENT_YEARS_AHEAD` const and `isoToLocalMidnight()` helper. `validateSchedule` compares the selected date against today and today + 2 years                                                         |
+| `resources/js/components/date-picker.tsx`         | Added `minDate` and `maxDate` props. Out-of-range day cells render disabled. The "Today" shortcut is disabled when today falls outside the range                                                               |
+| `resources/js/pages/events/step/ScheduleStep.tsx` | Added `pickerBounds()` helper. Passed `minDate={bounds.min}` and `maxDate={bounds.max}` to the `<DatePicker>`. Updated helper text to "Today or later, up to 2 years from today."                              |
 
 ### Today is allowed — deliberately
 
@@ -906,8 +907,8 @@ this without blocking it, a soft warning was added in the same block.
 
 ### Today warning (SCH-06c)
 
-| File | Change |
-|---|---|
+| File                                              | Change                                                                                                                                         |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `resources/js/pages/events/step/ScheduleStep.tsx` | Added `todayIso()` helper and `isScheduledForToday` check. When the selected date matches today, a small amber warning appears under the field |
 
 Warning text:
@@ -979,11 +980,11 @@ absent. A bare domain satisfied every required part.
 
 ### What changed
 
-| File | Change |
-|---|---|
-| `app/Concerns/EventValidationRules.php` | `httpUrlPattern()` regex changed to require a path, query, or fragment with at least one more character after the separator. Messages for both URL rules updated to "must point to a specific location, like https://maps.app.goo.gl/abc123." |
-| `resources/js/lib/event-validation.ts` | `HTTP_URL_PATTERN` updated to the same regex. Both error messages updated |
-| `tests/Feature/Events/EventUrlRulesTest.php` | Six new tests: bare domain rejected for both fields, bare domain with trailing slash rejected for both fields, query string accepted, fragment accepted |
+| File                                         | Change                                                                                                                                                                                                                                        |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/Concerns/EventValidationRules.php`      | `httpUrlPattern()` regex changed to require a path, query, or fragment with at least one more character after the separator. Messages for both URL rules updated to "must point to a specific location, like https://maps.app.goo.gl/abc123." |
+| `resources/js/lib/event-validation.ts`       | `HTTP_URL_PATTERN` updated to the same regex. Both error messages updated                                                                                                                                                                     |
+| `tests/Feature/Events/EventUrlRulesTest.php` | Six new tests: bare domain rejected for both fields, bare domain with trailing slash rejected for both fields, query string accepted, fragment accepted                                                                                       |
 
 New regex:
 
@@ -994,14 +995,14 @@ followed by one or more characters.
 
 ### Behavior before and after
 
-| URL | Before | After |
-|---|---|---|
-| `https://maps.google.com` | Accepted | **Rejected** |
-| `https://maps.google.com/` | Accepted | **Rejected** |
-| `https://waze.com/` | Accepted | **Rejected** |
-| `https://maps.app.goo.gl/abc123` | Accepted | Accepted |
-| `https://maps.google.com/?q=14.5,120.9` | Accepted | Accepted |
-| `https://www.openstreetmap.org/#map=16/14.5/120.9` | Accepted | Accepted |
+| URL                                                | Before   | After        |
+| -------------------------------------------------- | -------- | ------------ |
+| `https://maps.google.com`                          | Accepted | **Rejected** |
+| `https://maps.google.com/`                         | Accepted | **Rejected** |
+| `https://waze.com/`                                | Accepted | **Rejected** |
+| `https://maps.app.goo.gl/abc123`                   | Accepted | Accepted     |
+| `https://maps.google.com/?q=14.5,120.9`            | Accepted | Accepted     |
+| `https://www.openstreetmap.org/#map=16/14.5/120.9` | Accepted | Accepted     |
 
 ### Evidence
 
@@ -1053,16 +1054,16 @@ Schema evolution without pruning. The wizard, the lifecycle, and the registratio
 
 ### What changed
 
-| File | Change |
-|---|---|
+| File                                                                               | Change                                                                                                                                                        |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `database/migrations/2026_09_25_170000_remove_rsvp_required_from_events_table.php` | **New** — `dropColumn('rsvp_required')`. `down()` re-adds it at `after('registration_end')` with `default(false)`, matching the original add-column migration |
-| `app/Models/Event.php` | Removed `'rsvp_required'` from `#[Fillable]` and from `casts()` |
-| `app/Concerns/EventValidationRules.php` | Removed `'rsvp_required' => ['boolean']` |
-| `app/Http/Controllers/EventController.php` | Removed 4 references — 2 reads (`show`, `edit`), 2 writes (`store`, `update`) |
-| `resources/js/pages/events/create.tsx` | Removed from `fields` array and initial `useForm` payload |
-| `resources/js/pages/events/edit.tsx` | Removed from `FormData` type, `fields` array, and initial values |
-| `resources/js/pages/events/show.tsx` | Removed from `Event` type and the `<DetailRow label="RSVP">` block |
-| `resources/js/pages/events/step/ExtrasStep.tsx` | Rewrote without the Registration section. Removed now-unused `Checkbox` and `Label` imports |
+| `app/Models/Event.php`                                                             | Removed `'rsvp_required'` from `#[Fillable]` and from `casts()`                                                                                               |
+| `app/Concerns/EventValidationRules.php`                                            | Removed `'rsvp_required' => ['boolean']`                                                                                                                      |
+| `app/Http/Controllers/EventController.php`                                         | Removed 4 references — 2 reads (`show`, `edit`), 2 writes (`store`, `update`)                                                                                 |
+| `resources/js/pages/events/create.tsx`                                             | Removed from `fields` array and initial `useForm` payload                                                                                                     |
+| `resources/js/pages/events/edit.tsx`                                               | Removed from `FormData` type, `fields` array, and initial values                                                                                              |
+| `resources/js/pages/events/show.tsx`                                               | Removed from `Event` type and the `<DetailRow label="RSVP">` block                                                                                            |
+| `resources/js/pages/events/step/ExtrasStep.tsx`                                    | Rewrote without the Registration section. Removed now-unused `Checkbox` and `Label` imports                                                                   |
 
 **Deliberately not removed:** the `rsvp_required` reference in the base migration `2026_09_21_093134_add_event_metadata_to_events_table.php`. Base migrations are append-only (AI-CONTEXT §8).
 
@@ -1099,9 +1100,9 @@ Laravel's `distinct` rule operates on a single column across array indices, not 
 
 Two candidates were considered:
 
-| Rule | Meaning |
-|---|---|
-| **(ii)** | Duplicates iff name AND type match |
+| Rule      | Meaning                                         |
+| --------- | ----------------------------------------------- |
+| **(ii)**  | Duplicates iff name AND type match              |
 | **(iii)** | Duplicates iff name matches, regardless of type |
 
 **Chosen: (ii).** A partner is a **relationship**, not an entity. Nike can be both a sponsor (funds) and a host (venue) of the same event — two contributions with two operational consequences. Forcing the organizer to write "Nike Philippines" and "Nike Inc." to dodge a name-collision rule would be fake differentiation: worse data, not cleaner.
@@ -1149,8 +1150,8 @@ The Accessibility grid rendered four category groups. Three contained multiple f
 
 ### What changed
 
-| File | Change |
-|---|---|
+| File                                             | Change                                                                                                                             |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `resources/js/components/accessibility-grid.tsx` | Removed the fourth `GROUPS` entry (`title: 'Sensory'`). Moved the `quiet_space_available` feature into the `Physical Access` group |
 
 `Physical Access` now contains three features: `stroller_friendly`, `wheelchair_accessible`, `quiet_space_available`.
@@ -1190,10 +1191,10 @@ Client side mirrors: `humanNameQualityError(value, label)` returns `null` on pas
 
 ### What changed
 
-| File | Change |
-|---|---|
+| File                                    | Change                                                                                                                                                |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `app/Concerns/EventValidationRules.php` | New `humanNameQualityRules()` method. `eventNameRules()` refactored to use the spread. `partners.*.name` expanded to include `'min:3'` and the spread |
-| `resources/js/lib/event-validation.ts` | New `humanNameQualityError()` helper. `validateBasics` and `validateExtras` both call it |
+| `resources/js/lib/event-validation.ts`  | New `humanNameQualityError()` helper. `validateBasics` and `validateExtras` both call it                                                              |
 
 ### Evidence
 
@@ -1232,10 +1233,10 @@ When a partner was invalid, the wizard correctly routed to the Extras step and t
 
 ### What changed
 
-| File | Change |
-|---|---|
-| `resources/js/components/partner-editor.tsx` | Added `errors?: Record<string, string>` prop with default `{}`. Added `InputError` import. Renders `<InputError message={errors[\`partners.${index}.name\`]} />` under the name input, and same for type |
-| `resources/js/pages/events/step/ExtrasStep.tsx` | Passes `errors={errors}` to `<PartnerEditor>` |
+| File                                            | Change                                                                                                                                                                                                   |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resources/js/components/partner-editor.tsx`    | Added `errors?: Record<string, string>` prop with default `{}`. Added `InputError` import. Renders `<InputError message={errors[\`partners.${index}.name\`]} />` under the name input, and same for type |
+| `resources/js/pages/events/step/ExtrasStep.tsx` | Passes `errors={errors}` to `<PartnerEditor>`                                                                                                                                                            |
 
 ### Evidence
 
@@ -1299,11 +1300,11 @@ the error bag and called `clearErrors()`. It passed `matching` (a
 
 ### What changed
 
-| File | Change |
-|---|---|
-| `resources/js/components/wizard.tsx` | Added `currentStepRef`. Error-jump effect reads through the ref and its deps drop `currentStep` to `[errors, steps]` |
+| File                                   | Change                                                                                                                                                                                   |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resources/js/components/wizard.tsx`   | Added `currentStepRef`. Error-jump effect reads through the ref and its deps drop `currentStep` to `[errors, steps]`                                                                     |
 | `resources/js/pages/events/create.tsx` | Wrapped `setData` to clear any server error matching the edited field or its subkeys. Casts bridge Inertia's narrow types to the wizard's `(key: string, value: unknown)` prop signature |
-| `resources/js/pages/events/edit.tsx` | Same wrapper as `create.tsx` |
+| `resources/js/pages/events/edit.tsx`   | Same wrapper as `create.tsx`                                                                                                                                                             |
 
 Both page wrappers spread the array: `clearErrors(...matching)`.
 
@@ -1434,7 +1435,7 @@ Three-layer detection in `RegistrationFieldValidationRules`:
 2. Levenshtein distance against aliases (threshold 1 for labels ≤9
    chars, 2 for longer)
 3. Substring matching intentionally not implemented — `"Emergency
-   contact"` and `"Parent email"` remain valid
+contact"` and `"Parent email"` remain valid
 
 ### Files
 
@@ -1584,7 +1585,7 @@ Two fields had no quality rules:
   characters passed.
 
 The at-least-one identity rule (`withValidator` Pass 3) is a
-presence rule, not a validity rule. It only fires when *both*
+presence rule, not a validity rule. It only fires when _both_
 email and phone are blank. A garbage phone with a valid email
 present slipped past it entirely.
 
@@ -1651,7 +1652,6 @@ to be repeated.
     php artisan test tests/Feature/ContactAddressQualityTest.php  (8 passed)
     php artisan test                                              (399 passed)
     npx tsc --noEmit                                              (silent)
-
 
 ## Running Events audit addendum — 2026-10-21
 

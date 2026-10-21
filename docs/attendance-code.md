@@ -13,6 +13,7 @@ spec for the finalize-event and end-of-event-report features.
 **Status:** Shipped 2026-10-14. Commit `d05c7e7`.
 
 **Related:**
+
 - `docs/attendance-encoding-and-reporting.md` -- original three-
   feature spec. Feature A (encoding workspace) is now partly
   superseded by this doc; Features B and C remain unbuilt.
@@ -52,10 +53,10 @@ the following Wednesday produced Wednesday attendance records.
 The system has three participant sources (`form`, `walk_in`,
 `paper`) but treats them as two categories for attendance.
 
-| Category | Sources | How attendance is known |
-|---|---|---|
-| Pre-registered | `form` | Unknown until the participant shows up. Must be verified at the table. |
-| Walk-in | `walk_in`, `paper` | Present by definition. They physically appeared -- the paper form or the live dialog is the record. |
+| Category       | Sources            | How attendance is known                                                                             |
+| -------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
+| Pre-registered | `form`             | Unknown until the participant shows up. Must be verified at the table.                              |
+| Walk-in        | `walk_in`, `paper` | Present by definition. They physically appeared -- the paper form or the live dialog is the record. |
 
 That split drives every decision below:
 
@@ -181,11 +182,11 @@ The attendance workspace (`/events/{event}/attendance`) accepts a
 
 The server accepts and normalizes five typographic variants:
 
-| Input | Normalized |
-|---|---|
+| Input       | Normalized  |
+| ----------- | ----------- |
 | `KM4X-P2N7` | `KM4X-P2N7` |
 | `km4x-p2n7` | `KM4X-P2N7` |
-| `KM4XP2N7` | `KM4X-P2N7` |
+| `KM4XP2N7`  | `KM4X-P2N7` |
 | `KM4X P2N7` | `KM4X-P2N7` |
 | `km4x p2n7` | `KM4X-P2N7` |
 
@@ -247,15 +248,15 @@ Anything else leaves `verified_at` null.
 confirm the participant's presence. It is set when the code the
 participant carried matched the code the system issued.
 
-| Scenario | `verified_at` |
-|---|---|
-| Participant speaks their code, staff enters it, marks Present | Set |
-| Participant speaks their code, staff enters it, marks Late | Set |
-| Participant speaks their code, staff marks Absent | Null -- a code proves presence, not absence |
-| Participant gives their name only, staff searches, marks Present | Null |
-| Bulk mark from a paper sheet | Null |
-| Admin `force_open` mark outside the window | Null |
-| Any walk-in | Null -- walk-ins have no code |
+| Scenario                                                         | `verified_at`                               |
+| ---------------------------------------------------------------- | ------------------------------------------- |
+| Participant speaks their code, staff enters it, marks Present    | Set                                         |
+| Participant speaks their code, staff enters it, marks Late       | Set                                         |
+| Participant speaks their code, staff marks Absent                | Null -- a code proves presence, not absence |
+| Participant gives their name only, staff searches, marks Present | Null                                        |
+| Bulk mark from a paper sheet                                     | Null                                        |
+| Admin `force_open` mark outside the window                       | Null                                        |
+| Any walk-in                                                      | Null -- walk-ins have no code               |
 
 ### 5.2 Why absence never sets it
 
@@ -293,10 +294,10 @@ against a global lookup -- the mark is scoped to one registration.
 
 Walk-in encoding has two modes:
 
-| Mode | When used | `attendance_time` |
-|---|---|---|
-| Live | The operator is registering a walk-in at the table, right now | `now()` -- automatic |
-| Deferred | The operator is transcribing a paper form after the fact | The arrival time typed by the operator, on the event's date |
+| Mode     | When used                                                     | `attendance_time`                                           |
+| -------- | ------------------------------------------------------------- | ----------------------------------------------------------- |
+| Live     | The operator is registering a walk-in at the table, right now | `now()` -- automatic                                        |
+| Deferred | The operator is transcribing a paper form after the fact      | The arrival time typed by the operator, on the event's date |
 
 **Live is the default.** Requests that omit `encoding_mode` fall
 into the live branch. This preserves the pre-existing behavior --
@@ -360,10 +361,10 @@ the cast in the model's `casts()` method before picking a type.
 
 Two new columns. Two migrations.
 
-| Table | Column | Type | Nullable | Notes |
-|---|---|---|---|---|
-| `registrations` | `attendance_code` | varchar(16) | yes | Unique with `event_id`. Null for walk-ins. |
-| `attendances` | `verified_at` | timestamp | yes | Set only by the code-lookup mark path. Indexed. |
+| Table           | Column            | Type        | Nullable | Notes                                           |
+| --------------- | ----------------- | ----------- | -------- | ----------------------------------------------- |
+| `registrations` | `attendance_code` | varchar(16) | yes      | Unique with `event_id`. Null for walk-ins.      |
+| `attendances`   | `verified_at`     | timestamp   | yes      | Set only by the code-lookup mark path. Indexed. |
 
 Migrations:
 
@@ -378,12 +379,12 @@ verify them because the mechanism did not exist yet.
 
 ## 8. Test coverage
 
-| File | Tests | Covers |
-|---|---|---|
-| `tests/Feature/Events/AttendanceVerificationTest.php` | 10 | `verified_at` semantics |
-| `tests/Feature/Events/AttendanceEncodingModeTest.php` | 7 | Single walk-in live/deferred |
-| `tests/Feature/Events/AttendanceBulkEncodingModeTest.php` | 7 | Bulk live/deferred with per-row times |
-| `tests/Feature/Public/RegistrationConfirmationMailTest.php` | 3 | Mail rendered, sent, and not sent |
+| File                                                        | Tests | Covers                                |
+| ----------------------------------------------------------- | ----- | ------------------------------------- |
+| `tests/Feature/Events/AttendanceVerificationTest.php`       | 10    | `verified_at` semantics               |
+| `tests/Feature/Events/AttendanceEncodingModeTest.php`       | 7     | Single walk-in live/deferred          |
+| `tests/Feature/Events/AttendanceBulkEncodingModeTest.php`   | 7     | Bulk live/deferred with per-row times |
+| `tests/Feature/Public/RegistrationConfirmationMailTest.php` | 3     | Mail rendered, sent, and not sent     |
 
 27 new tests. Full suite at close: 537 passed, 3 skipped, 1957
 assertions. Every pre-existing attendance test continues to pass
@@ -488,7 +489,6 @@ Migrations, views, tests:
 - `docs/AI-CONTEXT.md` section 18 -- the phone-required change.
 
 - `docs/progress.md` -- dated entry for the shipping session.
-
 
 ## Running Events audit addendum — 2026-10-21
 

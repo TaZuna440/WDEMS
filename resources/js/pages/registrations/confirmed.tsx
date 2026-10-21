@@ -15,7 +15,10 @@ const REGISTRATION_STEPS = [
     { id: 'confirmation', label: 'Confirmation' },
 ];
 
-export default function RegistrationConfirmed({ event_name, event_date }: Props) {
+export default function RegistrationConfirmed({
+    event_name,
+    event_date,
+}: Props) {
     return (
         <>
             <Head title={`Registration confirmed — ${event_name}`} />
@@ -26,17 +29,18 @@ export default function RegistrationConfirmed({ event_name, event_date }: Props)
                     maxReachedStep={4}
                 />
             </div>
-            <div className="rounded-xl border border-lime-brand/30 bg-lime-brand/5 p-10 text-center">
-                <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-lime-brand/15">
-                    <CheckCircle2 className="h-7 w-7 text-lime-brand" />
+            <div className="border-lime-brand/30 bg-lime-brand/5 rounded-xl border p-10 text-center">
+                <div className="bg-lime-brand/15 mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full">
+                    <CheckCircle2 className="text-lime-brand h-7 w-7" />
                 </div>
-                <h1 className="text-xl font-semibold text-foreground">
+                <h1 className="text-foreground text-xl font-semibold">
                     Your registration is confirmed.
                 </h1>
-                <p className="mt-2 text-sm text-muted-foreground">
-                    Your Registration Code has been acknowledged and is no longer displayed here.
+                <p className="text-muted-foreground mt-2 text-sm">
+                    Your Registration Code has been acknowledged and is no
+                    longer displayed here.
                 </p>
-                <p className="mt-6 text-sm text-foreground">
+                <p className="text-foreground mt-6 text-sm">
                     {event_name}
                     {event_date !== null && ` · ${event_date}`}
                 </p>

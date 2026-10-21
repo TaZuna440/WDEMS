@@ -13,6 +13,7 @@ what each step collects, how it is gated, and where each phase's code
 lives.
 
 **Related:**
+
 - `docs/composite-identity.md` — the identity rule the wizard consumes.
 - `docs/registration.md` — the original public-flow spec (pre-wizard).
 - `docs/registration-contact-verification.md` — the verification
@@ -26,13 +27,13 @@ lives.
 
 A 5-step wizard replaces the previous single-page public form.
 
-| Step | Name | Gate to advance | Shipped |
-|---|---|---|---|
-| 1 | Disclaimer & Consent | Both checkboxes checked | W2 |
-| 2 | Personal Information | All required fields valid | W3a |
-| 3 | Emergency Contact | All fields valid | W4 |
-| 4 | Verification | Chosen channel verified | W5.1, W5.2, W5.3 |
-| 5 | Confirmation | Acknowledge code | pre-existing |
+| Step | Name                 | Gate to advance           | Shipped          |
+| ---- | -------------------- | ------------------------- | ---------------- |
+| 1    | Disclaimer & Consent | Both checkboxes checked   | W2               |
+| 2    | Personal Information | All required fields valid | W3a              |
+| 3    | Emergency Contact    | All fields valid          | W4               |
+| 4    | Verification         | Chosen channel verified   | W5.1, W5.2, W5.3 |
+| 5    | Confirmation         | Acknowledge code          | pre-existing     |
 
 Progress UI mirrors the event-creation wizard's `wizard-progress`
 pattern. The participant cannot advance while the current step is
@@ -95,16 +96,16 @@ client wants per-event text, a new migration is needed).
 
 ## 3. Step 2 — Personal Information (W3a, shipped)
 
-| Field | Required | Notes |
-|---|---|---|
-| Last name | Yes | |
-| First name | Yes | |
-| Middle name | No | Added W1. Currently **not** in the composite identity key (§6, `composite-identity.md` §7.2) |
-| Suffix (Jr., Sr., II, III…) | No | Added W1. Currently **not** in the composite identity key |
-| Barangay & City | Yes | Replaces the free-text address field on the public form |
-| Contact # | Per event config | PH-only phone input |
-| Email | Per event config | |
-| Date of birth | Yes | DatePicker, bounded to ages 3–120 |
+| Field                       | Required         | Notes                                                                                        |
+| --------------------------- | ---------------- | -------------------------------------------------------------------------------------------- |
+| Last name                   | Yes              |                                                                                              |
+| First name                  | Yes              |                                                                                              |
+| Middle name                 | No               | Added W1. Currently **not** in the composite identity key (§6, `composite-identity.md` §7.2) |
+| Suffix (Jr., Sr., II, III…) | No               | Added W1. Currently **not** in the composite identity key                                    |
+| Barangay & City             | Yes              | Replaces the free-text address field on the public form                                      |
+| Contact #                   | Per event config | PH-only phone input                                                                          |
+| Email                       | Per event config |                                                                                              |
+| Date of birth               | Yes              | DatePicker, bounded to ages 3–120                                                            |
 
 A **"\* indicates required question"** legend renders above the
 YOUR DETAILS section.
@@ -165,11 +166,11 @@ on walk-in and staff paths.
 
 Required. Three fields:
 
-| Field | Required | Notes |
-|---|---|---|
-| Last, First name | Yes | Free text |
-| Relationship | Yes | Free text (Parent, Spouse, Sibling…) |
-| Contact # | Yes | PH mobile quality rules apply |
+| Field            | Required | Notes                                |
+| ---------------- | -------- | ------------------------------------ |
+| Last, First name | Yes      | Free text                            |
+| Relationship     | Yes      | Free text (Parent, Spouse, Sibling…) |
+| Contact #        | Yes      | PH mobile quality rules apply        |
 
 Stored on **`registrations`**, not on the participant. Rationale: a
 participant may list different emergency contacts for different
@@ -364,33 +365,33 @@ re-locks.
 
 ## 9. Data model changes
 
-| Table | Change | Phase |
-|---|---|---|
-| `participants` | `+ middle_name` (nullable), `+ suffix` (nullable varchar 16) | W1 |
-| `participants` | `DROP UNIQUE` on `email` and `contact_number_normalized` | W7 |
-| `participants` | `+ first_name_normalized`, `+ last_name_normalized` (nullable) | W7 |
-| `registrations` | `+ emergency_contact_name`, `+ emergency_contact_relationship`, `+ emergency_contact_number` (nullable at DB, required at finalize) | W1 |
-| `registrations` | `consent_accepted_at` and `privacy_notice_version` written at finalize (columns pre-existed) | W2 |
-| `registration_verification_challenges` | `+ chosen_channel` (nullable) | W5.1 |
-| `email_device_verifications` | New table: `email`, `device-token SHA-256 hash`, `verified_at`, `expires_at`; `MassPrunable` on expiry | W1, used by W5.3 |
+| Table                                  | Change                                                                                                                              | Phase            |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `participants`                         | `+ middle_name` (nullable), `+ suffix` (nullable varchar 16)                                                                        | W1               |
+| `participants`                         | `DROP UNIQUE` on `email` and `contact_number_normalized`                                                                            | W7               |
+| `participants`                         | `+ first_name_normalized`, `+ last_name_normalized` (nullable)                                                                      | W7               |
+| `registrations`                        | `+ emergency_contact_name`, `+ emergency_contact_relationship`, `+ emergency_contact_number` (nullable at DB, required at finalize) | W1               |
+| `registrations`                        | `consent_accepted_at` and `privacy_notice_version` written at finalize (columns pre-existed)                                        | W2               |
+| `registration_verification_challenges` | `+ chosen_channel` (nullable)                                                                                                       | W5.1             |
+| `email_device_verifications`           | New table: `email`, `device-token SHA-256 hash`, `verified_at`, `expires_at`; `MassPrunable` on expiry                              | W1, used by W5.3 |
 
 Full schema details in `docs/composite-identity.md` §3 (identity
 columns) and the migration files themselves.
 
 ## 10. Build phase status
 
-| Phase | Scope | Status | Notes |
-|---|---|---|---|
-| W1 | Schema migrations (additive) | Shipped | `middle_name`, `suffix`, emergency contact columns, device trust table |
-| W2 | Step 1 disclaimer & consent | Shipped | Closes P5 |
-| W3a | Step 2 personal info | Shipped | Middle name, suffix, PH phone, DatePicker drill-down |
-| W4 | Step 3 emergency contact | Shipped | Same-number soft warning |
-| W5.1 | Chosen channel + 100s cooldown + P2 fix | Shipped | Closes M5 |
-| W5.2 | Channel choice backend + UI | Shipped | Email OR phone verification |
-| W5.3 | Device trust (7-day cookie) | Shipped | OTP skip on trusted devices |
-| W5.4 | reCAPTCHA server-side | **Blocked** | Awaiting Google v2 keys |
-| W6 | Wizard shell (3-step) | Shipped | Progress on verify + confirmed pages |
-| W7 | Composite identity | Shipped | See `docs/composite-identity.md` |
+| Phase | Scope                                   | Status      | Notes                                                                  |
+| ----- | --------------------------------------- | ----------- | ---------------------------------------------------------------------- |
+| W1    | Schema migrations (additive)            | Shipped     | `middle_name`, `suffix`, emergency contact columns, device trust table |
+| W2    | Step 1 disclaimer & consent             | Shipped     | Closes P5                                                              |
+| W3a   | Step 2 personal info                    | Shipped     | Middle name, suffix, PH phone, DatePicker drill-down                   |
+| W4    | Step 3 emergency contact                | Shipped     | Same-number soft warning                                               |
+| W5.1  | Chosen channel + 100s cooldown + P2 fix | Shipped     | Closes M5                                                              |
+| W5.2  | Channel choice backend + UI             | Shipped     | Email OR phone verification                                            |
+| W5.3  | Device trust (7-day cookie)             | Shipped     | OTP skip on trusted devices                                            |
+| W5.4  | reCAPTCHA server-side                   | **Blocked** | Awaiting Google v2 keys                                                |
+| W6    | Wizard shell (3-step)                   | Shipped     | Progress on verify + confirmed pages                                   |
+| W7    | Composite identity                      | Shipped     | See `docs/composite-identity.md`                                       |
 
 **Test suite at W7 close:** 833 passed, 3 skipped (pre-existing
 Fortify 2FA env skips), 0 failed. `npx tsc --noEmit` silent.
@@ -400,23 +401,23 @@ Fortify 2FA env skips), 0 failed. `npx tsc --noEmit` silent.
 Every case from the Ana/mother/Joy scenario is answered by a phase or
 documented as a known limitation.
 
-| # | Case | Answered by | How |
-|---|---|---|---|
-| A1 | Ana registers, verifies | W5 | OTP → row + trust record |
-| M2 | Mother, same device+email, different name | W5 + W7 | Trust skips OTP; composite allows |
-| J3 | Joy, different device, Ana's exact details | W5 + W7 | OTP required; duplicate blocked |
-| J4 | Joy, different device, different name, same email | W5 | Inbox OTP is the gate |
-| M5 | Mother on her own phone | W5 | No trust → OTP (she has inbox) |
-| E1 | Name variant ("Maria D." vs "Maria") | W7 | Splits — documented limitation |
-| E2 | Same name, no suffix, shared email | W7 | Blocked — documented; suffix mitigates once §12.1 is closed |
-| E3 | Jr./Sr. with suffix | W7 | **Does not work yet** — suffix not in key (§12.1) |
-| E4 | Same key, new event | W7 | Same row — returning history |
-| E5 | Same key, same event | W7 | UNIQUE blocks — duplicate |
-| E6 | Organizer edits name | W7 | Detaches future matches — documented |
-| E7 | Trust expires / cookies cleared | W5 | Re-verify — safe fallback |
-| E8 | Channel choice (1 vs 2 required) | W5 | Skip choice vs pick |
-| E9 | Emergency = own number | W4 | Warn |
-| E10 | reCAPTCHA / 100s cooldown / P5 / P2 | W5 / W2 | E10 splits: cooldown + P5 + P2 shipped; reCAPTCHA blocked |
+| #   | Case                                              | Answered by | How                                                         |
+| --- | ------------------------------------------------- | ----------- | ----------------------------------------------------------- |
+| A1  | Ana registers, verifies                           | W5          | OTP → row + trust record                                    |
+| M2  | Mother, same device+email, different name         | W5 + W7     | Trust skips OTP; composite allows                           |
+| J3  | Joy, different device, Ana's exact details        | W5 + W7     | OTP required; duplicate blocked                             |
+| J4  | Joy, different device, different name, same email | W5          | Inbox OTP is the gate                                       |
+| M5  | Mother on her own phone                           | W5          | No trust → OTP (she has inbox)                              |
+| E1  | Name variant ("Maria D." vs "Maria")              | W7          | Splits — documented limitation                              |
+| E2  | Same name, no suffix, shared email                | W7          | Blocked — documented; suffix mitigates once §12.1 is closed |
+| E3  | Jr./Sr. with suffix                               | W7          | **Does not work yet** — suffix not in key (§12.1)           |
+| E4  | Same key, new event                               | W7          | Same row — returning history                                |
+| E5  | Same key, same event                              | W7          | UNIQUE blocks — duplicate                                   |
+| E6  | Organizer edits name                              | W7          | Detaches future matches — documented                        |
+| E7  | Trust expires / cookies cleared                   | W5          | Re-verify — safe fallback                                   |
+| E8  | Channel choice (1 vs 2 required)                  | W5          | Skip choice vs pick                                         |
+| E9  | Emergency = own number                            | W4          | Warn                                                        |
+| E10 | reCAPTCHA / 100s cooldown / P5 / P2               | W5 / W2     | E10 splits: cooldown + P5 + P2 shipped; reCAPTCHA blocked   |
 
 ## 12. Known limitations
 
@@ -459,26 +460,26 @@ tightening the public field.
 
 ## 13. Open items
 
-| Item | Owner | Status |
-|---|---|---|
-| W5.4 reCAPTCHA keys | Mark | Blocked — Google v2 site + secret |
-| Middle name + suffix in composite key | Dev | Not started (`composite-identity.md` §9.2) |
-| Name warning UI | Dev | Not started (`composite-identity.md` §9.1) |
-| Case sensitivity note fix | Dev | Doc-only (`composite-identity.md` §8) |
-| Client confirmation on Option A | Client | Pending |
-| Doc amendment on `participant-identity.md` §3 | Dev | This merge covers it (Block 4) |
+| Item                                          | Owner  | Status                                     |
+| --------------------------------------------- | ------ | ------------------------------------------ |
+| W5.4 reCAPTCHA keys                           | Mark   | Blocked — Google v2 site + secret          |
+| Middle name + suffix in composite key         | Dev    | Not started (`composite-identity.md` §9.2) |
+| Name warning UI                               | Dev    | Not started (`composite-identity.md` §9.1) |
+| Case sensitivity note fix                     | Dev    | Doc-only (`composite-identity.md` §8)      |
+| Client confirmation on Option A               | Client | Pending                                    |
+| Doc amendment on `participant-identity.md` §3 | Dev    | This merge covers it (Block 4)             |
 
 ## 14. Cross-references
 
-| Document | Purpose |
-|---|---|
-| `docs/composite-identity.md` | The identity rule the wizard consumes |
-| `docs/registration.md` | Original public-flow spec (pre-wizard) |
-| `docs/registration-contact-verification.md` | Verification subsystem; OTP mechanics |
-| `docs/registration-development-plan.md` | Original phased plan (pre-wizard) |
-| `docs/registration-monitoring.md` | Post-submit organizer view |
-| `docs/audit-2026-10-19.md` | Findings M1, M5, L1 touch this flow |
-| `docs/known-issues.md` | Open items ISSUE-014+ |
+| Document                                    | Purpose                                |
+| ------------------------------------------- | -------------------------------------- |
+| `docs/composite-identity.md`                | The identity rule the wizard consumes  |
+| `docs/registration.md`                      | Original public-flow spec (pre-wizard) |
+| `docs/registration-contact-verification.md` | Verification subsystem; OTP mechanics  |
+| `docs/registration-development-plan.md`     | Original phased plan (pre-wizard)      |
+| `docs/registration-monitoring.md`           | Post-submit organizer view             |
+| `docs/audit-2026-10-19.md`                  | Findings M1, M5, L1 touch this flow    |
+| `docs/known-issues.md`                      | Open items ISSUE-014+                  |
 
 ## 15. Changelog
 
@@ -488,7 +489,6 @@ tightening the public field.
   known limitations (suffix gap, name variant splits, per-event
   disclaimer deferral, address split). Lists blocked W5.4 and open
   items.
-
 
 ## Running Events audit addendum — 2026-10-21
 

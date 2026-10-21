@@ -197,7 +197,6 @@ passed for the new report, audit, encoder lookup, and public-warning UI. Removed
 the temporary preview Vite configuration. The user-created `attendance?-` and
 `verified_at` files and pre-existing changes were not removed or stashed.
 
-
 ## Running Events audit addendum — 2026-10-21
 
 Mark confirmed on 2026-10-21: kit claiming is a staff procedure outside the app, and public similarity warning belongs on Step 2. The earlier after-verification warning and pending placement question are superseded. The latest audit fixes list/filter gaps, ongoing intake, live attendance summary, and monitor identity validation. See the new audit for current status and validation.
