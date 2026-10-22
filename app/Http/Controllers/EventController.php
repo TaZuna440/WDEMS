@@ -9,6 +9,7 @@ use App\Enums\EventType;
 use App\Http\Requests\EventRequest;
 use App\Models\Event;
 use App\Services\EventWorkflow;
+use App\Support\ChurchSpecialistCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -119,6 +120,7 @@ class EventController extends Controller
                 'id' => $event->id,
                 'event_kind' => $event->event_kind,
                 'church_category' => $event->church_category,
+                'church_activity_category' => $event->church_activity_category,
                 'church_status' => $event->church_status?->value,
                 'event_type' => $event->event_type->value,
                 'event_type_label' => $event->event_type->label(),
@@ -213,30 +215,15 @@ class EventController extends Controller
     }
 
     /**
-     * Show the unified church wizard with a category preset.
-     *
-     * Only the six unbuilt categories route here. The three built
-     * ones (Services, Fellowship, Discipleship) have their own
-     * landing pages and creation flows — the create cards route
-     * directly there.
+     * Show the shared church-event wizard with specialist module presets.
      */
-    public function createChurchCategory(string $category): Response
+    public function createSpecialist(string $ministrySlug, ?string $activitySlug = null): Response
     {
-        $valid = [
-            'kids',
-            'young-adult',
-            'worship-prayer',
-            'special-occasions',
-            'church-administration',
-        ];
+        $ministry = ChurchSpecialistCatalog::ministry($ministrySlug);
+        $activity = $activitySlug === null
+            ? null
+            : ChurchSpecialistCatalog::activity($ministrySlug, $activitySlug);
 
-        if (! in_array($category, $valid, true)) {
-            abort(404);
-        }
-
-        // The wizard restricts church_category to the six unbuilt
-        // categories so a user cannot accidentally create a plain
-        // event with a category that has its own module.
         return Inertia::render('events/create', [
             'event_types' => collect([EventType::Church])
                 ->map(fn (EventType $type) => [
@@ -244,27 +231,21 @@ class EventController extends Controller
                     'label' => $type->label(),
                 ])
                 ->values(),
-            'church_categories' => collect(ChurchCategory::cases())
-                ->filter(fn (ChurchCategory $c) => in_array($c->value, [
-                    'Kids Ministry', 'Young Adult',
-                    'Worship & Prayer', 'Special Occasions',
-                    'Church Administration',
-                ], true))
-                ->map(fn (ChurchCategory $category) => [
-                    'value' => $category->value,
-                    'label' => $category->label(),
-                ])
+            'church_categories' => [[
+                'value' => $ministry['church_category'],
+                'label' => $ministry['label'],
+            ]],
+            'specialist_activity_options' => collect($ministry['activities'])
+                ->map(fn (string $label) => ['value' => $label, 'label' => $label])
                 ->values(),
+            'preset_church_activity_category' => $activity['label'] ?? null,
+            'specialist_workflow' => true,
+            'lock_specialist_activity' => $activity !== null,
             'preset_event_type' => EventType::Church->value,
-            'preset_church_category' => ChurchCategory::from(match ($category) {
-                'kids' => 'Kids Ministry',
-                'young-adult' => 'Young Adult',
-                'worship-prayer' => 'Worship & Prayer',
-                'special-occasions' => 'Special Occasions',
-                'church-administration' => 'Church Administration',
-            })->value,
+            'preset_church_category' => $ministry['church_category'],
             'lock_type' => true,
-            'storage_key' => "wdems-wizard-create-church-{$category}",
+            'lock_church_category' => true,
+            'storage_key' => "wdems-wizard-create-church-{$ministrySlug}-".($activitySlug ?? 'choose-category'),
         ]);
     }
 
@@ -275,10 +256,11 @@ class EventController extends Controller
         $kind = $validated['event_kind'] ?? Event::KIND_RUNNING;
         $isChurch = $kind === Event::KIND_CHURCH;
 
-        Event::create([
+        $event = Event::create([
             'created_by' => $request->user()->id,
             'event_kind' => $kind,
             'church_category' => $isChurch ? ($validated['church_category'] ?? null) : null,
+            'church_activity_category' => $isChurch ? ($validated['church_activity_category'] ?? null) : null,
             'church_status' => $isChurch ? ($validated['church_status'] ?? null) : null,
             'event_type' => $validated['event_type'],
             'event_name' => $validated['event_name'],
@@ -308,6 +290,10 @@ class EventController extends Controller
             // church_status for church events, not status.
             'status' => EventStatus::Draft,
         ]);
+
+        if ($isChurch && isset($validated['church_activity_category'])) {
+            return redirect()->route('events.show', $event);
+        }
 
         return redirect()->route('events.index');
     }

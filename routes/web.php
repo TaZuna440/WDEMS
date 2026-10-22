@@ -3,10 +3,10 @@
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Auth\DeviceVerificationController;
 use App\Http\Controllers\ChurchAttendanceController;
-use App\Http\Controllers\ChurchCategoryPlaceholderController;
 use App\Http\Controllers\ChurchParticipantHistoryController;
 use App\Http\Controllers\ChurchRegistrationBridgeController;
 use App\Http\Controllers\ChurchRegistrationController;
+use App\Http\Controllers\ChurchSpecialistController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiscipleshipAttendanceController;
 use App\Http\Controllers\DiscipleshipBatchController;
@@ -29,7 +29,6 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReportIndexController;
 use App\Http\Controllers\ServiceAttendanceController;
 use App\Http\Controllers\ServiceController;
-use App\Http\Controllers\YouthController;
 use App\Http\Middleware\EnsureRegistrationIsOpen;
 use App\Http\Middleware\ProtectRegistrationVerification;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -155,8 +154,8 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     Route::get('events/create', [EventController::class, 'create'])->name('events.create');
     Route::get('events/create/community-run', [EventController::class, 'createCommunityRun'])->name('events.create.community-run');
     Route::get('events/create/church', [EventController::class, 'createChurch'])->name('events.create.church');
-    Route::get('events/create/church/{category}', [EventController::class, 'createChurchCategory'])
-        ->whereIn('category', ['kids', 'young-adult', 'worship-prayer', 'special-occasions', 'church-administration'])
+    Route::get('events/create/church/{ministry}/{activity?}', [EventController::class, 'createSpecialist'])
+        ->whereIn('ministry', ['youth', 'kids', 'young-adult', 'worship-prayer', 'church-administration', 'special-occasions'])
         ->name('events.create.church.category');
     Route::post('events', [EventController::class, 'store'])->name('events.store');
     Route::get('events/{event}', [EventController::class, 'show'])->name('events.show');
@@ -412,24 +411,12 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
             Route::get('programs/{program:slug}', [DiscipleshipController::class, 'show'])
                 ->name('programs.show');
         });
-        // Placeholder landing for the six unbuilt church categories.
-        // Phase 4 replaces each with a real module page.
-
-        // Youth hub and sub-module placeholders.
-        Route::get('youth', [YouthController::class, 'index'])
-            ->name('events.church.youth');
-        Route::get('youth/{sub}', [YouthController::class, 'placeholder'])
-            ->whereIn('sub', ['camp', 'huddle', 'campus-ministry', 'timothy-class'])
-            ->name('events.church.youth.sub');
-        Route::get('{category}', ChurchCategoryPlaceholderController::class)
-            ->whereIn('category', [
-                'kids',
-                'young-adult',
-                'worship-prayer',
-                'special-occasions',
-                'church-administration',
-            ])
-            ->name('events.church.placeholder');
+        Route::get('{ministry}/{activity}', [ChurchSpecialistController::class, 'category'])
+            ->whereIn('ministry', ['youth', 'kids', 'young-adult', 'worship-prayer', 'church-administration', 'special-occasions'])
+            ->name('events.church.specialist.category');
+        Route::get('{ministry}', [ChurchSpecialistController::class, 'ministry'])
+            ->whereIn('ministry', ['youth', 'kids', 'young-adult', 'worship-prayer', 'church-administration', 'special-occasions'])
+            ->name('events.church.specialist.ministry');
     }); // close /events/church prefix group
     // Admin-only routes — same trusted-device pipeline, admin gate layered on top.
     Route::middleware('admin')->group(function () {

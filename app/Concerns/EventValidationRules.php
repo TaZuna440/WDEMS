@@ -7,6 +7,7 @@ use App\Enums\ChurchEventStatus;
 use App\Enums\EventStatus;
 use App\Enums\EventType;
 use App\Models\Event;
+use App\Support\ChurchSpecialistCatalog;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Validation\Rule;
@@ -118,6 +119,13 @@ trait EventValidationRules
             'event_kind' => [
                 'nullable',
                 Rule::in([Event::KIND_RUNNING, Event::KIND_CHURCH]),
+            ],
+            'specialist_workflow' => ['sometimes', 'boolean'],
+            'church_activity_category' => [
+                'nullable',
+                'required_if:specialist_workflow,1',
+                'string',
+                Rule::in(ChurchSpecialistCatalog::activityLabelsForChurchCategory($this->input('church_category'))),
             ],
 
             // Step 1 -- Basics (kind-dependent)

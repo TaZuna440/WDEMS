@@ -32,6 +32,7 @@ type EventData = {
     event_type_label: string;
     event_kind: string;
     church_category: string | null;
+    church_activity_category: string | null;
     description: string | null;
     event_date: string | null;
     start_time: string | null;
@@ -345,6 +346,13 @@ export default function EventsShow({
                                     event.event_type_label
                                 }
                             />
+                            {event.church_activity_category && (
+                                <DetailRow
+                                    icon={Tag}
+                                    label="Activity Category"
+                                    value={event.church_activity_category}
+                                />
+                            )}
                             <DetailRow
                                 icon={Calendar}
                                 label="Event Date"

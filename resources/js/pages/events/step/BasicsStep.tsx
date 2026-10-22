@@ -27,6 +27,7 @@ type FormData = {
     church_category: string;
     event_name: string;
     description: string;
+    church_activity_category?: string;
 } & Partial<Record<AccessibilityField, boolean>>;
 
 type Props = {
@@ -35,8 +36,11 @@ type Props = {
     errors: Record<string, string>;
     eventTypes: EventTypeOption[];
     churchCategories: ChurchCategoryOption[];
+    specialistActivityOptions?: ChurchCategoryOption[];
     isEdit?: boolean;
     lockEventType?: boolean;
+    lockChurchCategory?: boolean;
+    lockSpecialistActivity?: boolean;
 };
 
 const ACCESSIBILITY_FIELDS: AccessibilityField[] = [
@@ -56,8 +60,11 @@ export default function BasicsStep({
     errors,
     eventTypes,
     churchCategories,
+    specialistActivityOptions = [],
     isEdit = false,
     lockEventType = false,
+    lockChurchCategory = false,
+    lockSpecialistActivity = false,
 }: Props) {
     const isChurch = data.event_type === 'church';
 
@@ -122,6 +129,7 @@ export default function BasicsStep({
                         onValueChange={(value) =>
                             setData('church_category', value)
                         }
+                        disabled={lockChurchCategory}
                     >
                         <SelectTrigger id="church_category">
                             <SelectValue placeholder="Select a church event type" />
@@ -138,6 +146,37 @@ export default function BasicsStep({
                         </SelectContent>
                     </Select>
                     <InputError message={errors.church_category} />
+                </div>
+            )}
+
+            {isChurch && specialistActivityOptions.length > 0 && (
+                <div className="grid gap-2">
+                    <Label htmlFor="church_activity_category">
+                        Activity Category{' '}
+                        <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                        value={data.church_activity_category ?? ''}
+                        onValueChange={(value) =>
+                            setData('church_activity_category', value)
+                        }
+                        disabled={lockSpecialistActivity}
+                    >
+                        <SelectTrigger id="church_activity_category">
+                            <SelectValue placeholder="Select an activity category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {specialistActivityOptions.map((activity) => (
+                                <SelectItem
+                                    key={activity.value}
+                                    value={activity.value}
+                                >
+                                    {activity.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <InputError message={errors.church_activity_category} />
                 </div>
             )}
 
