@@ -46,7 +46,7 @@ export default function ReportsIndex({ events, activeSide }: Props) {
                             Running
                         </Link>
                         <Link
-                            className={`rounded-full border px-3 py-1 text-xs ${activeSide === 'church' ? 'border-violet-400 text-violet-300' : 'border-border text-muted-foreground'}`}
+                            className={`rounded-full border px-3 py-1 text-xs ${activeSide === 'church' ? 'border-lime-brand dark:text-lime-brand text-[#3f6212]' : 'border-border text-muted-foreground'}`}
                             href="/reports?kind=church"
                         >
                             Church

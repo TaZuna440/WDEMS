@@ -72,7 +72,7 @@ export default function ChurchParticipantHistory({
 
                 <section className="glass-panel rounded-xl p-6">
                     <div className="mb-4 flex items-center gap-2">
-                        <History className="h-4 w-4 text-violet-400" />
+                        <History className="dark:text-lime-brand h-4 w-4 text-[#3f6212]" />
                         <h2 className="text-sm font-semibold tracking-wider uppercase">
                             Attendance history
                         </h2>

@@ -86,10 +86,10 @@ const URGENCY: Record<
 > = {
     needs_review: {
         label: 'NEEDS REVIEW',
-        dot: 'bg-violet-400',
-        border: 'border-violet-400/30',
-        text: 'text-violet-300',
-        btn: 'border-violet-400/40 text-violet-300 hover:bg-violet-500/20',
+        dot: 'bg-lime-brand',
+        border: 'border-lime-brand/30',
+        text: 'text-[#3f6212] dark:text-lime-brand',
+        btn: 'border-lime-brand/40 text-[#3f6212] hover:bg-lime-brand/15 dark:text-lime-brand',
     },
     overdue: {
         label: 'OVERDUE',
@@ -115,9 +115,9 @@ const URGENCY: Record<
     waiting: {
         label: 'WAITING',
         dot: 'bg-muted-foreground',
-        border: 'border-white/10',
+        border: 'border-border',
         text: 'text-muted-foreground',
-        btn: 'border-white/20 text-foreground hover:bg-white/5',
+        btn: 'border-border text-foreground hover:bg-accent',
     },
 };
 
@@ -195,10 +195,10 @@ export default function Dashboard({
                 {/* Header */}
                 <div className="flex flex-col justify-between gap-4 pl-10 md:flex-row md:items-end">
                     <div>
-                        <h1 className="text-2xl font-semibold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.55)]">
+                        <h1 className="text-foreground text-2xl font-semibold">
                             Dashboard
                         </h1>
-                        <p className="mt-1 text-sm text-white/90">
+                        <p className="text-muted-foreground mt-1 text-sm">
                             What needs your attention right now.
                         </p>
                     </div>
@@ -207,13 +207,13 @@ export default function Dashboard({
                     <div
                         role="tablist"
                         aria-label="Dashboard side"
-                        className="flex items-center rounded-lg border border-white/10 bg-white/5 p-1"
+                        className="border-border bg-card/60 flex items-center rounded-lg border p-1"
                     >
                         <button
                             role="tab"
                             aria-selected={activeSide === 'running'}
                             onClick={() => changeSide('running')}
-                            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${activeSide === 'running' ? 'bg-lime-brand text-navy-900 shadow' : 'text-muted-foreground hover:text-white'}`}
+                            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${activeSide === 'running' ? 'bg-lime-brand text-navy-900 shadow' : 'text-muted-foreground hover:text-foreground'}`}
                         >
                             Running Events
                         </button>
@@ -221,7 +221,7 @@ export default function Dashboard({
                             role="tab"
                             aria-selected={activeSide === 'church'}
                             onClick={() => changeSide('church')}
-                            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${activeSide === 'church' ? 'bg-violet-500 text-white shadow' : 'text-muted-foreground hover:text-white'}`}
+                            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${activeSide === 'church' ? 'bg-lime-brand text-navy-900 shadow' : 'text-muted-foreground hover:text-foreground'}`}
                         >
                             Church Events
                         </button>
@@ -233,7 +233,7 @@ export default function Dashboard({
                     className="flex flex-wrap gap-2 pl-10"
                 >
                     <Link
-                        className="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15"
+                        className="border-border bg-card/60 text-foreground hover:bg-accent rounded-md border px-3 py-2 text-sm"
                         href={
                             activeSide === 'church'
                                 ? '/events/create/church'
@@ -244,7 +244,7 @@ export default function Dashboard({
                         {activeSide === 'church' ? 'Church' : 'Running'} Event
                     </Link>
                     <Link
-                        className="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15"
+                        className="border-border bg-card/60 text-foreground hover:bg-accent rounded-md border px-3 py-2 text-sm"
                         href={
                             activeSide === 'church'
                                 ? eventsHref
@@ -256,7 +256,7 @@ export default function Dashboard({
                             : 'Open Registration'}
                     </Link>
                     <Link
-                        className="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15"
+                        className="border-border bg-card/60 text-foreground hover:bg-accent rounded-md border px-3 py-2 text-sm"
                         href={
                             activeSide === 'church' ? eventsHref : '/attendance'
                         }
@@ -264,7 +264,7 @@ export default function Dashboard({
                         Record Attendance
                     </Link>
                     <Link
-                        className="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15"
+                        className="border-border bg-card/60 text-foreground hover:bg-accent rounded-md border px-3 py-2 text-sm"
                         href={`/reports?kind=${activeSide}`}
                     >
                         Reports
@@ -283,12 +283,10 @@ export default function Dashboard({
                                 {stat.label}
                             </p>
                             <div className="mt-2">
-                                <p className="text-3xl font-semibold text-white">
+                                <p className="text-foreground text-3xl font-semibold">
                                     {stat.value}
                                 </p>
-                                <p
-                                    className={`mt-1 text-xs ${activeSide === 'running' ? 'text-lime-brand' : 'text-violet-400'}`}
-                                >
+                                <p className="dark:text-lime-brand mt-1 text-xs text-[#3f6212]">
                                     {stat.subtext}
                                 </p>
                             </div>
@@ -304,7 +302,7 @@ export default function Dashboard({
                             <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                                 Needs Attention
                             </h2>
-                            <span className="text-muted-foreground rounded-full bg-white/5 px-2 py-0.5 text-xs font-medium">
+                            <span className="text-muted-foreground bg-muted rounded-full px-2 py-0.5 text-xs font-medium">
                                 {actionItems.length}
                             </span>
                         </div>
@@ -339,7 +337,7 @@ export default function Dashboard({
                                                 </div>
                                             )}
                                             <div
-                                                className={`rounded-lg border ${u.border} bg-white/[0.02] p-3 transition-colors hover:bg-white/[0.04]`}
+                                                className={`rounded-lg border ${u.border} bg-card/40 hover:bg-accent/40 p-3 transition-colors`}
                                             >
                                                 <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                                                     <div>
@@ -392,8 +390,8 @@ export default function Dashboard({
                                         key={act.id}
                                         className="flex items-start gap-3"
                                     >
-                                        <div className="mt-0.5 rounded-full bg-white/10 p-1.5">
-                                            <Activity className="h-3 w-3 text-white/70" />
+                                        <div className="bg-muted mt-0.5 rounded-full p-1.5">
+                                            <Activity className="text-muted-foreground h-3 w-3" />
                                         </div>
                                         <div>
                                             <p className="text-foreground text-sm">
@@ -431,11 +429,11 @@ export default function Dashboard({
                                 {upcoming.map((e) => (
                                     <li
                                         key={e.id}
-                                        className="border-b border-white/5 last:border-b-0"
+                                        className="border-border/60 border-b last:border-b-0"
                                     >
                                         <Link
                                             href={`/events/${e.id}`}
-                                            className="flex items-center justify-between gap-3 py-3 transition-colors hover:bg-white/[0.02]"
+                                            className="hover:bg-accent/40 flex items-center justify-between gap-3 py-3 transition-colors"
                                         >
                                             <div className="flex-1">
                                                 <p className="text-foreground text-sm font-medium">
@@ -453,14 +451,7 @@ export default function Dashboard({
                                                                 }
                                                             </span>
                                                         )}
-                                                    <span
-                                                        className={
-                                                            activeSide ===
-                                                            'running'
-                                                                ? 'text-lime-brand'
-                                                                : 'text-violet-400'
-                                                        }
-                                                    >
+                                                    <span className="dark:text-lime-brand text-[#3f6212]">
                                                         {daysText(e.days_until)}
                                                     </span>
                                                 </p>
@@ -492,11 +483,11 @@ export default function Dashboard({
                                             ),
                                         )
                                     }
-                                    className="rounded p-1 hover:bg-white/10"
+                                    className="hover:bg-accent rounded p-1"
                                 >
                                     <ChevronLeft className="h-4 w-4" />
                                 </button>
-                                <span className="text-xs font-medium text-white">
+                                <span className="text-foreground text-xs font-medium">
                                     {currentMonth.toLocaleString('default', {
                                         month: 'short',
                                         year: 'numeric',
@@ -512,7 +503,7 @@ export default function Dashboard({
                                             ),
                                         )
                                     }
-                                    className="rounded p-1 hover:bg-white/10"
+                                    className="hover:bg-accent rounded p-1"
                                 >
                                     <ChevronRight className="h-4 w-4" />
                                 </button>
@@ -574,7 +565,7 @@ export default function Dashboard({
                                         onBlur={() =>
                                             setHoveredCalendarDate(null)
                                         }
-                                        className={`relative flex h-9 flex-col items-center justify-center rounded-md text-xs ${today ? (activeSide === 'running' ? 'bg-lime-brand text-navy-900 font-semibold' : 'bg-violet-500 font-semibold text-white') : 'text-white/70 hover:bg-white/5'}`}
+                                        className={`relative flex h-9 flex-col items-center justify-center rounded-md text-xs ${today || isSelected ? 'bg-lime-brand text-navy-900 font-semibold' : 'text-foreground/75 hover:bg-accent'}`}
                                     >
                                         {day}
                                         {events.length > 0 && (
@@ -585,7 +576,7 @@ export default function Dashboard({
                                                 {events.map((event) => (
                                                     <span
                                                         key={event.id}
-                                                        className={`h-1 w-1 rounded-full ${activeSide === 'running' ? 'bg-lime-brand' : 'bg-violet-400'}`}
+                                                        className="bg-lime-brand h-1 w-1 rounded-full"
                                                     />
                                                 ))}
                                             </span>
@@ -599,11 +590,11 @@ export default function Dashboard({
                                 (eventsByDate.get(calendarDetailDate) ?? [])
                                     .length > 0) && (
                                 <div
-                                    className="mt-4 rounded-lg border border-white/10 bg-white/5 p-3"
+                                    className="border-border bg-card/70 mt-4 rounded-lg border p-3"
                                     role="region"
                                     aria-label={`Events on ${calendarDetailDate}`}
                                 >
-                                    <p className="text-xs font-semibold text-white">
+                                    <p className="text-foreground text-xs font-semibold">
                                         {new Date(
                                             `${calendarDetailDate}T00:00:00`,
                                         ).toLocaleDateString(undefined, {
@@ -622,7 +613,7 @@ export default function Dashboard({
                                             ).map((event) => (
                                                 <li key={event.id}>
                                                     <Link
-                                                        className="text-xs text-violet-300 underline"
+                                                        className="dark:text-lime-brand text-[#3f6212] underline"
                                                         href={`/events/${event.id}`}
                                                     >
                                                         {event.event_name}
@@ -657,10 +648,10 @@ export default function Dashboard({
                                         <Link
                                             key={i}
                                             href={cat.href}
-                                            className="flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1.5 text-xs font-medium text-violet-300"
+                                            className="border-lime-brand/30 bg-lime-brand/10 dark:text-lime-brand flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium text-[#3f6212]"
                                         >
                                             {cat.label}
-                                            <span className="rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[10px] text-violet-200">
+                                            <span className="bg-lime-brand/20 dark:text-lime-brand rounded-full px-1.5 py-0.5 text-[10px] text-[#3f6212]">
                                                 {cat.count}
                                             </span>
                                         </Link>
@@ -685,7 +676,7 @@ export default function Dashboard({
                                             participant pool
                                         </p>
                                     </div>
-                                    <span className="rounded-full bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-violet-300">
+                                    <span className="bg-lime-brand/10 dark:text-lime-brand rounded-full px-2.5 py-1 text-xs font-medium text-[#3f6212]">
                                         Top 5
                                     </span>
                                 </div>
@@ -703,7 +694,7 @@ export default function Dashboard({
                                                         href={
                                                             person.history_url
                                                         }
-                                                        className="flex flex-col gap-1 py-3 transition-colors hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between"
+                                                        className="hover:bg-accent/40 flex flex-col gap-1 py-3 transition-colors sm:flex-row sm:items-center sm:justify-between"
                                                     >
                                                         <span className="text-foreground text-sm font-medium">
                                                             <span className="text-muted-foreground mr-2">
@@ -750,7 +741,7 @@ export default function Dashboard({
                                 </p>
                             </div>
                             <div className="grid gap-3 sm:grid-cols-3">
-                                <div className="rounded-lg border border-white/10 p-3">
+                                <div className="border-border rounded-lg border p-3">
                                     <p className="text-muted-foreground text-xs">
                                         Average show rate · last{' '}
                                         {eventStatistics.recent_runs.length ||
@@ -761,7 +752,7 @@ export default function Dashboard({
                                         {eventStatistics.average_show_rate}%
                                     </p>
                                 </div>
-                                <div className="rounded-lg border border-white/10 p-3">
+                                <div className="border-border rounded-lg border p-3">
                                     <p className="text-muted-foreground text-xs">
                                         Paper-encoded walk-ins
                                     </p>
@@ -769,7 +760,7 @@ export default function Dashboard({
                                         {eventStatistics.paper_encoded_walk_ins}
                                     </p>
                                 </div>
-                                <div className="rounded-lg border border-white/10 p-3">
+                                <div className="border-border rounded-lg border p-3">
                                     <p className="text-muted-foreground text-xs">
                                         First-time runners this month
                                     </p>
@@ -785,7 +776,7 @@ export default function Dashboard({
                                     {eventStatistics.recent_runs.map((run) => (
                                         <li
                                             key={run.id}
-                                            className="rounded-lg border border-white/10 p-3"
+                                            className="border-border rounded-lg border p-3"
                                         >
                                             <Link
                                                 href={`/events/${run.id}`}
