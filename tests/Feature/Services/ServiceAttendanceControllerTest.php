@@ -255,7 +255,7 @@ test('a member attendance row can be marked absent', function () {
     expect($row->fresh()->attendance_status)->toBe('absent');
 });
 
-test('a first-timer attendance row can be marked excused', function () {
+test('marking rejects excused for a first-timer attendance row', function () {
     $participant = makeParticipant();
     $row = ServiceAttendanceFirstTimer::create([
         'service_occurrence_id' => $this->occurrence->id,
@@ -264,11 +264,29 @@ test('a first-timer attendance row can be marked excused', function () {
     ]);
 
     $this->actingAs($this->staff)
-        ->put(route('services.attendance.mark-first-timer', [
+        ->putJson(route('services.attendance.mark-first-timer', [
             'occurrence' => $this->occurrence->id,
             'attendance' => $row->id,
         ]), ['attendance_status' => 'excused'])
-        ->assertRedirect();
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('attendance_status');
+
+    expect($row->fresh()->attendance_status)->toBe('present');
+});
+
+test('an existing excused attendance row remains visible on the legacy page', function () {
+    $participant = makeParticipant();
+    $row = ServiceAttendanceMember::create([
+        'service_occurrence_id' => $this->occurrence->id,
+        'participant_id' => $participant->id,
+        'attendance_status' => 'excused',
+    ]);
+
+    $this->actingAs($this->staff)
+        ->get(route('services.attendance.show', ['occurrence' => $this->occurrence->id]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('members.0.attendance_status', 'excused'));
 
     expect($row->fresh()->attendance_status)->toBe('excused');
 });

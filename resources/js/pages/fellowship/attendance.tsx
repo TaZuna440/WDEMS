@@ -78,15 +78,12 @@ type Props = {
 const STATUS_OPTIONS = [
     { value: 'present', label: 'Present' },
     { value: 'absent', label: 'Absent' },
-    { value: 'excused', label: 'Excused' },
 ];
 
 const STATUS_STYLES: Record<string, string> = {
     present:
         'bg-lime-brand/15 text-lime-700 border-lime-brand/30 dark:text-lime-brand',
     absent: 'bg-destructive/10 text-destructive border-destructive/30',
-    excused:
-        'bg-[#13253B]/10 text-[#13253B] border-[#13253B]/30 dark:bg-yellow-500/10 dark:text-yellow-500 dark:border-yellow-500/30',
 };
 
 const NO_GROUP = '__none__';
@@ -398,13 +395,25 @@ export default function FellowshipAttendance({
                                                         })
                                                     }
                                                     className={`cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium outline-none ${
-                                                        STATUS_STYLES[
-                                                            row
-                                                                .attendance_status
-                                                        ] ??
-                                                        STATUS_STYLES.present
+                                                        row.attendance_status ===
+                                                        'excused'
+                                                            ? 'border-border bg-secondary text-foreground'
+                                                            : (STATUS_STYLES[
+                                                                  row
+                                                                      .attendance_status
+                                                              ] ??
+                                                              STATUS_STYLES.present)
                                                     }`}
                                                 >
+                                                    {row.attendance_status ===
+                                                        'excused' && (
+                                                        <option
+                                                            value="excused"
+                                                            disabled
+                                                        >
+                                                            Excused
+                                                        </option>
+                                                    )}
                                                     {STATUS_OPTIONS.map((o) => (
                                                         <option
                                                             key={o.value}
