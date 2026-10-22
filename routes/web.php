@@ -24,6 +24,7 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationDeletionController;
 use App\Http\Controllers\RegistrationFormController;
 use App\Http\Controllers\RegistrationMonitorController;
+use App\Http\Controllers\RememberDashboardSideController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReportIndexController;
 use App\Http\Controllers\ServiceAttendanceController;
@@ -104,6 +105,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // status. See app/Http/Middleware/AdvanceEventStatus.php.
 Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::post('dashboard/side', RememberDashboardSideController::class)->name('dashboard.side');
     Route::get('reports', ReportIndexController::class)->name('reports.index');
     Route::get('church/participants/{participant}/history', [ChurchParticipantHistoryController::class, 'show'])
         ->name('church.participants.history');

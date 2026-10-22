@@ -27,7 +27,7 @@ class UpdateDiscipleshipBatchRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'start_date' => ['required', 'date', 'before_or_equal:+2 years'],
+            'start_date' => ['required', 'date', 'after_or_equal:today', 'before_or_equal:+2 years'],
         ];
     }
 
@@ -37,6 +37,7 @@ class UpdateDiscipleshipBatchRequest extends FormRequest
         return [
             'name.required' => 'Batch name is required.',
             'start_date.required' => 'Start date is required.',
+            'start_date.after_or_equal' => 'Start date cannot be in the past.',
             'start_date.before_or_equal' => 'Start date cannot be more than 2 years from today.',
         ];
     }

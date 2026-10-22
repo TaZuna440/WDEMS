@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
+import { schedulingDateBounds } from '@/lib/scheduling-date-bounds';
 
 type BatchData = {
     id: number;
@@ -600,6 +601,8 @@ function SessionFormDialog({
                             value={form.data.session_date}
                             onChange={(v) => form.setData('session_date', v)}
                             placeholder="Pick a date"
+                            minDate={schedulingDateBounds().minDate}
+                            maxDate={schedulingDateBounds().maxDate}
                         />
                         <InputError message={form.errors.session_date} />
                     </div>

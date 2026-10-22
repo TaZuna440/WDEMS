@@ -708,3 +708,4 @@ CRUD UI, staff attestation and side-scoped duplicate/HOLD enforcement. This does
 not complete B-6/B-7 or bridge ServiceOccurrence/FellowshipEvent. Mark explicitly
 confirmed retaining their legacy Add actions until that bridge is ready. The
 "100% aligned" handoff claim is not supported; the audit lists remaining work.
+

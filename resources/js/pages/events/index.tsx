@@ -22,6 +22,9 @@ type EventRow = {
 
 type Filters = {
     kind: string | null;
+    date?: string | null;
+    month?: string | null;
+    church_category?: string | null;
 };
 
 type Props = {
@@ -117,6 +120,24 @@ export default function EventsIndex({ events, filters }: Props) {
                     </Button>
                 </div>
 
+                {(filters.date || filters.month || filters.church_category) && (
+                    <p className="text-muted-foreground text-sm" role="status">
+                        Showing {filters.church_category ?? 'all categories'}
+                        {filters.date ? ` on ${filters.date}` : ''}
+                        {filters.month ? ` during ${filters.month}` : ''}.
+                        <Link
+                            href={
+                                filters.kind === 'church'
+                                    ? '/events?kind=church'
+                                    : '/events?kind=running'
+                            }
+                            className="ml-2 underline"
+                        >
+                            Clear filters
+                        </Link>
+                    </p>
+                )}
+
                 {/* Kind filter */}
                 <div className="flex flex-wrap items-center gap-2">
                     {KIND_FILTERS.map((filter) => {
@@ -140,6 +161,46 @@ export default function EventsIndex({ events, filters }: Props) {
 
                 {/* Church tab: category cards */}
                 {isChurchTab && <ChurchCategoryCards />}
+
+                {isChurchTab &&
+                    (filters.date ||
+                        filters.month ||
+                        filters.church_category) && (
+                        <section
+                            className="glass-panel overflow-hidden rounded-xl"
+                            aria-label="Filtered church events"
+                        >
+                            <h2 className="px-5 pt-5 text-sm font-semibold">
+                                Matching Church Events
+                            </h2>
+                            {events.length ? (
+                                <ul className="divide-border divide-y px-5 pb-3">
+                                    {events.map((event) => (
+                                        <li
+                                            key={event.id}
+                                            className="flex flex-wrap items-center justify-between gap-3 py-3"
+                                        >
+                                            <Link
+                                                href={`/events/${event.id}`}
+                                                className="font-medium underline"
+                                            >
+                                                {event.event_name}
+                                            </Link>
+                                            <span className="text-muted-foreground text-sm">
+                                                {event.church_category} ·{' '}
+                                                {event.event_date ??
+                                                    'Date not set'}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-muted-foreground px-5 py-4 text-sm">
+                                    No Church Events match these filters.
+                                </p>
+                            )}
+                        </section>
+                    )}
 
                 {!isChurchTab && (
                     <section

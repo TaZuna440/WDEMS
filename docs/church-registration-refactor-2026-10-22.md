@@ -38,3 +38,27 @@ Authority: the former `docs2/` documents now reside in `docs/specs/`, as recorde
 6. Existing PHPStan baseline debt outside the refactored code remains; passing against a baseline does not mean the historical type errors were all corrected.
 
 Changes are local and uncommitted at the time of this report. No merge or push was performed in this refactor pass.
+
+---
+
+## Status correction — 2026-10-22
+
+The remaining-work statements above describe the state when this refactor
+audit was written and are retained as history. Subsequent local work has
+implemented generic Church public registration and the Services/Fellowship
+bridge, monitoring-only Church attendance and summaries, D-11 participant
+history, Church scheduling date bounds, and Dashboard DASH-1/2 core behavior.
+The generic Church category and Youth submodule “Coming soon” pages remain;
+only example placeholder text in Church form inputs was changed in the latest
+follow-up. Category routes, page structure and controller architecture are
+unchanged by that follow-up.
+
+Still pending are browser and accessibility acceptance of those flows;
+production/live-service and migration recovery checks; specialist activity
+fields, dedicated Young Adult/Kids/Youth/Administration/Special Occasion
+workflows and persistent activity tagging; DASH calendar/layout acceptance;
+and the broader authorization, TypeScript, PHPStan, CI and release-readiness
+work. The exact current task register is
+`docs/spec-implementation-plan-2026-10-22.md`; Church_Events_Update.md
+Amendments B–D remain authoritative. This correction does not claim the
+specialist modules or release acceptance are complete.

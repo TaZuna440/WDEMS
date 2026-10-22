@@ -30,7 +30,7 @@ class UpdateFellowshipEventRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'event_date' => ['required', 'date', 'before_or_equal:+2 years'],
+            'event_date' => ['required', 'date', 'after_or_equal:today', 'before_or_equal:+2 years'],
             'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
             'venue' => ['nullable', 'string', 'max:255'],
@@ -45,6 +45,7 @@ class UpdateFellowshipEventRequest extends FormRequest
         return [
             'name.required' => 'Fellowship name is required.',
             'event_date.required' => 'Fellowship date is required.',
+            'event_date.after_or_equal' => 'Fellowship date cannot be in the past.',
             'event_date.before_or_equal' => 'Fellowship date cannot be more than 2 years from today.',
             'end_time.after' => 'End time must be after start time.',
         ];

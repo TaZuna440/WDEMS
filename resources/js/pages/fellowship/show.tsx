@@ -26,6 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
+import { schedulingDateBounds } from '@/lib/scheduling-date-bounds';
 
 type EventRow = {
     id: number;
@@ -347,6 +348,8 @@ function EventFormDialog({
                             value={form.data.event_date}
                             onChange={(v) => form.setData('event_date', v)}
                             placeholder="Pick a date"
+                            minDate={schedulingDateBounds().minDate}
+                            maxDate={schedulingDateBounds().maxDate}
                         />
                         <InputError message={form.errors.event_date} />
                     </div>
@@ -381,7 +384,7 @@ function EventFormDialog({
                             onChange={(e) =>
                                 form.setData('venue', e.target.value)
                             }
-                            placeholder="Where does the gathering take place?"
+                            placeholder="e.g. Main Church Hall"
                         />
                         <InputError message={form.errors.venue} />
                     </div>
@@ -396,7 +399,7 @@ function EventFormDialog({
                             onChange={(e) =>
                                 form.setData('facilitator', e.target.value)
                             }
-                            placeholder="Who is leading the gathering?"
+                            placeholder="e.g. Pastor Mark"
                         />
                         <InputError message={form.errors.facilitator} />
                     </div>

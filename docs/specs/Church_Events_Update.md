@@ -6,6 +6,19 @@
 **Updated:** October 20, 2026  
 **Status:** Interactive front-end demonstration / requirements reference
 
+**Implementation status note (2026-10-22):** This document defines the
+canonical Church scope and Amendments B–D define the binding common-workflow
+requirements. It is not by itself the complete implementation task list:
+specialist module requirements and answered decisions are tracked in
+`docs/church-events/10-client-decision-log.md`,
+`docs/church-events/11-shared-workflow-spec-2026-10-21.md`, and the operational
+task register `docs/spec-implementation-plan-2026-10-22.md`. Shared-workflow
+category and Youth submodule pages remain “Coming soon” placeholders. This
+input-placeholder-only change does not implement module workflows or change
+page architecture. Specialist data/workflows and manual acceptance remain
+pending. This note does not change the scope or priority of the requirements
+below.
+
 ## 1. System Overview
 
 WDEMS is a centralized **Church Event Management System** for planning church activities, recording event information, registering participants, checking attendance, and viewing attendance summaries across multiple ministries. The system is intended for church administrators, ministry leaders, and authorized event organizers.

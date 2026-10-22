@@ -171,15 +171,15 @@ test('event creation rejects a date more than 2 years out', function () {
         ->assertSessionHasErrors('event_date');
 });
 
-test('event creation allows a past date for retroactive logging', function () {
+test('event creation rejects a past scheduling date', function () {
     $this->actingAs($this->staff)
         ->post(route('fellowship.events.store', ['type' => 'family']), [
             'name' => 'Retroactive Gathering',
             'event_date' => now()->subWeek()->toDateString(),
         ])
-        ->assertRedirect();
+        ->assertSessionHasErrors('event_date');
 
-    expect(FellowshipEvent::count())->toBe(1);
+    expect(FellowshipEvent::count())->toBe(0);
 });
 
 // ----------------------------------------------------------------

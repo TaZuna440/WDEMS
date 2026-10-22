@@ -160,6 +160,16 @@ test('occurrence creation rejects a date more than 2 years out', function () {
         ->assertSessionHasErrors('occurrence_date');
 });
 
+test('occurrence creation rejects a past scheduling date', function () {
+    $this->actingAs($this->staff)
+        ->post(route('services.occurrences.store', ['type' => 'morning']), [
+            'occurrence_date' => now()->subDay()->toDateString(),
+        ])
+        ->assertSessionHasErrors('occurrence_date');
+
+    expect(ServiceOccurrence::count())->toBe(0);
+});
+
 // ----------------------------------------------------------------
 // Recurring batch
 // ----------------------------------------------------------------
@@ -249,6 +259,21 @@ test('the recurring generator rejects more than 52 occurrences', function () {
             'weeks' => 53,
         ])
         ->assertSessionHasErrors('weeks');
+});
+
+test('recurring generation rejects schedules whose final occurrence exceeds two years', function () {
+    $firstDate = now()->addYears(2)->subDays(7)->toDateString();
+
+    $this->actingAs($this->staff)
+        ->post(route('services.occurrences.store-recurring', ['type' => 'morning']), [
+            'pattern' => 'weekly',
+            'day_of_week' => (string) now()->parse($firstDate)->dayOfWeek,
+            'first_date' => $firstDate,
+            'weeks' => 3,
+        ])
+        ->assertSessionHasErrors('first_date');
+
+    expect(ServiceOccurrence::count())->toBe(0);
 });
 
 // ----------------------------------------------------------------

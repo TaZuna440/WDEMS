@@ -94,7 +94,7 @@ test('batch creation rejects a start date more than 2 years out', function () {
         ->assertSessionHasErrors('start_date');
 });
 
-test('batch creation allows a past start date for retroactive logging', function () {
+test('batch creation rejects a past scheduling date', function () {
     $this->actingAs($this->staff)
         ->post(route('discipleship.batches.store', [
             'program' => $this->program->slug,
@@ -102,9 +102,9 @@ test('batch creation allows a past start date for retroactive logging', function
             'name' => 'Past Cohort',
             'start_date' => now()->subMonths(6)->toDateString(),
         ])
-        ->assertRedirect();
+        ->assertSessionHasErrors('start_date');
 
-    expect(DiscipleshipBatch::count())->toBe(2);
+    expect(DiscipleshipBatch::count())->toBe(1);
 });
 
 test('two batches on the same program can share a name', function () {

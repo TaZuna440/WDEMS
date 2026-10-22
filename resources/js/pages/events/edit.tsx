@@ -309,6 +309,7 @@ export default function EventsEdit({ event, church_categories }: Props) {
                                         data={data}
                                         setData={setData}
                                         errors={stepErrors}
+                                        isChurch={event.event_kind === 'church'}
                                     />
                                 );
                             case 'extras':

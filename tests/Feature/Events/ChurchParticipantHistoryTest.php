@@ -10,6 +10,7 @@ use App\Models\FellowshipAttendance;
 use App\Models\FellowshipEvent;
 use App\Models\Participant;
 use App\Models\Registration;
+use App\Models\ServiceAttendanceFirstTimer;
 use App\Models\ServiceAttendanceMember;
 use App\Models\ServiceOccurrence;
 use App\Models\User;
@@ -174,6 +175,73 @@ it('counts a bridged legacy service attendance only once', function () {
     expect($history['attendance_count'])->toBe(1)
         ->and($history['events'])->toHaveCount(1)
         ->and($history['events'][0]['event_type'])->toBe('Services');
+});
+
+it('deduplicates one Service occurrence if legacy data contains both attendance tracks', function () {
+    $occurrence = ServiceOccurrence::create([
+        'service_type' => 'morning',
+        'occurrence_date' => today()->subDay()->toDateString(),
+        'created_by' => $this->staff->id,
+    ]);
+    ServiceAttendanceMember::create([
+        'service_occurrence_id' => $occurrence->id,
+        'participant_id' => $this->person->id,
+        'attendance_status' => 'present',
+        'recorded_by' => $this->staff->id,
+    ]);
+    ServiceAttendanceFirstTimer::create([
+        'service_occurrence_id' => $occurrence->id,
+        'participant_id' => $this->person->id,
+        'attendance_status' => 'present',
+        'recorded_by' => $this->staff->id,
+    ]);
+
+    $history = app(ParticipantHistoryService::class)->build($this->person);
+    $ranked = app(ParticipantHistoryService::class)->topAttendees();
+
+    expect($history['attendance_count'])->toBe(1)
+        ->and($history['events'])->toHaveCount(1)
+        ->and(collect($ranked)->firstWhere('id', $this->person->id)['attendance_count'])->toBe(1);
+});
+
+it('ranks dashboard attendees by Present marks without adding legacy Late history to the count', function () {
+    $presentEvent = Event::create([
+        'created_by' => $this->staff->id,
+        'event_kind' => 'church',
+        'event_type' => 'church',
+        'church_category' => 'Fellowship',
+        'church_status' => 'completed',
+        'event_name' => 'Present church event',
+        'event_date' => today()->subDay()->toDateString(),
+    ]);
+    $registration = Registration::create([
+        'event_id' => $presentEvent->id,
+        'participant_id' => $this->person->id,
+        'source' => 'manual',
+        'registration_status' => 'confirmed',
+    ]);
+    $registration->attendance()->create(['attendance_status' => 'present']);
+
+    $lateOccurrence = ServiceOccurrence::create([
+        'service_type' => 'morning',
+        'occurrence_date' => today()->subWeek()->toDateString(),
+        'created_by' => $this->staff->id,
+    ]);
+    ServiceAttendanceMember::create([
+        'service_occurrence_id' => $lateOccurrence->id,
+        'participant_id' => $this->person->id,
+        'attendance_status' => 'late',
+        'recorded_by' => $this->staff->id,
+    ]);
+
+    $history = app(ParticipantHistoryService::class)->build($this->person);
+    $ranked = app(ParticipantHistoryService::class)->topAttendees();
+    $attendee = collect($ranked)->firstWhere('id', $this->person->id);
+
+    expect($history['attendance_count'])->toBe(2)
+        ->and($attendee['attendance_count'])->toBe(1)
+        ->and($attendee['event_types'])->toContain('Fellowship')
+        ->and($attendee['event_types'])->not->toContain('Services');
 });
 
 it('serves the history page to staff and hides running and provisional participants', function () {

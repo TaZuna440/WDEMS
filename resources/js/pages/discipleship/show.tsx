@@ -35,6 +35,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
+import { schedulingDateBounds } from '@/lib/scheduling-date-bounds';
 
 type ProgramData = {
     id: number;
@@ -1033,6 +1034,8 @@ function BatchFormDialog({
                             value={form.data.start_date}
                             onChange={(v) => form.setData('start_date', v)}
                             placeholder="Pick a start date"
+                            minDate={schedulingDateBounds().minDate}
+                            maxDate={schedulingDateBounds().maxDate}
                         />
                         <InputError message={form.errors.start_date} />
                     </div>

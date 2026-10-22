@@ -1,6 +1,6 @@
 # WDEMS — Dashboard Update
 
-**Date:** 2026-10-21 · **Status:** Fully planned and decided; not yet built.
+**Date:** 2026-10-21 · **Requirements status:** Fully planned and decided. **Implementation status:** Partially implemented locally; manual acceptance remains pending (status snapshot 2026-10-22 below).
 **Scope:** The staff Dashboard (`/dashboard`). This document is the complete record of the dashboard redesign: the current state, every feature planned, the layout, the calendar behavior, all decisions, and the build staging. It consolidates the dashboard addendum in `WDEMS_MASTER_PROJECT_DOCUMENT.md` and the interactive prototypes (`~/workspace/wdems-dashboard-prototype/prototype-v3.html`).
 
 ---
@@ -197,3 +197,35 @@ The nine modules as count chips — Services, Fellowship, Discipleship, Youth, K
 | 6   | Totals are never blended across sides; church gets a Participant History panel, running gets Event Statistics    | From D-10/D-11  | 2026-10-21 |
 
 **References:** Master Project Document, Dashboard Addendum · `docs/ui-restructure-plan.md` Phase 5 · interactive prototype `~/workspace/wdems-dashboard-prototype/prototype-v3.html` (v1 single-page draft and v2 grid draft kept alongside).
+
+---
+
+## Implementation status snapshot — 2026-10-22
+
+This dated snapshot reports current code status; it does not replace the
+requirements or claim browser/release acceptance.
+
+- Implemented locally: remembered Running/Church side, visit-only `?side=`
+  override, side-scoped stat payloads and links, side-aware Quick Actions,
+  Needs Review counts, Church unmarked-today actions, Coming Up, Church
+  Categories, D-11 top-attendee history, and a Running Community Run
+  statistics band.
+- Implemented locally: derived Recent Activity from registrations, holds,
+  attendance, event creation, and review resolutions; the feed is not a
+  durable audit log and does not yet cover every lifecycle/verification
+  event listed in §4.6.
+- Implemented locally: month navigation, side-scoped event dates, multiple
+  dots, event-name details on hover/focus/tap, and a date-filtered Events
+  destination. Manual checks for tooltip edge positioning, keyboard flow,
+  responsive layout, and visual alignment remain pending.
+- Remaining: verify every stat/action destination against the final filtered
+  source workflow; complete browser/accessibility acceptance; decide whether
+  the Running statistics chart is a required DASH-3 deliverable or should be
+  explicitly deferred.
+- Automated verification snapshot: `php artisan test` — 980 passed, 3
+  skipped (4,320 assertions); `corepack pnpm check`, Pint, and
+  `git diff --check` pass. TypeScript has 11 diagnostics in five unrelated
+  existing UI files plus a generated Wayfinder DashboardController route
+  typing diagnostic; PHPStan remains non-clean with baseline/stale-suppression
+  debt and DashboardController typing findings. Remote CI and production
+  acceptance are unverified.

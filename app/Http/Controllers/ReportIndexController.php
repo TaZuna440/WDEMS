@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\ChurchEventStatus;
 use App\Enums\EventStatus;
 use App\Models\Event;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,8 +19,9 @@ use Inertia\Response;
  */
 class ReportIndexController extends Controller
 {
-    public function __invoke(): Response
+    public function __invoke(Request $request): Response
     {
+        $filters = $request->validate(['kind' => ['nullable', 'in:running,church']]);
         $events = Event::query()
             ->where(function ($q) {
                 $q->where(function ($q2) {
@@ -30,12 +32,14 @@ class ReportIndexController extends Controller
                         ->where('church_status', ChurchEventStatus::Completed->value);
                 });
             })
+            ->when(isset($filters['kind']), fn ($query) => $query->where('event_kind', $filters['kind']))
             ->with('creator:id,name')
             ->orderByDesc('event_date')
             ->orderByDesc('id')
             ->get();
 
         return Inertia::render('reports/index', [
+            'activeSide' => $filters['kind'] ?? null,
             'events' => $events->map(fn (Event $event) => [
                 'id' => $event->id,
                 'event_kind' => $event->event_kind,

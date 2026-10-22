@@ -487,6 +487,7 @@ function AddAttendanceDialog({
                                 onChange={(e) =>
                                     form.setData('first_name', e.target.value)
                                 }
+                                placeholder="e.g. Ana"
                             />
                             <InputError message={form.errors.first_name} />
                         </div>
@@ -501,6 +502,7 @@ function AddAttendanceDialog({
                                 onChange={(e) =>
                                     form.setData('last_name', e.target.value)
                                 }
+                                placeholder="e.g. Santos"
                             />
                             <InputError message={form.errors.last_name} />
                         </div>
@@ -518,6 +520,7 @@ function AddAttendanceDialog({
                                 onChange={(e) =>
                                     form.setData('age', e.target.value)
                                 }
+                                placeholder="e.g. 25"
                             />
                             <InputError message={form.errors.age} />
                         </div>
@@ -543,7 +546,7 @@ function AddAttendanceDialog({
                             onChange={(e) =>
                                 form.setData('contact_number', e.target.value)
                             }
-                            placeholder="09171234567"
+                            placeholder="09XXXXXXXXX or +639XXXXXXXXX"
                         />
                         <InputError message={form.errors.contact_number} />
                     </div>
@@ -556,6 +559,7 @@ function AddAttendanceDialog({
                             onChange={(e) =>
                                 form.setData('address', e.target.value)
                             }
+                            placeholder="e.g. Barangay, City"
                         />
                         <InputError message={form.errors.address} />
                     </div>
@@ -569,7 +573,7 @@ function AddAttendanceDialog({
                                 onChange={(e) =>
                                     form.setData('invited_by', e.target.value)
                                 }
-                                placeholder="Who invited them?"
+                                placeholder="e.g. Pastor Mark"
                             />
                             <InputError message={form.errors.invited_by} />
                         </div>

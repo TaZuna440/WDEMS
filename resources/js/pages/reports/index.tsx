@@ -14,6 +14,7 @@ type EventRow = {
 
 type Props = {
     events: EventRow[];
+    activeSide: 'running' | 'church' | null;
 };
 
 const typeStyles: Record<string, string> = {
@@ -21,7 +22,7 @@ const typeStyles: Record<string, string> = {
     church: 'bg-lime-brand/15 text-lime-700 dark:text-lime-brand',
 };
 
-export default function ReportsIndex({ events }: Props) {
+export default function ReportsIndex({ events, activeSide }: Props) {
     return (
         <>
             <Head title="Reports" />
@@ -34,6 +35,29 @@ export default function ReportsIndex({ events }: Props) {
                     <p className="text-muted-foreground mt-1 text-sm">
                         End-of-event reports for every completed event
                     </p>
+                    <nav
+                        aria-label="Filter reports by side"
+                        className="mt-4 flex gap-2"
+                    >
+                        <Link
+                            className={`rounded-full border px-3 py-1 text-xs ${activeSide === 'running' ? 'border-lime-brand text-lime-brand' : 'border-border text-muted-foreground'}`}
+                            href="/reports?kind=running"
+                        >
+                            Running
+                        </Link>
+                        <Link
+                            className={`rounded-full border px-3 py-1 text-xs ${activeSide === 'church' ? 'border-violet-400 text-violet-300' : 'border-border text-muted-foreground'}`}
+                            href="/reports?kind=church"
+                        >
+                            Church
+                        </Link>
+                        <Link
+                            className={`rounded-full border px-3 py-1 text-xs ${activeSide === null ? 'border-foreground text-foreground' : 'border-border text-muted-foreground'}`}
+                            href="/reports"
+                        >
+                            All
+                        </Link>
+                    </nav>
                 </div>
 
                 {events.length === 0 ? (

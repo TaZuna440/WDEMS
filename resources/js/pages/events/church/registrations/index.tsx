@@ -67,16 +67,44 @@ const empty: FormData = {
     guardian_contact: '',
     fellowship_group_id: '',
 };
-const fields: { key: keyof FormData; label: string; type?: string }[] = [
-    { key: 'first_name', label: 'First name' },
-    { key: 'middle_name', label: 'Middle name' },
-    { key: 'last_name', label: 'Last name' },
-    { key: 'suffix', label: 'Suffix' },
-    { key: 'email', label: 'Email', type: 'email' },
-    { key: 'contact_number', label: 'Contact number', type: 'tel' },
+const fields: {
+    key: keyof FormData;
+    label: string;
+    type?: string;
+    placeholder?: string;
+}[] = [
+    { key: 'first_name', label: 'First name', placeholder: 'e.g. Maria' },
+    {
+        key: 'middle_name',
+        label: 'Middle name',
+        placeholder: 'Optional middle name',
+    },
+    { key: 'last_name', label: 'Last name', placeholder: 'e.g. Santos' },
+    { key: 'suffix', label: 'Suffix', placeholder: 'Optional (Jr., Sr.)' },
+    {
+        key: 'email',
+        label: 'Email',
+        type: 'email',
+        placeholder: 'name@example.com',
+    },
+    {
+        key: 'contact_number',
+        label: 'Contact number',
+        type: 'tel',
+        placeholder: '09XXXXXXXXX or +639XXXXXXXXX',
+    },
     { key: 'birthday', label: 'Birthdate', type: 'date' },
-    { key: 'age', label: 'Age (if birthdate is unknown)', type: 'number' },
-    { key: 'address', label: 'Barangay & City' },
+    {
+        key: 'age',
+        label: 'Age (if birthdate is unknown)',
+        type: 'number',
+        placeholder: 'Enter age only if birthdate is unknown',
+    },
+    {
+        key: 'address',
+        label: 'Barangay & City',
+        placeholder: 'e.g. Barangay, City',
+    },
 ];
 export default function ChurchRegistrations({
     event,
@@ -364,7 +392,7 @@ export default function ChurchRegistrations({
                             </p>
                         )}
                         <div className="grid grid-cols-2 gap-3">
-                            {fields.map(({ key, label, type }) => (
+                            {fields.map(({ key, label, type, placeholder }) => (
                                 <div key={key} className="space-y-1">
                                     <Label htmlFor={`church-${key}`}>
                                         {label}
@@ -373,6 +401,7 @@ export default function ChurchRegistrations({
                                         id={`church-${key}`}
                                         type={type ?? 'text'}
                                         value={form.data[key]}
+                                        placeholder={placeholder}
                                         disabled={
                                             key === 'age' &&
                                             !!form.data.birthday
@@ -426,6 +455,11 @@ export default function ChurchRegistrations({
                                         <Input
                                             id={key}
                                             value={form.data[key]}
+                                            placeholder={
+                                                key === 'guardian_name'
+                                                    ? 'Parent or guardian name'
+                                                    : '09XXXXXXXXX or +639XXXXXXXXX'
+                                            }
                                             onChange={(e) =>
                                                 form.setData(
                                                     key,

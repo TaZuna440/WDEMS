@@ -81,3 +81,64 @@ test('the events index can filter by kind', function () {
             ->has('events', 1)
         );
 });
+
+test('the events index filters church categories and selected dates', function () {
+    $service = Event::create([
+        'created_by' => $this->staff->id,
+        'event_kind' => 'church',
+        'event_type' => EventType::Church->value,
+        'church_category' => 'Services',
+        'church_status' => ChurchEventStatus::Upcoming->value,
+        'event_name' => 'Sunday service',
+        'event_date' => '2026-10-25',
+        'venue' => 'Church',
+        'venue_address' => 'Church address',
+    ]);
+    Event::create([
+        'created_by' => $this->staff->id,
+        'event_kind' => 'church',
+        'event_type' => EventType::Church->value,
+        'church_category' => 'Fellowship',
+        'church_status' => ChurchEventStatus::Upcoming->value,
+        'event_name' => 'Fellowship',
+        'event_date' => '2026-10-25',
+        'venue' => 'Hall',
+        'venue_address' => 'Hall address',
+    ]);
+    $november = Event::create([
+        'created_by' => $this->staff->id,
+        'event_kind' => 'church',
+        'event_type' => EventType::Church->value,
+        'church_category' => 'Fellowship',
+        'church_status' => ChurchEventStatus::Upcoming->value,
+        'event_name' => 'November gathering',
+        'event_date' => '2026-11-02',
+        'venue' => 'Hall',
+        'venue_address' => 'Hall address',
+    ]);
+
+    $this->actingAs($this->staff)
+        ->get(route('events.index', ['kind' => 'church', 'church_category' => 'Services', 'date' => '2026-10-25']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('filters.church_category', 'Services')
+            ->where('filters.date', '2026-10-25')
+            ->has('events', 1)
+            ->where('events.0.id', $service->id));
+
+    $this->actingAs($this->staff)
+        ->get(route('events.index', ['kind' => 'church', 'month' => '2026-11']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('filters.month', '2026-11')
+            ->has('events', 1)
+            ->where('events.0.id', $november->id));
+
+    $this->actingAs($this->staff)
+        ->get(route('events.index', ['kind' => 'church', 'date' => '2026-10-25']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('filters.date', '2026-10-25')
+            ->has('events', 2));
+});
+

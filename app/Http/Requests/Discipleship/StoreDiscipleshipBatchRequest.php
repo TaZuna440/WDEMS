@@ -12,9 +12,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * controller reads it from the route and stamps program_id on the
  * created batch.
  *
- * start_date has an upper bound but no lower bound. Past dates
- * are allowed so retroactive batch logging works -- same policy as
- * StoreFellowshipEventRequest and StoreServiceOccurrenceRequest.
+ * Scheduling dates are limited to today through two years ahead.
  *
  * No unique constraint on (program_id, name) at the DB level; the
  * same reasoning applies here. Two batches can share a name.
@@ -33,7 +31,7 @@ class StoreDiscipleshipBatchRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'start_date' => ['required', 'date', 'before_or_equal:+2 years'],
+            'start_date' => ['required', 'date', 'after_or_equal:today', 'before_or_equal:+2 years'],
         ];
     }
 
@@ -43,6 +41,7 @@ class StoreDiscipleshipBatchRequest extends FormRequest
         return [
             'name.required' => 'Batch name is required.',
             'start_date.required' => 'Start date is required.',
+            'start_date.after_or_equal' => 'Start date cannot be in the past.',
             'start_date.before_or_equal' => 'Start date cannot be more than 2 years from today.',
         ];
     }

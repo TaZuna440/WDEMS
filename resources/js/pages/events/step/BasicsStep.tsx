@@ -149,7 +149,11 @@ export default function BasicsStep({
                     id="event_name"
                     value={data.event_name}
                     onChange={(e) => setData('event_name', e.target.value)}
-                    placeholder="e.g. Young Professionals Community Run #1"
+                    placeholder={
+                        isChurch
+                            ? 'e.g. Sunday Worship Gathering'
+                            : 'e.g. Young Professionals Community Run #1'
+                    }
                 />
                 <InputError message={errors.event_name} />
             </div>
@@ -162,7 +166,11 @@ export default function BasicsStep({
                     onChange={(e) => setData('description', e.target.value)}
                     rows={4}
                     className="border-input bg-input placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-24 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
-                    placeholder="Brief description of the event, what participants can expect, who it's for..."
+                    placeholder={
+                        isChurch
+                            ? 'Add the event purpose, theme, or notes for participants...'
+                            : "Brief description of the event, what participants can expect, who it's for..."
+                    }
                 />
                 <InputError message={errors.description} />
             </div>

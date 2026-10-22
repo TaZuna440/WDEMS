@@ -84,7 +84,7 @@ export default function ChurchAttendance({
                         >
                             <Input
                                 aria-label="Registration code"
-                                placeholder="Registration code"
+                                placeholder="e.g. KM4X-P2N7"
                                 value={code}
                                 onChange={(e) => setCode(e.target.value)}
                             />
@@ -99,7 +99,7 @@ export default function ChurchAttendance({
                         >
                             <Input
                                 aria-label="Search name, email or phone"
-                                placeholder="Search name, email or phone"
+                                placeholder="e.g. Maria Santos, email, or phone"
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                             />

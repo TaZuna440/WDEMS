@@ -31,6 +31,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
+import { schedulingDateBounds } from '@/lib/scheduling-date-bounds';
 
 type Occurrence = {
     id: number;
@@ -74,6 +75,7 @@ function formatDate(iso: string): string {
 }
 
 export default function ServicesShow({ service_type, occurrences }: Props) {
+    const dateBounds = schedulingDateBounds();
     const isYouth = service_type.value === 'youth';
     const [addOpen, setAddOpen] = useState(false);
     const [recurringOpen, setRecurringOpen] = useState(false);
@@ -296,6 +298,8 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
                                     addForm.setData('occurrence_date', v)
                                 }
                                 placeholder="Pick a date"
+                                minDate={dateBounds.minDate}
+                                maxDate={dateBounds.maxDate}
                             />
                             <InputError
                                 message={addForm.errors.occurrence_date}
@@ -477,6 +481,8 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
                                     recurringForm.setData('first_date', v)
                                 }
                                 placeholder="Pick the first occurrence"
+                                minDate={dateBounds.minDate}
+                                maxDate={dateBounds.maxDate}
                             />
                             <InputError
                                 message={recurringForm.errors.first_date}

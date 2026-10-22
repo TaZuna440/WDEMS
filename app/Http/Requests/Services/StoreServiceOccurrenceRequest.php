@@ -24,7 +24,7 @@ class StoreServiceOccurrenceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'occurrence_date' => ['required', 'date', 'before_or_equal:+2 years'],
+            'occurrence_date' => ['required', 'date', 'after_or_equal:today', 'before_or_equal:+2 years'],
             'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
             'service_leader' => ['nullable', 'string', 'max:255'],
@@ -38,6 +38,7 @@ class StoreServiceOccurrenceRequest extends FormRequest
     {
         return [
             'occurrence_date.required' => 'Service date is required.',
+            'occurrence_date.after_or_equal' => 'Service date cannot be in the past.',
             'occurrence_date.before_or_equal' => 'Service date cannot be more than 2 years from today.',
             'end_time.after' => 'End time must be after start time.',
         ];
