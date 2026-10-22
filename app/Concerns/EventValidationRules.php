@@ -132,6 +132,7 @@ trait EventValidationRules
             ...$kindRules,
             'event_name' => $this->eventNameRules(),
             'description' => ['nullable', 'string', 'max:2000'],
+            'coordinator' => $isChurch ? ['nullable', 'string', 'max:255'] : ['exclude'],
 
             // Step 2 -- Schedule
             'event_date' => [

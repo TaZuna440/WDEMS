@@ -90,7 +90,13 @@ const CHURCH_STEPS: WizardStepConfig[] = [
     {
         id: 'basics',
         label: 'Details',
-        fields: ['event_type', 'church_category', 'event_name', 'description'],
+        fields: [
+            'event_type',
+            'church_category',
+            'event_name',
+            'description',
+            'coordinator',
+        ],
         requiredFields: ['event_type', 'church_category', 'event_name'],
         validate: validateBasics,
     },
@@ -137,6 +143,7 @@ export default function EventsCreate({
         specialist_workflow,
         event_name: '',
         description: '',
+        coordinator: '',
         event_date: '',
         start_time: '',
         end_time: '',

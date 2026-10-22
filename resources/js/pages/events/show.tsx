@@ -34,6 +34,7 @@ type EventData = {
     church_category: string | null;
     church_activity_category: string | null;
     description: string | null;
+    coordinator: string | null;
     event_date: string | null;
     start_time: string | null;
     end_time: string | null;
@@ -379,6 +380,13 @@ export default function EventsShow({
                                 label="Description"
                                 value={event.description}
                             />
+                            {event.event_kind === 'church' && (
+                                <DetailRow
+                                    icon={UserPlus}
+                                    label="Leader / Coordinator"
+                                    value={event.coordinator}
+                                />
+                            )}
                             <DetailRow
                                 icon={Clock}
                                 label="Registration Window"

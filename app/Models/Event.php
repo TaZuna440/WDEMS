@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'event_type',
     'event_name',
     'description',
+    'coordinator',
     'event_date',
     'start_time',
     'end_time',

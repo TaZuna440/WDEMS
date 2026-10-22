@@ -27,6 +27,7 @@ type FormData = {
     church_category: string;
     event_name: string;
     description: string;
+    coordinator?: string;
     church_activity_category?: string;
 } & Partial<Record<AccessibilityField, boolean>>;
 
@@ -213,6 +214,20 @@ export default function BasicsStep({
                 />
                 <InputError message={errors.description} />
             </div>
+
+            {isChurch && (
+                <div className="grid gap-2">
+                    <Label htmlFor="coordinator">Leader / Coordinator</Label>
+                    <Input
+                        id="coordinator"
+                        value={data.coordinator ?? ''}
+                        maxLength={255}
+                        onChange={(e) => setData('coordinator', e.target.value)}
+                        placeholder="Optional"
+                    />
+                    <InputError message={errors.coordinator} />
+                </div>
+            )}
 
             {/* Accessibility — participant-facing qualifications.
                 Running events only. Church events do not set these

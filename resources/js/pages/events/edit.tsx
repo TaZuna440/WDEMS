@@ -21,6 +21,7 @@ type EventData = {
     event_type_label: string;
     event_name: string;
     description: string | null;
+    coordinator: string | null;
     event_date: string | null;
     start_time: string | null;
     end_time: string | null;
@@ -120,7 +121,13 @@ const CHURCH_STEPS: WizardStepConfig[] = [
     {
         id: 'basics',
         label: 'Details',
-        fields: ['event_type', 'church_category', 'event_name', 'description'],
+        fields: [
+            'event_type',
+            'church_category',
+            'event_name',
+            'description',
+            'coordinator',
+        ],
         requiredFields: ['church_category', 'event_name'],
         validate: validateBasics,
     },
@@ -178,6 +185,7 @@ export default function EventsEdit({ event, church_categories }: Props) {
         church_category: event.church_category ?? '',
         event_name: event.event_name,
         description: event.description ?? '',
+        coordinator: event.coordinator ?? '',
 
         // Step 2 — Schedule
         event_date: event.event_date ?? '',
