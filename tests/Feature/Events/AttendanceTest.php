@@ -98,6 +98,9 @@ test('search matches participant first name', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('events/attendance')
+            ->where('urls.monitor', route('registration-monitor.show', $event))
+            ->where('event.status', 'ongoing')
+            ->where('urls.report', route('events.report', $event))
             ->has('rows', 1)
             ->where('rows.0.participant.full_name', 'Maria Santos')
         );

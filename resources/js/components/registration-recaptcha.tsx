@@ -29,7 +29,7 @@ function loadCaptcha(): Promise<CaptchaApi> {
                     : reject(new Error('reCAPTCHA unavailable'));
             const script = document.createElement('script');
             script.src =
-                'https://www.google.com/recaptcha/api.js?onload=wdemsRecaptchaReady&render=explicit';
+                'https://www.recaptcha.net/recaptcha/api.js?onload=wdemsRecaptchaReady&render=explicit';
             script.async = true;
             script.defer = true;
             script.onerror = () => {

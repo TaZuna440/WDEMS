@@ -236,6 +236,7 @@ test('the show page classifies first-time participants as new', function () {
         ->get("/registrations/monitor/{$event->id}")
         ->assertOk()
         ->assertInertia(fn ($page) => $page
+            ->where('duplicates_url', route('events.possible-duplicates', $event))
             ->where('registrations.0.is_returning', false)
             ->where('registrations.0.other_events_count', 0)
         );

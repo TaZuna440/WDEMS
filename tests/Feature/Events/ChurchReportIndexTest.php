@@ -44,5 +44,39 @@ it('counts only confirmed church registrations on the Reports side and links to 
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('events', 1)
-            ->where('events.0.registered_count', 1));
+            ->where('events.0.registered_count', 1)
+            ->where('events.0.report_url', route('church.attendance', [$event, 'summary' => 1])));
+});
+
+it('defaults Reports to running events and does not include church events', function () {
+    $staff = User::factory()->create([
+        'role' => 'admin',
+        'email_two_factor_enabled' => false,
+    ]);
+    $this->actingAs($staff);
+    Event::create([
+        'created_by' => $staff->id,
+        'event_kind' => 'running',
+        'event_type' => 'community_run',
+        'status' => 'completed',
+        'event_name' => 'Completed Running Event',
+        'event_date' => today()->subDay()->toDateString(),
+    ]);
+    Event::create([
+        'created_by' => $staff->id,
+        'event_kind' => 'church',
+        'event_type' => 'church',
+        'church_category' => 'Youth',
+        'church_status' => 'completed',
+        'event_name' => 'Completed Church Event',
+        'event_date' => today()->subDay()->toDateString(),
+    ]);
+
+    $this->get('/reports')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('activeSide', 'running')
+            ->has('categories', 9)
+            ->has('events', 1)
+            ->where('events.0.event_name', 'Completed Running Event'));
 });

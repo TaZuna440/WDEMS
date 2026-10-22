@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { Search, Users } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +47,12 @@ type Props = {
         }[];
     };
     participants: Participant[];
+    urls: {
+        event: string;
+        attendance: string;
+        export: string;
+        registrations: string | null;
+    };
 };
 const selectClass =
     'rounded-md border border-input bg-background px-3 py-2 text-sm';
@@ -66,6 +73,7 @@ export default function ReportShow({
     summary,
     cross_event,
     participants,
+    urls,
 }: Props) {
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('all');
@@ -94,14 +102,30 @@ export default function ReportShow({
             <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
                 <div className="flex items-center justify-between print:hidden">
                     <Link
-                        href={`/events/${event.id}`}
-                        className="text-sm underline"
+                        href={urls.event}
+                        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm"
                     >
+                        <span aria-hidden="true">←</span>
                         Back to Event
                     </Link>
-                    <Button variant="outline" onClick={() => window.print()}>
-                        Print report
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                        {urls.registrations && (
+                            <Button variant="outline" asChild>
+                                <Link href={urls.registrations}>
+                                    Registrations
+                                </Link>
+                            </Button>
+                        )}
+                        <Button variant="outline" asChild>
+                            <Link href={urls.attendance}>Attendance</Link>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => window.print()}
+                        >
+                            Print report
+                        </Button>
+                    </div>
                 </div>
                 <header>
                     <h1 className="text-2xl font-semibold">
@@ -197,8 +221,16 @@ export default function ReportShow({
                             </li>
                         ))}
                         {!events.length && (
-                            <li className="text-muted-foreground p-4 text-sm">
-                                No matching events.
+                            <li className="glass-panel flex flex-col items-center justify-center p-10 text-center">
+                                <div className="bg-lime-brand/15 mb-3 flex h-12 w-12 items-center justify-center rounded-full">
+                                    <Search className="text-lime-brand h-6 w-6" />
+                                </div>
+                                <span className="font-medium">
+                                    No matching events
+                                </span>
+                                <span className="text-muted-foreground mt-1 text-sm">
+                                    Try another event name or status.
+                                </span>
                             </li>
                         )}
                     </ul>
@@ -218,7 +250,7 @@ export default function ReportShow({
                                     : 'View Detailed Participants'}
                             </Button>
                             <Button variant="outline" asChild>
-                                <a href={`/events/${event.id}/report/export`}>
+                                <a href={urls.export}>
                                     Export CSV (all participants)
                                 </a>
                             </Button>
@@ -257,9 +289,26 @@ export default function ReportShow({
                         </select>
                     </div>
                     {!rows.length ? (
-                        <p className="text-muted-foreground rounded-xl border p-6 text-sm">
-                            No matching participants.
-                        </p>
+                        <div className="glass-panel flex flex-col items-center justify-center rounded-xl border p-12 text-center">
+                            <div className="bg-lime-brand/15 mb-4 flex h-14 w-14 items-center justify-center rounded-full">
+                                {search ||
+                                status !== 'all' ||
+                                source !== 'all' ? (
+                                    <Search className="text-lime-brand h-7 w-7" />
+                                ) : (
+                                    <Users className="text-lime-brand h-7 w-7" />
+                                )}
+                            </div>
+                            <h3 className="font-semibold">
+                                {search || status !== 'all' || source !== 'all'
+                                    ? 'No matching participants'
+                                    : 'No participants to report'}
+                            </h3>
+                            <p className="text-muted-foreground mt-1 text-sm">
+                                Adjust your search or filters to see report
+                                results.
+                            </p>
+                        </div>
                     ) : detailed ? (
                         <div className="space-y-4">
                             {rows.map((p) => (

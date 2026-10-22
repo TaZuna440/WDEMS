@@ -374,8 +374,13 @@ test('two verified identifiers reuse the same participant without rewriting deta
 });
 
 test('delivery failure persists a safe retry state without completing anything', function () {
-    Mail::shouldReceive('mailer')->with('resend')->once()->andThrow(new RuntimeException('provider unavailable'));
+    Mail::shouldReceive('to')->once()->andThrow(new RuntimeException('mail transport unavailable'));
     $event = verificationEvent();
+    Log::shouldReceive('warning')->once()->with('registration.verification.email_delivery_failed', [
+        'event_id' => $event->id,
+        'mailer' => config('mail.default'),
+        'exception' => RuntimeException::class,
+    ]);
     [$challenge, , $url] = startVerification($this, $event);
     expect($challenge->email_delivery_failed)->toBeTrue();
     expect($challenge->email_code_hash)->toBeNull();

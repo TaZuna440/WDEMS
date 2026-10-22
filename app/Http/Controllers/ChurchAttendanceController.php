@@ -64,6 +64,11 @@ class ChurchAttendanceController extends Controller
             'counts' => $counts,
             'filters' => $filter,
             'summary' => $summary,
+            'urls' => [
+                'registrations' => route('church.registrations.index', $event),
+                'attendance' => route('church.attendance', $event),
+                'reports' => route('reports.index', ['kind' => 'church']),
+            ],
         ]);
     }
 

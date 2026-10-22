@@ -36,6 +36,8 @@ class ChurchRegistrationController extends Controller
             'groups' => $groups->map(fn (FellowshipGroup $group): array => ['id' => $group->id, 'name' => $group->name])->values(),
             'message' => session('success'),
             'public_url' => $event->registration_slug ? route('public-registration.show', ['event' => $event->registration_slug]) : null,
+            'duplicates_url' => route('events.possible-duplicates', $event),
+            'attendance_url' => route('church.attendance', $event),
             'registrations' => Registration::where('event_id', $event->id)
                 ->whereHas('participant', fn ($query) => $query->where('pool', 'church'))
                 ->latest()->get()->map(function (Registration $row): array {

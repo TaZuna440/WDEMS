@@ -1,8 +1,10 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
+import { Check, Copy, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useClipboard } from '@/hooks/use-clipboard';
 import {
     Dialog,
     DialogContent,
@@ -54,6 +56,8 @@ type Props = {
     registrations: Registration[];
     message?: string;
     public_url?: string | null;
+    duplicates_url: string;
+    attendance_url: string;
     groups: { id: number; name: string }[];
 };
 const empty: FormData = {
@@ -115,13 +119,39 @@ export default function ChurchRegistrations({
     registrations,
     message,
     public_url,
+    duplicates_url,
+    attendance_url,
     groups,
 }: Props) {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<number | null>(null);
     const [deleteError, setDeleteError] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [copied, copy] = useClipboard();
     const form = useForm<FormData>(empty);
     const base = `/events/${event.id}/registrations`;
+    const filteredRegistrations = registrations.filter((row) =>
+        [
+            [
+                row.participant.first_name,
+                row.participant.middle_name,
+                row.participant.last_name,
+                row.participant.suffix,
+            ]
+                .filter(Boolean)
+                .join(' '),
+            row.participant.email,
+            row.participant.contact_number,
+        ].some((value) =>
+            value
+                ?.toLocaleLowerCase()
+                .includes(searchQuery.trim().toLocaleLowerCase()),
+        ),
+    );
+    const publicLinkCopied =
+        public_url !== null &&
+        public_url !== undefined &&
+        copied === public_url;
     const guardian =
         event.church_category === 'Kids Ministry' ||
         event.church_category === 'Youth' ||
@@ -156,7 +186,7 @@ export default function ChurchRegistrations({
                 >
                     Back to event
                 </Link>
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold">
                             {event.event_name}
@@ -172,47 +202,57 @@ export default function ChurchRegistrations({
                             confirmed
                         </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <Button variant="outline" asChild>
-                            <Link
-                                href={`/events/${event.id}/possible-duplicates`}
-                            >
-                                Organizer review
-                            </Link>
+                            <Link href={duplicates_url}>Organizer review</Link>
                         </Button>
                         <Button onClick={() => edit()}>Add Participant</Button>
+                        <Button variant="outline" asChild>
+                            <Link href={attendance_url}>
+                                Attendance &amp; Summary
+                            </Link>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() =>
+                                router.post(
+                                    `/events/${event.id}/church-publication`,
+                                    { open: !event.church_registration_open },
+                                )
+                            }
+                        >
+                            {event.church_registration_open
+                                ? 'Close public registration'
+                                : 'Open public registration'}
+                        </Button>
                     </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    <Button variant="outline" asChild>
-                        <Link href={`/events/${event.id}/church-attendance`}>
-                            Attendance &amp; Summary
-                        </Link>
-                    </Button>
-                    <Button
-                        variant="outline"
-                        onClick={() =>
-                            router.post(
-                                `/events/${event.id}/church-publication`,
-                                { open: !event.church_registration_open },
-                            )
-                        }
-                    >
-                        {event.church_registration_open
-                            ? 'Close public registration'
-                            : 'Open public registration'}
-                    </Button>
-                    {public_url && (
+                </header>
+                {public_url && (
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => void copy(public_url)}
+                        >
+                            {publicLinkCopied ? (
+                                <Check className="mr-2 h-4 w-4" />
+                            ) : (
+                                <Copy className="mr-2 h-4 w-4" />
+                            )}
+                            {publicLinkCopied
+                                ? 'Public link copied'
+                                : 'Copy public link'}
+                        </Button>
                         <a
-                            className="break-all underline"
+                            className="text-muted-foreground text-sm break-all underline"
                             href={public_url}
                             target="_blank"
                             rel="noreferrer"
                         >
-                            {public_url}
+                            Open public registration
                         </a>
-                    )}
-                </div>
+                    </div>
+                )}
                 {message && <p role="status">{message}</p>}
                 {event.church_category === 'Fellowship' &&
                     groups.length > 0 && (
@@ -226,141 +266,195 @@ export default function ChurchRegistrations({
                         {deleteError}
                     </p>
                 )}
-                <div className="bg-card overflow-x-auto rounded-xl border">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-muted">
-                            <tr>
-                                {[
-                                    'Name',
-                                    'Contact',
-                                    'Type / guardian',
-                                    ...(groups.length > 0 ? ['Group'] : []),
-                                    'Source',
-                                    'Status',
-                                    'Code',
-                                    'Actions',
-                                ].map((label) => (
-                                    <th key={label} className="p-4">
-                                        {label}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {registrations.map((row) => (
-                                <tr key={row.id} className="border-t">
-                                    <td className="p-4">
-                                        <Link
-                                            className="underline"
-                                            href={row.history_url}
-                                        >
-                                            {[
-                                                row.participant.first_name,
-                                                row.participant.middle_name,
-                                                row.participant.last_name,
-                                                row.participant.suffix,
-                                            ]
-                                                .filter(Boolean)
-                                                .join(' ')}
-                                        </Link>
-                                    </td>
-                                    <td className="p-4">
-                                        <div>{row.participant.email}</div>
-                                        <div>
-                                            {row.participant.contact_number}
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        {churchParticipantTypeLabel(
-                                            row.participant_type,
-                                        )}
-                                        <div className="text-muted-foreground">
-                                            {row.guardian_name}{' '}
-                                            {row.guardian_contact}
-                                        </div>
-                                    </td>
-                                    {groups.length > 0 && (
-                                        <td className="p-4">
-                                            {groups.find(
-                                                (group) =>
-                                                    group.id ===
-                                                    row.fellowship_group_id,
-                                            )?.name ?? '—'}
-                                        </td>
-                                    )}
-                                    <td className="p-4">{row.source}</td>
-                                    <td className="p-4">
-                                        {row.registration_status === 'held'
-                                            ? 'Held / For Review'
-                                            : row.registration_status}
-                                        <div className="text-muted-foreground text-xs">
-                                            {row.held_reason}
-                                        </div>
-                                    </td>
-                                    <td className="p-4 font-mono">
-                                        {row.attendance_code ?? '—'}
-                                    </td>
-                                    <td className="p-4">
-                                        {row.registration_status ===
-                                            'confirmed' && (
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => edit(row)}
-                                                >
-                                                    Edit
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => {
-                                                        if (
-                                                            !window.confirm(
-                                                                'Delete this registration and its attendance? The participant record will be kept.',
-                                                            )
-                                                        )
-                                                            return;
-                                                        router.delete(
-                                                            `${base}/${row.id}`,
-                                                            {
-                                                                preserveScroll: true,
-                                                                onStart: () =>
-                                                                    setDeleteError(
-                                                                        '',
-                                                                    ),
-                                                                onError: (e) =>
-                                                                    setDeleteError(
-                                                                        Object.values(
-                                                                            e,
-                                                                        ).join(
-                                                                            ' ',
-                                                                        ),
-                                                                    ),
-                                                            },
-                                                        );
-                                                    }}
-                                                >
-                                                    Delete
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                            {registrations.length === 0 && (
-                                <tr>
-                                    <td
-                                        colSpan={groups.length > 0 ? 8 : 7}
-                                        className="text-muted-foreground p-6 text-center"
-                                    >
-                                        No registrations yet.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                <div className="relative max-w-lg">
+                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                    <Input
+                        aria-label="Search registrations"
+                        placeholder="Search name, email, or phone..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9"
+                    />
                 </div>
+                {filteredRegistrations.length === 0 ? (
+                    <section className="glass-panel flex flex-col items-center justify-center rounded-xl border p-12 text-center">
+                        <div className="bg-lime-brand/15 mb-4 flex h-14 w-14 items-center justify-center rounded-full">
+                            {searchQuery ? (
+                                <Search className="text-lime-brand h-7 w-7" />
+                            ) : (
+                                <Users className="text-lime-brand h-7 w-7" />
+                            )}
+                        </div>
+                        <h2 className="text-lg font-semibold">
+                            {searchQuery
+                                ? 'No matching participants'
+                                : 'No participants registered yet'}
+                        </h2>
+                        <p className="text-muted-foreground mt-1 max-w-sm text-sm">
+                            {searchQuery
+                                ? 'Try a different name, email, or phone number.'
+                                : 'Registrations will appear here as participants sign up.'}
+                        </p>
+                        {public_url && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="mt-5"
+                                onClick={() => void copy(public_url)}
+                            >
+                                {publicLinkCopied ? (
+                                    <Check className="mr-2 h-4 w-4" />
+                                ) : (
+                                    <Copy className="mr-2 h-4 w-4" />
+                                )}
+                                {publicLinkCopied
+                                    ? 'Public link copied'
+                                    : 'Copy public link'}
+                            </Button>
+                        )}
+                    </section>
+                ) : (
+                    <div className="bg-card overflow-x-auto rounded-xl border">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-muted">
+                                <tr>
+                                    {[
+                                        'Name',
+                                        'Contact',
+                                        'Type / guardian',
+                                        ...(groups.length > 0 ? ['Group'] : []),
+                                        'Source',
+                                        'Status',
+                                        'Code',
+                                        'Actions',
+                                    ].map((label) => (
+                                        <th key={label} className="p-4">
+                                            {label}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredRegistrations.map((row) => (
+                                    <tr key={row.id} className="border-t">
+                                        <td className="p-4">
+                                            <Link
+                                                className="underline"
+                                                href={row.history_url}
+                                            >
+                                                {[
+                                                    row.participant.first_name,
+                                                    row.participant.middle_name,
+                                                    row.participant.last_name,
+                                                    row.participant.suffix,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(' ')}
+                                            </Link>
+                                        </td>
+                                        <td className="p-4">
+                                            <div>{row.participant.email}</div>
+                                            <div>
+                                                {row.participant.contact_number}
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            {churchParticipantTypeLabel(
+                                                row.participant_type,
+                                            )}
+                                            <div className="text-muted-foreground">
+                                                {row.guardian_name}{' '}
+                                                {row.guardian_contact}
+                                            </div>
+                                        </td>
+                                        {groups.length > 0 && (
+                                            <td className="p-4">
+                                                {groups.find(
+                                                    (group) =>
+                                                        group.id ===
+                                                        row.fellowship_group_id,
+                                                )?.name ?? '—'}
+                                            </td>
+                                        )}
+                                        <td className="p-4">{row.source}</td>
+                                        <td className="p-4">
+                                            {row.registration_status === 'held'
+                                                ? 'Held / For Review'
+                                                : row.registration_status}
+                                            <div className="text-muted-foreground text-xs">
+                                                {row.held_reason}
+                                            </div>
+                                        </td>
+                                        <td className="p-4 font-mono">
+                                            {row.attendance_code ?? '—'}
+                                        </td>
+                                        <td className="p-4">
+                                            {row.registration_status ===
+                                                'confirmed' && (
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            edit(row)
+                                                        }
+                                                    >
+                                                        Edit
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            if (
+                                                                !window.confirm(
+                                                                    'Delete this registration and its attendance? The participant record will be kept.',
+                                                                )
+                                                            )
+                                                                return;
+                                                            router.delete(
+                                                                `${base}/${row.id}`,
+                                                                {
+                                                                    preserveScroll: true,
+                                                                    onStart:
+                                                                        () =>
+                                                                            setDeleteError(
+                                                                                '',
+                                                                            ),
+                                                                    onError: (
+                                                                        e,
+                                                                    ) =>
+                                                                        setDeleteError(
+                                                                            Object.values(
+                                                                                e,
+                                                                            ).join(
+                                                                                ' ',
+                                                                            ),
+                                                                        ),
+                                                                },
+                                                            );
+                                                        }}
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {registrations.length === 0 && (
+                                    <tr>
+                                        <td
+                                            colSpan={groups.length > 0 ? 8 : 7}
+                                            className="text-muted-foreground p-6 text-center"
+                                        >
+                                            No registrations yet.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </main>
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="max-h-[90vh] overflow-y-auto">

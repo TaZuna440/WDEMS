@@ -15,7 +15,17 @@ beforeEach(function () {
 });
 
 it('serves the church registration page and records staff attestation and formatted code', function () {
-    $this->get($this->url)->assertOk();
+    $this->get($this->url)
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('duplicates_url', route('events.possible-duplicates', $this->event))
+            ->where('attendance_url', route('church.attendance', $this->event)));
+    $this->get("/events/{$this->event->id}/church-attendance")
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('urls.registrations', route('church.registrations.index', $this->event))
+            ->where('urls.attendance', route('church.attendance', $this->event))
+            ->where('urls.reports', route('reports.index', ['kind' => 'church'])));
     $this->post($this->url, $this->data)->assertSessionHasNoErrors();
     $row = Registration::sole();
     expect($row->participant->pool)->toBe('church')->and($row->encoded_by)->toBe($this->staff->id)

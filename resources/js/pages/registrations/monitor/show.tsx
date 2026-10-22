@@ -86,6 +86,7 @@ type Props = {
     stats: Stats;
     registrations: RegistrationRow[];
     is_admin: boolean;
+    duplicates_url: string;
 };
 
 const POLL_KEYS = ['event', 'stats', 'registrations'] as const;
@@ -412,6 +413,7 @@ export default function MonitorShow({
     stats,
     registrations,
     is_admin,
+    duplicates_url,
 }: Props) {
     const [filter, setFilter] = useState<Filter>('all');
     const [search, setSearch] = useState('');
@@ -558,6 +560,9 @@ export default function MonitorShow({
                             eventId={event.id}
                             isOpen={event.is_open}
                         />
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href={duplicates_url}>Organizer review</Link>
+                        </Button>
                         {event.registration_slug !== null && (
                             <PublicLinkButton slug={event.registration_slug} />
                         )}

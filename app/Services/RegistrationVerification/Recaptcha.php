@@ -2,7 +2,9 @@
 
 namespace App\Services\RegistrationVerification;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class Recaptcha
 {
@@ -14,16 +16,28 @@ class Recaptcha
         if (! is_string($token) || $token === '' || strlen($token) > 4096) {
             return 'Complete the human verification before sending email.';
         }
+        $expectedHost = request()->getHost() ?: parse_url(config('app.url'), PHP_URL_HOST);
+
         try {
             $response = Http::asForm()->timeout(10)->post('https://www.google.com/recaptcha/api/siteverify', [
                 'secret' => config('services.recaptcha.secret_key'), 'response' => $token,
             ]);
+            $responseHost = $response->json('hostname');
             if ($response->successful() && $response->json('success') === true
-                && $response->json('hostname') === parse_url(config('app.url'), PHP_URL_HOST)) {
+                && is_string($expectedHost)
+                && is_string($responseHost)
+                && hash_equals(strtolower($expectedHost), strtolower($responseHost))) {
                 return null;
             }
-        } catch (\Throwable) {
-            // Tokens and credentials must not enter application logs.
+
+            Log::warning('registration.recaptcha.verification_failed', [
+                'status' => $response->status(),
+                'google_response' => $response->body(),
+            ]);
+        } catch (ConnectionException $exception) {
+            Log::warning('registration.recaptcha.request_failed', [
+                'exception' => $exception::class,
+            ]);
         }
 
         return 'Human verification failed or expired. Please try again.';

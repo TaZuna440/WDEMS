@@ -7,8 +7,12 @@ use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\RegistrationVerificationChallenge;
 use App\Models\User;
+use App\Services\RegistrationVerification\Recaptcha;
 use App\Services\RegistrationVerification\RegistrationVerificationService;
+use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 /** @return array{Event, array<string, mixed>} */
@@ -66,9 +70,15 @@ it('requires server-verified recaptcha before email OTP and completes a church r
     $this->withCookie($cookieName, $start->getCookie($cookieName)->getValue());
     $url = '/r/'.$event->registration_slug.'/verification';
 
+    $this->get($url)->assertOk()->assertInertia(fn ($page) => $page
+        ->where('recaptcha_site_key', 'site-key'));
+
     expect(RegistrationVerificationChallenge::where('event_id', $event->id)->sole()->email_issued_at)->toBeNull();
     $this->post($url.'/email/resend', ['recaptcha_token' => 'valid-test-token'])
         ->assertSessionHasNoErrors();
+    Http::assertSent(fn (HttpRequest $request) => $request->url() === 'https://www.google.com/recaptcha/api/siteverify'
+        && $request['secret'] === 'secret-key'
+        && $request['response'] === 'valid-test-token');
     Mail::assertSent(RegistrationVerificationOtpMail::class);
 
     $code = Mail::sent(RegistrationVerificationOtpMail::class)->last()->code;
@@ -81,6 +91,50 @@ it('requires server-verified recaptcha before email OTP and completes a church r
         ->and($registration->emergency_contact_name)->toBe('Jose Santos')
         ->and($registration->attendance_code)->toMatch('/^[A-Z0-9]{4}-[A-Z0-9]{4}$/')
         ->and($registration->attendance)->toBeNull();
+});
+
+it('logs the exact Google reCAPTCHA response when verification fails', function () {
+    config(['services.recaptcha.site_key' => 'site-key', 'services.recaptcha.secret_key' => 'secret-key']);
+    $googleResponse = [
+        'success' => false,
+        'error-codes' => ['invalid-input-response'],
+    ];
+    Http::fake([
+        'www.google.com/recaptcha/api/siteverify' => Http::response($googleResponse, 200),
+    ]);
+    Log::shouldReceive('warning')
+        ->once()
+        ->with('registration.recaptcha.verification_failed', [
+            'status' => 200,
+            'google_response' => json_encode($googleResponse),
+        ]);
+
+    expect(app(Recaptcha::class)->error('invalid-test-token'))
+        ->toBe('Human verification failed or expired. Please try again.');
+
+    Http::assertSent(fn (HttpRequest $request) => $request->url() === 'https://www.google.com/recaptcha/api/siteverify'
+        && $request['secret'] === 'secret-key'
+        && $request['response'] === 'invalid-test-token');
+});
+
+it('accepts a reCAPTCHA hostname matching the current request when APP_URL differs', function () {
+    config([
+        'app.url' => 'http://localhost:8000',
+        'services.recaptcha.site_key' => 'site-key',
+        'services.recaptcha.secret_key' => 'secret-key',
+    ]);
+    app()->instance(
+        'request',
+        Request::create('http://127.0.0.1:8000/r/test/verification'),
+    );
+    Http::fake([
+        'www.google.com/recaptcha/api/siteverify' => Http::response([
+            'success' => true,
+            'hostname' => '127.0.0.1',
+        ]),
+    ]);
+
+    expect(app(Recaptcha::class)->error('valid-test-token'))->toBeNull();
 });
 
 it('accepts Graduate and Ninong/Ninang through public email verification', function () {

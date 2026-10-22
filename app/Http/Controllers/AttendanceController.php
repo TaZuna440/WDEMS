@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\ChurchCategory;
+use App\Enums\ChurchEventStatus;
 use App\Enums\EventStatus;
 use App\Enums\RegistrationStatus;
 use App\Http\Requests\BulkMarkAttendanceRequest;
@@ -27,46 +29,91 @@ use Inertia\Response;
 
 class AttendanceController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $statuses = [
-            EventStatus::RegistrationOpen->value,
-            EventStatus::RegistrationClosed->value,
-            EventStatus::Ongoing->value,
-        ];
-
-        $today = today()->toDateString();
+        $kind = $request->query('kind', 'running');
+        abort_unless(in_array($kind, ['running', 'church'], true), 404);
 
         $events = Event::query()
-            ->where('event_kind', Event::KIND_RUNNING)
-            ->whereIn('status', $statuses)
+            ->where('event_kind', $kind)
+            ->when($kind === 'running', fn ($query) => $query->whereIn('status', [
+                EventStatus::RegistrationOpen->value,
+                EventStatus::RegistrationClosed->value,
+                EventStatus::Ongoing->value,
+                EventStatus::Completed->value,
+            ]))
+            ->when($kind === 'church', fn ($query) => $query
+                ->whereIn('church_status', [
+                    ChurchEventStatus::Upcoming->value,
+                    ChurchEventStatus::Ongoing->value,
+                    ChurchEventStatus::Completed->value,
+                ])
+                ->whereIn('church_category', ChurchCategory::values()))
             ->whereDate('event_date', '<=', today()->addDay())
             ->orderByDesc('event_date')
             ->orderByDesc('id')
-            ->get()
-            ->filter(fn (Event $event) => $event->canViewAttendance());
+            ->get();
+        if ($kind === 'running') {
+            $events = $events->filter(fn (Event $event) => $event->canViewAttendance());
+        }
 
         $map = fn (Event $event) => [
             'id' => $event->id,
             'event_name' => $event->event_name,
             'event_date' => $event->event_date?->toDateString(),
             'venue' => $event->venue,
-            'status' => $event->status->value,
-            'status_label' => $event->status->label(),
-            'registered_count' => $event->registrations()->active()->count(),
+            'status' => $event->isChurchEvent()
+                ? ChurchEventStatus::tryFrom((string) $event->getRawOriginal('church_status'))->value
+                : $event->status->value,
+            'status_label' => $event->isChurchEvent()
+                ? ChurchEventStatus::tryFrom((string) $event->getRawOriginal('church_status'))->label()
+                : $event->status->label(),
+            'church_category' => $event->church_category,
+            'action_url' => $event->isChurchEvent()
+                ? route('church.attendance', $event)
+                : route('events.attendance', $event),
+            'registered_count' => $event->registrations()->active()
+                ->when($event->isChurchEvent(), fn ($query) => $query->whereHas('participant', fn ($participant) => $participant->where('pool', 'church')))
+                ->count(),
             'marked_count' => $event->registrations()->active()
                 ->whereHas('attendance')
                 ->count(),
         ];
 
         $mapped = $events->map($map);
+        $groups = $mapped->groupBy(fn (array $row) => match ($row['status']) {
+            EventStatus::RegistrationOpen->value,
+            EventStatus::RegistrationClosed->value,
+            ChurchEventStatus::Upcoming->value => 'needsAttention',
+            'ongoing' => 'open',
+            'completed' => 'closed',
+            default => 'closed',
+        });
 
         return Inertia::render('attendance/index', [
+            'kind' => $kind,
+            'categories' => array_map(
+                fn (ChurchCategory $category): array => [
+                    'value' => $category->value,
+                    'label' => $category->label(),
+                ],
+                ChurchCategory::cases(),
+            ),
+            'groups' => $groups,
             'today' => $mapped
-                ->filter(fn (array $row) => $row['event_date'] >= $today)
+                ->filter(fn (array $row) => $row['event_date'] >= today()->toDateString()
+                    && $row['event_date'] <= today()->addDay()->toDateString()
+                    && ! in_array($row['status'], [
+                        EventStatus::Completed->value,
+                        ChurchEventStatus::Completed->value,
+                    ], true))
                 ->values(),
             'recent' => $mapped
-                ->filter(fn (array $row) => $row['event_date'] < $today)
+                ->filter(fn (array $row) => $row['event_date'] < today()->toDateString()
+                    && ! in_array($row['status'], [
+                        EventStatus::Completed->value,
+                        ChurchEventStatus::Completed->value,
+                    ], true))
                 ->values(),
         ]);
     }
@@ -240,6 +287,18 @@ class AttendanceController extends Controller
                     'label' => $s->label(),
                 ])
                 ->values(),
+            'urls' => [
+                'monitor' => in_array($event->getRawOriginal('status'), [
+                    EventStatus::RegistrationOpen->value,
+                    EventStatus::RegistrationClosed->value,
+                    EventStatus::Ongoing->value,
+                ], true)
+                    ? route('registration-monitor.show', $event)
+                    : null,
+                'report' => $event->isRunningEvent() && in_array($event->getRawOriginal('status'), [EventStatus::Ongoing->value, EventStatus::Completed->value], true)
+                    ? route('events.report', $event)
+                    : null,
+            ],
         ]);
     }
 

@@ -1,5 +1,15 @@
 import { Head, Link } from '@inertiajs/react';
-import { BarChart3, Calendar, MapPin, User } from 'lucide-react';
+import { useState } from 'react';
+import { BarChart3, Calendar, MapPin, Search, User } from 'lucide-react';
+import EventKindToggle from '@/components/event-kind-toggle';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 type EventRow = {
     id: number;
@@ -11,11 +21,13 @@ type EventRow = {
     venue: string | null;
     creator: string | null;
     registered_count: number | null;
+    report_url: string;
 };
 
 type Props = {
     events: EventRow[];
-    activeSide: 'running' | 'church' | null;
+    activeSide: 'running' | 'church';
+    categories: { value: string; label: string }[];
 };
 
 const typeStyles: Record<string, string> = {
@@ -23,7 +35,32 @@ const typeStyles: Record<string, string> = {
     church: 'bg-lime-brand/15 text-lime-700 dark:text-lime-brand',
 };
 
-export default function ReportsIndex({ events, activeSide }: Props) {
+export default function ReportsIndex({
+    events,
+    activeSide,
+    categories,
+}: Props) {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const isChurch = activeSide === 'church';
+    const filteredEvents = events.filter((event) => {
+        const matchesCategory =
+            !isChurch || event.church_category === selectedCategory;
+        const matchesSearch = [
+            event.event_name,
+            event.event_type_label,
+            event.church_category,
+            event.venue,
+            event.creator,
+        ].some((value) =>
+            value
+                ?.toLocaleLowerCase()
+                .includes(searchQuery.trim().toLocaleLowerCase()),
+        );
+        return matchesCategory && matchesSearch;
+    });
+    const categorySelected = !isChurch || selectedCategory !== '';
+
     return (
         <>
             <Head title="Reports" />
@@ -36,32 +73,59 @@ export default function ReportsIndex({ events, activeSide }: Props) {
                     <p className="text-muted-foreground mt-1 text-sm">
                         End-of-event reports for every completed event
                     </p>
-                    <nav
-                        aria-label="Filter reports by side"
-                        className="mt-4 flex gap-2"
-                    >
-                        <Link
-                            className={`rounded-full border px-3 py-1 text-xs ${activeSide === 'running' ? 'border-lime-brand text-lime-brand' : 'border-border text-muted-foreground'}`}
-                            href="/reports?kind=running"
-                        >
-                            Running
-                        </Link>
-                        <Link
-                            className={`rounded-full border px-3 py-1 text-xs ${activeSide === 'church' ? 'border-lime-brand dark:text-lime-brand text-[#3f6212]' : 'border-border text-muted-foreground'}`}
-                            href="/reports?kind=church"
-                        >
-                            Church
-                        </Link>
-                        <Link
-                            className={`rounded-full border px-3 py-1 text-xs ${activeSide === null ? 'border-foreground text-foreground' : 'border-border text-muted-foreground'}`}
-                            href="/reports"
-                        >
-                            All
-                        </Link>
-                    </nav>
                 </div>
 
-                {events.length === 0 ? (
+                <EventKindToggle kind={activeSide} baseUrl="/reports" />
+                <div className="flex flex-col gap-3 sm:flex-row">
+                    <div className="relative max-w-lg">
+                        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                        <Input
+                            aria-label="Search reports"
+                            placeholder="Search event, category, venue, or organizer..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9"
+                        />
+                    </div>
+                    {isChurch && (
+                        <Select
+                            value={selectedCategory}
+                            onValueChange={setSelectedCategory}
+                        >
+                            <SelectTrigger
+                                aria-label="Church Event Type"
+                                className="w-full sm:w-64"
+                            >
+                                <SelectValue placeholder="Select a Church Event Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {categories.map((category) => (
+                                    <SelectItem
+                                        key={category.value}
+                                        value={category.value}
+                                    >
+                                        {category.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
+
+                {!categorySelected ? (
+                    <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-16 text-center">
+                        <div className="bg-lime-brand/15 mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                            <BarChart3 className="dark:text-lime-brand h-8 w-8 text-lime-700" />
+                        </div>
+                        <h2 className="text-foreground mb-2 text-lg font-semibold">
+                            Select a Church Event Type
+                        </h2>
+                        <p className="text-muted-foreground max-w-sm text-sm">
+                            Choose a category to view its completed event
+                            reports.
+                        </p>
+                    </div>
+                ) : events.length === 0 ? (
                     <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-16 text-center">
                         <div className="bg-lime-brand/15 mb-4 flex h-16 w-16 items-center justify-center rounded-full">
                             <BarChart3 className="dark:text-lime-brand h-8 w-8 text-lime-700" />
@@ -72,6 +136,19 @@ export default function ReportsIndex({ events, activeSide }: Props) {
                         <p className="text-muted-foreground max-w-sm text-sm">
                             Reports appear here once an event has been
                             finalized.
+                        </p>
+                    </div>
+                ) : filteredEvents.length === 0 ? (
+                    <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-16 text-center">
+                        <div className="bg-lime-brand/15 mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                            <Search className="dark:text-lime-brand h-8 w-8 text-lime-700" />
+                        </div>
+                        <h2 className="text-foreground mb-2 text-lg font-semibold">
+                            No matching reports
+                        </h2>
+                        <p className="text-muted-foreground max-w-sm text-sm">
+                            Try another event name, category, venue, or
+                            organizer.
                         </p>
                     </div>
                 ) : (
@@ -104,7 +181,7 @@ export default function ReportsIndex({ events, activeSide }: Props) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {events.map((event) => (
+                                    {filteredEvents.map((event) => (
                                         <tr
                                             key={event.id}
                                             className="border-border hover:bg-card/40 border-b transition-colors last:border-b-0"
@@ -160,12 +237,7 @@ export default function ReportsIndex({ events, activeSide }: Props) {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <Link
-                                                    href={
-                                                        event.event_kind ===
-                                                        'running'
-                                                            ? `/events/${event.id}/report`
-                                                            : `/events/${event.id}/church-attendance?summary=1`
-                                                    }
+                                                    href={event.report_url}
                                                     className="dark:text-lime-brand dark:hover:text-lime-brand/80 text-sm font-medium text-lime-700 hover:text-lime-800"
                                                 >
                                                     {event.event_kind ===

@@ -44,7 +44,17 @@ class ReportController extends Controller
     {
         $this->assertReportable($event);
 
-        return Inertia::render('events/report', $this->reports->build($event));
+        return Inertia::render('events/report', [
+            ...$this->reports->build($event),
+            'urls' => [
+                'event' => route('events.show', $event),
+                'attendance' => route('events.attendance', $event),
+                'export' => route('events.report.export', $event),
+                'registrations' => $event->getRawOriginal('status') === EventStatus::Ongoing->value
+                    ? route('registration-monitor.show', $event)
+                    : null,
+            ],
+        ]);
     }
 
     /**

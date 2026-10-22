@@ -87,6 +87,10 @@ type EventData = {
 
 type Props = {
     event: EventData;
+    urls: {
+        monitor: string | null;
+        report: string | null;
+    };
     rows: AttendanceRow[];
     pagination: {
         current_page: number;
@@ -127,6 +131,7 @@ function sourceLabel(source: string): string {
 
 export default function EventsAttendance({
     event,
+    urls,
     rows,
     pagination,
     counts,
@@ -315,6 +320,16 @@ export default function EventsAttendance({
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                        {urls.monitor && (
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={urls.monitor}>Registrations</Link>
+                            </Button>
+                        )}
+                        {urls.report && (
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={urls.report}>Report</Link>
+                            </Button>
+                        )}
                         {showForceToggle && (
                             <Button
                                 type="button"
