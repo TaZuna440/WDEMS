@@ -34,26 +34,28 @@ class ChurchRegistrationController extends Controller
             'groups' => $groups->map(fn (FellowshipGroup $group): array => ['id' => $group->id, 'name' => $group->name])->values(),
             'message' => session('success'),
             'public_url' => $event->registration_slug ? route('public-registration.show', ['event' => $event->registration_slug]) : null,
-            'registrations' => Registration::where('event_id', $event->id)->latest()->get()->map(function (Registration $row): array {
-                $person = Participant::findOrFail($row->participant_id);
+            'registrations' => Registration::where('event_id', $event->id)
+                ->whereHas('participant', fn ($query) => $query->where('pool', 'church'))
+                ->latest()->get()->map(function (Registration $row): array {
+                    $person = Participant::findOrFail($row->participant_id);
 
-                return [
-                    'id' => $row->id,
-                    'history_url' => route('church.participants.history', $person),
-                    'participant' => [...$person->only('first_name', 'middle_name', 'last_name', 'suffix', 'email', 'contact_number', 'address', 'age'),
-                        'email' => $row->submitted_email ?? $person->email,
-                        'contact_number' => $row->submitted_contact_number ?? $person->contact_number],
-                    'source' => $row->source === 'manual' ? 'Manual' : 'Link',
-                    'birthday' => $person->getRawOriginal('birthday'),
-                    'participant_type' => $row->participant_type,
-                    'fellowship_group_id' => $row->fellowship_group_id,
-                    'guardian_name' => $row->guardian_name,
-                    'guardian_contact' => $row->guardian_contact,
-                    'registration_status' => $row->getRawOriginal('registration_status'),
-                    'attendance_code' => $row->isActive() ? $row->attendance_code : null,
-                    'held_reason' => $row->held_reason,
-                ];
-            }),
+                    return [
+                        'id' => $row->id,
+                        'history_url' => route('church.participants.history', $person),
+                        'participant' => [...$person->only('first_name', 'middle_name', 'last_name', 'suffix', 'email', 'contact_number', 'address', 'age'),
+                            'email' => $row->submitted_email ?? $person->email,
+                            'contact_number' => $row->submitted_contact_number ?? $person->contact_number],
+                        'source' => $row->source === 'manual' ? 'Manual' : 'Link',
+                        'birthday' => $person->getRawOriginal('birthday'),
+                        'participant_type' => $row->participant_type,
+                        'fellowship_group_id' => $row->fellowship_group_id,
+                        'guardian_name' => $row->guardian_name,
+                        'guardian_contact' => $row->guardian_contact,
+                        'registration_status' => $row->getRawOriginal('registration_status'),
+                        'attendance_code' => $row->isActive() ? $row->attendance_code : null,
+                        'held_reason' => $row->held_reason,
+                    ];
+                }),
         ]);
     }
 

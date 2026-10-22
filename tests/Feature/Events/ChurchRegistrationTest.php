@@ -49,6 +49,22 @@ it('reuses the church person across events and ignores the same running identity
     expect(Participant::count())->toBe(2)->and(Registration::pluck('participant_id')->unique())->toHaveCount(1);
 });
 
+it('does not expose a running-pool participant in church registrations', function () {
+    $runningParticipant = Participant::create([
+        'pool' => 'running',
+        'first_name' => 'Running',
+        'last_name' => 'Participant',
+    ]);
+    $this->event->registrations()->create([
+        'participant_id' => $runningParticipant->id,
+        'registration_status' => 'confirmed',
+        'source' => 'manual',
+    ]);
+
+    $this->get($this->url)->assertInertia(fn ($page) => $page
+        ->where('registrations', []));
+});
+
 it('edits identity and per-event details without rewriting another registration', function () {
     $this->post($this->url, $this->data);
     $row = Registration::sole();
