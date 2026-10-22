@@ -9,6 +9,7 @@ use App\Models\FellowshipEvent;
 use App\Models\FellowshipGroup;
 use App\Models\Participant;
 use App\Models\Registration;
+use App\Models\ServiceAttendanceFirstTimer;
 use App\Models\ServiceAttendanceMember;
 use App\Models\ServiceOccurrence;
 use App\Models\User;
@@ -98,7 +99,20 @@ it('keeps excused legacy attendance unmarked and records the prior status in not
 });
 
 it('rejects legacy Service and Fellowship writes after bridge activation', function () {
-    app(RegistrationBridge::class)->activate($this->occurrence);
+    $serviceMember = Participant::create(['pool' => 'church', 'first_name' => 'Service', 'last_name' => 'Member']);
+    $serviceVisitor = Participant::create(['pool' => 'church', 'first_name' => 'Service', 'last_name' => 'Visitor']);
+    $serviceMemberRow = ServiceAttendanceMember::create([
+        'service_occurrence_id' => $this->occurrence->id,
+        'participant_id' => $serviceMember->id,
+        'attendance_status' => 'present',
+    ]);
+    $serviceVisitorRow = ServiceAttendanceFirstTimer::create([
+        'service_occurrence_id' => $this->occurrence->id,
+        'participant_id' => $serviceVisitor->id,
+        'attendance_status' => 'present',
+    ]);
+    $serviceEvent = app(RegistrationBridge::class)->activate($this->occurrence);
+
     $fellowship = FellowshipEvent::create([
         'fellowship_type' => FellowshipType::Family->value,
         'name' => 'Family Fellowship',
@@ -106,14 +120,50 @@ it('rejects legacy Service and Fellowship writes after bridge activation', funct
         'created_by' => $this->staff->id,
     ]);
     $group = FellowshipGroup::create(['fellowship_event_id' => $fellowship->id, 'name' => 'Parents']);
-    app(RegistrationBridge::class)->activate($fellowship);
+    $fellowshipParticipant = Participant::create(['pool' => 'church', 'first_name' => 'Fellowship', 'last_name' => 'Member']);
+    $fellowshipRow = FellowshipAttendance::create([
+        'fellowship_event_id' => $fellowship->id,
+        'participant_id' => $fellowshipParticipant->id,
+        'fellowship_group_id' => $group->id,
+        'attendance_status' => 'present',
+    ]);
+    $fellowshipChurchEvent = app(RegistrationBridge::class)->activate($fellowship);
+
+    $this->get(route('services.attendance.show', ['occurrence' => $this->occurrence->id]))
+        ->assertRedirect(route('church.attendance', $serviceEvent));
+    $this->get(route('fellowship.attendance.show', ['event' => $fellowship->id]))
+        ->assertRedirect(route('church.attendance', $fellowshipChurchEvent));
 
     $this->post(route('services.attendance.store', ['occurrence' => $this->occurrence->id]), [
         'track' => 'member', 'first_name' => 'Juan', 'last_name' => 'Santos', 'age' => 30,
     ])->assertStatus(409);
+    $this->put(route('services.attendance.mark-member', [
+        'occurrence' => $this->occurrence->id, 'attendance' => $serviceMemberRow->id,
+    ]), ['attendance_status' => 'absent'])->assertStatus(409);
+    $this->put(route('services.attendance.mark-first-timer', [
+        'occurrence' => $this->occurrence->id, 'attendance' => $serviceVisitorRow->id,
+    ]), ['attendance_status' => 'absent'])->assertStatus(409);
+    $this->delete(route('services.attendance.destroy-member', [
+        'occurrence' => $this->occurrence->id, 'attendance' => $serviceMemberRow->id,
+    ]))->assertStatus(409);
+    $this->delete(route('services.attendance.destroy-first-timer', [
+        'occurrence' => $this->occurrence->id, 'attendance' => $serviceVisitorRow->id,
+    ]))->assertStatus(409);
     $this->post(route('fellowship.attendance.store', ['event' => $fellowship->id]), [
         'first_name' => 'Ana', 'last_name' => 'Santos',
     ])->assertStatus(409);
+    $this->put(route('fellowship.attendance.mark', [
+        'event' => $fellowship->id, 'attendance' => $fellowshipRow->id,
+    ]), ['attendance_status' => 'absent'])->assertStatus(409);
+    $this->delete(route('fellowship.attendance.destroy', [
+        'event' => $fellowship->id, 'attendance' => $fellowshipRow->id,
+    ]))->assertStatus(409);
+    $this->post(route('fellowship.groups.store', ['event' => $fellowship->id]), [
+        'name' => 'Youth',
+    ])->assertStatus(409);
+    $this->put(route('fellowship.groups.update', [
+        'event' => $fellowship->id, 'group' => $group->id,
+    ]), ['name' => 'Updated Parents'])->assertStatus(409);
     $this->delete(route('services.occurrences.destroy', ['occurrence' => $this->occurrence->id]))->assertStatus(409);
     $this->put(route('fellowship.events.update', ['event' => $fellowship->id]), [
         'name' => 'Changed', 'event_date' => today()->toDateString(),
@@ -121,8 +171,13 @@ it('rejects legacy Service and Fellowship writes after bridge activation', funct
     $this->delete(route('fellowship.groups.destroy', ['event' => $fellowship->id, 'group' => $group->id]))->assertStatus(409);
     $this->delete(route('fellowship.events.destroy', ['event' => $fellowship->id]))->assertStatus(409);
 
-    expect(ServiceAttendanceMember::count())->toBe(0)->and(FellowshipAttendance::count())->toBe(0);
-    expect(FellowshipGroup::whereKey($group->id)->exists())->toBeTrue()
+    expect(ServiceAttendanceMember::count())->toBe(1)
+        ->and(ServiceAttendanceFirstTimer::count())->toBe(1)
+        ->and(FellowshipAttendance::count())->toBe(1);
+    expect($serviceMemberRow->fresh()->attendance_status)->toBe('present')
+        ->and($serviceVisitorRow->fresh()->attendance_status)->toBe('present')
+        ->and($fellowshipRow->fresh()->attendance_status)->toBe('present')
+        ->and(FellowshipGroup::whereKey($group->id)->value('name'))->toBe('Parents')
         ->and($fellowship->fresh())->not->toBeNull()
         ->and($this->occurrence->fresh())->not->toBeNull();
 });
