@@ -10,11 +10,19 @@ type CaptchaWindow = Window & {
 };
 let loading: Promise<CaptchaApi> | null = null;
 
+function logCaptchaError(stage: string, error: unknown) {
+    const detail =
+        error instanceof Error
+            ? { name: error.name, message: error.message }
+            : { name: 'UnknownError' };
+    console.error(`registration.recaptcha.${stage}_failed`, detail);
+}
+
 function loadCaptcha(): Promise<CaptchaApi> {
     const target = window as CaptchaWindow;
     if (target.grecaptcha?.render) return Promise.resolve(target.grecaptcha);
-    if (!loading)
-        loading = new Promise((resolve, reject) => {
+    if (!loading) {
+        const promise = new Promise<CaptchaApi>((resolve, reject) => {
             target.wdemsRecaptchaReady = () =>
                 target.grecaptcha
                     ? resolve(target.grecaptcha)
@@ -25,7 +33,6 @@ function loadCaptcha(): Promise<CaptchaApi> {
             script.async = true;
             script.defer = true;
             script.onerror = () => {
-                loading = null;
                 script.remove();
                 reject(
                     new Error(
@@ -34,7 +41,13 @@ function loadCaptcha(): Promise<CaptchaApi> {
                 );
             };
             document.head.appendChild(script);
+        }).catch((error: unknown) => {
+            loading = null;
+            throw error;
         });
+        loading = promise;
+        return promise;
+    }
     return loading;
 }
 
@@ -50,28 +63,51 @@ export default function RegistrationRecaptcha({
     const element = useRef<HTMLDivElement>(null);
     const callback = useRef(onToken);
     callback.current = onToken;
+    const widget = useRef<{ api: CaptchaApi; id: number } | null>(null);
+    const previousResetKey = useRef(resetKey);
     const [error, setError] = useState('');
     useEffect(() => {
         if (!siteKey) return;
         let active = true;
-        let widget: number | undefined;
-        let api: CaptchaApi | undefined;
         const container = element.current;
+        if (!container) return;
+
+        const mount = document.createElement('div');
+        container.replaceChildren(mount);
+        let renderedWidget: { api: CaptchaApi; id: number } | null = null;
+
         loadCaptcha()
             .then((loaded) => {
-                if (!active || !container) return;
-                api = loaded;
-                widget = loaded.render(container, {
-                    sitekey: siteKey,
-                    callback: (token: string) => callback.current(token),
-                    'expired-callback': () => callback.current(''),
-                    'error-callback': () => {
-                        callback.current('');
-                        setError('Human verification failed. Reload to retry.');
-                    },
-                });
+                if (!active || mount.parentElement !== container) return;
+                try {
+                    const id = loaded.render(mount, {
+                        sitekey: siteKey,
+                        callback: (token: string) => {
+                            if (!active) return;
+                            setError('');
+                            callback.current(token);
+                        },
+                        'expired-callback': () => {
+                            if (active) callback.current('');
+                        },
+                        'error-callback': () => {
+                            if (!active) return;
+                            callback.current('');
+                            setError(
+                                'Human verification failed. Reload to retry.',
+                            );
+                        },
+                    });
+                    renderedWidget = { api: loaded, id };
+                    widget.current = renderedWidget;
+                } catch (error: unknown) {
+                    logCaptchaError('widget_initialization', error);
+                    if (active)
+                        setError('Could not initialize human verification.');
+                }
             })
-            .catch(() => {
+            .catch((error: unknown) => {
+                logCaptchaError('script_load', error);
                 if (active)
                     setError(
                         'Could not load human verification. Reload to retry.',
@@ -79,10 +115,17 @@ export default function RegistrationRecaptcha({
             });
         return () => {
             active = false;
-            if (widget !== undefined) api?.reset(widget);
-            container?.replaceChildren();
+            if (widget.current === renderedWidget) widget.current = null;
+            mount.remove();
         };
-    }, [siteKey, resetKey]);
+    }, [siteKey]);
+    useEffect(() => {
+        if (previousResetKey.current === resetKey) return;
+        previousResetKey.current = resetKey;
+        if (widget.current) {
+            widget.current.api.reset(widget.current.id);
+        }
+    }, [resetKey]);
     return (
         <div className="space-y-2">
             {!siteKey && (

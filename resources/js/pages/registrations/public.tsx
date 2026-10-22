@@ -171,7 +171,15 @@ export default function PublicRegistration({
                         Accept: 'application/json',
                         'X-XSRF-TOKEN': csrf ? decodeURIComponent(csrf) : '',
                     },
-                    body: identityKey,
+                    body: JSON.stringify({
+                        first_name: form.data.first_name,
+                        last_name: form.data.last_name,
+                        middle_name: form.data.middle_name || null,
+                        suffix: form.data.suffix || null,
+                        birthday: form.data.birthday || null,
+                        email: form.data.email || null,
+                        contact_number: form.data.contact_number || null,
+                    }),
                 });
                 if (
                     !response.ok ||
