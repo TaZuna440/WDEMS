@@ -65,7 +65,7 @@ export default function EncoderNameSearch({
         );
     return (
         <aside
-            className="space-y-2 rounded-xl border border-amber-500/40 p-4 text-sm"
+            className="space-y-2 rounded-xl border border-[#13253B]/40 p-4 text-sm dark:border-amber-500/40"
             aria-live="polite"
         >
             <p className="font-medium">

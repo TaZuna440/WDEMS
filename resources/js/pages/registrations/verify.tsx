@@ -368,8 +368,8 @@ export default function VerifyRegistration({
                 {verification.status === 'finalized' && (
                     <>
                         {verification.is_inactive ? (
-                            <section className="grid gap-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-6 text-center">
-                                <h2 className="text-base font-semibold text-yellow-600 dark:text-yellow-400">
+                            <section className="grid gap-4 rounded-xl border border-[#13253B]/30 bg-[#13253B]/5 p-6 text-center dark:border-yellow-500/30 dark:bg-yellow-500/10">
+                                <h2 className="text-base font-semibold text-[#13253B] dark:text-yellow-400">
                                     Registration Status
                                 </h2>
                                 <p className="text-muted-foreground mx-auto max-w-md text-sm">
