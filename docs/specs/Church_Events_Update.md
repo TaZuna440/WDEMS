@@ -774,3 +774,77 @@ automatic merging; participant accounts.
 - Similarity-warning placement on the public form (recommendation:
   after verification, as part of the hold flow).
 - CSV / print export for the church summary.
+
+## Amendment E — 2026-10-22
+
+Church Events — Definition (Amendment E to the Church Events Update guideline)
+
+_Drafted 2026-10-22 at Mark's request. This states what Church Events must contain, in one place, consolidating Amendment A/A.1 (registration & attendance shape), Amendment B (identity), Amendment C/D (hold policy, per-side pools, participant history), the 2026-10-22 Option B ruling (verified-email-only identity at public finalization), and the 2026-10-22 theme ruling (§9). Where this definition and any older document conflict, the Church Events Update MD still prevails for workflow detail; §9 of this definition supersedes the dashboard spec's color split._
+
+1. Scope — the nine modules Church Events covers:
+
+**Services, Fellowship, Discipleship, Youth Ministry, Kids Ministry, Young Adult, Worship & Prayer, Church Administration, and Special Occasions.**
+
+Module specifics retained: Services are recurring: service → occurrences. Each occurrence is its own event for registration and duplicate purposes — registering for this Sunday is separate from next Sunday. Fellowship keeps its groups. Discipleship keeps programs → batches → sessions → enrollments. Category and Youth submodule pages (Kids Ministry, Young Adult, Worship & Prayer, Special Occasions, Church Administration; Youth Camp, Huddle, Campus Ministry, Timothy Class) remain standardized placeholders until the client rules on their vertical slices.
+
+2. Workflow per event
+
+Every church event follows one shared workflow: **select ministry → select category → Event Details → Registration → Attendance → Summary.** Records are per event. Event create/edit carries basic details, and the no-past-dates rule applies to every scheduling date, picker and server — no exceptions.
+
+3. Registration must contain
+
+One list per event, fed by exactly two entry channels:
+
+- Staff Add Participant — manual add by the organizer/encoder, no OTP; the encoder and time are recorded (staff attestation).
+- A per-event public registration link — same fields as the event's registration form; email is required and verified by email OTP with reCAPTCHA, exactly like Community Run. There is **no phone verification** anywhere in Church Events.
+- A publication switch per event opens/closes the public link.
+
+Fields: first / middle (optional) / last name and suffix; email; contact number; birthday (age is derived); Barangay & City address; **participant_type — Member, First-Timer, or Guest only — and guardian, stored per registration, not on the person**; emergency contact as decided for the form.
+
+Every completed registration gets a registration code (same format as Community Run, e.g. KM4X-P2N7), whether staff-added or via the link. Codes are for lookup, not scanning.
+
+Full Add / Edit / Delete on the Registration list. Add and edit re-run the per-event duplicate check (edit excludes itself). Delete removes the registration and its attendance row and adjusts counts — deleting removes the registration, never the person.
+
+4. Identity and duplicate protection
+
+Church participants live in the church pool, fully separate from Running Events participants (D-10). The same person may exist once in each pool; that is by design, never a duplicate. Panel line: "Duplicate is judged per event; identity is shared within each side."
+
+A participant is the composite identity: normalized full name (first + middle + last + suffix) AND (email OR normalized phone), matched within the same event (per occurrence for Services).
+
+- Exact duplicate → blocked. The first/existing record is kept; the second submission is rejected.
+- Likely duplicate → held for organizer review (same email/phone + highly similar name, including an added or omitted middle name): stored as Held / For Review — excluded from confirmed counts, no attendance flow, no kit entitlement — until the organizer confirms a duplicate (terminal Duplicate status, never Cancelled), confirms a separate person (release), corrects and rechecks, or removes it. Every resolution is audit-logged. The system never auto-merges.
+- Shared contact + clearly different name → allowed (the family case: several people registering under one email or phone).
+
+At public finalization, the verified email is the identity contact. An unverified submitted phone is a stored snapshot on the registration only — never used for identity (Option B, ruled 2026-10-22; the church phone-override in finalize() was removed in commit 57797a8). Staff flows keep the full composite rule.
+
+5. Attendance must contain
+
+Monitoring only. Registrations flow into Attendance automatically as Unmarked; Attendance adds nobody — no walk-ins, no re-encoding.
+
+Code input + Look up; search by name / email / phone; filter chips All / Unmarked / Present / Absent with counts.
+
+Statuses are Present / Absent / Unmarked only — no Excused, no camera scanning, no Live/Deferred modes, no Check-in/Walk-in tabs.
+
+6. Summary must contain
+
+Registered = Present + Absent + Unmarked, per event, with the participant list and statuses, and Edit Attendance.
+
+7. Participant history must contain
+
+The church side monitors each church participant's history: **how many times he/she attended and what types of church events he/she joined** (in scope per D.3 item 6; supersedes the guideline's earlier FR-12 deferral). Surfaced on the participant history page and the dashboard's church-side history panel.
+
+8. Legacy Services & Fellowship (the bridge)
+
+Pre-existing Services and Fellowship records keep their legacy data. Each legacy occurrence/event activates into the generic church event model: activation creates the church Event, copies registrations/attendance/groups, preserves the legacy rows, and from then on adding and editing participants happens **only in Registration** under §§3–5. Activation is per occurrence for Services.
+
+9. Visual theme — the purple theme is REMOVED
+
+Church Events must not use a purple/violet theme. Church surfaces use the platform's standard theme — the same dark UI and **lime accent** as Running Events. On the split dashboard, the side is identified by the Running | Church switcher and its labels, not by a separate color family; the calendar and statistics for the active side use the same lime accent (the calendar already shows only the active side's events, so color carries no information there). This supersedes the dashboard spec's earlier "lime = running / violet = church" accent split.
+
+Verified scope at branch tip 57797a8 (all violet usages in the frontend): resources/js/pages/dashboard.tsx — the church theme token set (dot/border/text/button), the Church switcher pill's active state, church stat subtext, today's-date calendar cell, calendar event dots, tooltip link, and the church participant-history chips; resources/js/pages/events/church/participants/history.tsx — the History icon color; resources/js/pages/reports/index.tsx — the church side chip. The church module pages themselves (registration, attendance, category cards) carry no violet.
+
+10. Church Events must NOT contain
+
+Payments, donations, or church finance; payroll; inventory; facility booking; SMS or phone verification; automatic reminders; camera scanning; automatic merging of participants; participant accounts; the Excused attendance status; a purple/violet color theme.
+
+_Still-open decisions are unchanged (see the Master Document): O-1 birthday clause, O-3 prototype-vs-client-docs, O-4 authorization and outside-the-event-day rules, O-6 kit checkpoint (running side), O-7 church CSV export._
