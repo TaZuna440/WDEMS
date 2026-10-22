@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Discipleship;
 
-use App\Enums\DiscipleshipAttendanceStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -38,7 +37,7 @@ class StoreDiscipleshipAttendanceBulkRequest extends FormRequest
             'cells' => ['required', 'array', 'min:1', 'max:500'],
             'cells.*.enrollment_id' => ['required', 'integer', 'exists:discipleship_enrollments,id'],
             'cells.*.session_id' => ['required', 'integer', 'exists:discipleship_sessions,id'],
-            'cells.*.status' => ['required', Rule::in(DiscipleshipAttendanceStatus::values())],
+            'cells.*.status' => ['required', Rule::in(['present', 'absent'])],
         ];
     }
 
@@ -53,7 +52,7 @@ class StoreDiscipleshipAttendanceBulkRequest extends FormRequest
             'cells.*.session_id.required' => 'Each cell needs a session.',
             'cells.*.session_id.exists' => 'One of the sessions does not exist.',
             'cells.*.status.required' => 'Each cell needs a status.',
-            'cells.*.status.in' => 'Attendance status must be present, absent, or excused.',
+            'cells.*.status.in' => 'Attendance status must be present or absent.',
         ];
     }
 }
