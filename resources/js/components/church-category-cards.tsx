@@ -25,9 +25,8 @@ type Category = {
  * The nine church event categories. Confirmed by the client in
  * docs/church-events/02-product-scope-and-requirements.md CAT-01.
  *
- * `hasDedicatedPage` distinguishes the three that ship with their
- * own landing page (Services, Fellowship, Discipleship) from the
- * six that use the unified church event wizard until Phase 4.
+ * `hasDedicatedPage` distinguishes categories with a dedicated ministry
+ * landing page from those that create events directly in the church wizard.
  */
 const CATEGORIES: Category[] = [
     {
@@ -97,9 +96,7 @@ const CATEGORIES: Category[] = [
 
 type Props = {
     /**
-     * `browse` — every card routes to the category's browse page
-     * (dedicated landing for the three built modules, placeholder
-     * for the six unbuilt ones).
+     * `browse` — every card routes to its category's browse page.
      *
      * `create` — the three built modules route to their landing
      * page (where the user creates from the module's own UI), and
@@ -136,11 +133,6 @@ export default function ChurchCategoryCards({ mode = 'browse' }: Props) {
                             <p className="text-muted-foreground mt-0.5 text-sm">
                                 {category.description}
                             </p>
-                            {!category.hasDedicatedPage && (
-                                <span className="text-muted-foreground bg-secondary mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider uppercase">
-                                    Placeholder
-                                </span>
-                            )}
                         </div>
                     </Link>
                 );

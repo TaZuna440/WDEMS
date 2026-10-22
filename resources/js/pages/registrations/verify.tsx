@@ -3,7 +3,6 @@ import { Check, Copy, Ticket } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import RegistrationRecaptcha from '@/components/registration-recaptcha';
-import RegistrationBarcode from '@/components/registration-barcode';
 import WizardProgress from '@/components/wizard-progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,13 +54,7 @@ const REGISTRATION_STEPS = [
     { id: 'confirmation', label: 'Confirmation' },
 ];
 
-function RegistrationCodePanel({
-    code,
-    barcode = true,
-}: {
-    code: string | null;
-    barcode?: boolean;
-}) {
+function RegistrationCodePanel({ code }: { code: string | null }) {
     const [copied, setCopied] = useState(false);
 
     const copy = async () => {
@@ -95,13 +88,10 @@ function RegistrationCodePanel({
                 </p>
             )}
 
-            {code !== null && barcode && <RegistrationBarcode code={code} />}
-
             {code !== null && (
                 <p className="text-muted-foreground text-center text-sm">
-                    {barcode
-                        ? 'Save this barcode for check-in at the event.'
-                        : 'Keep this code and give it to the organizer for attendance lookup.'}
+                    Keep this code and give it to the organizer for attendance
+                    lookup.
                 </p>
             )}
 
@@ -379,7 +369,6 @@ export default function VerifyRegistration({
                             </section>
                         ) : (
                             <RegistrationCodePanel
-                                barcode={event_kind === 'running'}
                                 code={verification.attendance_code ?? null}
                             />
                         )}

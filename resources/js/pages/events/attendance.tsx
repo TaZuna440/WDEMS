@@ -1,5 +1,4 @@
 import PaperRegistrationForm from '@/components/paper-registration-form';
-import CheckInCamera from '@/components/check-in-camera';
 import QuickWalkIn from '@/components/quick-walk-in';
 import { Head, Link, router, usePoll } from '@inertiajs/react';
 import {
@@ -528,12 +527,6 @@ export default function EventsAttendance({
                                     className="h-14 pl-9 font-mono text-xl tracking-wider uppercase"
                                 />
                             </div>
-                            <CheckInCamera
-                                onCode={(code) => {
-                                    setLocalCode(code);
-                                    lookupCode(code);
-                                }}
-                            />
                             {codeActive ? (
                                 <Button
                                     type="button"
