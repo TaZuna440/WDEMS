@@ -43,6 +43,7 @@ type Occurrence = {
     notes: string | null;
     member_count: number;
     first_timer_count: number;
+    registration_event_id: number | null;
 };
 
 type ServiceType = {
@@ -258,15 +259,46 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
                                     </div>
                                 </Link>
 
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => deleteOccurrence(occurrence)}
-                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                    aria-label={`Delete ${formatDate(occurrence.occurrence_date)} occurrence`}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex shrink-0 items-center gap-1">
+                                    {occurrence.registration_event_id !==
+                                    null ? (
+                                        <Link
+                                            href={`/events/church/events/${occurrence.registration_event_id}/registrations`}
+                                            className="text-primary text-sm hover:underline"
+                                        >
+                                            View registrations
+                                        </Link>
+                                    ) : (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                if (
+                                                    window.confirm(
+                                                        'Activate the shared Registration → Attendance workflow? Existing attendance will be preserved; adding and editing participants moves to Registration.',
+                                                    )
+                                                ) {
+                                                    router.post(
+                                                        `/services/occurrences/${occurrence.id}/registration-bridge`,
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            Set up registration and public link
+                                        </Button>
+                                    )}
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                            deleteOccurrence(occurrence)
+                                        }
+                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                        aria-label={`Delete ${formatDate(occurrence.occurrence_date)} occurrence`}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
                         ))}
                     </div>

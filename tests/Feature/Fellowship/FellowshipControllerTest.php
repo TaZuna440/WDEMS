@@ -6,6 +6,7 @@ use App\Models\FellowshipEvent;
 use App\Models\FellowshipGroup;
 use App\Models\Participant;
 use App\Models\User;
+use App\Services\Church\RegistrationBridge;
 
 beforeEach(function () {
     $this->staff = User::factory()->create([
@@ -81,7 +82,20 @@ test('the per-type view lists events for that type only', function () {
             ->component('fellowship/show')
             ->where('fellowship_type.value', 'family')
             ->has('events', 1)
+            ->where('events.0.registration_event_id', null)
         );
+});
+
+test('the per-type view includes the registration event id after activation', function () {
+    $event = fwEvent(FellowshipType::Family->value);
+    $churchEvent = app(RegistrationBridge::class)->activate($event);
+
+    $this->actingAs($this->staff)
+        ->get(route('fellowship.show', ['type' => 'family']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('events.0.id', $event->id)
+            ->where('events.0.registration_event_id', $churchEvent->id));
 });
 
 test('an unknown fellowship type returns 404 from the route constraint', function () {

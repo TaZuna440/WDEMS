@@ -40,6 +40,7 @@ type EventRow = {
     notes: string | null;
     group_count: number;
     attendance_count: number;
+    registration_event_id: number | null;
 };
 
 type FellowshipTypeData = {
@@ -190,6 +191,32 @@ export default function FellowshipShow({ fellowship_type, events }: Props) {
                                 </Link>
 
                                 <div className="flex shrink-0 items-center gap-1">
+                                    {event.registration_event_id !== null ? (
+                                        <Link
+                                            href={`/events/church/events/${event.registration_event_id}/registrations`}
+                                            className="text-primary text-sm hover:underline"
+                                        >
+                                            View registrations
+                                        </Link>
+                                    ) : (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                if (
+                                                    window.confirm(
+                                                        'Activate the shared Registration → Attendance workflow? Existing attendance will be preserved; adding and editing participants moves to Registration.',
+                                                    )
+                                                ) {
+                                                    router.post(
+                                                        `/fellowship/events/${event.id}/registration-bridge`,
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            Set up registration and public link
+                                        </Button>
+                                    )}
                                     <Button
                                         variant="ghost"
                                         size="sm"

@@ -80,6 +80,7 @@ class FellowshipController extends Controller
                 'notes' => $e->notes,
                 'group_count' => $e->groups_count,
                 'attendance_count' => $e->attendances_count,
+                'registration_event_id' => $e->getAttribute('registration_event_id'),
             ]);
 
         return Inertia::render('fellowship/show', [

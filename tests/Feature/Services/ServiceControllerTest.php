@@ -3,6 +3,7 @@
 use App\Enums\ServiceType;
 use App\Models\ServiceOccurrence;
 use App\Models\User;
+use App\Services\Church\RegistrationBridge;
 
 beforeEach(function () {
     $this->staff = User::factory()->create([
@@ -76,7 +77,24 @@ test('the per-type view lists occurrences for that type only', function () {
             ->component('services/show')
             ->where('service_type.value', 'morning')
             ->has('occurrences', 1)
+            ->where('occurrences.0.registration_event_id', null)
         );
+});
+
+test('the per-type view includes the registration event id after activation', function () {
+    $occurrence = ServiceOccurrence::create([
+        'service_type' => ServiceType::Morning->value,
+        'occurrence_date' => now()->addWeek()->toDateString(),
+        'created_by' => $this->staff->id,
+    ]);
+    $churchEvent = app(RegistrationBridge::class)->activate($occurrence);
+
+    $this->actingAs($this->staff)
+        ->get(route('services.show', ['type' => 'morning']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('occurrences.0.id', $occurrence->id)
+            ->where('occurrences.0.registration_event_id', $churchEvent->id));
 });
 
 test('an unknown service type returns 404 from the route constraint', function () {

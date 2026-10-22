@@ -80,6 +80,7 @@ class ServiceController extends Controller
                 'notes' => $o->notes,
                 'member_count' => $o->member_attendances_count,
                 'first_timer_count' => $o->first_timer_attendances_count,
+                'registration_event_id' => $o->getAttribute('registration_event_id'),
             ]);
 
         return Inertia::render('services/show', [
