@@ -5,9 +5,14 @@
 **Policy exception.** Every other file under `docs/church-events/`
 is append-only (per P7). This file is not.
 
-**Reference docs:** 01-10 plus `docs/dev-workflow/README.md`.
+**Reference docs:** `docs/specs/Church_Events_Update.md` (authority),
+Amendments B-D; `docs/church-events/10-client-decision-log.md`;
+`docs/church-events/11-shared-workflow-spec-2026-10-21.md`; and
+`docs/spec-implementation-plan-2026-10-22.md` (cross-project index).
 
-**Last reviewed:** 2026-10-16, after Phase 5 closure.
+**Last reviewed:** 2026-10-22. The previous Phase 6/Q1-Q20 blocker was stale:
+the client decision log records Q1-Q21 as answered. Church Events Amendments
+B-D override older draft plans where they conflict.
 
 ---
 
@@ -21,20 +26,17 @@ is append-only (per P7). This file is not.
 
 ---
 
-## Current phase: Phase 6 -- Youth + Cell Group
+## Current phase: Church shared workflow acceptance + specialist modules
 
-**Status:** Blocked. Awaiting client answers.
+**Status:** Shared workflow implemented locally; browser/release acceptance
+and specialist workflows remain.
 
-**Blocker:** The wider mockup expansion (see
-`docs/church-events/09-mockup-scope-inventory.md`) introduces
-five net-new modules and eleven cross-cutting features. The
-twenty questions in `docs/church-events/10-client-decision-
-log.md` gate every one. No Phase 6 code should start until
-those are answered in writing.
-
-Additionally, **Q4 (Cell Group placement)** -- top-level module
-or Youth sub-module -- blocks the Cell Group half of this phase
-specifically.
+The working Church foundation includes generic Church Events, Services,
+Fellowship, Discipleship, registration/HOLD review, Services/Fellowship bridge,
+monitoring attendance, and participant history. The five generic category
+pages and four Youth submodule pages remain Coming Soon placeholders; this pass
+changes only Church-specific form input examples, not page architecture.
+Specialist workflow implementation and manual acceptance remain pending.
 
 ---
 
@@ -45,56 +47,72 @@ specifically.
     [x] Phase 3   Services module         COMPLETE
     [x] Phase 4   Fellowship module       COMPLETE (2026-10-16)
     [x] Phase 5   Discipleship module     COMPLETE (2026-10-16)
-    [!] Phase 6   Youth + Cell Group      BLOCKED on Q1-Q20
-    [ ] Phase 7   Cross-module            doc 07 sec 3.8
-    [ ] Phase 8   Cross-cutting           doc 07 sec 3.9
+    [x] Phase 6 foundation  Youth hub + Youth Service route implemented
+    [~] Phase 6 specialist Youth modules and remaining category workflows
+    [~] Church registration/bridge/attendance/history manual acceptance
+    [ ] Cross-module approved scope and specialist ministry vertical slices
+    [ ] Cross-cutting security/reliability and release acceptance
 
-Beyond the doc-07 roadmap, the client mockups propose five
-additional modules and eleven cross-cutting features. Their
-scope is captured in `docs/church-events/09-mockup-scope-
-inventory.md`. None are assigned to a phase yet -- that is a
-client decision.
+The task board distinguishes the agreed shared Church workflow from specialist
+module work. Do not gate all work on the old mockup question set. Cell Group was
+removed by Q18; participant payments were removed by Q10/Q11; Q21 retained the
+Admin/Staff role model and rejected approval workflow.
 
 ---
 
-## Blocked items
+## Priority 0 — shared Church workflow acceptance
 
-The following questions gate forward work. Full context in
-`docs/church-events/09-mockup-scope-inventory.md`; tracking in
-`docs/church-events/10-client-decision-log.md`.
+    [x] Generic Church event create/edit/list and category filtering
+    [x] Church registration Add/Edit/Delete, registration codes and HOLD review
+    [x] Public Church link uses email OTP/reCAPTCHA and event-scoped registrations
+    [x] Services/Fellowship registration bridge and legacy mutation guards
+    [x] Church monitoring attendance, typed code/search/filter, event summary
+    [x] D-11 Church participant history; bridge de-duplication and pool isolation
+    [x] B.3 scheduling date picker/server limits for generic and legacy Church dates
+    [ ] Browser acceptance: staff Add/Edit/Delete, public link lifecycle and
+        held resolution, Service/Fellowship bridge, attendance lookup/filters,
+        summary invariant and participant-history pool isolation
+    [ ] Fresh install/upgrade/recovery check for the already-applied bridge
+        migration; do not rename or reorder an applied migration
+    [ ] Keep legacy Services/Fellowship Add paths until bridge acceptance and
+        user sign-off
 
-### Blocking Phase 6 (doc-07 scope)
+Automated reference: `docs/spec-implementation-plan-2026-10-22.md`, Phase B;
+Church authority: `docs/specs/Church_Events_Update.md`, Amendment D.
 
-    Q4    Cell Group placement
-          Top-level module or Youth sub-module?
-          Blocks: Phase 6 (Cell Group half)
+---
 
-### Blocking the mockup expansion (all modules beyond doc-07)
+## Priority 1 — implement placeholder Church modules
 
-    Q1    Services module fate in the new sidebar
-    Q2    Sidebar replacement (flat vs expandable)
-    Q3    Timothy Class nav placement
-    Q4    Young Adult module contents
-    Q5    Worship & Prayer module contents
-    Q6    Special Occasions Documents tab
-    Q7    Church Planning Timeline tab
-    Q8    Kids Ministry Outreaches location entity
-    Q9    Ministry Meeting ministry list (fixed vs editable)
-    Q10   Payment tracking (real vs bookkeeping)
-    Q11   Payment gateway (if Q10 = real)
-    Q12   Budget approval chain
-    Q13   Task assignment scope
-    Q14   Progress calculation rule
-    Q15   Discipleship "Not Started" status meaning
-    Q16   Grade/Year level scope
-    Q17   Members / First-Timers top-level pages
-    Q18   Cell Group vs Services overlap
-    Q19   Design system replacement
-    Q20   Multi-tab URL semantics
+The category and Youth submodule pages remain placeholders. Church input
+placeholder copy changes do not implement these modules. Add persistent
+activity/submodule tagging before claiming Youth submodules have independent
+event lists; currently no activity key exists.
 
-Any one of Q10, Q11, Q16, or Q19 unblocks a multi-session work
-stream. Answering all twenty is a prerequisite for scoping the
-mockup expansion.
+    [ ] Youth Camp — participant context, guardian/minor requirements, per-day
+        attendance if approved; no payment tracking (Q10/Q11).
+    [ ] Huddle — group, leader, schedule and attendance workflow.
+    [ ] Campus Ministry — grade/year groupings and approved outreach details.
+    [ ] Timothy Class — structured class/session workflow; reconcile against
+        the existing Discipleship program model instead of duplicating progress.
+    [ ] Kids Service and Vacation Bible School — approved session/age/teacher
+        data and attendance; dynamic Outreach locations per Q8.
+    [ ] Young Adult Service/Seminar and Partner → GRC → Care Group/Fellowship
+        hierarchy per Q4; use shared Church attendance/registration safely.
+    [ ] Worship & Prayer — Outdoor Prayer Meeting, Worship Night, Prayer &
+        Fasting using Church workflows, never Running-specific flows.
+    [ ] Special Occasions — Anniversary, Thanksgiving, Pastor’s Appreciation,
+        Dedication, and SOL levels 1–3; support multiple named roles and
+        generated documents as approved. No payment/budget-approval workflow.
+    [ ] Church Administration — Church Planning and Ministry Meeting; editable
+        ministries per Q9, Gantt timeline per Q7, no invented approval chain.
+    [-] Cell Group — removed by client decision Q18.
+    [-] Per-participant payment tracking / gateway — removed by Q10/Q11.
+
+Each module slice requires its own data ownership, routes, validation, UI,
+isolation/authorization tests and acceptance checklist. Preserve Church pool
+boundaries and do not create global participants for descriptive honoree,
+guardian, sponsor or role names unless they register for attendance.
 
 ---
 
@@ -102,12 +120,13 @@ mockup expansion.
 
     First-timer promotion UI + endpoint
         Deferred from Phase 3. Per doc 06 D2, promotion is manual.
-        Originally folded into Phase 4; not built. Now a candidate
-        for the mockup-expanded First-Timers module pending Q1-Q20.
+        Originally folded into Phase 4; not built. Dedicated
+        Members/First-Timers pages are approved by Q17 but remain
+        separate UI scope; promotion stays manual unless approved.
 
     docs/services.md subsystem reference
-        Deferred pending Q1. If Services is removed from the new
-        sidebar, the doc is wasted effort.
+        Deferred documentation follow-up; Q1 answered that Services stays.
+        No longer blocked on sidebar scope.
 
     Discipleship required_sessions backfill
         All six seeded programs have null required_sessions.
@@ -120,6 +139,36 @@ mockup expansion.
 
 ---
 
+## Current decision/acceptance blockers
+
+The former Q1-Q20 blocker is closed; these are the remaining specific gates:
+
+    [!] Discipleship Q14 data migration
+        Client approved Present/Absent only and all sessions count toward
+        applicability. Confirm handling of historical Excused rows before
+        migrating; see docs/known-issues.md ISSUE-025.
+
+    [!] Church role/ownership policy and outside-event-day write rules
+        Deferred by Amendment B.7. Do not add new policy behavior until the
+        owner decision is recorded. Related: ISSUE-004 and ISSUE-015.
+
+    [!] Specialist activity/submodule identity
+        Generic category and Youth pages now use the shared workflow. A
+        persistent activity discriminator is needed before Youth submodules
+        can have independent lists or tailored guardian/attendance fields.
+        Track in docs/spec-implementation-plan-2026-10-22.md.
+
+    [~] Browser/release acceptance
+        Exercise Church registration, bridge, attendance, history and new
+        category pages; verify the applied bridge migration on fresh install,
+        upgrade and recovery. Do not retire legacy Add paths before approval.
+
+    Latest automated verification: Church category workflow — 5 tests / 110
+    assertions; full suite — 980 passed / 3 skipped / 4,320 assertions. These do
+    not substitute for the browser and migration acceptance listed above.
+
+---
+
 ## Resolved items
 
     [x] Q1   Top-level modules            all six are top-level (pre-mockup)
@@ -128,7 +177,7 @@ mockup expansion.
     [x] Q3   First-Timers is new entity   yes
     [x] Q3a  First-Timers references      references participants
     [x] Q3b  First-Timers lifecycle       hybrid
-    [!] Q4   Cell Group placement         -- still UNRESOLVED, blocks Phase 6
+    [x] Q4   Cell Group placement         -- removed from scope by Q18
     [x] Q5   Mockup authority             approved as-is
     [x] Q6   Workflow stages              four
     [x] Q7   Non-English event names      yes (Unicode-aware rules)

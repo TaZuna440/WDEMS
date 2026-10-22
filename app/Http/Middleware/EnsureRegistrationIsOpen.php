@@ -36,9 +36,14 @@ class EnsureRegistrationIsOpen
             return $next($request);
         }
 
-        abort_unless($event->isRunningEvent(), 404);
+        abort_unless($event->isRunningEvent() || ($event->isChurchEvent() && $event->registration_slug !== null), 404);
 
-        if (! $event->acceptsPublicRegistration()) {
+        // An unpublished church event has no public surface at all. Do not
+        // reveal a generic closed page for a slug the organizer has not
+        // published (running-event links retain their established behavior).
+        abort_if($event->isChurchEvent() && ! $event->acceptsChurchPublicRegistration(), 404);
+
+        if (! ($event->acceptsPublicRegistration() || $event->acceptsChurchPublicRegistration())) {
             return $this->closed($request, $event);
         }
 

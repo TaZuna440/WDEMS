@@ -53,15 +53,12 @@ type Props = {
 const STATUS_OPTIONS = [
     { value: 'present', label: 'Present' },
     { value: 'absent', label: 'Absent' },
-    { value: 'excused', label: 'Excused' },
 ];
 
 const STATUS_STYLES: Record<string, string> = {
     present:
         'bg-lime-brand/15 text-lime-700 border-lime-brand/30 dark:text-lime-brand',
     absent: 'bg-destructive/10 text-destructive border-destructive/30',
-    excused:
-        'bg-[#13253B]/10 text-[#13253B] border-[#13253B]/30 dark:bg-yellow-500/10 dark:text-yellow-500 dark:border-yellow-500/30',
 };
 
 function formatDate(iso: string): string {
@@ -154,6 +151,22 @@ export default function ServiceAttendance({
                     {occurrence.service_type_label}
                 </Link>
 
+                <Button
+                    variant="outline"
+                    onClick={() => {
+                        if (
+                            window.confirm(
+                                'Activate the shared Registration → Attendance workflow? Existing attendance will be preserved; adding and editing participants moves to Registration.',
+                            )
+                        ) {
+                            router.post(
+                                `/services/occurrences/${occurrence.id}/registration-bridge`,
+                            );
+                        }
+                    }}
+                >
+                    Set up registration and public link
+                </Button>
                 {/* Header */}
                 <div className="glass-panel rounded-xl p-6">
                     <div className="pl-10">
@@ -330,13 +343,25 @@ export default function ServiceAttendance({
                                                         )
                                                     }
                                                     className={`cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium outline-none ${
-                                                        STATUS_STYLES[
-                                                            row
-                                                                .attendance_status
-                                                        ] ??
-                                                        STATUS_STYLES.present
+                                                        row.attendance_status ===
+                                                        'excused'
+                                                            ? 'border-border bg-secondary text-foreground'
+                                                            : (STATUS_STYLES[
+                                                                  row
+                                                                      .attendance_status
+                                                              ] ??
+                                                              STATUS_STYLES.present)
                                                     }`}
                                                 >
+                                                    {row.attendance_status ===
+                                                        'excused' && (
+                                                        <option
+                                                            value="excused"
+                                                            disabled
+                                                        >
+                                                            Excused
+                                                        </option>
+                                                    )}
                                                     {STATUS_OPTIONS.map((o) => (
                                                         <option
                                                             key={o.value}
@@ -471,6 +496,7 @@ function AddAttendanceDialog({
                                 onChange={(e) =>
                                     form.setData('first_name', e.target.value)
                                 }
+                                placeholder="e.g. Ana"
                             />
                             <InputError message={form.errors.first_name} />
                         </div>
@@ -485,6 +511,7 @@ function AddAttendanceDialog({
                                 onChange={(e) =>
                                     form.setData('last_name', e.target.value)
                                 }
+                                placeholder="e.g. Santos"
                             />
                             <InputError message={form.errors.last_name} />
                         </div>
@@ -502,6 +529,7 @@ function AddAttendanceDialog({
                                 onChange={(e) =>
                                     form.setData('age', e.target.value)
                                 }
+                                placeholder="e.g. 25"
                             />
                             <InputError message={form.errors.age} />
                         </div>
@@ -527,7 +555,7 @@ function AddAttendanceDialog({
                             onChange={(e) =>
                                 form.setData('contact_number', e.target.value)
                             }
-                            placeholder="09171234567"
+                            placeholder="09XXXXXXXXX or +639XXXXXXXXX"
                         />
                         <InputError message={form.errors.contact_number} />
                     </div>
@@ -540,6 +568,7 @@ function AddAttendanceDialog({
                             onChange={(e) =>
                                 form.setData('address', e.target.value)
                             }
+                            placeholder="e.g. Barangay, City"
                         />
                         <InputError message={form.errors.address} />
                     </div>
@@ -553,7 +582,7 @@ function AddAttendanceDialog({
                                 onChange={(e) =>
                                     form.setData('invited_by', e.target.value)
                                 }
-                                placeholder="Who invited them?"
+                                placeholder="e.g. Pastor Mark"
                             />
                             <InputError message={form.errors.invited_by} />
                         </div>

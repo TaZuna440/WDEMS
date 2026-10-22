@@ -2,7 +2,11 @@
 
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Auth\DeviceVerificationController;
+use App\Http\Controllers\ChurchAttendanceController;
 use App\Http\Controllers\ChurchCategoryPlaceholderController;
+use App\Http\Controllers\ChurchParticipantHistoryController;
+use App\Http\Controllers\ChurchRegistrationBridgeController;
+use App\Http\Controllers\ChurchRegistrationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiscipleshipAttendanceController;
 use App\Http\Controllers\DiscipleshipBatchController;
@@ -20,6 +24,7 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationDeletionController;
 use App\Http\Controllers\RegistrationFormController;
 use App\Http\Controllers\RegistrationMonitorController;
+use App\Http\Controllers\RememberDashboardSideController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReportIndexController;
 use App\Http\Controllers\ServiceAttendanceController;
@@ -100,7 +105,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // status. See app/Http/Middleware/AdvanceEventStatus.php.
 Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::post('dashboard/side', RememberDashboardSideController::class)->name('dashboard.side');
     Route::get('reports', ReportIndexController::class)->name('reports.index');
+    Route::get('church/participants/{participant}/history', [ChurchParticipantHistoryController::class, 'show'])
+        ->name('church.participants.history');
 
     // Registration queue — the organizer's daily workflow entry point.
     Route::get('registrations', [RegistrationController::class, 'index'])
@@ -208,6 +216,15 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     // segments, `{registration}/mark` is 5), so they cannot collide.
     // Listing walk-in first keeps the pattern obvious to a reader.
     Route::get('events/{event}/participant-review/search', [ParticipantReviewController::class, 'search'])->middleware('throttle:60,1')->name('events.participant-review.search');
+    Route::post('services/occurrences/{occurrence}/registration-bridge', [ChurchRegistrationBridgeController::class, 'service'])->name('church.bridge.service');
+    Route::post('fellowship/events/{event}/registration-bridge', [ChurchRegistrationBridgeController::class, 'fellowship'])->name('church.bridge.fellowship');
+    Route::post('events/{event}/church-publication', [ChurchRegistrationBridgeController::class, 'publish'])->name('church.registration.publish');
+    Route::get('events/{event}/church-attendance', [ChurchAttendanceController::class, 'show'])->name('church.attendance');
+    Route::post('events/{event}/church-attendance/{registration}', [ChurchAttendanceController::class, 'mark'])->name('church.attendance.mark');
+    Route::get('events/{event}/registrations', [ChurchRegistrationController::class, 'index'])->name('church.registrations.index');
+    Route::post('events/{event}/registrations', [ChurchRegistrationController::class, 'store'])->name('church.registrations.store');
+    Route::patch('events/{event}/registrations/{registration}', [ChurchRegistrationController::class, 'update'])->name('church.registrations.update');
+    Route::delete('events/{event}/registrations/{registration}', [ChurchRegistrationController::class, 'destroy'])->name('church.registrations.destroy');
     Route::get('events/{event}/possible-duplicates', [ParticipantReviewController::class, 'audit'])->name('events.possible-duplicates');
     Route::post('events/{event}/possible-duplicates/{registration}/resolve', [ParticipantReviewController::class, 'resolve'])->name('events.possible-duplicates.resolve');
     Route::get('events/{event}/attendance', [AttendanceController::class, 'show'])->name('events.attendance');

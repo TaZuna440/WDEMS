@@ -140,7 +140,12 @@ test('bulk upsert creates multiple cells in one request', function () {
         ])
         ->assertRedirect();
 
-    expect(DiscipleshipAttendance::count())->toBe(2);
+    expect(DiscipleshipAttendance::count())->toBe(2)
+        ->and(DiscipleshipAttendance::query()
+            ->orderBy('session_id')
+            ->get()
+            ->map(fn (DiscipleshipAttendance $attendance) => $attendance->status->value)
+            ->all())->toBe(['present', 'absent']);
 });
 
 test('bulk upsert is idempotent — same payload twice does not duplicate', function () {
@@ -163,30 +168,23 @@ test('bulk upsert is idempotent — same payload twice does not duplicate', func
     expect(DiscipleshipAttendance::count())->toBe(1);
 });
 
-test('bulk upsert updates an existing cell status', function () {
-    DiscipleshipAttendance::create([
+test('an existing excused attendance row remains visible on the batch page', function () {
+    $attendance = DiscipleshipAttendance::create([
         'enrollment_id' => $this->enrollment->id,
         'session_id' => $this->session->id,
-        'status' => 'present',
+        'status' => 'excused',
         'recorded_by' => $this->staff->id,
     ]);
 
     $this->actingAs($this->staff)
-        ->post(route('discipleship.attendances.bulk', [
-            'batch' => $this->batch->id,
-        ]), [
-            'cells' => [
-                [
-                    'enrollment_id' => $this->enrollment->id,
-                    'session_id' => $this->session->id,
-                    'status' => 'excused',
-                ],
-            ],
-        ])
-        ->assertRedirect();
+        ->get(route('discipleship.batches.show', ['batch' => $this->batch->id]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('attendances.0.enrollment_id', $this->enrollment->id)
+            ->where('attendances.0.session_id', $this->session->id)
+            ->where('attendances.0.status', 'excused'));
 
-    expect(DiscipleshipAttendance::count())->toBe(1);
-    expect(DiscipleshipAttendance::first()->status->value)->toBe('excused');
+    expect($attendance->fresh()->status->value)->toBe('excused');
 });
 
 // ----------------------------------------------------------------
@@ -304,6 +302,25 @@ test('bulk upsert rejects an invalid status value', function () {
             ],
         ])
         ->assertSessionHasErrors('cells.0.status');
+});
+
+test('bulk upsert rejects excused without writing any cells', function () {
+    $this->actingAs($this->staff)
+        ->postJson(route('discipleship.attendances.bulk', [
+            'batch' => $this->batch->id,
+        ]), [
+            'cells' => [
+                [
+                    'enrollment_id' => $this->enrollment->id,
+                    'session_id' => $this->session->id,
+                    'status' => 'excused',
+                ],
+            ],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('cells.0.status');
+
+    expect(DiscipleshipAttendance::count())->toBe(0);
 });
 
 // ----------------------------------------------------------------

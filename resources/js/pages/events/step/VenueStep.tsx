@@ -14,6 +14,7 @@ type Props = {
     data: FormData;
     setData: (key: string, value: unknown) => void;
     errors: Record<string, string>;
+    isChurch?: boolean;
 };
 
 /**
@@ -28,7 +29,12 @@ function normalizeMapUrl(value: string): string {
     return `https://${trimmed}`;
 }
 
-export default function VenueStep({ data, setData, errors }: Props) {
+export default function VenueStep({
+    data,
+    setData,
+    errors,
+    isChurch = false,
+}: Props) {
     return (
         <div className="flex flex-col gap-6">
             <div>
@@ -46,7 +52,11 @@ export default function VenueStep({ data, setData, errors }: Props) {
                     id="venue"
                     value={data.venue}
                     onChange={(e) => setData('venue', e.target.value)}
-                    placeholder="e.g. SM Mall of Asia Grounds"
+                    placeholder={
+                        isChurch
+                            ? 'e.g. Main Church Hall'
+                            : 'e.g. SM Mall of Asia Grounds'
+                    }
                 />
                 <InputError message={errors.venue} />
                 <p className="text-muted-foreground text-xs">
@@ -62,7 +72,11 @@ export default function VenueStep({ data, setData, errors }: Props) {
                     id="venue_address"
                     value={data.venue_address}
                     onChange={(e) => setData('venue_address', e.target.value)}
-                    placeholder="e.g. Seaside Blvd, Pasay, Metro Manila"
+                    placeholder={
+                        isChurch
+                            ? 'e.g. Church street address, City'
+                            : 'e.g. Seaside Blvd, Pasay, Metro Manila'
+                    }
                 />
                 <InputError message={errors.venue_address} />
                 <p className="text-muted-foreground text-xs">
@@ -84,7 +98,11 @@ export default function VenueStep({ data, setData, errors }: Props) {
                             normalizeMapUrl(e.target.value),
                         )
                     }
-                    placeholder="Paste a Google Maps link to the meeting point"
+                    placeholder={
+                        isChurch
+                            ? 'Optional Google Maps link for the church venue'
+                            : 'Paste a Google Maps link to the meeting point'
+                    }
                 />
                 <InputError message={errors.venue_map_url} />
                 <p className="text-muted-foreground text-xs">

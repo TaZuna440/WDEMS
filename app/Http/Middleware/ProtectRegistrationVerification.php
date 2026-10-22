@@ -14,7 +14,7 @@ class ProtectRegistrationVerification
     {
         $event = $request->route('event');
         if ($event instanceof Event) {
-            abort_unless($event->isRunningEvent(), 404);
+            abort_unless($event->isRunningEvent() || ($event->isChurchEvent() && $event->registration_slug !== null), 404);
         }
 
         Inertia::encryptHistory();

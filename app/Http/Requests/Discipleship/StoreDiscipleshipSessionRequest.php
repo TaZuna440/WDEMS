@@ -11,9 +11,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * route ({batch} bound to DiscipleshipBatch). The controller
  * reads it from the route.
  *
- * session_date has an upper bound but no lower bound. Past dates
- * are allowed so retroactive session logging works -- same policy
- * as batches and events elsewhere.
+ * Scheduling dates are limited to today through two years ahead.
  *
  * Phase 5D.
  */
@@ -28,7 +26,7 @@ class StoreDiscipleshipSessionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'session_date' => ['required', 'date', 'before_or_equal:+2 years'],
+            'session_date' => ['required', 'date', 'after_or_equal:today', 'before_or_equal:+2 years'],
             'topic' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ];
@@ -39,6 +37,7 @@ class StoreDiscipleshipSessionRequest extends FormRequest
     {
         return [
             'session_date.required' => 'Session date is required.',
+            'session_date.after_or_equal' => 'Session date cannot be in the past.',
             'session_date.before_or_equal' => 'Session date cannot be more than 2 years from today.',
             'topic.required' => 'Session topic is required.',
         ];

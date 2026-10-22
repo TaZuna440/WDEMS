@@ -699,3 +699,12 @@ paths like `user/files/Church_Events_Update.md`. The canonical path
 is now `docs/specs/Church_Events_Update.md`. Per the append-only
 policy on the Master doc, do not silently rewrite §9.1 — append a
 dated correction note if the discrepancy matters for a task.
+
+## 25. Church registration refactor audit — 2026-10-22
+
+See [Church registration refactor and specification audit](church-registration-refactor-2026-10-22.md).
+The former docs2 files are in docs/specs. B-5 now has working generic Event routes,
+CRUD UI, staff attestation and side-scoped duplicate/HOLD enforcement. This does
+not complete B-6/B-7 or bridge ServiceOccurrence/FellowshipEvent. Mark explicitly
+confirmed retaining their legacy Add actions until that bridge is ready. The
+"100% aligned" handoff claim is not supported; the audit lists remaining work.

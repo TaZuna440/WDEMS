@@ -2,6 +2,7 @@
 
 namespace App\Services\RegistrationVerification;
 
+use App\Enums\ChurchEventStatus;
 use App\Enums\EventStatus;
 use App\Enums\RegistrationStatus;
 use App\Http\Requests\PublicRegistrationRequest;
@@ -24,7 +25,6 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Kreait\Firebase\Contract\Auth;
 use RuntimeException;
 
 /**
@@ -111,7 +111,7 @@ class RegistrationVerificationService
             // whether the contact is required — an optional contact
             // that already belongs to a registration still counts.
             $this->assertNoDuplicateRegistration($event, $payload);
-            if (! ($payload['similarity_acknowledged'] ?? false) && app(DuplicateReview::class)->hasSimilar($event, $payload)) {
+            if ($event->isRunningEvent() && ! ($payload['similarity_acknowledged'] ?? false) && app(DuplicateReview::class)->hasSimilar($event, $payload)) {
                 throw ValidationException::withMessages(['similarity_acknowledged' => 'Review the similar-registration warning before continuing.']);
             }
 
@@ -135,9 +135,9 @@ class RegistrationVerificationService
                 // is chosen automatically — no choice screen. Both
                 // required → the participant picks one via
                 // chooseChannel(); null until then.
-                'chosen_channel' => 'email'
-                    ? ($emailRequired ? 'email' : 'phone')
-                    : null,
+                'chosen_channel' => $emailRequired
+                    ? 'email'
+                    : ($phoneRequired ? 'phone' : null),
                 'expires_at' => now()->addHours(self::CHALLENGE_TTL_HOURS),
             ]);
 
@@ -178,7 +178,7 @@ class RegistrationVerificationService
      *
      * Only reachable when both email and phone are required — a single
      * required channel is chosen automatically at begin(). The choice
-     * is final: verify()/sendEmail()/verifyPhoneWithFirebase() reject
+     * is final: verify()/sendEmail() reject
      * the non-chosen channel afterwards.
      *
      * @return string|null Error message, or null on success.
@@ -503,7 +503,7 @@ class RegistrationVerificationService
                         $this->identityConflict();
                     }
 
-                    $matches = Participant::query()->matchingName('running',
+                    $matches = Participant::query()->matchingName($event->event_kind,
                         $payload['first_name'], $payload['last_name'],
                         $payload['middle_name'] ?? null, $payload['suffix'] ?? null,
                     )->where(function ($query) use ($email, $normalized) {
@@ -521,7 +521,7 @@ class RegistrationVerificationService
                     }
 
                     // Preserve first-write-wins. Never fill existing identities from intake.
-                    $participant = $matches->first() ?? Participant::create(['pool' => 'running',
+                    $participant = $matches->first() ?? Participant::create(['pool' => $event->event_kind,
                         'first_name' => $payload['first_name'],
                         'last_name' => $payload['last_name'],
                         'middle_name' => $payload['middle_name'] ?? null,
@@ -575,6 +575,9 @@ class RegistrationVerificationService
                         'held_reason' => $heldReason,
                         'held_candidate_registration_id' => $heldCandidateId,
                         'source' => 'form',
+                        'participant_type' => $payload['participant_type'] ?? null,
+                        'guardian_name' => $payload['guardian_name'] ?? null,
+                        'guardian_contact' => $payload['guardian_contact'] ?? null,
                         'registered_at' => now(),
                         'submitted_email' => $payload['email'] ?? null,
                         'submitted_contact_number' => $payload['contact_number'] ?? null,
@@ -584,14 +587,14 @@ class RegistrationVerificationService
                         'consent_accepted_at' => now(),
                         'privacy_notice_version' => RegistrationLegalText::PRIVACY_NOTICE_VERSION,
                         'emergency_contact_name' => $event->usesEmailOnlyRegistration()
-                            ? $payload['emergency_contact_first_name'].' '.$payload['emergency_contact_last_name']
-                            : $payload['emergency_contact_name'],
+                            ? trim(($payload['emergency_contact_first_name'] ?? '').' '.($payload['emergency_contact_last_name'] ?? ''))
+                            : ($payload['emergency_contact_name'] ?? null),
                         'emergency_contact_first_name' => $payload['emergency_contact_first_name'] ?? null,
                         'tshirt_choice' => $payload['tshirt_choice'] ?? null,
                         'emergency_contact_last_name' => $payload['emergency_contact_last_name'] ?? null,
                         'emergency_contact_relationship_other' => $payload['emergency_contact_relationship_other'] ?? null,
-                        'emergency_contact_relationship' => $payload['emergency_contact_relationship'],
-                        'emergency_contact_number' => $payload['emergency_contact_number'],
+                        'emergency_contact_relationship' => $payload['emergency_contact_relationship'] ?? null,
+                        'emergency_contact_number' => $payload['emergency_contact_number'] ?? null,
                     ]);
 
                     foreach ($payload['responses'] ?? [] as $fieldId => $value) {
@@ -770,7 +773,8 @@ class RegistrationVerificationService
         }
         // Existing challenges retain their original 24-hour lifetime after closure.
         // Cancelled/completed events still reject completion; new intake uses assertOpen.
-        if (! $this->isOpen($event) && ! ($event->isRunningEvent() && in_array($event->status, [EventStatus::RegistrationClosed, EventStatus::Ongoing], true))) {
+        if (! $this->isOpen($event) && ! ($event->isRunningEvent() && in_array($event->status, [EventStatus::RegistrationClosed, EventStatus::Ongoing], true))
+            && ! ($event->isChurchEvent() && in_array($event->church_status, [ChurchEventStatus::Upcoming, ChurchEventStatus::Ongoing], true))) {
             return 'closed';
         }
         if ($challenge->email_required !== $event->isCommonFieldRequired('email')
@@ -883,7 +887,7 @@ class RegistrationVerificationService
 
     private function isOpen(Event $event): bool
     {
-        return $event->acceptsPublicRegistration();
+        return $event->acceptsPublicRegistration() || $event->acceptsChurchPublicRegistration();
     }
 
     private function assertOpen(Event $event): void
@@ -891,62 +895,6 @@ class RegistrationVerificationService
         if (! $this->isOpen($event)) {
             throw ValidationException::withMessages(['identity' => 'Registration for this event is closed.']);
         }
-    }
-
-    public function verifyPhoneWithFirebase(Event $event, #[\SensitiveParameter] ?string $token, #[\SensitiveParameter] string $idToken): ?string
-    {
-        return DB::transaction(function () use ($event, $token, $idToken): ?string {
-            [, $challenge] = $this->lockPending($event, $token);
-            if (! $challenge->phone_required) {
-                return 'This contact does not require verification.';
-            }
-            if ($challenge->chosen_channel !== null && $challenge->chosen_channel !== 'phone') {
-                return 'You chose to verify by email.';
-            }
-            if ($challenge->phone_verified_at !== null) {
-                return 'This contact is already verified.';
-            }
-
-            try {
-                /** @phpstan-ignore-next-line */
-                $verified = app(Auth::class)->verifyIdToken($idToken);
-            } catch (\Throwable) {
-                $attempts = $challenge->phone_attempts + 1;
-                $challenge->forceFill(['phone_attempts' => $attempts])->save();
-
-                return $attempts >= self::MAX_ATTEMPTS
-                    ? 'Too many incorrect attempts. Start a new registration.'
-                    : 'We could not verify that token. Please try again.';
-            }
-
-            $verifiedPhone = $verified->claims()->get('phone_number');
-            if (! is_string($verifiedPhone)) {
-                $challenge->forceFill(['phone_attempts' => $challenge->phone_attempts + 1])->save();
-
-                return 'The verified phone number is missing from the token.';
-            }
-
-            $submittedPhone = $challenge->payload['contact_number'] ?? null;
-            $normalizedVerified = Participant::normalizeContactNumber($verifiedPhone);
-            $normalizedSubmitted = is_string($submittedPhone)
-                ? Participant::normalizeContactNumber($submittedPhone)
-                : null;
-
-            if ($normalizedVerified === null || $normalizedSubmitted === null
-                || $normalizedVerified !== $normalizedSubmitted) {
-                $challenge->forceFill(['phone_attempts' => $challenge->phone_attempts + 1])->save();
-
-                return 'The verified phone number does not match the one you submitted.';
-            }
-
-            $challenge->forceFill([
-                'phone_verified_at' => now(),
-                'phone_code_hash' => null,
-                'phone_expires_at' => null,
-            ])->save();
-
-            return null;
-        }, 3);
     }
 
     private function identityConflict(): never

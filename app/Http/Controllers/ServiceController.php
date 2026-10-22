@@ -9,6 +9,8 @@ use App\Models\ServiceOccurrence;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -78,6 +80,7 @@ class ServiceController extends Controller
                 'notes' => $o->notes,
                 'member_count' => $o->member_attendances_count,
                 'first_timer_count' => $o->first_timer_attendances_count,
+                'registration_event_id' => $o->getAttribute('registration_event_id'),
             ]);
 
         return Inertia::render('services/show', [
@@ -154,6 +157,12 @@ class ServiceController extends Controller
 
         $step = $validated['pattern'] === 'fortnightly' ? 14 : 7;
         $count = (int) $validated['weeks'];
+        $lastDate = $firstDate->copy()->addDays($step * ($count - 1));
+        if ($lastDate->gt(now()->addYears(2)->endOfDay())) {
+            throw ValidationException::withMessages([
+                'first_date' => 'The generated service dates cannot extend more than 2 years from today.',
+            ]);
+        }
 
         $userId = $request->user()->id;
         $startTime = $validated['start_time'] ?? null;
@@ -201,7 +210,11 @@ class ServiceController extends Controller
     public function destroyOccurrence(ServiceOccurrence $occurrence): RedirectResponse
     {
         $type = $occurrence->service_type->value;
-        $occurrence->delete();
+        DB::transaction(function () use ($occurrence): void {
+            $row = ServiceOccurrence::query()->whereKey($occurrence->id)->lockForUpdate()->firstOrFail();
+            abort_if($row->getAttribute('registration_event_id') !== null, 409, 'Delete the activated church event instead.');
+            $row->delete();
+        });
 
         return redirect()
             ->route('services.show', ['type' => $type])

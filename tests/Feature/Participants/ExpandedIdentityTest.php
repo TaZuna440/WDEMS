@@ -20,6 +20,55 @@ test('full name identity normalizes case and whitespace while distinguishing opt
         ->and(Participant::count())->toBe(4);
 });
 
+test('suffix periods normalize consistently in both directions without collapsing distinct suffixes', function () {
+    $juniorWithPeriod = Participant::resolveFrom('running', 'junior@example.com', null, [
+        'first_name' => 'Juan',
+        'last_name' => 'Santos',
+        'suffix' => 'Jr.',
+    ]);
+    $juniorWithoutPeriod = Participant::resolveFrom('running', 'junior@example.com', null, [
+        'first_name' => 'Juan',
+        'last_name' => 'Santos',
+        'suffix' => 'Jr',
+    ]);
+
+    $juniorWithoutPeriodFirst = Participant::resolveFrom('church', 'church-junior@example.com', null, [
+        'first_name' => 'Ana',
+        'last_name' => 'Reyes',
+        'suffix' => 'Jr',
+    ]);
+    $juniorWithPeriodSecond = Participant::resolveFrom('church', 'church-junior@example.com', null, [
+        'first_name' => 'Ana',
+        'last_name' => 'Reyes',
+        'suffix' => 'Jr.',
+    ]);
+    $senior = Participant::resolveFrom('running', 'junior@example.com', null, [
+        'first_name' => 'Juan',
+        'last_name' => 'Santos',
+        'suffix' => 'Sr.',
+    ]);
+
+    expect($juniorWithoutPeriod->id)->toBe($juniorWithPeriod->id)
+        ->and($juniorWithPeriodSecond->id)->toBe($juniorWithoutPeriodFirst->id)
+        ->and($juniorWithPeriod->suffix_normalized)->toBe('jr')
+        ->and($senior->id)->not->toBe($juniorWithPeriod->id)
+        ->and(Participant::count())->toBe(3);
+});
+
+test('suffix normalization migration backfills existing normalized identity keys', function () {
+    $person = Participant::create([
+        'pool' => 'church',
+        'first_name' => 'Juan',
+        'last_name' => 'Santos',
+        'suffix' => 'Jr.',
+    ]);
+    DB::table('participants')->where('id', $person->id)->update(['suffix_normalized' => 'jr.']);
+    $migration = require database_path('migrations/2026_10_23_010000_normalize_participant_suffix_periods.php');
+    $migration->up();
+
+    expect(DB::table('participants')->where('id', $person->id)->value('suffix_normalized'))->toBe('jr');
+});
+
 test('expanded identity migration backfills existing display names', function () {
     $person = Participant::create(['pool' => 'running', 'first_name' => 'Juan', 'last_name' => 'Santos', 'middle_name' => 'De Leon', 'suffix' => 'Jr.']);
     $migration = require database_path('migrations/2026_10_20_100000_expand_participant_name_identity.php');

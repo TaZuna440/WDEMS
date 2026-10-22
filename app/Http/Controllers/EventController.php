@@ -46,11 +46,25 @@ class EventController extends Controller
     {
         $kindFilter = $request->input('kind') === Event::KIND_CHURCH ? Event::KIND_CHURCH : Event::KIND_RUNNING;
         $validKinds = [Event::KIND_RUNNING, Event::KIND_CHURCH];
+        $filters = $request->validate([
+            'date' => ['nullable', 'date_format:Y-m-d'],
+            'month' => ['nullable', 'date_format:Y-m'],
+            'church_category' => ['nullable', 'string', 'in:'.implode(',', ChurchCategory::values())],
+        ]);
 
         $query = Event::query()->with('creator:id,name');
 
         if (is_string($kindFilter) && in_array($kindFilter, $validKinds, true)) {
             $query->where('event_kind', $kindFilter);
+        }
+        if ($kindFilter === Event::KIND_CHURCH && isset($filters['church_category'])) {
+            $query->where('church_category', $filters['church_category']);
+        }
+        if (isset($filters['date'])) {
+            $query->whereDate('event_date', $filters['date']);
+        } elseif (isset($filters['month'])) {
+            [$year, $month] = array_map('intval', explode('-', $filters['month']));
+            $query->whereYear('event_date', $year)->whereMonth('event_date', $month);
         }
 
         $events = $query
@@ -80,6 +94,9 @@ class EventController extends Controller
                 'kind' => is_string($kindFilter) && in_array($kindFilter, $validKinds, true)
                     ? $kindFilter
                     : null,
+                'date' => $filters['date'] ?? null,
+                'month' => $filters['month'] ?? null,
+                'church_category' => $filters['church_category'] ?? null,
             ],
         ]);
     }

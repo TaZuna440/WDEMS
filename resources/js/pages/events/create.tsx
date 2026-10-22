@@ -228,6 +228,7 @@ export default function EventsCreate({
                                         data={data}
                                         setData={setData}
                                         errors={stepErrors}
+                                        isChurch={isChurch}
                                     />
                                 );
                             case 'extras':

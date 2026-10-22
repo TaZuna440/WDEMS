@@ -24,7 +24,7 @@ class MarkServiceAttendanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'attendance_status' => ['required', Rule::in(['present', 'absent', 'excused'])],
+            'attendance_status' => ['required', Rule::in(['present', 'absent'])],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }
@@ -34,7 +34,7 @@ class MarkServiceAttendanceRequest extends FormRequest
     {
         return [
             'attendance_status.required' => 'Attendance status is required.',
-            'attendance_status.in' => 'Attendance status must be present, absent, or excused.',
+            'attendance_status.in' => 'Attendance status must be present or absent.',
         ];
     }
 }

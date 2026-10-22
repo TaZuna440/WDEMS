@@ -114,7 +114,7 @@ test('session creation rejects a date more than 2 years out', function () {
         ->assertSessionHasErrors('session_date');
 });
 
-test('session creation allows a past date for retroactive logging', function () {
+test('session creation rejects a past scheduling date', function () {
     $this->actingAs($this->staff)
         ->post(route('discipleship.sessions.store', [
             'batch' => $this->batch->id,
@@ -122,9 +122,9 @@ test('session creation allows a past date for retroactive logging', function () 
             'session_date' => now()->subMonths(2)->toDateString(),
             'topic' => 'Past Session',
         ])
-        ->assertRedirect();
+        ->assertSessionHasErrors('session_date');
 
-    expect(DiscipleshipSession::count())->toBe(2);
+    expect(DiscipleshipSession::count())->toBe(1);
 });
 
 test('two sessions on the same batch can share a date', function () {

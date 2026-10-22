@@ -31,6 +31,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
+import { schedulingDateBounds } from '@/lib/scheduling-date-bounds';
 
 type Occurrence = {
     id: number;
@@ -42,6 +43,7 @@ type Occurrence = {
     notes: string | null;
     member_count: number;
     first_timer_count: number;
+    registration_event_id: number | null;
 };
 
 type ServiceType = {
@@ -74,6 +76,7 @@ function formatDate(iso: string): string {
 }
 
 export default function ServicesShow({ service_type, occurrences }: Props) {
+    const dateBounds = schedulingDateBounds();
     const isYouth = service_type.value === 'youth';
     const [addOpen, setAddOpen] = useState(false);
     const [recurringOpen, setRecurringOpen] = useState(false);
@@ -256,15 +259,46 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
                                     </div>
                                 </Link>
 
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => deleteOccurrence(occurrence)}
-                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                    aria-label={`Delete ${formatDate(occurrence.occurrence_date)} occurrence`}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex shrink-0 items-center gap-1">
+                                    {occurrence.registration_event_id !==
+                                    null ? (
+                                        <Link
+                                            href={`/events/church/events/${occurrence.registration_event_id}/registrations`}
+                                            className="text-primary text-sm hover:underline"
+                                        >
+                                            View registrations
+                                        </Link>
+                                    ) : (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                if (
+                                                    window.confirm(
+                                                        'Activate the shared Registration → Attendance workflow? Existing attendance will be preserved; adding and editing participants moves to Registration.',
+                                                    )
+                                                ) {
+                                                    router.post(
+                                                        `/services/occurrences/${occurrence.id}/registration-bridge`,
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            Set up registration and public link
+                                        </Button>
+                                    )}
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                            deleteOccurrence(occurrence)
+                                        }
+                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                        aria-label={`Delete ${formatDate(occurrence.occurrence_date)} occurrence`}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -296,6 +330,8 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
                                     addForm.setData('occurrence_date', v)
                                 }
                                 placeholder="Pick a date"
+                                minDate={dateBounds.minDate}
+                                maxDate={dateBounds.maxDate}
                             />
                             <InputError
                                 message={addForm.errors.occurrence_date}
@@ -477,6 +513,8 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
                                     recurringForm.setData('first_date', v)
                                 }
                                 placeholder="Pick the first occurrence"
+                                minDate={dateBounds.minDate}
+                                maxDate={dateBounds.maxDate}
                             />
                             <InputError
                                 message={recurringForm.errors.first_date}

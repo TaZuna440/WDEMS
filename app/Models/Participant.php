@@ -217,6 +217,13 @@ class Participant extends Model
         return mb_strtolower($collapsed, 'UTF-8');
     }
 
+    public static function normalizeSuffix(?string $raw): ?string
+    {
+        $normalized = self::normalizeName($raw);
+
+        return $normalized === null ? null : str_replace('.', '', $normalized);
+    }
+
     /**
      * Keep first_name_normalized in sync on every write.
      *
@@ -272,7 +279,7 @@ class Participant extends Model
     public function setSuffixAttribute(mixed $value): void
     {
         $this->attributes['suffix'] = is_string($value) && trim($value) !== '' ? trim($value) : null;
-        $this->attributes['suffix_normalized'] = self::normalizeName($value) ?? '';
+        $this->attributes['suffix_normalized'] = self::normalizeSuffix($value) ?? '';
     }
 
     public function scopeMatchingName(Builder $query, string $pool, ?string $first, ?string $last, ?string $middle = null, ?string $suffix = null): Builder
@@ -280,7 +287,7 @@ class Participant extends Model
         $q = $query->whereNull('provisional_event_id')->where('first_name_normalized', self::normalizeName($first))
             ->where('last_name_normalized', self::normalizeName($last))
             ->where('middle_name_normalized', self::normalizeName($middle) ?? '')
-            ->where('suffix_normalized', self::normalizeName($suffix) ?? '');
+            ->where('suffix_normalized', self::normalizeSuffix($suffix) ?? '');
 
         self::assertPool($pool);
         $q->where('pool', $pool);

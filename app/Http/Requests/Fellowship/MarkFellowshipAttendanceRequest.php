@@ -30,7 +30,7 @@ class MarkFellowshipAttendanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'attendance_status' => ['required', Rule::in(['present', 'absent', 'excused'])],
+            'attendance_status' => ['required', Rule::in(['present', 'absent'])],
             'fellowship_group_id' => ['nullable', 'integer', 'exists:fellowship_groups,id'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
@@ -41,7 +41,7 @@ class MarkFellowshipAttendanceRequest extends FormRequest
     {
         return [
             'attendance_status.required' => 'Attendance status is required.',
-            'attendance_status.in' => 'Attendance status must be present, absent, or excused.',
+            'attendance_status.in' => 'Attendance status must be present or absent.',
             'fellowship_group_id.exists' => 'The selected group does not exist.',
         ];
     }

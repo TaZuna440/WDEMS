@@ -129,7 +129,7 @@ test('progress counts present attendance as attended', function () {
     expect($result['is_complete'])->toBeTrue();
 });
 
-test('progress counts excused attendance as attended', function () {
+test('a stored excused attendance row still counts as attended', function () {
     $session = DiscipleshipSession::create([
         'batch_id' => $this->batch->id,
         'session_date' => now()->subWeek()->toDateString(),

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\RegistrationStatus;
 use App\Models\Event;
+use App\Models\Participant;
 use App\Models\Registration;
 use App\Services\Participants\DuplicateReview;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +18,7 @@ class ParticipantReviewController extends Controller
 {
     public function search(Request $request, Event $event, DuplicateReview $review): JsonResponse
     {
-        abort_unless($event->isRunningEvent(), 404);
+        Participant::assertPool($event->event_kind);
         $data = $request->validate(['q' => ['required', 'string', 'min:2', 'max:160']]);
         $query = mb_strtolower(trim($data['q']));
         $rows = $review->registrations($event)->filter(function ($r) use ($query, $review) {
@@ -31,11 +32,12 @@ class ParticipantReviewController extends Controller
 
     public function audit(Event $event, DuplicateReview $review): Response
     {
-        abort_unless($event->isRunningEvent(), 404);
+        Participant::assertPool($event->event_kind);
 
         $held = Registration::query()
             ->where('event_id', $event->id)
             ->where('registration_status', RegistrationStatus::Held)
+            ->whereHas('participant', fn ($query) => $query->where('pool', $event->event_kind))
             ->with(['participant', 'heldCandidate.participant'])
             ->orderByDesc('id')
             ->get()
@@ -72,7 +74,7 @@ class ParticipantReviewController extends Controller
             });
 
         return Inertia::render('events/duplicates', [
-            'event' => ['id' => $event->id, 'event_name' => $event->event_name],
+            'event' => ['id' => $event->id, 'event_name' => $event->event_name, 'event_kind' => $event->event_kind],
             'pairs' => $review->audit($event),
             'held_registrations' => $held,
             'review_status' => session('status'),
@@ -81,7 +83,7 @@ class ParticipantReviewController extends Controller
 
     public function resolve(Request $request, Event $event, Registration $registration, DuplicateReview $review): RedirectResponse
     {
-        abort_unless($event->isRunningEvent() && $registration->event_id === $event->id, 404);
+        abort_unless($registration->event_id === $event->id, 404);
         $data = $request->validate([
             'action' => ['required', 'in:confirm_duplicate,confirm_separate,correct_details,remove'],
             'reason' => ['nullable', 'string', 'max:1000'],
@@ -97,7 +99,7 @@ class ParticipantReviewController extends Controller
             Event::whereKey($event->id)->lockForUpdate()->firstOrFail();
             $row = Registration::whereKey($registration->id)->lockForUpdate()->firstOrFail();
             abort_unless($row->isHeld(), 422, 'Only held submissions can be resolved.');
-            abort_unless($row->participant->pool === 'running', 422, 'Participant belongs to the wrong pool.');
+            abort_unless($row->participant->pool === $event->event_kind, 422, 'Participant belongs to the wrong pool.');
             $snapshot = fn ($r) => ['registration' => $r->attributesToArray(), 'participant' => $r->participant->attributesToArray()];
             $before = $snapshot($row);
             $action = $data['action'];
@@ -136,7 +138,7 @@ class ParticipantReviewController extends Controller
                 }
             } elseif ($action === 'confirm_duplicate') {
                 $master = Registration::active()->where('event_id', $event->id)->whereKey($row->held_candidate_registration_id)->lockForUpdate()->first();
-                abort_unless($master && $master->participant->pool === 'running', 422, 'An active master registration is required.');
+                abort_unless($master && $master->participant->pool === $event->event_kind, 422, 'An active master registration is required.');
                 $row->registration_status = RegistrationStatus::Duplicate;
                 $row->duplicate_of_registration_id = $master->id;
             } else {

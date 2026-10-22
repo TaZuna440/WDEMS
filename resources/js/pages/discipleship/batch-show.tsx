@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
+import { schedulingDateBounds } from '@/lib/scheduling-date-bounds';
 
 type BatchData = {
     id: number;
@@ -54,7 +55,7 @@ type EnrollmentRow = {
 type AttendanceRow = {
     enrollment_id: number;
     session_id: number;
-    status: string;
+    status: StoredAttendanceStatus;
 };
 
 type ProgressRow = {
@@ -76,21 +77,20 @@ type Props = {
     progress: Record<number, ProgressRow>;
 };
 
-type AttendanceStatus = 'present' | 'absent' | 'excused' | '';
+type StoredAttendanceStatus = 'present' | 'absent' | 'excused';
+type AttendanceStatus = StoredAttendanceStatus | '';
+type SelectableAttendanceStatus = 'present' | 'absent' | '';
 
-const STATUS_OPTIONS: { value: AttendanceStatus; label: string }[] = [
+const STATUS_OPTIONS: { value: SelectableAttendanceStatus; label: string }[] = [
     { value: '', label: '—' },
     { value: 'present', label: 'Present' },
     { value: 'absent', label: 'Absent' },
-    { value: 'excused', label: 'Excused' },
 ];
 
-const CELL_STYLES: Record<AttendanceStatus, string> = {
+const CELL_STYLES: Record<SelectableAttendanceStatus, string> = {
     present:
         'bg-lime-brand/15 text-lime-700 border-lime-brand/30 dark:text-lime-brand',
     absent: 'bg-destructive/10 text-destructive border-destructive/30',
-    excused:
-        'bg-[#13253B]/10 text-[#13253B] border-[#13253B]/30 dark:bg-yellow-500/10 dark:text-yellow-500 dark:border-yellow-500/30',
     '': 'bg-transparent text-muted-foreground border-border',
 };
 
@@ -191,7 +191,7 @@ export default function DiscipleshipBatchShow({
                 .map((key) => {
                     const [eidStr, sidStr] = key.split(':');
                     const status = cells[key];
-                    if (status === '') return null;
+                    if (status === '' || status === 'excused') return null;
                     return {
                         enrollment_id: Number(eidStr),
                         session_id: Number(sidStr),
@@ -204,7 +204,7 @@ export default function DiscipleshipBatchShow({
                     ): c is {
                         enrollment_id: number;
                         session_id: number;
-                        status: 'present' | 'absent' | 'excused';
+                        status: 'present' | 'absent';
                     } => c !== null,
                 ),
         };
@@ -458,12 +458,28 @@ export default function DiscipleshipBatchShow({
                                                                             .value as AttendanceStatus,
                                                                     )
                                                                 }
-                                                                className={`cursor-pointer rounded-full border px-2 py-1 text-xs font-medium outline-none ${CELL_STYLES[value]} ${
+                                                                className={`cursor-pointer rounded-full border px-2 py-1 text-xs font-medium outline-none ${
+                                                                    value ===
+                                                                    'excused'
+                                                                        ? 'border-border bg-secondary text-foreground'
+                                                                        : CELL_STYLES[
+                                                                              value
+                                                                          ]
+                                                                } ${
                                                                     isDirty
                                                                         ? 'ring-lime-brand/40 ring-1'
                                                                         : ''
                                                                 }`}
                                                             >
+                                                                {value ===
+                                                                    'excused' && (
+                                                                    <option
+                                                                        value="excused"
+                                                                        disabled
+                                                                    >
+                                                                        Excused
+                                                                    </option>
+                                                                )}
                                                                 {STATUS_OPTIONS.map(
                                                                     (o) => (
                                                                         <option
@@ -600,6 +616,8 @@ function SessionFormDialog({
                             value={form.data.session_date}
                             onChange={(v) => form.setData('session_date', v)}
                             placeholder="Pick a date"
+                            minDate={schedulingDateBounds().minDate}
+                            maxDate={schedulingDateBounds().maxDate}
                         />
                         <InputError message={form.errors.session_date} />
                     </div>

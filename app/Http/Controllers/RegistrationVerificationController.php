@@ -26,6 +26,7 @@ class RegistrationVerificationController extends Controller
 
         return Inertia::render('registrations/verify', [
             'event_name' => $event->event_name,
+            'event_kind' => $event->event_kind,
             'email_only' => $event->usesEmailOnlyRegistration(),
             'recaptcha_site_key' => $event->usesEmailOnlyRegistration() ? config('services.recaptcha.site_key') : null,
             'verification' => $verification,

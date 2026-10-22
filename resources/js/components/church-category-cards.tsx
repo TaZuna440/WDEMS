@@ -53,7 +53,7 @@ const CATEGORIES: Category[] = [
     },
     {
         key: 'youth',
-        label: 'Youth',
+        label: 'Youth Ministry',
         description: 'Youth camps, services, ministry',
         icon: Users,
         hasDedicatedPage: true,
@@ -136,6 +136,11 @@ export default function ChurchCategoryCards({ mode = 'browse' }: Props) {
                             <p className="text-muted-foreground mt-0.5 text-sm">
                                 {category.description}
                             </p>
+                            {!category.hasDedicatedPage && (
+                                <span className="text-muted-foreground bg-secondary mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider uppercase">
+                                    Placeholder
+                                </span>
+                            )}
                         </div>
                     </Link>
                 );

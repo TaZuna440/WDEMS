@@ -44,7 +44,11 @@ type HeldRegistration = {
 };
 
 type Props = {
-    event: { id: number; event_name: string };
+    event: {
+        id: number;
+        event_name: string;
+        event_kind?: 'running' | 'church';
+    };
     pairs: { left: Person; right: Person; reasons: string[] }[];
     held_registrations?: HeldRegistration[];
     review_status?: string;
@@ -533,9 +537,14 @@ export default function Duplicates({
                                             </p>
                                             <Link
                                                 className="text-xs underline"
-                                                href={`/events/${event.id}/attendance?q=${encodeURIComponent(p.name)}`}
+                                                href={
+                                                    event.event_kind ===
+                                                    'church'
+                                                        ? `/events/${event.id}/registrations`
+                                                        : `/events/${event.id}/attendance?q=${encodeURIComponent(p.name)}`
+                                                }
                                             >
-                                                Review attendance
+                                                Review participant
                                             </Link>
                                         </div>
                                     ))}

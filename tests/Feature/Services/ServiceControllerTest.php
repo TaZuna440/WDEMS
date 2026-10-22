@@ -3,6 +3,7 @@
 use App\Enums\ServiceType;
 use App\Models\ServiceOccurrence;
 use App\Models\User;
+use App\Services\Church\RegistrationBridge;
 
 beforeEach(function () {
     $this->staff = User::factory()->create([
@@ -76,7 +77,24 @@ test('the per-type view lists occurrences for that type only', function () {
             ->component('services/show')
             ->where('service_type.value', 'morning')
             ->has('occurrences', 1)
+            ->where('occurrences.0.registration_event_id', null)
         );
+});
+
+test('the per-type view includes the registration event id after activation', function () {
+    $occurrence = ServiceOccurrence::create([
+        'service_type' => ServiceType::Morning->value,
+        'occurrence_date' => now()->addWeek()->toDateString(),
+        'created_by' => $this->staff->id,
+    ]);
+    $churchEvent = app(RegistrationBridge::class)->activate($occurrence);
+
+    $this->actingAs($this->staff)
+        ->get(route('services.show', ['type' => 'morning']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('occurrences.0.id', $occurrence->id)
+            ->where('occurrences.0.registration_event_id', $churchEvent->id));
 });
 
 test('an unknown service type returns 404 from the route constraint', function () {
@@ -158,6 +176,16 @@ test('occurrence creation rejects a date more than 2 years out', function () {
             'occurrence_date' => now()->addYears(3)->toDateString(),
         ])
         ->assertSessionHasErrors('occurrence_date');
+});
+
+test('occurrence creation rejects a past scheduling date', function () {
+    $this->actingAs($this->staff)
+        ->post(route('services.occurrences.store', ['type' => 'morning']), [
+            'occurrence_date' => now()->subDay()->toDateString(),
+        ])
+        ->assertSessionHasErrors('occurrence_date');
+
+    expect(ServiceOccurrence::count())->toBe(0);
 });
 
 // ----------------------------------------------------------------
@@ -249,6 +277,21 @@ test('the recurring generator rejects more than 52 occurrences', function () {
             'weeks' => 53,
         ])
         ->assertSessionHasErrors('weeks');
+});
+
+test('recurring generation rejects schedules whose final occurrence exceeds two years', function () {
+    $firstDate = now()->addYears(2)->subDays(7)->toDateString();
+
+    $this->actingAs($this->staff)
+        ->post(route('services.occurrences.store-recurring', ['type' => 'morning']), [
+            'pattern' => 'weekly',
+            'day_of_week' => (string) now()->parse($firstDate)->dayOfWeek,
+            'first_date' => $firstDate,
+            'weeks' => 3,
+        ])
+        ->assertSessionHasErrors('first_date');
+
+    expect(ServiceOccurrence::count())->toBe(0);
 });
 
 // ----------------------------------------------------------------

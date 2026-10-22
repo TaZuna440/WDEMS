@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'created_by',
     'event_kind',
+    'church_registration_open',
     'church_category',
     'church_status',
     'event_type',
@@ -162,6 +163,7 @@ class Event extends Model
             'registration_tshirt' => 'array',
             'status' => EventStatus::class,
             'church_status' => ChurchEventStatus::class,
+            'church_registration_open' => 'boolean',
 
             'venue_latitude' => 'decimal:7',
             'venue_longitude' => 'decimal:7',
@@ -283,7 +285,7 @@ class Event extends Model
 
     public function usesEmailOnlyRegistration(): bool
     {
-        return $this->isRunningEvent() && $this->registration_form_version >= 2;
+        return $this->isChurchEvent() || ($this->isRunningEvent() && $this->registration_form_version >= 2);
     }
 
     public function creator(): BelongsTo
@@ -413,6 +415,12 @@ class Event extends Model
         return $this->isRunningEvent()
             && in_array($this->status, [EventStatus::RegistrationOpen, EventStatus::Ongoing], true)
             && ($this->registration_end === null || now()->lessThan($this->registration_end));
+    }
+
+    public function acceptsChurchPublicRegistration(): bool
+    {
+        return $this->isChurchEvent() && (bool) $this->church_registration_open
+            && in_array($this->getRawOriginal('church_status'), [ChurchEventStatus::Upcoming->value, ChurchEventStatus::Ongoing->value], true);
     }
 
     public function canCloseRegistration(): bool

@@ -66,7 +66,9 @@ class BulkWalkInRegistrationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $event = $this->route('event');
+
+        return ! ($event instanceof Event && $event->isChurchEvent());
     }
 
     /**

@@ -26,6 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
+import { schedulingDateBounds } from '@/lib/scheduling-date-bounds';
 
 type EventRow = {
     id: number;
@@ -39,6 +40,7 @@ type EventRow = {
     notes: string | null;
     group_count: number;
     attendance_count: number;
+    registration_event_id: number | null;
 };
 
 type FellowshipTypeData = {
@@ -189,6 +191,32 @@ export default function FellowshipShow({ fellowship_type, events }: Props) {
                                 </Link>
 
                                 <div className="flex shrink-0 items-center gap-1">
+                                    {event.registration_event_id !== null ? (
+                                        <Link
+                                            href={`/events/church/events/${event.registration_event_id}/registrations`}
+                                            className="text-primary text-sm hover:underline"
+                                        >
+                                            View registrations
+                                        </Link>
+                                    ) : (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                if (
+                                                    window.confirm(
+                                                        'Activate the shared Registration → Attendance workflow? Existing attendance will be preserved; adding and editing participants moves to Registration.',
+                                                    )
+                                                ) {
+                                                    router.post(
+                                                        `/fellowship/events/${event.id}/registration-bridge`,
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            Set up registration and public link
+                                        </Button>
+                                    )}
                                     <Button
                                         variant="ghost"
                                         size="sm"
@@ -347,6 +375,8 @@ function EventFormDialog({
                             value={form.data.event_date}
                             onChange={(v) => form.setData('event_date', v)}
                             placeholder="Pick a date"
+                            minDate={schedulingDateBounds().minDate}
+                            maxDate={schedulingDateBounds().maxDate}
                         />
                         <InputError message={form.errors.event_date} />
                     </div>
@@ -381,7 +411,7 @@ function EventFormDialog({
                             onChange={(e) =>
                                 form.setData('venue', e.target.value)
                             }
-                            placeholder="Where does the gathering take place?"
+                            placeholder="e.g. Main Church Hall"
                         />
                         <InputError message={form.errors.venue} />
                     </div>
@@ -396,7 +426,7 @@ function EventFormDialog({
                             onChange={(e) =>
                                 form.setData('facilitator', e.target.value)
                             }
-                            placeholder="Who is leading the gathering?"
+                            placeholder="e.g. Pastor Mark"
                         />
                         <InputError message={form.errors.facilitator} />
                     </div>

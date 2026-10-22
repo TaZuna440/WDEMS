@@ -1,7 +1,7 @@
 # Church modules — shared workflow specification
 
 Date: 2026-10-21 (Asia/Manila).
-Status: implementation specification; these modules are not implemented by this document.
+Status: implementation specification; Church category and Youth submodule pages remain placeholders. Specialist module requirements below remain pending.
 
 This records Mark's 2026-10-20 scope change supplied in the running-events
 system update. Earlier documents remain intact. Existing Services, Fellowship,
@@ -158,3 +158,21 @@ settle these implementation choices:
   parents/sponsors in one event.
 
 These questions gate church implementation, not the running-event fixes.
+
+---
+
+## Implementation status clarification — 2026-10-22
+
+The category and Youth submodule placeholder-page architecture remains
+unchanged. The Church input-placeholder adjustment changes example text only.
+Specialist Youth, Kids, Young Adult, Worship & Prayer, Special Occasions, and
+Church Administration requirements remain separate implementation work.
+Activity-specific event tagging, multi-person module roles, outreach/ministry
+management, Gantt planning, and generated documents remain unbuilt; do not
+infer their implementation from generic Church event support.
+
+The client decision log answers the relevant Q1–Q21. Cell Group was removed
+from scope (Q18); participant payment tracking/gateways are excluded (Q10/Q11);
+the four-role approval workflow was rejected (Q21). Remaining decisions and
+acceptance gates are tracked in `docs/spec-implementation-plan-2026-10-22.md`
+and `docs/church-events/TASKS.md`.

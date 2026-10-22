@@ -10,10 +10,12 @@ type EventRow = {
     event_date: string | null;
     venue: string | null;
     creator: string | null;
+    registered_count: number | null;
 };
 
 type Props = {
     events: EventRow[];
+    activeSide: 'running' | 'church' | null;
 };
 
 const typeStyles: Record<string, string> = {
@@ -21,7 +23,7 @@ const typeStyles: Record<string, string> = {
     church: 'bg-lime-brand/15 text-lime-700 dark:text-lime-brand',
 };
 
-export default function ReportsIndex({ events }: Props) {
+export default function ReportsIndex({ events, activeSide }: Props) {
     return (
         <>
             <Head title="Reports" />
@@ -34,6 +36,29 @@ export default function ReportsIndex({ events }: Props) {
                     <p className="text-muted-foreground mt-1 text-sm">
                         End-of-event reports for every completed event
                     </p>
+                    <nav
+                        aria-label="Filter reports by side"
+                        className="mt-4 flex gap-2"
+                    >
+                        <Link
+                            className={`rounded-full border px-3 py-1 text-xs ${activeSide === 'running' ? 'border-lime-brand text-lime-brand' : 'border-border text-muted-foreground'}`}
+                            href="/reports?kind=running"
+                        >
+                            Running
+                        </Link>
+                        <Link
+                            className={`rounded-full border px-3 py-1 text-xs ${activeSide === 'church' ? 'border-lime-brand dark:text-lime-brand text-[#3f6212]' : 'border-border text-muted-foreground'}`}
+                            href="/reports?kind=church"
+                        >
+                            Church
+                        </Link>
+                        <Link
+                            className={`rounded-full border px-3 py-1 text-xs ${activeSide === null ? 'border-foreground text-foreground' : 'border-border text-muted-foreground'}`}
+                            href="/reports"
+                        >
+                            All
+                        </Link>
+                    </nav>
                 </div>
 
                 {events.length === 0 ? (
@@ -66,6 +91,9 @@ export default function ReportsIndex({ events }: Props) {
                                         </th>
                                         <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Venue
+                                        </th>
+                                        <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
+                                            Registered
                                         </th>
                                         <th className="text-muted-foreground px-6 py-3 text-xs font-semibold tracking-wider uppercase">
                                             Created by
@@ -122,6 +150,9 @@ export default function ReportsIndex({ events }: Props) {
                                                 </span>
                                             </td>
                                             <td className="text-muted-foreground px-6 py-4 text-sm">
+                                                {event.registered_count ?? '—'}
+                                            </td>
+                                            <td className="text-muted-foreground px-6 py-4 text-sm">
                                                 <span className="inline-flex items-center gap-2">
                                                     <User className="h-3.5 w-3.5" />
                                                     {event.creator ?? '—'}
@@ -133,7 +164,7 @@ export default function ReportsIndex({ events }: Props) {
                                                         event.event_kind ===
                                                         'running'
                                                             ? `/events/${event.id}/report`
-                                                            : `/events/${event.id}`
+                                                            : `/events/${event.id}/church-attendance?summary=1`
                                                     }
                                                     className="dark:text-lime-brand dark:hover:text-lime-brand/80 text-sm font-medium text-lime-700 hover:text-lime-800"
                                                 >

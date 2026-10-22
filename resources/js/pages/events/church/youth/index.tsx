@@ -38,7 +38,7 @@ const SUB_MODULES: SubModule[] = [
     {
         key: 'camp',
         label: 'Youth Camp',
-        description: 'Multi-day camps with registration and payments',
+        description: 'Youth camp events',
         icon: Users,
         href: '/events/church/youth/camp',
         live: false,
@@ -72,7 +72,7 @@ const SUB_MODULES: SubModule[] = [
 export default function YouthIndex() {
     return (
         <>
-            <Head title="Youth" />
+            <Head title="Youth Ministry" />
 
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
                 <Link
@@ -85,7 +85,7 @@ export default function YouthIndex() {
 
                 <div className="pl-10">
                     <h1 className="text-foreground text-2xl font-semibold">
-                        Youth
+                        Youth Ministry
                     </h1>
                     <p className="text-muted-foreground mt-1 text-sm">
                         Pick a Youth sub-module to see its events.
@@ -111,7 +111,7 @@ export default function YouthIndex() {
                                         </h3>
                                         {!sub.live && (
                                             <span className="bg-secondary text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider uppercase">
-                                                Soon
+                                                Placeholder
                                             </span>
                                         )}
                                     </div>
@@ -132,6 +132,6 @@ YouthIndex.layout = {
     breadcrumbs: [
         { title: 'Events', href: '/events' },
         { title: 'Church', href: '/events?kind=church' },
-        { title: 'Youth', href: '/events/church/youth' },
+        { title: 'Youth Ministry', href: '/events/church/youth' },
     ],
 };

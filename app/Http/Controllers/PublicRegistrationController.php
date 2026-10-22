@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PublicRegistrationRequest;
 use App\Models\Event;
+use App\Models\RegistrationVerificationChallenge;
 use App\Services\Participants\DuplicateReview;
 use App\Services\RegistrationVerification\RegistrationVerificationService;
 use App\Support\RegistrationLegalText;
@@ -20,6 +21,10 @@ class PublicRegistrationController extends Controller
 {
     public function show(Request $request, Event $event): Response
     {
+        if ($event->isChurchEvent()) {
+            return Inertia::render('registrations/church-public', ['event' => $event->only('event_name', 'church_category', 'registration_slug'), 'submit_url' => route('public-registration.store', ['event' => $event->registration_slug])]);
+        }
+
         return $this->renderForm($event, $request->session()->pull('success'));
     }
 
@@ -76,6 +81,10 @@ class PublicRegistrationController extends Controller
 
     public function confirmed(Event $event): Response
     {
+        if ($event->isChurchEvent()) {
+            abort_unless(RegistrationVerificationChallenge::where('event_id', $event->id)->whereNotNull('finalized_at')->exists(), 404);
+        }
+
         return Inertia::render('registrations/confirmed', [
             'event_name' => $event->event_name,
             'event_date' => $event->event_date?->toDateString(),

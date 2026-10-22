@@ -45,11 +45,13 @@ class ServiceOccurrence extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** @return HasMany<ServiceAttendanceMember, $this> */
     public function memberAttendances(): HasMany
     {
         return $this->hasMany(ServiceAttendanceMember::class);
     }
 
+    /** @return HasMany<ServiceAttendanceFirstTimer, $this> */
     public function firstTimerAttendances(): HasMany
     {
         return $this->hasMany(ServiceAttendanceFirstTimer::class);

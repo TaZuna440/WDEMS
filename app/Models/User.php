@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string $email
  * @property string $role
+ * @property string|null $dashboard_side
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property bool $email_two_factor_enabled

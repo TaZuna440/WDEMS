@@ -306,6 +306,42 @@ test('marking rejects an invalid status', function () {
         ->assertSessionHasErrors('attendance_status');
 });
 
+test('marking rejects excused and leaves an existing attendance row unchanged', function () {
+    $participant = fwParticipantAttn();
+    $row = FellowshipAttendance::create([
+        'fellowship_event_id' => $this->event->id,
+        'participant_id' => $participant->id,
+        'attendance_status' => 'present',
+    ]);
+
+    $this->actingAs($this->staff)
+        ->putJson(route('fellowship.attendance.mark', [
+            'event' => $this->event->id,
+            'attendance' => $row->id,
+        ]), ['attendance_status' => 'excused'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('attendance_status');
+
+    expect($row->fresh()->attendance_status)->toBe('present');
+});
+
+test('an existing excused attendance row remains visible on the legacy page', function () {
+    $participant = fwParticipantAttn();
+    $row = FellowshipAttendance::create([
+        'fellowship_event_id' => $this->event->id,
+        'participant_id' => $participant->id,
+        'attendance_status' => 'excused',
+    ]);
+
+    $this->actingAs($this->staff)
+        ->get(route('fellowship.attendance.show', ['event' => $this->event->id]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('attendances.0.attendance_status', 'excused'));
+
+    expect($row->fresh()->attendance_status)->toBe('excused');
+});
+
 test('marking rejects a group that belongs to a different event', function () {
     $other = fwOtherEventAttn();
     $otherGroup = FellowshipGroup::create([
