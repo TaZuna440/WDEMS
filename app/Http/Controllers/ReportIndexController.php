@@ -23,6 +23,8 @@ class ReportIndexController extends Controller
     {
         $filters = $request->validate(['kind' => ['nullable', 'in:running,church']]);
         $events = Event::query()
+            ->withCount(['registrations as confirmed_registrations_count' => fn ($query) => $query->active()
+                ->whereHas('participant', fn ($participant) => $participant->where('pool', 'church'))])
             ->where(function ($q) {
                 $q->where(function ($q2) {
                     $q2->where('event_kind', Event::KIND_RUNNING)
@@ -49,6 +51,9 @@ class ReportIndexController extends Controller
                 'event_date' => $event->event_date?->toDateString(),
                 'venue' => $event->venue,
                 'creator' => $event->creator?->name,
+                'registered_count' => $event->isChurchEvent()
+                    ? (int) $event->getAttribute('confirmed_registrations_count')
+                    : null,
             ]),
         ]);
     }

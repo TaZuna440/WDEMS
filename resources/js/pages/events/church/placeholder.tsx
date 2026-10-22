@@ -42,8 +42,8 @@ export default function ChurchCategoryPlaceholder({
                     <p className="text-muted-foreground max-w-md text-sm">
                         The {categoryLabel} module is scoped and scheduled for a
                         future release. It will use the same event workflow as
-                        other church categories: details, registration,
-                        attendance, and reports.
+                        other church categories: event details, registration,
+                        attendance, and summary.
                     </p>
                 </div>
             </div>

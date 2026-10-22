@@ -38,9 +38,8 @@ export default function YouthPlaceholder({ subLabel }: Props) {
                     </h2>
                     <p className="text-muted-foreground max-w-md text-sm">
                         {subLabel} is scoped and scheduled for a future release.
-                        It will use the same event workflow as other church
-                        categories: details, registration, attendance, and
-                        reports.
+                        It will use the shared Church Events workflow: event
+                        details, registration, attendance, and summary.
                     </p>
                 </div>
             </div>
@@ -52,6 +51,6 @@ YouthPlaceholder.layout = {
     breadcrumbs: [
         { title: 'Events', href: '/events' },
         { title: 'Church', href: '/events?kind=church' },
-        { title: 'Youth', href: '/events/church/youth' },
+        { title: 'Youth Ministry', href: '/events/church/youth' },
     ],
 };

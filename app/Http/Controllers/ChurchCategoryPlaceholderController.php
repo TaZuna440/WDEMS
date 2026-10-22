@@ -6,7 +6,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Placeholder landing for the six church categories whose modules
+ * Placeholder landing for the five church categories whose modules
  * ship in Phase 4 of the UI restructure. Until then, the category
  * card on the Events page routes here.
  *

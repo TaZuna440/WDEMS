@@ -42,6 +42,6 @@ enum ChurchCategory: string
 
     public function label(): string
     {
-        return $this->value;
+        return $this === self::Youth ? 'Youth Ministry' : $this->value;
     }
 }
