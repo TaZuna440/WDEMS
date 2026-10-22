@@ -29,7 +29,12 @@ function normalizeMapUrl(value: string): string {
     return `https://${trimmed}`;
 }
 
-export default function VenueStep({ data, setData, errors, isChurch = false }: Props) {
+export default function VenueStep({
+    data,
+    setData,
+    errors,
+    isChurch = false,
+}: Props) {
     return (
         <div className="flex flex-col gap-6">
             <div>

@@ -97,9 +97,9 @@ const CATEGORIES: Category[] = [
 
 type Props = {
     /**
-    * `browse` — every card routes to the category's browse page
-    * (dedicated landing for the three built modules, placeholder
-    * for the six unbuilt ones).
+     * `browse` — every card routes to the category's browse page
+     * (dedicated landing for the three built modules, placeholder
+     * for the six unbuilt ones).
      *
      * `create` — the three built modules route to their landing
      * page (where the user creates from the module's own UI), and
