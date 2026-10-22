@@ -848,3 +848,17 @@ Verified scope at branch tip 57797a8 (all violet usages in the frontend): resour
 Payments, donations, or church finance; payroll; inventory; facility booking; SMS or phone verification; automatic reminders; camera scanning; automatic merging of participants; participant accounts; the Excused attendance status; a purple/violet color theme.
 
 _Still-open decisions are unchanged (see the Master Document): O-1 birthday clause, O-3 prototype-vs-client-docs, O-4 authorization and outside-the-event-day rules, O-6 kit checkpoint (running side), O-7 church CSV export._
+
+## Amendment F — 2026-10-23
+
+Church Events implementation completion record:
+
+- Verified the Amendment E workflow across generic church events and bridged Services and Fellowship: publication, email OTP, duplicate blocking and review, staff entry, code lookup, attendance totals, and participant history.
+- Verified church/running participant-pool separation, no-past-date validation on event scheduling paths, active-registration counts excluding Held records, legacy bridge lockdown, the Church Summary workflow, and the specialist placeholder routes and labels.
+- Fixed suffix-period identity normalization; removed unreachable Firebase phone verification and phone-channel UI; excluded running-pool participants from Church Registration; added Church Reports confirmed-registration totals and Summary links; corrected the Kids Ministry placeholder label and removed the prohibited payments mention.
+- Verification commits, in order: `5004330` suffix-period identity normalization; `00ed83d` email-only verification cleanup; `1e734f6` church participant-pool isolation; `5a32538` generic and bridged full-cycle tests; `07df6ba` placeholder integrity and Church Reports totals; `63f1eb8` Church phone-channel regression guard.
+- Cycle evidence: `ChurchEventCycleTest` passes all three cases (generic church event, bridged Service occurrence, bridged Fellowship event). Each covers public email OTP, exact-duplicate rejection, likely-duplicate hold and organizer release, manual registration, code lookup, attendance, Registered = Present + Absent + Unmarked, and participant history.
+- Gates at completion: `npm run check` passed; `php vendor/bin/pint --parallel --test` passed; PHPStan reported 0 errors and `phpstan-baseline.neon` was unchanged; `php artisan test` passed with 999 passed and 3 skipped.
+- Final guards: `resources/js` and `resources/css` contain no violet/purple references; Excused remains display-only and disabled for grandfathered legacy records, not settable on Church attendance; phone verification is unavailable to Church registration and the verification route accepts only email.
+
+Still open and untouched pending client/environment decisions: specialist-module vertical slices; Discipleship self-enrollment via public link; O-1 birthday clause; O-3 prototype-vs-client-docs; O-4 object-level authorization; O-7 church CSV/print export; production Resend delivery and reCAPTCHA hostname acceptance.
