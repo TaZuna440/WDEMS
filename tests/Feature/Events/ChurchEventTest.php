@@ -141,4 +141,3 @@ test('the events index filters church categories and selected dates', function (
             ->where('filters.date', '2026-10-25')
             ->has('events', 2));
 });
-

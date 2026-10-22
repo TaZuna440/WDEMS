@@ -49,18 +49,6 @@ parameters:
 			path: app/Http/Controllers/AttendanceController.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$contact_number\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/AttendanceController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/AttendanceController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$field_type\.$#'
 			identifier: property.notFound
 			count: 1
@@ -69,7 +57,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 2
+			count: 1
 			path: app/Http/Controllers/AttendanceController.php
 
 		-
@@ -111,12 +99,6 @@ parameters:
 		-
 			message: '#^Argument of an invalid type list\<string\>\|false supplied for foreach, only iterables are supported\.$#'
 			identifier: foreach.nonIterable
-			count: 1
-			path: app/Http/Controllers/AttendanceController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:fullName\(\)\.$#'
-			identifier: method.notFound
 			count: 1
 			path: app/Http/Controllers/AttendanceController.php
 
@@ -223,9 +205,27 @@ parameters:
 			path: app/Http/Controllers/AttendanceController.php
 
 		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$event\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$participant\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:active\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
 			message: '#^Cannot call method format\(\) on string\.$#'
 			identifier: method.nonObject
-			count: 2
+			count: 4
 			path: app/Http/Controllers/DashboardController.php
 
 		-
@@ -241,9 +241,27 @@ parameters:
 			path: app/Http/Controllers/DashboardController.php
 
 		-
-			message: '#^Cannot call method startOfDay\(\) on string\.$#'
+			message: '#^Cannot call method isToday\(\) on string\.$#'
 			identifier: method.nonObject
 			count: 2
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Cannot call method startOfDay\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Cannot call method toDateString\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 2
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:buildRecentActivity\(\) should return array\<int, array\{id\: int, type\: string, description\: string, time\: string\}\> but returns array\<int, array\<string, mixed\>\>\.$#'
+			identifier: return.type
+			count: 1
 			path: app/Http/Controllers/DashboardController.php
 
 		-
@@ -254,6 +272,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Event\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 3
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:avg\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
 			count: 1
 			path: app/Http/Controllers/DashboardController.php
@@ -267,19 +291,19 @@ parameters:
 		-
 			message: '#^Return type of call to method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Event\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: method.unresolvableReturnType
-			count: 1
+			count: 3
 			path: app/Http/Controllers/DashboardController.php
 
 		-
 			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:all\(\) contains unresolvable type\.$#'
 			identifier: method.unresolvableReturnType
-			count: 1
+			count: 3
 			path: app/Http/Controllers/DashboardController.php
 
 		-
 			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:values\(\) contains unresolvable type\.$#'
 			identifier: method.unresolvableReturnType
-			count: 1
+			count: 3
 			path: app/Http/Controllers/DashboardController.php
 
 		-
@@ -727,49 +751,13 @@ parameters:
 			path: app/Http/Controllers/FellowshipController.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$birthday\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/ParticipantReviewController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$contact_number\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/ParticipantReviewController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Controllers/ParticipantReviewController.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/ParticipantReviewController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$first_name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/ParticipantReviewController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Http/Controllers/ParticipantReviewController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$last_name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/ParticipantReviewController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$middle_name\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Controllers/ParticipantReviewController.php
@@ -781,20 +769,8 @@ parameters:
 			path: app/Http/Controllers/ParticipantReviewController.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$pool\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Controllers/ParticipantReviewController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$suffix\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/ParticipantReviewController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:registrations\(\)\.$#'
-			identifier: method.notFound
+			message: '#^Cannot call method toDateString\(\) on string\.$#'
+			identifier: method.nonObject
 			count: 1
 			path: app/Http/Controllers/ParticipantReviewController.php
 
@@ -806,6 +782,12 @@ parameters:
 
 		-
 			message: '#^Property App\\Models\\Registration\:\:\$duplicate_of_registration_id \(int\<0, max\>\|null\) does not accept int\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Http/Controllers/ParticipantReviewController.php
+
+		-
+			message: '#^Property App\\Models\\Registration\:\:\$participant_id \(int\<0, max\>\) does not accept int\.$#'
 			identifier: assign.propertyType
 			count: 1
 			path: app/Http/Controllers/ParticipantReviewController.php
@@ -1027,12 +1009,6 @@ parameters:
 			path: app/Http/Controllers/RegistrationController.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$pool\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/RegistrationDeletionController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
@@ -1088,12 +1064,6 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property App\\Models\\Registration\:\:\$total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/RegistrationMonitorController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$pool\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Controllers/RegistrationMonitorController.php
@@ -1403,18 +1373,6 @@ parameters:
 			identifier: missingType.parameter
 			count: 1
 			path: app/Http/Requests/BulkWalkInRegistrationRequest.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$middle_name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Requests/EditParticipantRequest.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$suffix\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Requests/EditParticipantRequest.php
 
 		-
 			message: '#^Method App\\Http\\Requests\\EventRequest\:\:withValidator\(\) has parameter \$validator with no type specified\.$#'
@@ -1951,12 +1909,6 @@ parameters:
 			path: app/Models/Registration.php
 
 		-
-			message: '#^Method App\\Models\\Registration\:\:participant\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: app/Models/Registration.php
-
-		-
 			message: '#^Method App\\Models\\Registration\:\:resolver\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
 			identifier: missingType.generics
 			count: 1
@@ -2071,18 +2023,6 @@ parameters:
 			path: app/Models/ServiceOccurrence.php
 
 		-
-			message: '#^Method App\\Models\\ServiceOccurrence\:\:firstTimerAttendances\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: app/Models/ServiceOccurrence.php
-
-		-
-			message: '#^Method App\\Models\\ServiceOccurrence\:\:memberAttendances\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: app/Models/ServiceOccurrence.php
-
-		-
 			message: '#^Class App\\Models\\User has PHPDoc tag @property for property \$trusted_devices with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -2119,12 +2059,6 @@ parameters:
 			path: app/Services/EventDeletion/RegistrationDeletionOtpService.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:fullName\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/EventDeletion/RegistrationDeletionOtpService.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>event_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
@@ -2143,55 +2077,7 @@ parameters:
 			path: app/Services/EventWorkflow.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$birthday\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Participants/DuplicateReview.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$contact_number\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Participants/DuplicateReview.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Participants/DuplicateReview.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$first_name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Participants/DuplicateReview.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Participants/DuplicateReview.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$last_name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Participants/DuplicateReview.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$middle_name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Participants/DuplicateReview.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$provisional_event_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Participants/DuplicateReview.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$suffix\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Services/Participants/DuplicateReview.php
@@ -2205,6 +2091,12 @@ parameters:
 		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:active\(\)\.$#'
 			identifier: method.notFound
+			count: 1
+			path: app/Services/Participants/DuplicateReview.php
+
+		-
+			message: '#^Cannot call method toDateString\(\) on string\.$#'
+			identifier: method.nonObject
 			count: 1
 			path: app/Services/Participants/DuplicateReview.php
 
@@ -2299,6 +2191,12 @@ parameters:
 			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
 
 		-
+			message: '#^Call to function in_array\(\) with arguments string\|null, array\{App\\Enums\\ChurchEventStatus\:\:Upcoming, App\\Enums\\ChurchEventStatus\:\:Ongoing\} and true will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
+
+		-
 			message: '#^Left side of && is always false\.$#'
 			identifier: booleanAnd.leftAlwaysFalse
 			count: 1
@@ -2325,12 +2223,6 @@ parameters:
 		-
 			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
-
-		-
-			message: '#^Ternary operator condition is always true\.$#'
-			identifier: ternary.alwaysTrue
 			count: 1
 			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
 
@@ -2402,12 +2294,6 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property App\\Models\\Registration\:\:\$tshirt_choice\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Reporting/ReportService.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$address\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Services/Reporting/ReportService.php
