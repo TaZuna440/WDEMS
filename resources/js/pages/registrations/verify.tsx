@@ -40,14 +40,10 @@ type Props = {
             | 'finalized';
         expires_at?: string;
         email?: ChannelState;
-        phone?: ChannelState;
         ready?: boolean;
-        submitted_phone?: string | null;
         attendance_code?: string | null;
         is_held?: boolean;
         is_inactive?: boolean;
-        chosen_channel?: 'email' | 'phone' | null;
-        needs_channel_choice?: boolean;
     };
 };
 
@@ -152,7 +148,6 @@ function RegistrationCodePanel({
 }
 
 function ContactVerification({
-    channel,
     state,
     url,
     now,
@@ -160,7 +155,6 @@ function ContactVerification({
     captchaToken = '',
     onSent,
 }: {
-    channel: 'email' | 'phone';
     state: ChannelState;
     url: string;
     now: number;
@@ -176,12 +170,11 @@ function ContactVerification({
         : 0;
     const expired =
         state.expires_at !== null && Date.parse(state.expires_at) <= now;
-    const label = channel === 'email' ? 'Email' : 'Phone';
 
     if (state.status === 'optional') return null;
     const submit = (event: FormEvent) => {
         event.preventDefault();
-        form.post(`${url}/${channel}`, {
+        form.post(`${url}/email`, {
             preserveScroll: true,
             onFinish: () => form.reset('code'),
         });
@@ -189,7 +182,7 @@ function ContactVerification({
 
     return (
         <section className="border-border grid gap-4 rounded-xl border p-6">
-            <h2 className="text-lg font-semibold">{label} verification</h2>
+            <h2 className="text-lg font-semibold">Email verification</h2>
             {state.status === 'verified' ? (
                 <p role="status" className="text-lime-brand">
                     Verified. This code has been used.
@@ -203,18 +196,12 @@ function ContactVerification({
             ) : (
                 <>
                     <p className="text-muted-foreground text-sm">
-                        {channel === 'email'
-                            ? state.status === 'sent'
-                                ? 'Enter the six-digit code sent to your email address.'
-                                : 'Complete reCAPTCHA, then send an email code.'
-                            : 'Please complete the verification.'}
+                        {state.status === 'sent'
+                            ? 'Enter the six-digit code sent to your email address.'
+                            : 'Complete reCAPTCHA, then send an email code.'}
                     </p>
                     {state.status === 'waiting' && (
-                        <p role="status">
-                            {channel === 'phone'
-                                ? 'Please complete the verification.'
-                                : 'Request an email code to continue.'}
-                        </p>
+                        <p role="status">Request an email code to continue.</p>
                     )}
                     {state.status === 'delivery_failed' && (
                         <p role="alert">
@@ -224,54 +211,45 @@ function ContactVerification({
                     )}
                     {(state.status === 'expired' || expired) && (
                         <p role="alert">
-                            This code has expired.{' '}
-                            {channel === 'email'
-                                ? 'Request another email code.'
-                                : 'Please complete the verification.'}
+                            This code has expired. Request another email code.
                         </p>
                     )}
                     {state.status === 'sent' && !expired && (
                         <p role="status">
-                            {channel === 'email'
-                                ? 'Email code sent.'
-                                : 'Phone verification completed.'}{' '}
-                            Codes expire after ten minutes.
+                            Email code sent. Codes expire after ten minutes.
                         </p>
                     )}
-                    {channel === 'email' &&
-                        (!captchaRequired || !!captchaToken) && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={
-                                    wait > 0 ||
-                                    resend.processing ||
-                                    (captchaRequired && !captchaToken)
-                                }
-                                onClick={() => {
-                                    resend.transform(() => ({
-                                        recaptcha_token: captchaToken,
-                                    }));
-                                    resend.post(`${url}/email/resend`, {
-                                        preserveScroll: true,
-                                        onFinish: onSent,
-                                    });
-                                }}
-                            >
-                                {wait > 0
-                                    ? `Request another code in ${wait}s`
-                                    : state.status === 'waiting'
-                                      ? 'Send code'
-                                      : 'Send another email code'}
-                            </Button>
-                        )}
+                    {(!captchaRequired || !!captchaToken) && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={
+                                wait > 0 ||
+                                resend.processing ||
+                                (captchaRequired && !captchaToken)
+                            }
+                            onClick={() => {
+                                resend.transform(() => ({
+                                    recaptcha_token: captchaToken,
+                                }));
+                                resend.post(`${url}/email/resend`, {
+                                    preserveScroll: true,
+                                    onFinish: onSent,
+                                });
+                            }}
+                        >
+                            {wait > 0
+                                ? `Request another code in ${wait}s`
+                                : state.status === 'waiting'
+                                  ? 'Send code'
+                                  : 'Send another email code'}
+                        </Button>
+                    )}
                     {state.status === 'sent' && !expired && (
                         <form onSubmit={submit} className="grid gap-3">
-                            <Label htmlFor={`${channel}-code`}>
-                                {label} code
-                            </Label>
+                            <Label htmlFor="email-code">Email code</Label>
                             <Input
-                                id={`${channel}-code`}
+                                id="email-code"
                                 value={form.data.code}
                                 onChange={(event) =>
                                     form.setData('code', event.target.value)
@@ -281,10 +259,10 @@ function ContactVerification({
                                 pattern="[0-9]{6}"
                                 maxLength={6}
                                 required
-                                aria-describedby={`${channel}-error`}
+                                aria-describedby="email-error"
                             />
-                            <div id={`${channel}-error`}>
-                                <InputError message={errors[channel]} />
+                            <div id="email-error">
+                                <InputError message={errors.email} />
                             </div>
                             <Button
                                 type="submit"
@@ -294,62 +272,17 @@ function ContactVerification({
                                     expired
                                 }
                             >
-                                Verify {channel}
+                                Verify email
                             </Button>
                         </form>
                     )}
-                    <InputError message={errors[channel]} />
+                    <InputError message={errors.email} />
                     <p className="text-muted-foreground text-xs">
                         {state.attempts_remaining} attempts remaining. New codes
                         do not reset this limit.
                     </p>
                 </>
             )}
-        </section>
-    );
-}
-
-function ChannelChoiceScreen({ verificationUrl }: { verificationUrl: string }) {
-    const { errors } = usePage<{ errors: Record<string, string> }>().props;
-    const [busy, setBusy] = useState(false);
-
-    const pick = (channel: 'email' | 'phone') => {
-        setBusy(true);
-        router.post(
-            `${verificationUrl}/channel`,
-            { channel },
-            { preserveScroll: true, onFinish: () => setBusy(false) },
-        );
-    };
-
-    return (
-        <section className="border-border grid gap-4 rounded-xl border p-6">
-            <h2 className="text-lg font-semibold">
-                How do you want to verify?
-            </h2>
-            <p className="text-muted-foreground text-sm">
-                Choose one contact to verify. The other stays on file but won't
-                need a code.
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    disabled={busy}
-                    onClick={() => pick('email')}
-                >
-                    Verify by email
-                </Button>
-                <Button
-                    type="button"
-                    variant="outline"
-                    disabled={busy}
-                    onClick={() => pick('phone')}
-                >
-                    Verify by phone
-                </Button>
-            </div>
-            <InputError message={errors.channel} />
         </section>
     );
 }
@@ -390,43 +323,19 @@ export default function VerifyRegistration({
     };
 
     const emailChannel = verification.email;
-    const phoneChannel = verification.phone;
 
-    // A channel "needs work" when it is required (not 'optional') and
-    // has not yet been verified or locked.
+    // Email needs work when it is required and has not yet been verified or locked.
     const emailNeedsWork =
         emailChannel !== undefined &&
         emailChannel.status !== 'optional' &&
         emailChannel.status !== 'verified' &&
         emailChannel.status !== 'locked';
 
-    const phoneIsRequired =
-        phoneChannel !== undefined && phoneChannel.status !== 'optional';
-
-    const phoneNeedsWork =
-        phoneChannel !== undefined &&
-        phoneIsRequired &&
-        phoneChannel.status !== 'verified' &&
-        phoneChannel.status !== 'locked';
-
-    // The human check is shown whenever ANY channel still requires
-    // verification. When phone is required, Firebase consumes the
-    // token for the SMS send. When only email is required, the
-    // widget is a visual checkpoint — the token is not consumed.
-    // A server-enforced gate for email-only events is a separate
-    // integration, not part of this flow.
-    // Stricter channel choice (W5): both required + none chosen →
-    // the participant picks one first. After the choice (or on
-    // single-channel events) only the chosen channel renders.
-    // Legacy no-choice challenges show both, as before.
-    const showEmailChannel = true; //
-    const _showPhoneChannel = false; //
-
     const showRecaptchaSection =
         verification.status === 'pending' &&
         !expired &&
         !false &&
-        (emailNeedsWork || phoneNeedsWork);
+        emailNeedsWork;
 
     return (
         <>
@@ -546,30 +455,18 @@ export default function VerifyRegistration({
                                     />
                                 </section>
                             )}
-                        {/* eslint-disable-next-line no-constant-condition */}
-                        {false ? (
-                            <ChannelChoiceScreen
-                                verificationUrl={verification_url}
+                        {verification.email && (
+                            <ContactVerification
+                                state={verification.email}
+                                url={verification_url}
+                                now={now}
+                                captchaRequired={email_only}
+                                captchaToken={captchaToken}
+                                onSent={() => {
+                                    setCaptchaToken('');
+                                    setCaptchaReset((value) => value + 1);
+                                }}
                             />
-                        ) : (
-                            <>
-                                {showEmailChannel && verification.email && (
-                                    <ContactVerification
-                                        channel="email"
-                                        state={verification.email}
-                                        url={verification_url}
-                                        now={now}
-                                        captchaRequired={email_only}
-                                        captchaToken={captchaToken}
-                                        onSent={() => {
-                                            setCaptchaToken('');
-                                            setCaptchaReset(
-                                                (value) => value + 1,
-                                            );
-                                        }}
-                                    />
-                                )}
-                            </>
                         )}
                         {!email_only && (
                             <Button

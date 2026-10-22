@@ -25,7 +25,6 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Kreait\Firebase\Contract\Auth;
 use RuntimeException;
 
 /**
@@ -179,7 +178,7 @@ class RegistrationVerificationService
      *
      * Only reachable when both email and phone are required — a single
      * required channel is chosen automatically at begin(). The choice
-     * is final: verify()/sendEmail()/verifyPhoneWithFirebase() reject
+     * is final: verify()/sendEmail() reject
      * the non-chosen channel afterwards.
      *
      * @return string|null Error message, or null on success.
@@ -896,62 +895,6 @@ class RegistrationVerificationService
         if (! $this->isOpen($event)) {
             throw ValidationException::withMessages(['identity' => 'Registration for this event is closed.']);
         }
-    }
-
-    public function verifyPhoneWithFirebase(Event $event, #[\SensitiveParameter] ?string $token, #[\SensitiveParameter] string $idToken): ?string
-    {
-        return DB::transaction(function () use ($event, $token, $idToken): ?string {
-            [, $challenge] = $this->lockPending($event, $token);
-            if (! $challenge->phone_required) {
-                return 'This contact does not require verification.';
-            }
-            if ($challenge->chosen_channel !== null && $challenge->chosen_channel !== 'phone') {
-                return 'You chose to verify by email.';
-            }
-            if ($challenge->phone_verified_at !== null) {
-                return 'This contact is already verified.';
-            }
-
-            try {
-                /** @phpstan-ignore-next-line */
-                $verified = app(Auth::class)->verifyIdToken($idToken);
-            } catch (\Throwable) {
-                $attempts = $challenge->phone_attempts + 1;
-                $challenge->forceFill(['phone_attempts' => $attempts])->save();
-
-                return $attempts >= self::MAX_ATTEMPTS
-                    ? 'Too many incorrect attempts. Start a new registration.'
-                    : 'We could not verify that token. Please try again.';
-            }
-
-            $verifiedPhone = $verified->claims()->get('phone_number');
-            if (! is_string($verifiedPhone)) {
-                $challenge->forceFill(['phone_attempts' => $challenge->phone_attempts + 1])->save();
-
-                return 'The verified phone number is missing from the token.';
-            }
-
-            $submittedPhone = $challenge->payload['contact_number'] ?? null;
-            $normalizedVerified = Participant::normalizeContactNumber($verifiedPhone);
-            $normalizedSubmitted = is_string($submittedPhone)
-                ? Participant::normalizeContactNumber($submittedPhone)
-                : null;
-
-            if ($normalizedVerified === null || $normalizedSubmitted === null
-                || $normalizedVerified !== $normalizedSubmitted) {
-                $challenge->forceFill(['phone_attempts' => $challenge->phone_attempts + 1])->save();
-
-                return 'The verified phone number does not match the one you submitted.';
-            }
-
-            $challenge->forceFill([
-                'phone_verified_at' => now(),
-                'phone_code_hash' => null,
-                'phone_expires_at' => null,
-            ])->save();
-
-            return null;
-        }, 3);
     }
 
     private function identityConflict(): never
