@@ -32,7 +32,11 @@ class DuplicateReview
 
     public function name(array $data): string
     {
-        return implode(' ', array_filter(array_map(fn ($key) => Participant::normalizeName($data[$key] ?? null), ['first_name', 'middle_name', 'last_name', 'suffix'])));
+        $parts = ['first_name', 'middle_name', 'last_name'];
+        $name = array_map(fn ($key) => Participant::normalizeName($data[$key] ?? null), $parts);
+        $name[] = Participant::normalizeSuffix($data['suffix'] ?? null);
+
+        return implode(' ', array_filter($name));
     }
 
     public function similar(string $left, string $right): bool

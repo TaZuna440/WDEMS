@@ -654,6 +654,9 @@ The name portion now contains first name, middle name, last name, and suffix;
 each is trimmed, internal whitespace collapsed, and lowercased. Null or blank
 optional parts normalize to the empty string. An omitted middle name or suffix
 is not a wildcard for an existing populated name.
+Periods are removed from suffix identity keys, so `Jr.` and `Jr` match while
+distinct suffixes such as `Jr.` and `Sr.` remain different. The original suffix
+is retained for display.
 
 The migration backfills normalized columns from existing raw name values.
 Verified contact plus the full normalized name resolves the person; matching
