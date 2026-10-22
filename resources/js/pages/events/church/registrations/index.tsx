@@ -9,6 +9,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    CHURCH_PARTICIPANT_TYPES,
+    churchParticipantTypeLabel,
+} from '@/lib/church-participant-types';
 
 type FormData = {
     first_name: string;
@@ -267,7 +271,9 @@ export default function ChurchRegistrations({
                                         </div>
                                     </td>
                                     <td className="p-4">
-                                        {row.participant_type}
+                                        {churchParticipantTypeLabel(
+                                            row.participant_type,
+                                        )}
                                         <div className="text-muted-foreground">
                                             {row.guardian_name}{' '}
                                             {row.guardian_contact}
@@ -434,8 +440,10 @@ export default function ChurchRegistrations({
                                 form.setData('participant_type', e.target.value)
                             }
                         >
-                            {['Member', 'First-Timer', 'Guest'].map((type) => (
-                                <option key={type}>{type}</option>
+                            {CHURCH_PARTICIPANT_TYPES.map((type) => (
+                                <option key={type.value} value={type.value}>
+                                    {type.label}
+                                </option>
                             ))}
                         </select>
                         {guardian && (

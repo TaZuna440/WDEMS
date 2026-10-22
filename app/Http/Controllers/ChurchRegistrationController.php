@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Concerns\ContactAndAddressQualityRules;
+use App\Enums\ChurchParticipantType;
 use App\Models\Event;
 use App\Models\FellowshipEvent;
 use App\Models\FellowshipGroup;
@@ -13,6 +14,7 @@ use App\Services\Participants\DuplicateReview;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -148,7 +150,7 @@ class ChurchRegistrationController extends Controller
             'birthday' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:'.now()->subYears(120)->toDateString()],
             'age' => ['nullable', 'integer', 'min:0', 'max:120'],
             'address' => ['nullable', 'string', 'max:500', ...$this->addressQualityRules()],
-            'participant_type' => ['required', 'in:Member,First-Timer,Guest'],
+            'participant_type' => ['required', Rule::enum(ChurchParticipantType::class)],
             'guardian_name' => ['nullable', 'string', 'max:100'],
             'guardian_contact' => ['nullable', 'string', 'max:20', ...$this->contactNumberQualityRules()],
             'fellowship_group_id' => ['nullable', 'integer', 'exists:fellowship_groups,id'],

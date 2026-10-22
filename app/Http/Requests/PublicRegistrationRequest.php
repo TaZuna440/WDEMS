@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Concerns\ContactAndAddressQualityRules;
 use App\Concerns\HumanNameQualityRules;
+use App\Enums\ChurchParticipantType;
 use App\Models\Event;
 use App\Models\Participant;
 use Illuminate\Foundation\Http\FormRequest;
@@ -102,7 +103,7 @@ class PublicRegistrationRequest extends FormRequest
                 'contact_number' => ['nullable', 'string', 'max:20', ...$this->contactNumberQualityRules(), 'regex:/\A(?:09|\+639)[0-9]{9}\z/'],
                 'birthday' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now()->subYears(3)->toDateString(), 'after_or_equal:'.now()->subYears(120)->toDateString()],
                 'address' => ['required', 'string', 'min:3', 'max:255', ...$this->addressQualityRules()],
-                'participant_type' => ['required', Rule::in(['Member', 'First-Timer', 'Guest'])],
+                'participant_type' => ['required', Rule::enum(ChurchParticipantType::class)],
                 'guardian_name' => ['nullable', 'string', 'max:100'],
                 'guardian_contact' => ['nullable', 'string', 'max:20', ...$this->contactNumberQualityRules(), 'regex:/\A(?:09|\+639)[0-9]{9}\z/'],
                 'emergency_contact_first_name' => ['required', 'string', 'min:2', 'max:50', "regex:/\A[\pL\pM '\-]+\z/u"],

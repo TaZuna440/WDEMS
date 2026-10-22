@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { churchParticipantTypeLabel } from '@/lib/church-participant-types';
 
 type Row = {
     id: number;
@@ -155,7 +156,9 @@ export default function ChurchAttendance({
                                         <div>{row.phone}</div>
                                     </td>
                                     <td className="p-3">
-                                        {row.participant_type}
+                                        {churchParticipantTypeLabel(
+                                            row.participant_type,
+                                        )}
                                     </td>
                                     <td className="p-3">
                                         {summary ? (

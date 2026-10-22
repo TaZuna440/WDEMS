@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CHURCH_PARTICIPANT_TYPES } from '@/lib/church-participant-types';
 
 type ChurchEvent = {
     event_name: string;
@@ -170,8 +171,10 @@ export default function ChurchPublic({ event, submit_url }: Props) {
                                 form.setData('participant_type', e.target.value)
                             }
                         >
-                            {['Member', 'First-Timer', 'Guest'].map((type) => (
-                                <option key={type}>{type}</option>
+                            {CHURCH_PARTICIPANT_TYPES.map((type) => (
+                                <option key={type.value} value={type.value}>
+                                    {type.label}
+                                </option>
                             ))}
                         </select>
                     </div>
