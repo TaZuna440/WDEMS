@@ -21,6 +21,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -273,7 +274,7 @@ class RegistrationVerificationService
         }, 3);
     }
 
-    /** Send synchronously through the existing Resend transport; never the log mailer. */
+    /** Send synchronously using the application's configured mail transport. */
     /**
      * Read the device identifier from the trust cookie, generating one
      * when absent. The raw token never touches the database — only its
@@ -331,13 +332,18 @@ class RegistrationVerificationService
 
             $code = $this->issue($challenge, 'email');
             try {
-                Mail::mailer('resend')->to($challenge->payload['email'])->send(
+                Mail::to($challenge->payload['email'])->send(
                     new RegistrationVerificationOtpMail($code, $event->event_name),
                 );
                 $challenge->forceFill(['email_delivery_failed' => false])->save();
-            } catch (\Throwable) {
+            } catch (\Throwable $exception) {
                 // Transport messages may include contact values or code content.
-                // Do not log or report the exception. Retain cooldown, invalidate code.
+                // Log only non-sensitive diagnostics and retain the retry cooldown.
+                Log::warning('registration.verification.email_delivery_failed', [
+                    'event_id' => $event->id,
+                    'mailer' => config('mail.default'),
+                    'exception' => $exception::class,
+                ]);
                 $challenge->forceFill([
                     'email_code_hash' => null,
                     'email_expires_at' => null,
@@ -626,7 +632,7 @@ class RegistrationVerificationService
                     if (! $isHeld && $submittedEmail !== null && $attendanceCode !== null) {
                         DB::afterCommit(function () use ($submittedEmail, $attendanceCode, $event): void {
                             try {
-                                Mail::mailer('resend')->to($submittedEmail)->send(
+                                Mail::to($submittedEmail)->send(
                                     new RegistrationConfirmationMail(
                                         $attendanceCode,
                                         $event->event_name,
