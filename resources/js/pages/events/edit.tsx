@@ -183,6 +183,7 @@ export default function EventsEdit({ event, church_categories }: Props) {
         // Step 1 — Details
         event_type: event.event_type,
         church_category: event.church_category ?? '',
+        church_status: event.church_status ?? '',
         event_name: event.event_name,
         description: event.description ?? '',
         coordinator: event.coordinator ?? '',

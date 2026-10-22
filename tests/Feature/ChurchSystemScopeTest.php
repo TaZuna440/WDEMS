@@ -173,6 +173,16 @@ it('seeds specialist church demo data idempotently without changing the default 
             ->select('id'))
         ->count();
 
+    $sampleEvent = Event::query()->where('event_name', 'Youth Camp (Sample)')->sole();
+    $sampleEvent->update(['event_date' => today()->subDay()->toDateString()]);
+    $manualAttendance = Registration::query()
+        ->where('event_id', $sampleEvent->id)
+        ->whereHas('attendance', fn ($query) => $query->where('attendance_status', 'present'))
+        ->firstOrFail()
+        ->attendance()
+        ->firstOrFail();
+    $manualAttendance->update(['attendance_status' => 'absent']);
+
     Artisan::call('db:seed', [
         '--class' => ChurchSampleDataSeeder::class,
         '--no-interaction' => true,
@@ -182,8 +192,8 @@ it('seeds specialist church demo data idempotently without changing the default 
         ->and($registrationCount)->toBe(12)
         ->and($attendanceCount)->toBe(9)
         ->and(Participant::query()->where('pool', 'church')->count())->toBe(12)
-        ->and(DB::table('attendances')->where('attendance_status', 'present')->count())->toBe(6)
-        ->and(DB::table('attendances')->where('attendance_status', 'absent')->count())->toBe(3)
+        ->and($sampleEvent->fresh()->event_date->toDateString())->toBe(today()->addDays(7)->toDateString())
+        ->and($manualAttendance->fresh()->attendance_status->value)->toBe('absent')
         ->and(Event::query()->whereIn('event_name', [
             'Youth Camp (Sample)',
             'Kids Service (Sample)',

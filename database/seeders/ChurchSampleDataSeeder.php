@@ -39,6 +39,7 @@ class ChurchSampleDataSeeder extends Seeder
         ];
 
         foreach ($samples as $sampleIndex => $sample) {
+            $sampleDate = today()->addDays(7 + $sampleIndex);
             $event = Event::query()->firstOrCreate(
                 [
                     'event_kind' => Event::KIND_CHURCH,
@@ -52,13 +53,17 @@ class ChurchSampleDataSeeder extends Seeder
                     'church_category' => $sample['church_category'],
                     'church_activity_category' => $sample['activity'],
                     'church_status' => ChurchEventStatus::Upcoming,
-                    'event_date' => today()->addDays(7 + $sampleIndex)->toDateString(),
+                    'event_date' => $sampleDate->toDateString(),
                     'start_time' => '10:00',
                     'venue' => 'Community Hall',
                     'venue_address' => 'Sample Barangay, Manila',
                     'status' => 'draft',
                 ],
             );
+
+            if ($event->event_date?->lt(today())) {
+                $event->update(['event_date' => $sampleDate->toDateString()]);
+            }
 
             foreach ($people as $personIndex => $personData) {
                 $email = sprintf('demo-church-%d-%d@example.test', $sampleIndex + 1, $personIndex + 1);
@@ -90,7 +95,7 @@ class ChurchSampleDataSeeder extends Seeder
                 );
 
                 if ($personData['attendance'] !== 'unmarked') {
-                    $registration->attendance()->updateOrCreate(
+                    $registration->attendance()->firstOrCreate(
                         [],
                         [
                             'attendance_status' => $personData['attendance'],
