@@ -83,6 +83,49 @@ it('requires server-verified recaptcha before email OTP and completes a church r
         ->and($registration->attendance)->toBeNull();
 });
 
+it('accepts Graduate and Ninong/Ninang through public email verification', function () {
+    Mail::fake();
+    config(['services.recaptcha.site_key' => 'site-key', 'services.recaptcha.secret_key' => 'secret-key']);
+    Http::fake(['www.google.com/recaptcha/api/siteverify' => Http::response([
+        'success' => true,
+        'hostname' => parse_url(config('app.url'), PHP_URL_HOST),
+    ])]);
+
+    foreach ([
+        ['type' => 'Graduate', 'first_name' => 'Gina', 'email' => 'graduate-church@example.com'],
+        ['type' => 'Ninong/Ninang', 'first_name' => 'Nina', 'email' => 'ninong-church@example.com'],
+    ] as $index => $case) {
+        [$event, $payload] = church_public_fixture();
+        $event->update(['registration_slug' => 'church-public-type-'.$index]);
+        $payload['participant_type'] = $case['type'];
+        $payload['first_name'] = $case['first_name'];
+        $payload['email'] = $case['email'];
+
+        $start = $this->post('/r/'.$event->registration_slug, $payload)
+            ->assertSessionHasNoErrors();
+        $cookieName = RegistrationVerificationService::cookieName($event);
+        $this->withCookie($cookieName, $start->getCookie($cookieName)->getValue());
+        $url = '/r/'.$event->registration_slug.'/verification';
+        $this->post($url.'/email/resend', ['recaptcha_token' => 'valid-test-token'])
+            ->assertSessionHasNoErrors();
+        $code = Mail::sent(RegistrationVerificationOtpMail::class)->last()->code;
+        $this->post($url.'/email', ['code' => $code])->assertSessionHasNoErrors();
+        $this->post($url.'/complete')->assertSessionHasNoErrors();
+
+        expect(Registration::query()->where('event_id', $event->id)->sole()->participant_type)
+            ->toBe($case['type']);
+    }
+});
+
+it('rejects unsupported church participant types from the public form', function () {
+    [$event, $payload] = church_public_fixture();
+    $payload['participant_type'] = 'Volunteer';
+
+    $this->post('/r/'.$event->registration_slug, $payload)->assertSessionHasErrors('participant_type');
+
+    expect(RegistrationVerificationChallenge::where('event_id', $event->id)->exists())->toBeFalse();
+});
+
 it('does not send an email otp without a successful recaptcha check', function () {
     [$event, $payload] = church_public_fixture();
     Mail::fake();
