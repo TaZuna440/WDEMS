@@ -862,3 +862,11 @@ Church Events implementation completion record:
 - Final guards: `resources/js` and `resources/css` contain no violet/purple references; Excused remains display-only and disabled for grandfathered legacy records, not settable on Church attendance; phone verification is unavailable to Church registration and the verification route accepts only email.
 
 Still open and untouched pending client/environment decisions: specialist-module vertical slices; Discipleship self-enrollment via public link; O-1 birthday clause; O-3 prototype-vs-client-docs; O-4 object-level authorization; O-7 church CSV/print export; production Resend delivery and reCAPTCHA hostname acceptance.
+
+## Amendment G — 2026-10-23
+
+Mark ruled that v1.0 module coverage (§§3–4, FR-01–FR-09) is the requirement for the six specialist modules: Youth Ministry, Kids Ministry, Young Adult, Worship & Prayer, Church Administration, and Special Occasions. This slice delivers their category pages and event lists, category-preselected creation through the shared Church Event wizard, and links into the existing registration, attendance, and summary workflow.
+
+Specialized activity fields described in §7 remain later enhancements under FR-13. O-3 is closed for specialist-module coverage by Mark's ruling; other prototype-versus-client-document conflicts remain outside this ruling.
+
+Implementation commits: `50f9f46c761d0750063c913fda01b78a917b4304` (shared specialist workflow) and `da7d434cc60a90605da9e5311dc44718f4412c3a` (category isolation and workflow tests). The Youth Camp acceptance flow covers specialist creation, staff registration, Present attendance, the summary total, and public email OTP registration with a registration code. Full suite: 1,000 passed, 3 skipped.
