@@ -10,6 +10,7 @@ use App\Models\Registration;
 use App\Models\User;
 use App\Services\Church\RegistrationBridge;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -61,7 +62,7 @@ class ChurchSampleDataSeeder extends Seeder
                 ],
             );
 
-            if ($event->event_date?->lt(today())) {
+            if ($event->event_date !== null && Carbon::parse($event->event_date)->lt(today())) {
                 $event->update(['event_date' => $sampleDate->toDateString()]);
             }
 
