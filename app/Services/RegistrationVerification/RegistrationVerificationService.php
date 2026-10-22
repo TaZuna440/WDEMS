@@ -499,9 +499,6 @@ class RegistrationVerificationService
                         $email = $challenge->email_required ? ($payload['email'] ?? null) : null;
                         $phone = $challenge->phone_required ? ($payload['contact_number'] ?? null) : null;
                     }
-                    if ($event->isChurchEvent()) {
-                        $phone = $payload['contact_number'] ?? null;
-                    }
                     $normalized = Participant::normalizeContactNumber($phone);
                     if ($email === null && $normalized === null) {
                         $this->identityConflict();

@@ -175,3 +175,126 @@ it('holds a verified likely duplicate outside active attendance counts', functio
         ->and(Registration::active()->where('event_id', $event->id)->count())->toBe(1)
         ->and($held->attendance_code)->not->toBeNull();
 });
+
+it('creates a new participant when name and submitted phone match but verified email differs', function () {
+    [$event, $payload] = church_public_fixture();
+    $seeded = Participant::create([
+        'pool' => 'church',
+        'first_name' => 'Maria',
+        'last_name' => 'Santos',
+        'email' => 'seeded-a@example.com',
+        'contact_number' => '09171234567',
+    ]);
+
+    $payload['email'] = 'verified-b@example.com';
+    $payload['contact_number'] = '09171234567';
+
+    Mail::fake();
+    config(['services.recaptcha.site_key' => 'site-key', 'services.recaptcha.secret_key' => 'secret-key']);
+    Http::fake(['www.google.com/recaptcha/api/siteverify' => Http::response([
+        'success' => true,
+        'hostname' => parse_url(config('app.url'), PHP_URL_HOST),
+    ])]);
+
+    $start = $this->post('/r/'.$event->registration_slug, $payload)->assertSessionHasNoErrors();
+    $cookieName = RegistrationVerificationService::cookieName($event);
+    $this->withCookie($cookieName, $start->getCookie($cookieName)->getValue());
+    $url = '/r/'.$event->registration_slug.'/verification';
+    $this->post($url.'/email/resend', ['recaptcha_token' => 'valid-test-token'])->assertSessionHasNoErrors();
+    $code = Mail::sent(RegistrationVerificationOtpMail::class)->last()->code;
+    $this->post($url.'/email', ['code' => $code])->assertSessionHasNoErrors();
+    $this->post($url.'/complete')->assertSessionHasNoErrors();
+
+    expect(Participant::where('pool', 'church')->where('first_name', 'Maria')->where('last_name', 'Santos')->count())->toBe(2);
+
+    $registration = Registration::sole();
+    $newParticipant = Participant::where('email', 'verified-b@example.com')->sole();
+
+    expect($registration->participant_id)->toBe($newParticipant->id)
+        ->and($newParticipant->id)->not->toBe($seeded->id)
+        ->and($newParticipant->contact_number)->toBeNull()
+        ->and($registration->submitted_contact_number)->toBe('+639171234567')
+        ->and($seeded->fresh()->email)->toBe('seeded-a@example.com')
+        ->and($seeded->fresh()->contact_number)->toBe('09171234567');
+});
+
+it('reuses an existing participant when composite name and verified email match', function () {
+    [$event, $payload] = church_public_fixture();
+    $seeded = Participant::create([
+        'pool' => 'church',
+        'first_name' => 'Maria',
+        'last_name' => 'Santos',
+        'email' => 'maria-return@example.com',
+        'contact_number' => null,
+    ]);
+
+    $payload['email'] = 'maria-return@example.com';
+    $payload['contact_number'] = '09179998877';
+
+    Mail::fake();
+    config(['services.recaptcha.site_key' => 'site-key', 'services.recaptcha.secret_key' => 'secret-key']);
+    Http::fake(['www.google.com/recaptcha/api/siteverify' => Http::response([
+        'success' => true,
+        'hostname' => parse_url(config('app.url'), PHP_URL_HOST),
+    ])]);
+
+    $start = $this->post('/r/'.$event->registration_slug, $payload)->assertSessionHasNoErrors();
+    $cookieName = RegistrationVerificationService::cookieName($event);
+    $this->withCookie($cookieName, $start->getCookie($cookieName)->getValue());
+    $url = '/r/'.$event->registration_slug.'/verification';
+    $this->post($url.'/email/resend', ['recaptcha_token' => 'valid-test-token'])->assertSessionHasNoErrors();
+    $code = Mail::sent(RegistrationVerificationOtpMail::class)->last()->code;
+    $this->post($url.'/email', ['code' => $code])->assertSessionHasNoErrors();
+    $this->post($url.'/complete')->assertSessionHasNoErrors();
+
+    expect(Participant::where('pool', 'church')->where('first_name', 'Maria')->where('last_name', 'Santos')->count())->toBe(1);
+
+    $registration = Registration::sole();
+    expect($registration->participant_id)->toBe($seeded->id)
+        ->and($registration->submitted_contact_number)->toBe('+639179998877')
+        ->and($seeded->fresh()->email)->toBe('maria-return@example.com');
+});
+
+it('holds a submission when similar name and submitted phone match an existing registration', function () {
+    [$event, $payload] = church_public_fixture();
+    $person = Participant::create([
+        'pool' => 'church',
+        'first_name' => 'Maria',
+        'last_name' => 'Santos',
+        'email' => 'existing@example.com',
+    ]);
+    Registration::create([
+        'event_id' => $event->id,
+        'participant_id' => $person->id,
+        'source' => 'manual',
+        'registration_status' => 'confirmed',
+        'submitted_contact_number' => $payload['contact_number'],
+    ]);
+
+    $payload['first_name'] = 'Maria';
+    $payload['middle_name'] = 'Rubi';
+    $payload['last_name'] = 'Santos';
+    $payload['email'] = 'new-different@example.com';
+
+    Mail::fake();
+    config(['services.recaptcha.site_key' => 'site-key', 'services.recaptcha.secret_key' => 'secret-key']);
+    Http::fake(['www.google.com/recaptcha/api/siteverify' => Http::response([
+        'success' => true,
+        'hostname' => parse_url(config('app.url'), PHP_URL_HOST),
+    ])]);
+
+    $start = $this->post('/r/'.$event->registration_slug, $payload)->assertSessionHasNoErrors();
+    $cookieName = RegistrationVerificationService::cookieName($event);
+    $this->withCookie($cookieName, $start->getCookie($cookieName)->getValue());
+    $url = '/r/'.$event->registration_slug.'/verification';
+    $this->post($url.'/email/resend', ['recaptcha_token' => 'valid-test-token'])->assertSessionHasNoErrors();
+    $code = Mail::sent(RegistrationVerificationOtpMail::class)->last()->code;
+    $this->post($url.'/email', ['code' => $code])->assertSessionHasNoErrors();
+    $this->post($url.'/complete')->assertSessionHasNoErrors();
+
+    $held = Registration::where('event_id', $event->id)->where('registration_status', 'held')->sole();
+    expect($held->attendance)->toBeNull()
+        ->and(Registration::active()->where('event_id', $event->id)->count())->toBe(1)
+        ->and($held->held_reason)->toContain('Same phone')
+        ->and($held->attendance_code)->not->toBeNull();
+});
