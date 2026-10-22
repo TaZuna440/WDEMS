@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'registration_status',
     'source',
     'participant_type',
+    'fellowship_group_id',
     'guardian_name',
     'guardian_contact',
     'registered_at',
@@ -71,6 +72,7 @@ class Registration extends Model
         return $this->belongsTo(Event::class);
     }
 
+    /** @return BelongsTo<Participant, $this> */
     public function participant(): BelongsTo
     {
         return $this->belongsTo(Participant::class);

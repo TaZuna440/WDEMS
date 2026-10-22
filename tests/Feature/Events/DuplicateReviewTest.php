@@ -18,8 +18,8 @@ it('audits similar names with shared evidence without treating a family email as
     $this->actingAs($staff)->getJson("/events/{$event->id}/participant-review/search?q=Maria")->assertOk()->assertJsonCount(1, 'matches');
     $this->get("/events/{$event->id}/possible-duplicates")->assertOk();
     $event->forceFill(['event_kind' => 'church'])->save();
-    $this->getJson("/events/{$event->id}/participant-review/search?q=Maria")->assertNotFound();
-    $this->get("/events/{$event->id}/possible-duplicates")->assertNotFound();
+    $this->getJson("/events/{$event->id}/participant-review/search?q=Maria")->assertOk()->assertJsonCount(0, 'matches');
+    $this->get("/events/{$event->id}/possible-duplicates")->assertOk()->assertInertia(fn ($page) => $page->has('pairs', 0)->has('held_registrations', 0));
 });
 
 it('keeps lookup and duplicate evidence staff-only and scoped to one event', function () {

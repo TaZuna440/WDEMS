@@ -29,8 +29,11 @@ class FellowshipAttendanceController extends Controller
      * Show the attendance page for one event: the roster, plus the
      * event's groups so the operator can assign or reassign.
      */
-    public function show(FellowshipEvent $event): Response
+    public function show(FellowshipEvent $event): Response|RedirectResponse
     {
+        if ($event->getAttribute('registration_event_id') !== null) {
+            return redirect()->route('church.attendance', $event->getAttribute('registration_event_id'));
+        }
         $event->load('creator:id,name');
 
         $groups = FellowshipGroup::query()
@@ -100,27 +103,19 @@ class FellowshipAttendanceController extends Controller
         FellowshipEvent $event,
     ): RedirectResponse {
         $validated = $request->validated();
-
-        $participant = $this->resolveParticipant($validated);
-
-        $exists = FellowshipAttendance::query()
-            ->where('fellowship_event_id', $event->id)
-            ->where('participant_id', $participant->id)
-            ->exists();
-
-        if ($exists) {
-            abort(422, 'This participant is already marked for this fellowship event.');
-        }
-
         $groupId = $validated['fellowship_group_id'] ?? null;
-
-        if ($groupId !== null) {
-            $this->assertGroupBelongsToEvent((int) $groupId, $event->id);
-        }
-
-        DB::transaction(function () use ($event, $participant, $groupId): void {
+        DB::transaction(function () use ($event, $validated, $groupId): void {
+            $lockedEvent = FellowshipEvent::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
+            abort_if($lockedEvent->getAttribute('registration_event_id') !== null, 409, 'Use the church Registration and Attendance pages for this event.');
+            $participant = $this->resolveParticipant($validated);
+            if (FellowshipAttendance::query()->where('fellowship_event_id', $lockedEvent->id)->where('participant_id', $participant->id)->exists()) {
+                abort(422, 'This participant is already marked for this fellowship event.');
+            }
+            if ($groupId !== null) {
+                $this->assertGroupBelongsToEvent((int) $groupId, $lockedEvent->id);
+            }
             FellowshipAttendance::create([
-                'fellowship_event_id' => $event->id,
+                'fellowship_event_id' => $lockedEvent->id,
                 'participant_id' => $participant->id,
                 'fellowship_group_id' => $groupId,
                 'attendance_status' => 'present',
@@ -140,23 +135,24 @@ class FellowshipAttendanceController extends Controller
         FellowshipEvent $event,
         FellowshipAttendance $attendance,
     ): RedirectResponse {
-        $this->assertBelongsToEvent($attendance->fellowship_event_id, $event->id);
-
         $validated = $request->validated();
-
         $groupId = $validated['fellowship_group_id'] ?? null;
-
-        if ($groupId !== null) {
-            $this->assertGroupBelongsToEvent((int) $groupId, $event->id);
-        }
-
-        $attendance->update([
-            'attendance_status' => $validated['attendance_status'],
-            'fellowship_group_id' => $groupId,
-            'notes' => $validated['notes'] ?? null,
-            'recorded_by' => auth()->id(),
-            'recorded_at' => now(),
-        ]);
+        DB::transaction(function () use ($event, $attendance, $validated, $groupId): void {
+            $lockedEvent = FellowshipEvent::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
+            abort_if($lockedEvent->getAttribute('registration_event_id') !== null, 409, 'Use the church Registration and Attendance pages for this event.');
+            $row = FellowshipAttendance::query()->whereKey($attendance->id)->lockForUpdate()->firstOrFail();
+            $this->assertBelongsToEvent($row->fellowship_event_id, $lockedEvent->id);
+            if ($groupId !== null) {
+                $this->assertGroupBelongsToEvent((int) $groupId, $lockedEvent->id);
+            }
+            $row->update([
+                'attendance_status' => $validated['attendance_status'],
+                'fellowship_group_id' => $groupId,
+                'notes' => $validated['notes'] ?? null,
+                'recorded_by' => auth()->id(),
+                'recorded_at' => now(),
+            ]);
+        });
 
         return back();
     }
@@ -171,8 +167,13 @@ class FellowshipAttendanceController extends Controller
         FellowshipEvent $event,
         FellowshipAttendance $attendance,
     ): RedirectResponse {
-        $this->assertBelongsToEvent($attendance->fellowship_event_id, $event->id);
-        $attendance->delete();
+        DB::transaction(function () use ($event, $attendance): void {
+            $lockedEvent = FellowshipEvent::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
+            abort_if($lockedEvent->getAttribute('registration_event_id') !== null, 409, 'Use the church Registration and Attendance pages for this event.');
+            $row = FellowshipAttendance::query()->whereKey($attendance->id)->lockForUpdate()->firstOrFail();
+            $this->assertBelongsToEvent($row->fellowship_event_id, $lockedEvent->id);
+            $row->delete();
+        });
 
         return back();
     }

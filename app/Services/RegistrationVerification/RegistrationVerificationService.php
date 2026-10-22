@@ -2,6 +2,7 @@
 
 namespace App\Services\RegistrationVerification;
 
+use App\Enums\ChurchEventStatus;
 use App\Enums\EventStatus;
 use App\Enums\RegistrationStatus;
 use App\Http\Requests\PublicRegistrationRequest;
@@ -111,7 +112,7 @@ class RegistrationVerificationService
             // whether the contact is required — an optional contact
             // that already belongs to a registration still counts.
             $this->assertNoDuplicateRegistration($event, $payload);
-            if (! ($payload['similarity_acknowledged'] ?? false) && app(DuplicateReview::class)->hasSimilar($event, $payload)) {
+            if ($event->isRunningEvent() && ! ($payload['similarity_acknowledged'] ?? false) && app(DuplicateReview::class)->hasSimilar($event, $payload)) {
                 throw ValidationException::withMessages(['similarity_acknowledged' => 'Review the similar-registration warning before continuing.']);
             }
 
@@ -135,9 +136,9 @@ class RegistrationVerificationService
                 // is chosen automatically — no choice screen. Both
                 // required → the participant picks one via
                 // chooseChannel(); null until then.
-                'chosen_channel' => 'email'
-                    ? ($emailRequired ? 'email' : 'phone')
-                    : null,
+                'chosen_channel' => $emailRequired
+                    ? 'email'
+                    : ($phoneRequired ? 'phone' : null),
                 'expires_at' => now()->addHours(self::CHALLENGE_TTL_HOURS),
             ]);
 
@@ -498,12 +499,15 @@ class RegistrationVerificationService
                         $email = $challenge->email_required ? ($payload['email'] ?? null) : null;
                         $phone = $challenge->phone_required ? ($payload['contact_number'] ?? null) : null;
                     }
+                    if ($event->isChurchEvent()) {
+                        $phone = $payload['contact_number'] ?? null;
+                    }
                     $normalized = Participant::normalizeContactNumber($phone);
                     if ($email === null && $normalized === null) {
                         $this->identityConflict();
                     }
 
-                    $matches = Participant::query()->matchingName('running',
+                    $matches = Participant::query()->matchingName($event->event_kind,
                         $payload['first_name'], $payload['last_name'],
                         $payload['middle_name'] ?? null, $payload['suffix'] ?? null,
                     )->where(function ($query) use ($email, $normalized) {
@@ -521,7 +525,7 @@ class RegistrationVerificationService
                     }
 
                     // Preserve first-write-wins. Never fill existing identities from intake.
-                    $participant = $matches->first() ?? Participant::create(['pool' => 'running',
+                    $participant = $matches->first() ?? Participant::create(['pool' => $event->event_kind,
                         'first_name' => $payload['first_name'],
                         'last_name' => $payload['last_name'],
                         'middle_name' => $payload['middle_name'] ?? null,
@@ -575,6 +579,9 @@ class RegistrationVerificationService
                         'held_reason' => $heldReason,
                         'held_candidate_registration_id' => $heldCandidateId,
                         'source' => 'form',
+                        'participant_type' => $payload['participant_type'] ?? null,
+                        'guardian_name' => $payload['guardian_name'] ?? null,
+                        'guardian_contact' => $payload['guardian_contact'] ?? null,
                         'registered_at' => now(),
                         'submitted_email' => $payload['email'] ?? null,
                         'submitted_contact_number' => $payload['contact_number'] ?? null,
@@ -584,14 +591,14 @@ class RegistrationVerificationService
                         'consent_accepted_at' => now(),
                         'privacy_notice_version' => RegistrationLegalText::PRIVACY_NOTICE_VERSION,
                         'emergency_contact_name' => $event->usesEmailOnlyRegistration()
-                            ? $payload['emergency_contact_first_name'].' '.$payload['emergency_contact_last_name']
-                            : $payload['emergency_contact_name'],
+                            ? trim(($payload['emergency_contact_first_name'] ?? '').' '.($payload['emergency_contact_last_name'] ?? ''))
+                            : ($payload['emergency_contact_name'] ?? null),
                         'emergency_contact_first_name' => $payload['emergency_contact_first_name'] ?? null,
                         'tshirt_choice' => $payload['tshirt_choice'] ?? null,
                         'emergency_contact_last_name' => $payload['emergency_contact_last_name'] ?? null,
                         'emergency_contact_relationship_other' => $payload['emergency_contact_relationship_other'] ?? null,
-                        'emergency_contact_relationship' => $payload['emergency_contact_relationship'],
-                        'emergency_contact_number' => $payload['emergency_contact_number'],
+                        'emergency_contact_relationship' => $payload['emergency_contact_relationship'] ?? null,
+                        'emergency_contact_number' => $payload['emergency_contact_number'] ?? null,
                     ]);
 
                     foreach ($payload['responses'] ?? [] as $fieldId => $value) {
@@ -770,7 +777,8 @@ class RegistrationVerificationService
         }
         // Existing challenges retain their original 24-hour lifetime after closure.
         // Cancelled/completed events still reject completion; new intake uses assertOpen.
-        if (! $this->isOpen($event) && ! ($event->isRunningEvent() && in_array($event->status, [EventStatus::RegistrationClosed, EventStatus::Ongoing], true))) {
+        if (! $this->isOpen($event) && ! ($event->isRunningEvent() && in_array($event->status, [EventStatus::RegistrationClosed, EventStatus::Ongoing], true))
+            && ! ($event->isChurchEvent() && in_array($event->church_status, [ChurchEventStatus::Upcoming, ChurchEventStatus::Ongoing], true))) {
             return 'closed';
         }
         if ($challenge->email_required !== $event->isCommonFieldRequired('email')
@@ -883,7 +891,7 @@ class RegistrationVerificationService
 
     private function isOpen(Event $event): bool
     {
-        return $event->acceptsPublicRegistration();
+        return $event->acceptsPublicRegistration() || $event->acceptsChurchPublicRegistration();
     }
 
     private function assertOpen(Event $event): void

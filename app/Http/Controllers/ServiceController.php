@@ -9,6 +9,7 @@ use App\Models\ServiceOccurrence;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -201,7 +202,11 @@ class ServiceController extends Controller
     public function destroyOccurrence(ServiceOccurrence $occurrence): RedirectResponse
     {
         $type = $occurrence->service_type->value;
-        $occurrence->delete();
+        DB::transaction(function () use ($occurrence): void {
+            $row = ServiceOccurrence::query()->whereKey($occurrence->id)->lockForUpdate()->firstOrFail();
+            abort_if($row->getAttribute('registration_event_id') !== null, 409, 'Delete the activated church event instead.');
+            $row->delete();
+        });
 
         return redirect()
             ->route('services.show', ['type' => $type])

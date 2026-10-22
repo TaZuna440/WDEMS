@@ -32,8 +32,11 @@ class ServiceAttendanceController extends Controller
      * plus a searchable list of church members for the "Add"
      * dialog.
      */
-    public function show(ServiceOccurrence $occurrence): Response
+    public function show(ServiceOccurrence $occurrence): Response|RedirectResponse
     {
+        if ($occurrence->getAttribute('registration_event_id') !== null) {
+            return redirect()->route('church.attendance', $occurrence->getAttribute('registration_event_id'));
+        }
         $occurrence->load('creator:id,name');
 
         $memberRows = ServiceAttendanceMember::query()
@@ -109,16 +112,16 @@ class ServiceAttendanceController extends Controller
     ): RedirectResponse {
         $validated = $request->validated();
         $track = $validated['track'];
+        DB::transaction(function () use ($occurrence, $validated, $track): void {
+            $lockedOccurrence = ServiceOccurrence::query()->whereKey($occurrence->id)->lockForUpdate()->firstOrFail();
+            abort_if($lockedOccurrence->getAttribute('registration_event_id') !== null, 409, 'Use the church Registration and Attendance pages for this event.');
+            $participant = $this->resolveParticipant($validated);
+            $this->assertNotOnOtherTrack($lockedOccurrence, $participant, $track);
+            $this->assertNotOnSameTrack($lockedOccurrence, $participant, $track);
 
-        $participant = $this->resolveParticipant($validated);
-
-        $this->assertNotOnOtherTrack($occurrence, $participant, $track);
-        $this->assertNotOnSameTrack($occurrence, $participant, $track);
-
-        DB::transaction(function () use ($occurrence, $participant, $validated, $track): void {
             if ($track === 'member') {
                 ServiceAttendanceMember::create([
-                    'service_occurrence_id' => $occurrence->id,
+                    'service_occurrence_id' => $lockedOccurrence->id,
                     'participant_id' => $participant->id,
                     'attendance_status' => 'present',
                     'recorded_by' => auth()->id(),
@@ -126,7 +129,7 @@ class ServiceAttendanceController extends Controller
                 ]);
             } else {
                 ServiceAttendanceFirstTimer::create([
-                    'service_occurrence_id' => $occurrence->id,
+                    'service_occurrence_id' => $lockedOccurrence->id,
                     'participant_id' => $participant->id,
                     'invited_by' => $validated['invited_by'] ?? null,
                     'attendance_status' => 'present',
@@ -139,7 +142,7 @@ class ServiceAttendanceController extends Controller
                 if (! FirstTimer::where('participant_id', $participant->id)->exists()) {
                     FirstTimer::create([
                         'participant_id' => $participant->id,
-                        'first_service_date' => $occurrence->occurrence_date,
+                        'first_service_date' => $lockedOccurrence->occurrence_date,
                     ]);
                 }
             }
@@ -156,16 +159,19 @@ class ServiceAttendanceController extends Controller
         ServiceOccurrence $occurrence,
         ServiceAttendanceMember $attendance,
     ): RedirectResponse {
-        $this->assertBelongsToOccurrence($attendance->service_occurrence_id, $occurrence->id);
-
         $validated = $request->validated();
-
-        $attendance->update([
-            'attendance_status' => $validated['attendance_status'],
-            'notes' => $validated['notes'] ?? null,
-            'recorded_by' => auth()->id(),
-            'recorded_at' => now(),
-        ]);
+        DB::transaction(function () use ($occurrence, $attendance, $validated): void {
+            $lockedOccurrence = ServiceOccurrence::query()->whereKey($occurrence->id)->lockForUpdate()->firstOrFail();
+            abort_if($lockedOccurrence->getAttribute('registration_event_id') !== null, 409, 'Use the church Registration and Attendance pages for this event.');
+            $row = ServiceAttendanceMember::query()->whereKey($attendance->id)->lockForUpdate()->firstOrFail();
+            $this->assertBelongsToOccurrence($row->service_occurrence_id, $lockedOccurrence->id);
+            $row->update([
+                'attendance_status' => $validated['attendance_status'],
+                'notes' => $validated['notes'] ?? null,
+                'recorded_by' => auth()->id(),
+                'recorded_at' => now(),
+            ]);
+        });
 
         return back();
     }
@@ -178,16 +184,19 @@ class ServiceAttendanceController extends Controller
         ServiceOccurrence $occurrence,
         ServiceAttendanceFirstTimer $attendance,
     ): RedirectResponse {
-        $this->assertBelongsToOccurrence($attendance->service_occurrence_id, $occurrence->id);
-
         $validated = $request->validated();
-
-        $attendance->update([
-            'attendance_status' => $validated['attendance_status'],
-            'notes' => $validated['notes'] ?? null,
-            'recorded_by' => auth()->id(),
-            'recorded_at' => now(),
-        ]);
+        DB::transaction(function () use ($occurrence, $attendance, $validated): void {
+            $lockedOccurrence = ServiceOccurrence::query()->whereKey($occurrence->id)->lockForUpdate()->firstOrFail();
+            abort_if($lockedOccurrence->getAttribute('registration_event_id') !== null, 409, 'Use the church Registration and Attendance pages for this event.');
+            $row = ServiceAttendanceFirstTimer::query()->whereKey($attendance->id)->lockForUpdate()->firstOrFail();
+            $this->assertBelongsToOccurrence($row->service_occurrence_id, $lockedOccurrence->id);
+            $row->update([
+                'attendance_status' => $validated['attendance_status'],
+                'notes' => $validated['notes'] ?? null,
+                'recorded_by' => auth()->id(),
+                'recorded_at' => now(),
+            ]);
+        });
 
         return back();
     }
@@ -202,8 +211,13 @@ class ServiceAttendanceController extends Controller
         ServiceOccurrence $occurrence,
         ServiceAttendanceMember $attendance,
     ): RedirectResponse {
-        $this->assertBelongsToOccurrence($attendance->service_occurrence_id, $occurrence->id);
-        $attendance->delete();
+        DB::transaction(function () use ($occurrence, $attendance): void {
+            $lockedOccurrence = ServiceOccurrence::query()->whereKey($occurrence->id)->lockForUpdate()->firstOrFail();
+            abort_if($lockedOccurrence->getAttribute('registration_event_id') !== null, 409, 'Use the church Registration and Attendance pages for this event.');
+            $row = ServiceAttendanceMember::query()->whereKey($attendance->id)->lockForUpdate()->firstOrFail();
+            $this->assertBelongsToOccurrence($row->service_occurrence_id, $lockedOccurrence->id);
+            $row->delete();
+        });
 
         return back();
     }
@@ -215,8 +229,13 @@ class ServiceAttendanceController extends Controller
         ServiceOccurrence $occurrence,
         ServiceAttendanceFirstTimer $attendance,
     ): RedirectResponse {
-        $this->assertBelongsToOccurrence($attendance->service_occurrence_id, $occurrence->id);
-        $attendance->delete();
+        DB::transaction(function () use ($occurrence, $attendance): void {
+            $lockedOccurrence = ServiceOccurrence::query()->whereKey($occurrence->id)->lockForUpdate()->firstOrFail();
+            abort_if($lockedOccurrence->getAttribute('registration_event_id') !== null, 409, 'Use the church Registration and Attendance pages for this event.');
+            $row = ServiceAttendanceFirstTimer::query()->whereKey($attendance->id)->lockForUpdate()->firstOrFail();
+            $this->assertBelongsToOccurrence($row->service_occurrence_id, $lockedOccurrence->id);
+            $row->delete();
+        });
 
         return back();
     }

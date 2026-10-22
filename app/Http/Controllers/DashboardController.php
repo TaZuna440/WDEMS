@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ChurchCategory;
+use App\Enums\ChurchEventStatus;
 use App\Enums\EventStatus;
 use App\Models\Attendance;
 use App\Models\Event;
@@ -17,7 +18,7 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request): Response
     {
-        $activeSide = $request->input('side', 'running');
+        $activeSide = $request->input('side') === 'church' ? 'church' : 'running';
         $isRunning = $activeSide === 'running';
         $kind = $isRunning ? Event::KIND_RUNNING : Event::KIND_CHURCH;
 
@@ -54,10 +55,10 @@ class DashboardController extends Controller
      */
     private function getRunningStats(Collection $events): array
     {
-        $openCount = $events->filter(fn ($e) => $e->status === EventStatus::RegistrationOpen)->count();
-        $totalRegistrations = Registration::whereHas('event', fn ($q) => $q->where('event_kind', Event::KIND_RUNNING))->count();
-        $todayRegistrations = Registration::whereHas('event', fn ($q) => $q->where('event_kind', Event::KIND_RUNNING))->whereDate('created_at', today())->count();
-        $totalAttendance = Attendance::whereHas('registration.event', fn ($q) => $q->where('event_kind', Event::KIND_RUNNING))->count();
+        $openCount = $events->filter(fn ($e) => $this->lifecycle($e) === EventStatus::RegistrationOpen)->count();
+        $totalRegistrations = Registration::active()->whereHas('event', fn ($q) => $q->where('event_kind', Event::KIND_RUNNING))->count();
+        $todayRegistrations = Registration::active()->whereHas('event', fn ($q) => $q->where('event_kind', Event::KIND_RUNNING))->whereDate('created_at', today())->count();
+        $totalAttendance = Attendance::where('attendance_status', 'present')->whereIn('registration_id', Registration::active()->whereHas('event', fn ($event) => $event->where('event_kind', Event::KIND_RUNNING))->select('id'))->count();
 
         $showRate = $totalRegistrations > 0 ? round(($totalAttendance / $totalRegistrations) * 100, 1) : 0;
 
@@ -83,8 +84,8 @@ class DashboardController extends Controller
         return [
             ['label' => 'Events This Month', 'value' => $thisMonth, 'subtext' => '9 modules active'],
             ['label' => 'Church Participants', 'value' => $totalParticipants, 'subtext' => 'In church pool'],
-            ['label' => 'Attendance Today', 'value' => 0, 'subtext' => 'Encoded today'],
-            ['label' => 'Unmarked Remaining', 'value' => 0, 'subtext' => 'Across today\'s events'],
+            ['label' => 'Attendance Today', 'value' => '—', 'subtext' => 'Awaiting unified church attendance'],
+            ['label' => 'Unmarked Remaining', 'value' => '—', 'subtext' => 'Awaiting unified church attendance'],
         ];
     }
 
@@ -93,7 +94,7 @@ class DashboardController extends Controller
      */
     private function buildRecentActivity(string $kind): array
     {
-        $registrations = Registration::with(['participant', 'event'])
+        $registrations = Registration::active()->with(['participant', 'event'])
             ->whereHas('event', fn ($q) => $q->where('event_kind', $kind))
             ->latest()
             ->take(5)
@@ -138,7 +139,8 @@ class DashboardController extends Controller
         $items = [];
 
         foreach ($events as $event) {
-            if (in_array($event->status, [EventStatus::Completed, EventStatus::Cancelled], true)) {
+            $status = $this->lifecycle($event);
+            if (in_array($status, [EventStatus::Completed, EventStatus::Cancelled, ChurchEventStatus::Completed, ChurchEventStatus::Cancelled], true)) {
                 continue;
             }
 
@@ -146,8 +148,8 @@ class DashboardController extends Controller
                 ? (int) now()->startOfDay()->diffInDays($event->event_date->startOfDay(), false)
                 : null;
 
-            $status = $event->status;
-            $regCount = $event->registrations()->count();
+            $status = $this->lifecycle($event);
+            $regCount = Registration::active()->where('event_id', $event->id)->count();
 
             [$urgency, $reason, $action] = match (true) {
                 $daysUntil !== null && $daysUntil < 0 => [
@@ -165,7 +167,10 @@ class DashboardController extends Controller
                 $status === EventStatus::RegistrationClosed => [
                     'waiting', "Registration closed — {$regCount} registered", ['label' => 'View event', 'href' => route('events.show', $event)],
                 ],
-                $status === EventStatus::Ongoing => [
+                $status === ChurchEventStatus::Upcoming => [
+                    'waiting', 'Upcoming church event — review registrations', ['label' => 'View registrations', 'href' => route('church.registrations.index', $event)],
+                ],
+                in_array($status, [EventStatus::Ongoing, ChurchEventStatus::Ongoing], true) => [
                     'waiting', 'Event ongoing — mark complete when done', ['label' => 'Mark as completed', 'href' => route('events.show', $event)],
                 ],
                 default => [null, null, null],
@@ -202,7 +207,7 @@ class DashboardController extends Controller
     {
         return $events
             ->filter(fn (Event $e) => $e->event_date && $e->event_date->isFuture())
-            ->whereNotIn('status', [EventStatus::Completed, EventStatus::Cancelled])
+            ->filter(fn (Event $e) => ! in_array($this->lifecycle($e), [EventStatus::Completed, EventStatus::Cancelled, ChurchEventStatus::Completed, ChurchEventStatus::Cancelled], true))
             ->sortBy('event_date')
             ->take(3)
             ->map(fn (Event $e) => [
@@ -210,8 +215,8 @@ class DashboardController extends Controller
                 'event_name' => $e->event_name,
                 'event_date' => $e->event_date->format('M j, Y'),
                 'days_until' => (int) now()->startOfDay()->diffInDays($e->event_date->startOfDay(), false),
-                'status' => $e->status->value,
-                'status_label' => $e->status->label(),
+                'status' => $this->lifecycle($e)->value,
+                'status_label' => $e->statusLabel(),
             ])
             ->values()
             ->all();
@@ -222,10 +227,17 @@ class DashboardController extends Controller
      */
     private function nextActionFor(Event $event): array
     {
-        if ($event->status === EventStatus::Draft) {
+        if ($this->lifecycle($event) === EventStatus::Draft) {
             return ['label' => 'Configure event', 'href' => route('events.show', $event)];
         }
 
         return ['label' => 'Open registration', 'href' => route('events.show', $event)];
+    }
+
+    private function lifecycle(Event $event): EventStatus|ChurchEventStatus
+    {
+        return $event->isRunningEvent()
+            ? EventStatus::from($event->getRawOriginal('status'))
+            : ChurchEventStatus::from($event->getRawOriginal('church_status') ?? 'upcoming');
     }
 }

@@ -12,7 +12,7 @@ class DuplicateReview
 {
     public function registrations(Event $event): Collection
     {
-        abort_unless($event->isRunningEvent(), 404);
+        Participant::assertPool($event->event_kind);
 
         return $event->registrations()->active()->whereHas('participant', fn ($q) => $q->where('pool', $event->event_kind))->with('participant')->orderBy('id')->get();
     }
@@ -102,9 +102,9 @@ class DuplicateReview
     /** Exact composite checks include inactive submissions to prevent re-registration bypasses. */
     public function findExact(Event $event, array $payload, ?int $excludeId = null): ?Registration
     {
-        abort_unless($event->isRunningEvent(), 404);
+        Participant::assertPool($event->event_kind);
         $rows = $event->registrations()->whereHas('participant', fn ($q) => $q->matchingName(
-            'running', $payload['first_name'] ?? null, $payload['last_name'] ?? null,
+            $event->event_kind, $payload['first_name'] ?? null, $payload['last_name'] ?? null,
             $payload['middle_name'] ?? null, $payload['suffix'] ?? null,
         ))->with('participant')->orderBy('id')->get();
         foreach ($rows as $row) {

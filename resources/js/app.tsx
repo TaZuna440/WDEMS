@@ -19,6 +19,7 @@ void createInertiaApp({
             case name === 'auth/login':
                 return AuthLoginLayout;
             case name === 'registrations/public':
+            case name === 'registrations/church-public':
             case name === 'registrations/closed':
             case name === 'registrations/verify':
             case name === 'registrations/confirmed':

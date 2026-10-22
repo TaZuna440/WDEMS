@@ -8,6 +8,7 @@ use App\Http\Requests\Fellowship\UpdateFellowshipEventRequest;
 use App\Models\FellowshipEvent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -137,17 +138,20 @@ class FellowshipController extends Controller
         FellowshipEvent $event,
     ): RedirectResponse {
         $validated = $request->validated();
-
-        $event->update([
-            'name' => $validated['name'],
-            'description' => $validated['description'] ?? null,
-            'event_date' => $validated['event_date'],
-            'start_time' => $validated['start_time'] ?? null,
-            'end_time' => $validated['end_time'] ?? null,
-            'venue' => $validated['venue'] ?? null,
-            'facilitator' => $validated['facilitator'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-        ]);
+        DB::transaction(function () use ($event, $validated): void {
+            $row = FellowshipEvent::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
+            abort_if($row->getAttribute('registration_event_id') !== null, 409, 'Edit the activated church event instead.');
+            $row->update([
+                'name' => $validated['name'],
+                'description' => $validated['description'] ?? null,
+                'event_date' => $validated['event_date'],
+                'start_time' => $validated['start_time'] ?? null,
+                'end_time' => $validated['end_time'] ?? null,
+                'venue' => $validated['venue'] ?? null,
+                'facilitator' => $validated['facilitator'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+            ]);
+        });
 
         return redirect()
             ->route('fellowship.show', ['type' => $event->fellowship_type->value])
@@ -165,7 +169,11 @@ class FellowshipController extends Controller
     public function destroy(FellowshipEvent $event): RedirectResponse
     {
         $type = $event->fellowship_type->value;
-        $event->delete();
+        DB::transaction(function () use ($event): void {
+            $row = FellowshipEvent::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
+            abort_if($row->getAttribute('registration_event_id') !== null, 409, 'Delete the activated church event instead.');
+            $row->delete();
+        });
 
         return redirect()
             ->route('fellowship.show', ['type' => $type])

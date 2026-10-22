@@ -25,6 +25,7 @@ type ChannelState = {
 
 type Props = {
     event_name: string;
+    event_kind?: 'running' | 'church';
     form_url: string;
     verification_url: string;
     email_only?: boolean;
@@ -58,7 +59,13 @@ const REGISTRATION_STEPS = [
     { id: 'confirmation', label: 'Confirmation' },
 ];
 
-function RegistrationCodePanel({ code }: { code: string | null }) {
+function RegistrationCodePanel({
+    code,
+    barcode = true,
+}: {
+    code: string | null;
+    barcode?: boolean;
+}) {
     const [copied, setCopied] = useState(false);
 
     const copy = async () => {
@@ -92,12 +99,13 @@ function RegistrationCodePanel({ code }: { code: string | null }) {
                 </p>
             )}
 
-            {code !== null && <RegistrationBarcode code={code} />}
+            {code !== null && barcode && <RegistrationBarcode code={code} />}
 
             {code !== null && (
                 <p className="text-muted-foreground text-center text-sm">
-                    Save a screenshot or print this barcode for check-in at the
-                    event.
+                    {barcode
+                        ? 'Save this barcode for check-in at the event.'
+                        : 'Keep this code and give it to the organizer for attendance lookup.'}
                 </p>
             )}
 
@@ -348,6 +356,7 @@ function ChannelChoiceScreen({ verificationUrl }: { verificationUrl: string }) {
 
 export default function VerifyRegistration({
     event_name,
+    event_kind = 'running',
     form_url,
     verification_url,
     verification,
@@ -423,11 +432,13 @@ export default function VerifyRegistration({
         <>
             <Head title={`Verify registration — ${event_name}`} />
             <div className="grid gap-6">
-                <WizardProgress
-                    steps={REGISTRATION_STEPS}
-                    currentStep={3}
-                    maxReachedStep={3}
-                />
+                {event_kind === 'running' && (
+                    <WizardProgress
+                        steps={REGISTRATION_STEPS}
+                        currentStep={3}
+                        maxReachedStep={3}
+                    />
+                )}
                 <h1 className="text-2xl font-semibold">
                     {verification.is_inactive
                         ? 'Registration Received'
@@ -459,6 +470,7 @@ export default function VerifyRegistration({
                             </section>
                         ) : (
                             <RegistrationCodePanel
+                                barcode={event_kind === 'running'}
                                 code={verification.attendance_code ?? null}
                             />
                         )}
@@ -475,7 +487,9 @@ export default function VerifyRegistration({
                                         .filter(Boolean)
                                         .at(-1);
                                     window.localStorage.removeItem(
-                                        `wdems-registration-${slug}`,
+                                        event_kind === 'church'
+                                            ? `church-registration:${slug}`
+                                            : `wdems-registration-${slug}`,
                                     );
                                 } catch {
                                     /* Storage may be unavailable. */

@@ -154,6 +154,22 @@ export default function ServiceAttendance({
                     {occurrence.service_type_label}
                 </Link>
 
+                <Button
+                    variant="outline"
+                    onClick={() => {
+                        if (
+                            window.confirm(
+                                'Activate the shared Registration → Attendance workflow? Existing attendance will be preserved; adding and editing participants moves to Registration.',
+                            )
+                        ) {
+                            router.post(
+                                `/services/occurrences/${occurrence.id}/registration-bridge`,
+                            );
+                        }
+                    }}
+                >
+                    Set up registration and public link
+                </Button>
                 {/* Header */}
                 <div className="glass-panel rounded-xl p-6">
                     <div className="pl-10">

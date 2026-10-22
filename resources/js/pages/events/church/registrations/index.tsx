@@ -1,252 +1,503 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import { Trash2, Edit2, UserPlus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
+type FormData = {
+    first_name: string;
+    middle_name: string;
+    last_name: string;
+    suffix: string;
+    email: string;
+    contact_number: string;
+    birthday: string;
+    age: string;
+    address: string;
+    participant_type: string;
+    guardian_name: string;
+    guardian_contact: string;
+    fellowship_group_id: string;
+};
 type Registration = {
     id: number;
-    name: string;
-    email: string | null;
-    contact: string | null;
-    participant_type: string;
+    history_url: string;
+    source: string;
+    participant: Partial<FormData>;
+    birthday: string | null;
+    participant_type: string | null;
     guardian_name: string | null;
     guardian_contact: string | null;
-    attendance_code: string;
+    fellowship_group_id: number | null;
+    attendance_code: string | null;
+    registration_status: string;
+    held_reason: string | null;
 };
-
+type Props = {
+    event: {
+        id: number;
+        event_name: string;
+        church_category: string | null;
+        church_registration_open: boolean;
+        church_activity?: string | null;
+    };
+    registrations: Registration[];
+    message?: string;
+    public_url?: string | null;
+    groups: { id: number; name: string }[];
+};
+const empty: FormData = {
+    first_name: '',
+    middle_name: '',
+    last_name: '',
+    suffix: '',
+    email: '',
+    contact_number: '',
+    birthday: '',
+    age: '',
+    address: '',
+    participant_type: 'Member',
+    guardian_name: '',
+    guardian_contact: '',
+    fellowship_group_id: '',
+};
+const fields: { key: keyof FormData; label: string; type?: string }[] = [
+    { key: 'first_name', label: 'First name' },
+    { key: 'middle_name', label: 'Middle name' },
+    { key: 'last_name', label: 'Last name' },
+    { key: 'suffix', label: 'Suffix' },
+    { key: 'email', label: 'Email', type: 'email' },
+    { key: 'contact_number', label: 'Contact number', type: 'tel' },
+    { key: 'birthday', label: 'Birthdate', type: 'date' },
+    { key: 'age', label: 'Age (if birthdate is unknown)', type: 'number' },
+    { key: 'address', label: 'Barangay & City' },
+];
 export default function ChurchRegistrations({
     event,
     registrations,
-}: {
-    event: any;
-    registrations: Registration[];
-}) {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const { data, setData, post, processing, reset } = useForm({
-        first_name: '',
-        last_name: '',
-        middle_name: '',
-        email: '',
-        contact_number: '',
-        participant_type: 'Member',
-        guardian_name: '',
-        guardian_contact: '',
-    });
-
-    const submit = (e: React.FormEvent) => {
-        e.preventDefault();
-        post(`/events/${event.id}/registrations`, {
-            onSuccess: () => {
-                setIsModalOpen(false);
-                reset();
-            },
-        });
+    message,
+    public_url,
+    groups,
+}: Props) {
+    const [open, setOpen] = useState(false);
+    const [editing, setEditing] = useState<number | null>(null);
+    const [deleteError, setDeleteError] = useState('');
+    const form = useForm<FormData>(empty);
+    const base = `/events/${event.id}/registrations`;
+    const guardian =
+        event.church_category === 'Kids Ministry' ||
+        event.church_category === 'Youth' ||
+        !!form.data.guardian_name;
+    const errors = form.errors as Partial<
+        Record<keyof FormData | 'identity', string>
+    >;
+    const edit = (row?: Registration) => {
+        form.clearErrors();
+        setEditing(row?.id ?? null);
+        const values = { ...empty };
+        if (row) {
+            for (const key of Object.keys(values) as (keyof FormData)[])
+                values[key] = String(row.participant[key] ?? '');
+            values.birthday = row.birthday ?? '';
+            values.participant_type = row.participant_type ?? 'Member';
+            values.guardian_name = row.guardian_name ?? '';
+            values.guardian_contact = row.guardian_contact ?? '';
+            values.fellowship_group_id =
+                row.fellowship_group_id?.toString() ?? '';
+        }
+        form.setData(values);
+        setOpen(true);
     };
-
     return (
         <>
-            <Head title={`Registrations - ${event.event_name}`} />
-            <div className="mx-auto max-w-6xl space-y-6 p-6">
-                <div className="flex items-center justify-between">
+            <Head title={`Registrations — ${event.event_name}`} />
+            <main className="mx-auto max-w-6xl space-y-6 p-6">
+                <Link
+                    href={`/events/${event.id}`}
+                    className="text-sm underline"
+                >
+                    Back to event
+                </Link>
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-2xl font-semibold text-white">
+                        <h1 className="text-2xl font-semibold">
                             {event.event_name}
                         </h1>
-                        <p className="text-sm text-gray-400">
-                            Church Event Registration
+                        <p className="text-muted-foreground">
+                            Church registration ·{' '}
+                            {
+                                registrations.filter(
+                                    (r) =>
+                                        r.registration_status === 'confirmed',
+                                ).length
+                            }{' '}
+                            confirmed
                         </p>
                     </div>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-700"
-                    >
-                        <UserPlus className="h-4 w-4" /> Add Participant
-                    </button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" asChild>
+                            <Link
+                                href={`/events/${event.id}/possible-duplicates`}
+                            >
+                                Organizer review
+                            </Link>
+                        </Button>
+                        <Button onClick={() => edit()}>Add Participant</Button>
+                    </div>
                 </div>
-
-                <div className="overflow-hidden rounded-xl border border-white/10 bg-[#1a1a1a]">
-                    <table className="w-full text-left text-sm text-gray-300">
-                        <thead className="bg-white/5 text-xs text-gray-400 uppercase">
+                <div className="flex flex-wrap items-center gap-3">
+                    <Button variant="outline" asChild>
+                        <Link href={`/events/${event.id}/church-attendance`}>
+                            Attendance &amp; Summary
+                        </Link>
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() =>
+                            router.post(
+                                `/events/${event.id}/church-publication`,
+                                { open: !event.church_registration_open },
+                            )
+                        }
+                    >
+                        {event.church_registration_open
+                            ? 'Close public registration'
+                            : 'Open public registration'}
+                    </Button>
+                    {public_url && (
+                        <a
+                            className="break-all underline"
+                            href={public_url}
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            {public_url}
+                        </a>
+                    )}
+                </div>
+                {message && <p role="status">{message}</p>}
+                {event.church_category === 'Fellowship' &&
+                    groups.length > 0 && (
+                        <p className="text-muted-foreground text-sm">
+                            Fellowship groups are available in each registration
+                            form.
+                        </p>
+                    )}
+                {deleteError && (
+                    <p role="alert" className="text-destructive">
+                        {deleteError}
+                    </p>
+                )}
+                <div className="bg-card overflow-x-auto rounded-xl border">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-muted">
                             <tr>
-                                <th className="px-6 py-4 font-medium">Name</th>
-                                <th className="px-6 py-4 font-medium">
-                                    Contact
-                                </th>
-                                <th className="px-6 py-4 font-medium">Type</th>
-                                <th className="px-6 py-4 font-medium">
-                                    Guardian
-                                </th>
-                                <th className="px-6 py-4 font-medium">Code</th>
-                                <th className="px-6 py-4 text-right font-medium">
-                                    Actions
-                                </th>
+                                {[
+                                    'Name',
+                                    'Contact',
+                                    'Type / guardian',
+                                    ...(groups.length > 0 ? ['Group'] : []),
+                                    'Source',
+                                    'Status',
+                                    'Code',
+                                    'Actions',
+                                ].map((label) => (
+                                    <th key={label} className="p-4">
+                                        {label}
+                                    </th>
+                                ))}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5">
-                            {registrations.length === 0 ? (
-                                <tr>
-                                    <td
-                                        colSpan={6}
-                                        className="px-6 py-8 text-center text-gray-500"
-                                    >
-                                        No participants yet. Add one to get
-                                        started.
+                        <tbody>
+                            {registrations.map((row) => (
+                                <tr key={row.id} className="border-t">
+                                    <td className="p-4">
+                                        <Link
+                                            className="underline"
+                                            href={row.history_url}
+                                        >
+                                            {[
+                                                row.participant.first_name,
+                                                row.participant.middle_name,
+                                                row.participant.last_name,
+                                                row.participant.suffix,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' ')}
+                                        </Link>
+                                    </td>
+                                    <td className="p-4">
+                                        <div>{row.participant.email}</div>
+                                        <div>
+                                            {row.participant.contact_number}
+                                        </div>
+                                    </td>
+                                    <td className="p-4">
+                                        {row.participant_type}
+                                        <div className="text-muted-foreground">
+                                            {row.guardian_name}{' '}
+                                            {row.guardian_contact}
+                                        </div>
+                                    </td>
+                                    {groups.length > 0 && (
+                                        <td className="p-4">
+                                            {groups.find(
+                                                (group) =>
+                                                    group.id ===
+                                                    row.fellowship_group_id,
+                                            )?.name ?? '—'}
+                                        </td>
+                                    )}
+                                    <td className="p-4">{row.source}</td>
+                                    <td className="p-4">
+                                        {row.registration_status === 'held'
+                                            ? 'Held / For Review'
+                                            : row.registration_status}
+                                        <div className="text-muted-foreground text-xs">
+                                            {row.held_reason}
+                                        </div>
+                                    </td>
+                                    <td className="p-4 font-mono">
+                                        {row.attendance_code ?? '—'}
+                                    </td>
+                                    <td className="p-4">
+                                        {row.registration_status ===
+                                            'confirmed' && (
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => edit(row)}
+                                                >
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        if (
+                                                            !window.confirm(
+                                                                'Delete this registration and its attendance? The participant record will be kept.',
+                                                            )
+                                                        )
+                                                            return;
+                                                        router.delete(
+                                                            `${base}/${row.id}`,
+                                                            {
+                                                                preserveScroll: true,
+                                                                onStart: () =>
+                                                                    setDeleteError(
+                                                                        '',
+                                                                    ),
+                                                                onError: (e) =>
+                                                                    setDeleteError(
+                                                                        Object.values(
+                                                                            e,
+                                                                        ).join(
+                                                                            ' ',
+                                                                        ),
+                                                                    ),
+                                                            },
+                                                        );
+                                                    }}
+                                                >
+                                                    Delete
+                                                </Button>
+                                            </div>
+                                        )}
                                     </td>
                                 </tr>
-                            ) : (
-                                registrations.map((reg) => (
-                                    <tr
-                                        key={reg.id}
-                                        className="hover:bg-white/[0.02]"
+                            ))}
+                            {registrations.length === 0 && (
+                                <tr>
+                                    <td
+                                        colSpan={groups.length > 0 ? 8 : 7}
+                                        className="text-muted-foreground p-6 text-center"
                                     >
-                                        <td className="px-6 py-4 font-medium text-white">
-                                            {reg.name}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {reg.email || reg.contact || '—'}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="rounded bg-violet-500/20 px-2 py-1 text-xs text-violet-300">
-                                                {reg.participant_type}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {reg.guardian_name
-                                                ? `${reg.guardian_name} (${reg.guardian_contact})`
-                                                : '—'}
-                                        </td>
-                                        <td className="px-6 py-4 font-mono text-xs">
-                                            {reg.attendance_code}
-                                        </td>
-                                        <td className="flex justify-end gap-2 px-6 py-4">
-                                            <button className="p-1 hover:text-white">
-                                                <Edit2 className="h-4 w-4" />
-                                            </button>
-                                            <button className="p-1 hover:text-red-400">
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                        No registrations yet.
+                                    </td>
+                                </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
-            </div>
-
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            </main>
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {editing ? 'Edit registration' : 'Add Participant'}
+                        </DialogTitle>
+                    </DialogHeader>
                     <form
-                        onSubmit={submit}
-                        className="w-full max-w-md space-y-4 rounded-xl border border-white/10 bg-[#1e1e1e] p-6"
+                        className="space-y-4"
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            const options = { onSuccess: () => setOpen(false) };
+                            if (editing)
+                                form.patch(`${base}/${editing}`, options);
+                            else form.post(base, options);
+                        }}
                     >
-                        <h2 className="text-lg font-semibold text-white">
-                            Add Participant
-                        </h2>
-
+                        {errors.identity && (
+                            <p
+                                role="alert"
+                                className="text-destructive text-sm"
+                            >
+                                {errors.identity}
+                            </p>
+                        )}
+                        {!form.data.email && !form.data.contact_number && (
+                            <p
+                                role="status"
+                                className="text-muted-foreground text-sm"
+                            >
+                                Without an email or mobile number, this person
+                                cannot be matched automatically at future
+                                events. Check the event list before adding them.
+                            </p>
+                        )}
                         <div className="grid grid-cols-2 gap-3">
-                            <input
-                                type="text"
-                                placeholder="First Name"
-                                value={data.first_name}
-                                onChange={(e) =>
-                                    setData('first_name', e.target.value)
-                                }
-                                className="rounded border border-white/10 bg-black/50 p-2 text-sm text-white"
-                            />
-                            <input
-                                type="text"
-                                placeholder="Last Name"
-                                value={data.last_name}
-                                onChange={(e) =>
-                                    setData('last_name', e.target.value)
-                                }
-                                className="rounded border border-white/10 bg-black/50 p-2 text-sm text-white"
-                            />
+                            {fields.map(({ key, label, type }) => (
+                                <div key={key} className="space-y-1">
+                                    <Label htmlFor={`church-${key}`}>
+                                        {label}
+                                    </Label>
+                                    <Input
+                                        id={`church-${key}`}
+                                        type={type ?? 'text'}
+                                        value={form.data[key]}
+                                        disabled={
+                                            key === 'age' &&
+                                            !!form.data.birthday
+                                        }
+                                        required={
+                                            key === 'first_name' ||
+                                            key === 'last_name'
+                                        }
+                                        onChange={(e) =>
+                                            form.setData(key, e.target.value)
+                                        }
+                                    />
+                                    {errors[key] && (
+                                        <p
+                                            role="alert"
+                                            className="text-destructive text-xs"
+                                        >
+                                            {errors[key]}
+                                        </p>
+                                    )}
+                                </div>
+                            ))}
                         </div>
-
-                        <input
-                            type="email"
-                            placeholder="Email (optional)"
-                            value={data.email}
-                            onChange={(e) => setData('email', e.target.value)}
-                            className="w-full rounded border border-white/10 bg-black/50 p-2 text-sm text-white"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Contact Number (optional)"
-                            value={data.contact_number}
-                            onChange={(e) =>
-                                setData('contact_number', e.target.value)
-                            }
-                            className="w-full rounded border border-white/10 bg-black/50 p-2 text-sm text-white"
-                        />
-
+                        <Label htmlFor="church-type">Participant type</Label>
                         <select
-                            value={data.participant_type}
+                            id="church-type"
+                            className="bg-background w-full rounded-md border p-2"
+                            value={form.data.participant_type}
                             onChange={(e) =>
-                                setData('participant_type', e.target.value)
+                                form.setData('participant_type', e.target.value)
                             }
-                            className="w-full rounded border border-white/10 bg-black/50 p-2 text-sm text-white"
                         >
-                            <option value="Member">Member</option>
-                            <option value="First-Timer">First-Timer</option>
-                            <option value="Guest">Guest</option>
+                            {['Member', 'First-Timer', 'Guest'].map((type) => (
+                                <option key={type}>{type}</option>
+                            ))}
                         </select>
-
-                        {(event.church_category === 'Kids Ministry' ||
-                            event.church_category === 'Youth Camp') && (
+                        {guardian && (
                             <div className="grid grid-cols-2 gap-3">
-                                <input
-                                    type="text"
-                                    placeholder="Guardian Name"
-                                    value={data.guardian_name}
+                                {(
+                                    [
+                                        'guardian_name',
+                                        'guardian_contact',
+                                    ] as const
+                                ).map((key) => (
+                                    <div key={key}>
+                                        <Label htmlFor={key}>
+                                            {key === 'guardian_name'
+                                                ? 'Parent / guardian'
+                                                : 'Guardian contact'}
+                                        </Label>
+                                        <Input
+                                            id={key}
+                                            value={form.data[key]}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    key,
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                        {errors[key] && (
+                                            <p
+                                                role="alert"
+                                                className="text-destructive text-xs"
+                                            >
+                                                {errors[key]}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {groups.length > 0 && (
+                            <div className="space-y-1">
+                                <Label htmlFor="fellowship-group">
+                                    Fellowship group
+                                </Label>
+                                <select
+                                    id="fellowship-group"
+                                    className="bg-background w-full rounded-md border p-2"
+                                    value={form.data.fellowship_group_id}
                                     onChange={(e) =>
-                                        setData('guardian_name', e.target.value)
-                                    }
-                                    className="rounded border border-white/10 bg-black/50 p-2 text-sm text-white"
-                                />
-                                <input
-                                    type="text"
-                                    placeholder="Guardian Contact"
-                                    value={data.guardian_contact}
-                                    onChange={(e) =>
-                                        setData(
-                                            'guardian_contact',
+                                        form.setData(
+                                            'fellowship_group_id',
                                             e.target.value,
                                         )
                                     }
-                                    className="rounded border border-white/10 bg-black/50 p-2 text-sm text-white"
-                                />
+                                >
+                                    <option value="">No group</option>
+                                    {groups.map((group) => (
+                                        <option key={group.id} value={group.id}>
+                                            {group.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.fellowship_group_id && (
+                                    <p
+                                        role="alert"
+                                        className="text-destructive text-xs"
+                                    >
+                                        {errors.fellowship_group_id}
+                                    </p>
+                                )}
                             </div>
                         )}
-
-                        <div className="flex justify-end gap-3 pt-4">
-                            <button
+                        <div className="flex justify-end gap-2">
+                            <Button
                                 type="button"
-                                onClick={() => setIsModalOpen(false)}
-                                className="px-4 py-2 text-sm text-gray-400 hover:text-white"
+                                variant="outline"
+                                onClick={() => setOpen(false)}
                             >
                                 Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={processing}
-                                className="rounded bg-violet-600 px-4 py-2 text-sm text-white hover:bg-violet-700 disabled:opacity-50"
-                            >
-                                Save
-                            </button>
+                            </Button>
+                            <Button disabled={form.processing}>
+                                {form.processing
+                                    ? 'Saving…'
+                                    : 'Save registration'}
+                            </Button>
                         </div>
                     </form>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
-
 ChurchRegistrations.layout = {
-    breadcrumbs: [
-        { title: 'Events', href: '/events' },
-        { title: 'Church Registrations', href: '#' },
-    ],
+    breadcrumbs: [{ title: 'Church registrations', href: '#' }],
 };

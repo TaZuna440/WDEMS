@@ -529,6 +529,17 @@ export default function EventsShow({
                                 </Button>
                             )}
 
+                            {event.event_kind === 'church' && (
+                                <Button variant="outline" asChild>
+                                    <Link
+                                        href={`/events/${event.id}/registrations`}
+                                    >
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        View Registrations
+                                    </Link>
+                                </Button>
+                            )}
+
                             {event.event_kind === 'running' &&
                                 (canEditRegistrationForm ? (
                                     <Button

@@ -7,6 +7,7 @@ use App\Http\Requests\Fellowship\UpdateFellowshipGroupRequest;
 use App\Models\FellowshipEvent;
 use App\Models\FellowshipGroup;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -35,11 +36,15 @@ class FellowshipGroupController extends Controller
     ): RedirectResponse {
         $validated = $request->validated();
 
-        FellowshipGroup::create([
-            'fellowship_event_id' => $event->id,
-            'name' => $validated['name'],
-            'display_order' => $validated['display_order'] ?? 0,
-        ]);
+        DB::transaction(function () use ($event, $validated): void {
+            $lockedEvent = FellowshipEvent::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
+            abort_if($lockedEvent->getAttribute('registration_event_id') !== null, 409, 'Groups are managed through the activated church registration event.');
+            FellowshipGroup::create([
+                'fellowship_event_id' => $lockedEvent->id,
+                'name' => $validated['name'],
+                'display_order' => $validated['display_order'] ?? 0,
+            ]);
+        });
 
         return back();
     }
@@ -52,14 +57,17 @@ class FellowshipGroupController extends Controller
         FellowshipEvent $event,
         FellowshipGroup $group,
     ): RedirectResponse {
-        $this->assertGroupBelongsToEvent($group->fellowship_event_id, $event->id);
-
         $validated = $request->validated();
-
-        $group->update([
-            'name' => $validated['name'],
-            'display_order' => $validated['display_order'] ?? $group->display_order,
-        ]);
+        DB::transaction(function () use ($event, $group, $validated): void {
+            $lockedEvent = FellowshipEvent::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
+            abort_if($lockedEvent->getAttribute('registration_event_id') !== null, 409, 'Groups are managed through the activated church registration event.');
+            $row = FellowshipGroup::query()->whereKey($group->id)->lockForUpdate()->firstOrFail();
+            $this->assertGroupBelongsToEvent($row->fellowship_event_id, $lockedEvent->id);
+            $row->update([
+                'name' => $validated['name'],
+                'display_order' => $validated['display_order'] ?? $row->display_order,
+            ]);
+        });
 
         return back();
     }
@@ -76,8 +84,13 @@ class FellowshipGroupController extends Controller
         FellowshipEvent $event,
         FellowshipGroup $group,
     ): RedirectResponse {
-        $this->assertGroupBelongsToEvent($group->fellowship_event_id, $event->id);
-        $group->delete();
+        DB::transaction(function () use ($event, $group): void {
+            $lockedEvent = FellowshipEvent::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
+            abort_if($lockedEvent->getAttribute('registration_event_id') !== null, 409, 'Groups are managed through the activated church registration event.');
+            $row = FellowshipGroup::query()->whereKey($group->id)->lockForUpdate()->firstOrFail();
+            $this->assertGroupBelongsToEvent($row->fellowship_event_id, $lockedEvent->id);
+            $row->delete();
+        });
 
         return back();
     }
