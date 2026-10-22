@@ -53,6 +53,17 @@ const KIND_FILTERS = [
     { value: 'church', label: 'Church' },
 ] as const;
 
+const STATUS_FILTERS = [
+    { value: 'all', label: 'All' },
+    { value: 'draft', label: 'Draft' },
+    { value: 'registration_open', label: 'Registration Open' },
+    { value: 'registration_closed', label: 'Registration Closed' },
+    { value: 'upcoming', label: 'Upcoming' },
+    { value: 'ongoing', label: 'Ongoing' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'cancelled', label: 'Cancelled' },
+] as const;
+
 export default function EventsIndex({ events, filters }: Props) {
     const applyKind = (kind: string | null) => {
         const query = kind ? { kind } : {};
@@ -66,13 +77,14 @@ export default function EventsIndex({ events, filters }: Props) {
     const isChurchTab = filters.kind === 'church';
     const [search, setSearch] = useState('');
     const [columns, setColumns] = useState<Record<string, string>>({});
+    const [statusFilter, setStatusFilter] =
+        useState<(typeof STATUS_FILTERS)[number]['value']>('all');
     const filterColumns = [
         ['event_name', 'Event Name'],
         ['event_type_label', 'Type'],
         ['event_date', 'Date'],
         ['distance_label', 'Distance'],
         ['venue', 'Venue'],
-        ['status_label', 'Status'],
         ['creator', 'Created by'],
     ] as const;
     const visibleEvents = events.filter((event) => {
@@ -83,6 +95,7 @@ export default function EventsIndex({ events, filters }: Props) {
             values.some((value) =>
                 value.includes(search.trim().toLowerCase()),
             ) &&
+            (statusFilter === 'all' || event.status === statusFilter) &&
             filterColumns.every(([key], index) =>
                 values[index].includes(
                     (columns[key] ?? '').trim().toLowerCase(),
@@ -213,6 +226,33 @@ export default function EventsIndex({ events, filters }: Props) {
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
+                        <div
+                            className="flex flex-wrap gap-2"
+                            role="group"
+                            aria-label="Filter events by status"
+                        >
+                            {STATUS_FILTERS.map((filter) => {
+                                const active = statusFilter === filter.value;
+
+                                return (
+                                    <button
+                                        key={filter.value}
+                                        type="button"
+                                        aria-pressed={active}
+                                        onClick={() =>
+                                            setStatusFilter(filter.value)
+                                        }
+                                        className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                                            active
+                                                ? 'border-lime-brand bg-lime-brand text-navy-900'
+                                                : 'border-border bg-card text-foreground hover:bg-muted'
+                                        }`}
+                                    >
+                                        {filter.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                             {filterColumns.map(([key, label]) => (
                                 <label
