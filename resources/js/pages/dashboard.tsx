@@ -643,6 +643,12 @@ export default function Dashboard({
                                 <h2 className="text-muted-foreground mb-4 text-sm font-semibold tracking-wider uppercase">
                                     Church Categories
                                 </h2>
+                                <Link
+                                    href="/events/church/system-scope"
+                                    className="text-lime-brand mb-3 inline-flex text-sm font-medium underline"
+                                >
+                                    System Scope
+                                </Link>
                                 <div className="flex flex-wrap gap-2">
                                     {churchCategories.map((cat, i) => (
                                         <Link

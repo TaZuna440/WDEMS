@@ -7,6 +7,7 @@ use App\Http\Controllers\ChurchParticipantHistoryController;
 use App\Http\Controllers\ChurchRegistrationBridgeController;
 use App\Http\Controllers\ChurchRegistrationController;
 use App\Http\Controllers\ChurchSpecialistController;
+use App\Http\Controllers\ChurchSystemScopeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiscipleshipAttendanceController;
 use App\Http\Controllers\DiscipleshipBatchController;
@@ -240,6 +241,8 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     // ============================================================
     // Church modules nested under /events/church. Names unchanged.
     Route::prefix('events/church')->group(function () {
+        Route::get('system-scope', ChurchSystemScopeController::class)
+            ->name('events.church.system-scope');
         // Services (church) — Phase 3 of the church-events plan.
         //
         // Route ordering: literal segments appear before parameterized
