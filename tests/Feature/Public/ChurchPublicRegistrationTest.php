@@ -99,6 +99,19 @@ it('does not send an email otp without a successful recaptcha check', function (
     expect(Registration::count())->toBe(0);
 });
 
+it('does not allow a church registration to choose phone verification', function () {
+    [$event, $payload] = church_public_fixture();
+    $start = $this->post('/r/'.$event->registration_slug, $payload)
+        ->assertSessionHasNoErrors();
+    $cookieName = RegistrationVerificationService::cookieName($event);
+    $this->withCookie($cookieName, $start->getCookie($cookieName)->getValue());
+
+    $this->post('/r/'.$event->registration_slug.'/verification/channel', ['channel' => 'phone'])
+        ->assertSessionHasErrors('channel');
+
+    expect(RegistrationVerificationChallenge::where('event_id', $event->id)->sole()->chosen_channel)->toBe('email');
+});
+
 it('rejects an exact church duplicate before creating a verification challenge', function () {
     [$event, $payload] = church_public_fixture();
     $person = Participant::create([
