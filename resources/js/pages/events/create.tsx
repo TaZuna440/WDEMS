@@ -18,12 +18,17 @@ type ChurchCategoryOption = { value: string; label: string };
 type Props = {
     event_types: EventTypeOption[];
     church_categories: ChurchCategoryOption[];
+    specialist_activity_options?: ChurchCategoryOption[];
+    preset_church_activity_category?: string | null;
+    specialist_workflow?: boolean;
+    lock_specialist_activity?: boolean;
     /** Pre-fills event_type in the create flow. */
     preset_event_type?: string | null;
     /** Pre-fills church_category in the create flow. */
     preset_church_category?: string | null;
     /** Locks the event type dropdown. */
     lock_type?: boolean;
+    lock_church_category?: boolean;
     /** Unique localStorage key for this create route. */
     storage_key?: string | null;
 };
@@ -108,9 +113,14 @@ const CHURCH_STEPS: WizardStepConfig[] = [
 export default function EventsCreate({
     event_types,
     church_categories,
+    specialist_activity_options = [],
+    preset_church_activity_category = null,
+    specialist_workflow = false,
+    lock_specialist_activity = false,
     preset_event_type = null,
     preset_church_category = null,
     lock_type = false,
+    lock_church_category = false,
     storage_key = null,
 }: Props) {
     const {
@@ -123,6 +133,8 @@ export default function EventsCreate({
     } = useForm({
         event_type: preset_event_type ?? '',
         church_category: preset_church_category ?? '',
+        church_activity_category: preset_church_activity_category ?? '',
+        specialist_workflow,
         event_name: '',
         description: '',
         event_date: '',
@@ -147,7 +159,37 @@ export default function EventsCreate({
     });
 
     const isChurch = data.event_type === 'church';
-    const steps = isChurch ? CHURCH_STEPS : RUNNING_STEPS;
+    const steps = isChurch
+        ? specialist_workflow
+            ? CHURCH_STEPS.map((step) =>
+                  step.id === 'basics'
+                      ? {
+                            ...step,
+                            fields: [
+                                ...step.fields,
+                                'church_activity_category',
+                            ],
+                            requiredFields: [
+                                ...(step.requiredFields ?? []),
+                                'church_activity_category',
+                            ],
+                            validate: (data: Record<string, unknown>) => {
+                                const errors = validateBasics(data);
+                                if (
+                                    !data.church_activity_category ||
+                                    typeof data.church_activity_category !==
+                                        'string'
+                                ) {
+                                    errors.church_activity_category =
+                                        'Select an activity category.';
+                                }
+                                return errors;
+                            },
+                        }
+                      : step,
+              )
+            : CHURCH_STEPS
+        : RUNNING_STEPS;
 
     const setData = (key: string, value: unknown) => {
         (inertiaSetData as unknown as (key: string, value: unknown) => void)(
@@ -212,6 +254,15 @@ export default function EventsCreate({
                                         eventTypes={event_types}
                                         churchCategories={church_categories}
                                         lockEventType={lock_type}
+                                        specialistActivityOptions={
+                                            specialist_activity_options
+                                        }
+                                        lockSpecialistActivity={
+                                            lock_specialist_activity
+                                        }
+                                        lockChurchCategory={
+                                            lock_church_category
+                                        }
                                     />
                                 );
                             case 'schedule':

@@ -11,11 +11,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property-read int $registration_count Added by event queries that count active registrations.
+ */
 #[Fillable([
     'created_by',
     'event_kind',
     'church_registration_open',
     'church_category',
+    'church_activity_category',
     'church_status',
     'event_type',
     'event_name',
