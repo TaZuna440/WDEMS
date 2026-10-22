@@ -870,3 +870,15 @@ Mark ruled that v1.0 module coverage (§§3–4, FR-01–FR-09) is the requireme
 Specialized activity fields described in §7 remain later enhancements under FR-13. O-3 is closed for specialist-module coverage by Mark's ruling; other prototype-versus-client-document conflicts remain outside this ruling.
 
 Implementation commits: `50f9f46c761d0750063c913fda01b78a917b4304` (shared specialist workflow) and `da7d434cc60a90605da9e5311dc44718f4412c3a` (category isolation and workflow tests). The Youth Camp acceptance flow covers specialist creation, staff registration, Present attendance, the summary total, and public email OTP registration with a registration code. Full suite: 1,000 passed, 3 skipped.
+
+### Amendment G — proposal-fidelity follow-up (2026-10-23)
+
+Mark's 2026-10-23 ruling makes v1.0 module coverage (§§3–4, FR-01–FR-09) the requirement for the six specialist modules and closes O-3 for module coverage. The six modules use the shared generic Church event workflow; Services, Fellowship, and Discipleship internals remain unchanged. Activity-specific fields under §7 remain later enhancements (FR-13).
+
+This follow-up adds the optional Leader / Coordinator field to Church Event Details and retains venue as a required event field without changing the existing Running Event venue contract. Church server validation accepts the proposal's five participant-type values. Following the later UI-only direction, public and staff selectors display only Member, First-Timer, and Guest; Graduate and Ninong/Ninang remain accepted server-side and existing saved values remain readable.
+
+An explicitly invoked, idempotent `ChurchSampleDataSeeder` provides Youth Camp, Kids Service, and GRC Fellowship sample events with church-pool registrations and mixed attendance. It is not called by the default seeder. A Church System Scope page is linked from the Church dashboard and documents the nine modules, shared workflow, and deferred specialist fields, exports, and object-level authorization.
+
+Implementation commits: `e28a13a764655dafdeac8abfe3e82c6ed6a7aa93` participant-type server support; `ba9040325942435ef282fdd17a39a3f4d0e6a920` coordinator field; `164d04db165028591cdf875ee3c05def23a690d3` explicit sample seeder; `f499440f62cad57f918a4a957cd7685447d36aab` System Scope page; `b78cf899d4a3dad36a0df86dd51ee09b61fbb8c2` acceptance tests; `a3b5d5b874c0fa99dd236cabba385c2b5ca72405` warning-color audit fixes.
+
+Verification: the full Pest suite passed with 1,007 passed and 3 skipped (baseline 1,000 passed and 3 skipped); `npm run check`, Pint, PHPStan (0 errors; baseline unchanged), and the hard design-audit rules passed. The audit retains only its informational raw-white utility warnings. Local `types:check` reports the 11 known `sharedPageProps`/`auth` type errors in pre-existing files, with no errors in the changed files. The proposal's production acceptance checks remain environment-dependent.

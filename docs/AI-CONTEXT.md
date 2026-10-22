@@ -708,3 +708,9 @@ CRUD UI, staff attestation and side-scoped duplicate/HOLD enforcement. This does
 not complete B-6/B-7 or bridge ServiceOccurrence/FellowshipEvent. Mark explicitly
 confirmed retaining their legacy Add actions until that bridge is ready. The
 "100% aligned" handoff claim is not supported; the audit lists remaining work.
+
+## Supersession note — email-only verification and current Church scope (2026-10-23)
+
+Section 18's Firebase-mediated phone-verification description is historical and superseded: public event verification is email-only, and the Firebase phone path was removed. Section 23's "channel choice" wording is also historical; there is no verification-channel choice. Do not restore phone verification, Firebase calls, or phone-required rules.
+
+Section 24's dashboard-not-started note is stale: the split dashboard shipped in PR #5. Church Events Amendments A–G record the current requirements and implementation. The existing sections remain unchanged; this note is append-only.
