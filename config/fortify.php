@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\FortifyPasswordThrottle;
 use Laravel\Fortify\Features;
 
 return [
@@ -20,7 +21,7 @@ return [
 
     'domain' => null,
 
-    'middleware' => ['web'],
+    'middleware' => ['web', FortifyPasswordThrottle::class],
 
     'limiters' => [
         'login' => 'login',

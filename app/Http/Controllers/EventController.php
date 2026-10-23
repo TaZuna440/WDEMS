@@ -683,7 +683,8 @@ class EventController extends Controller
      * back.
      *
      * Guard order:
-     *   1. canFinalize() — status must be Ongoing.
+     *   1. canFinalize() — status must be Ongoing and at least one
+     *      hour must have passed since the scheduled start.
      *   2. workflow->canTransition() — defense-in-depth, catches a
      *      state change between the guard and the transition.
      *

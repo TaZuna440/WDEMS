@@ -173,6 +173,23 @@ export default function EventsShow({
     // link never leads to a 404.
     const canViewReport =
         event.status === 'ongoing' || event.status === 'completed';
+    const lifecycleSteps = [
+        { status: 'draft', label: 'Draft' },
+        { status: 'registration_open', label: 'Registration Open' },
+        { status: 'ongoing', label: 'Ongoing' },
+        { status: 'completed', label: 'Completed' },
+    ];
+    const lifecycleIndex =
+        event.status === 'registration_closed'
+            ? 2
+            : event.status === 'upcoming'
+              ? 1
+              : lifecycleSteps.findIndex(
+                    (step) => step.status === event.status,
+                );
+    const isCancelled = event.status === 'cancelled';
+    const isOngoing =
+        event.event_kind === 'running' && event.status === 'ongoing';
 
     // Open Registration is enabled by the server only when the event is
     // Draft AND the registration form has been saved at least once.
@@ -567,164 +584,238 @@ export default function EventsShow({
                         )}
                     </div>
 
-                    {/* Right: Workflow actions */}
-                    <div className="glass-panel flex h-fit flex-col gap-4 rounded-xl p-6">
-                        <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
-                            Workflow Actions
-                        </h2>
+                    {/* Right: Workflow actions and lifecycle */}
+                    <aside className="flex h-fit flex-col gap-4">
+                        <div className="glass-panel flex flex-col gap-4 rounded-xl p-6">
+                            <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
+                                Workflow Actions
+                            </h2>
 
-                        <p className="text-muted-foreground text-xs">
-                            Actions become available as the workflow progresses.
-                        </p>
+                            <p className="text-muted-foreground text-xs">
+                                Actions become available as the workflow
+                                progresses.
+                            </p>
 
-                        <div className="flex flex-col gap-2">
-                            {event.can_edit ? (
-                                <Button
-                                    variant="outline"
-                                    className="justify-start"
-                                    asChild
-                                >
-                                    <Link href={`/events/${event.id}/edit`}>
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Edit Event
-                                    </Link>
-                                </Button>
-                            ) : (
-                                <Button
-                                    disabled
-                                    variant="outline"
-                                    className="justify-start"
-                                    title="This event can no longer be edited"
-                                >
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    Edit Event
-                                </Button>
-                            )}
-
-                            {event.event_kind === 'church' && (
-                                <Button variant="outline" asChild>
-                                    <Link
-                                        href={`/events/${event.id}/registrations`}
-                                    >
-                                        <FileText className="mr-2 h-4 w-4" />
-                                        View Registrations
-                                    </Link>
-                                </Button>
-                            )}
-
-                            {event.event_kind === 'running' &&
-                                (canEditRegistrationForm ? (
+                            <div className="flex flex-col gap-2">
+                                {event.can_edit ? (
                                     <Button
                                         variant="outline"
                                         className="justify-start"
                                         asChild
                                     >
+                                        <Link href={`/events/${event.id}/edit`}>
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            Edit Event
+                                        </Link>
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        disabled
+                                        variant="outline"
+                                        className="justify-start"
+                                        title="This event can no longer be edited"
+                                    >
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        Edit Event
+                                    </Button>
+                                )}
+
+                                {event.event_kind === 'church' && (
+                                    <Button variant="outline" asChild>
                                         <Link
-                                            href={`/events/${event.id}/registration-form`}
+                                            href={`/events/${event.id}/registrations`}
+                                        >
+                                            <FileText className="mr-2 h-4 w-4" />
+                                            View Registrations
+                                        </Link>
+                                    </Button>
+                                )}
+
+                                {event.event_kind === 'running' &&
+                                    (canEditRegistrationForm ? (
+                                        <Button
+                                            variant="outline"
+                                            className="justify-start"
+                                            asChild
+                                        >
+                                            <Link
+                                                href={`/events/${event.id}/registration-form`}
+                                            >
+                                                <FileText className="mr-2 h-4 w-4" />
+                                                {event.registration_form_saved_at
+                                                    ? 'Edit Registration Form'
+                                                    : 'Create Registration Form'}
+                                            </Link>
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            disabled
+                                            variant="outline"
+                                            className="justify-start"
+                                            title="The registration form is locked after registration opens"
                                         >
                                             <FileText className="mr-2 h-4 w-4" />
                                             {event.registration_form_saved_at
                                                 ? 'Edit Registration Form'
                                                 : 'Create Registration Form'}
+                                        </Button>
+                                    ))}
+
+                                {event.event_kind === 'running' &&
+                                    event.registration_form_saved_at && (
+                                        <Button
+                                            variant="outline"
+                                            className="justify-start"
+                                            asChild
+                                        >
+                                            <Link
+                                                href={`/events/${event.id}/registration-form/preview`}
+                                            >
+                                                <FileText className="mr-2 h-4 w-4" />
+                                                View Registration Form
+                                            </Link>
+                                        </Button>
+                                    )}
+
+                                {can_record_attendance && (
+                                    <Button
+                                        variant="outline"
+                                        className="border-lime-brand/40 text-lime-brand hover:border-lime-brand hover:bg-lime-brand hover:text-navy-900 justify-start"
+                                        asChild
+                                    >
+                                        <Link
+                                            href={`/events/${event.id}/attendance`}
+                                        >
+                                            <ClipboardCheck className="mr-2 h-4 w-4" />
+                                            Record Attendance
                                         </Link>
                                     </Button>
-                                ) : (
-                                    <Button
-                                        disabled
-                                        variant="outline"
-                                        className="justify-start"
-                                        title="The registration form is locked after registration opens"
-                                    >
-                                        <FileText className="mr-2 h-4 w-4" />
-                                        {event.registration_form_saved_at
-                                            ? 'Edit Registration Form'
-                                            : 'Create Registration Form'}
-                                    </Button>
-                                ))}
+                                )}
 
-                            {event.event_kind === 'running' &&
-                                event.registration_form_saved_at && (
+                                {event.event_kind === 'running' &&
+                                    (event.can_open_registration ? (
+                                        <Button
+                                            onClick={openRegistration}
+                                            className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90 justify-start"
+                                        >
+                                            <UserPlus className="mr-2 h-4 w-4" />
+                                            Open Registration
+                                        </Button>
+                                    ) : event.can_close_registration ||
+                                      event.can_reopen_registration ? (
+                                        <RegistrationStatusToggle
+                                            eventId={event.id}
+                                            isOpen={
+                                                event.can_close_registration
+                                            }
+                                        />
+                                    ) : (
+                                        <Button
+                                            disabled
+                                            variant="outline"
+                                            className="justify-start"
+                                            title={openRegistrationTooltip}
+                                        >
+                                            <UserPlus className="mr-2 h-4 w-4" />
+                                            Open Registration
+                                        </Button>
+                                    ))}
+
+                                {isOngoing && (
+                                    <div className="space-y-2">
+                                        <Button
+                                            disabled={!event.can_finalize}
+                                            onClick={finalizeEvent}
+                                            className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90 w-full justify-start"
+                                        >
+                                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                                            Finalize Event
+                                        </Button>
+                                        <p className="text-muted-foreground text-xs">
+                                            {event.can_finalize
+                                                ? 'The event can now be finalized. This will lock all attendance records.'
+                                                : event.start_time
+                                                  ? 'Finalize will become available 1 hour after the event starts.'
+                                                  : 'Set the event start time before finalizing.'}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {canViewReport && (
                                     <Button
                                         variant="outline"
                                         className="justify-start"
                                         asChild
                                     >
                                         <Link
-                                            href={`/events/${event.id}/registration-form/preview`}
+                                            href={`/events/${event.id}/report`}
                                         >
-                                            <FileText className="mr-2 h-4 w-4" />
-                                            View Registration Form
+                                            <FileBarChart className="mr-2 h-4 w-4" />
+                                            View Report
                                         </Link>
                                     </Button>
                                 )}
-
-                            {can_record_attendance && (
-                                <Button
-                                    variant="outline"
-                                    className="border-lime-brand/40 text-lime-brand hover:border-lime-brand hover:bg-lime-brand hover:text-navy-900 justify-start"
-                                    asChild
-                                >
-                                    <Link
-                                        href={`/events/${event.id}/attendance`}
-                                    >
-                                        <ClipboardCheck className="mr-2 h-4 w-4" />
-                                        Record Attendance
-                                    </Link>
-                                </Button>
-                            )}
-
-                            {event.event_kind === 'running' &&
-                                (event.can_open_registration ? (
-                                    <Button
-                                        onClick={openRegistration}
-                                        className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90 justify-start"
-                                    >
-                                        <UserPlus className="mr-2 h-4 w-4" />
-                                        Open Registration
-                                    </Button>
-                                ) : event.can_close_registration ||
-                                  event.can_reopen_registration ? (
-                                    <RegistrationStatusToggle
-                                        eventId={event.id}
-                                        isOpen={event.can_close_registration}
-                                    />
-                                ) : (
-                                    <Button
-                                        disabled
-                                        variant="outline"
-                                        className="justify-start"
-                                        title={openRegistrationTooltip}
-                                    >
-                                        <UserPlus className="mr-2 h-4 w-4" />
-                                        Open Registration
-                                    </Button>
-                                ))}
-
-                            {event.can_finalize && (
-                                <Button
-                                    onClick={finalizeEvent}
-                                    variant="outline"
-                                    className="dark:hover:text-navy-900 justify-start border border-[#13253B] bg-[#13253B] text-white hover:bg-[#13253B]/90 dark:border-amber-500/40 dark:bg-transparent dark:text-amber-400 dark:hover:border-amber-500 dark:hover:bg-amber-500"
-                                >
-                                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                                    Finalize Event
-                                </Button>
-                            )}
-
-                            {canViewReport && (
-                                <Button
-                                    variant="outline"
-                                    className="justify-start"
-                                    asChild
-                                >
-                                    <Link href={`/events/${event.id}/report`}>
-                                        <FileBarChart className="mr-2 h-4 w-4" />
-                                        View Report
-                                    </Link>
-                                </Button>
-                            )}
+                            </div>
                         </div>
-                    </div>
+
+                        <section
+                            className="bg-card rounded-xl border p-6"
+                            aria-label="Event Lifecycle"
+                        >
+                            <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
+                                Event Lifecycle
+                            </h2>
+                            {isCancelled ? (
+                                <div className="text-destructive border-destructive/40 bg-destructive/10 mt-4 rounded-lg border px-4 py-3 text-sm font-semibold">
+                                    Cancelled
+                                </div>
+                            ) : (
+                                <ol className="mt-4 space-y-3">
+                                    {lifecycleSteps.map((step, index) => {
+                                        const current =
+                                            index === lifecycleIndex;
+                                        const complete =
+                                            lifecycleIndex >= 0 &&
+                                            index < lifecycleIndex;
+
+                                        return (
+                                            <li
+                                                key={step.status}
+                                                className={`flex items-center gap-3 text-sm ${
+                                                    current
+                                                        ? 'dark:text-lime-brand font-semibold text-lime-700'
+                                                        : complete
+                                                          ? 'text-muted-foreground'
+                                                          : 'text-muted-foreground/60'
+                                                }`}
+                                            >
+                                                <span
+                                                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs ${
+                                                        current
+                                                            ? 'border-lime-brand bg-lime-brand text-navy-900'
+                                                            : complete
+                                                              ? 'border-lime-brand/50 dark:text-lime-brand text-lime-700'
+                                                              : 'border-border text-muted-foreground/60'
+                                                    }`}
+                                                >
+                                                    {complete ? '✓' : index + 1}
+                                                </span>
+                                                {step.label}
+                                            </li>
+                                        );
+                                    })}
+                                </ol>
+                            )}
+                            {event.status === 'registration_closed' &&
+                                event.event_date && (
+                                    <p className="text-muted-foreground mt-4 text-xs">
+                                        This event will automatically move to
+                                        Ongoing on {event.event_date} at{' '}
+                                        {event.start_time ?? '00:00'}.
+                                    </p>
+                                )}
+                        </section>
+                    </aside>
                 </div>
 
                 <div className="border-destructive/40 bg-card/60 rounded-xl border p-6 shadow-xs backdrop-blur-sm">

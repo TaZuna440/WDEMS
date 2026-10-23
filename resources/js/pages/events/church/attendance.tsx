@@ -16,7 +16,12 @@ type Row = {
     fellowship_group_id: number | null;
 };
 type Props = {
-    event: { id: number; event_name: string };
+    event: {
+        id: number;
+        event_name: string;
+        status: string;
+        status_label: string;
+    };
     rows: Row[];
     counts: {
         registered: number;
@@ -43,6 +48,8 @@ export default function ChurchAttendance({
     const [query, setQuery] = useState(filters.q ?? '');
     const [code, setCode] = useState(filters.code ?? '');
     const [error, setError] = useState('');
+    const readOnly =
+        event.status === 'completed' || event.status === 'cancelled';
     const base = `/events/${event.id}/church-attendance`;
     const search = (filter = filters.filter ?? 'all') =>
         router.get(base, { q: query, code, filter }, { preserveState: true });
@@ -78,7 +85,11 @@ export default function ChurchAttendance({
                                         : `${urls.attendance}?summary=1`
                                 }
                             >
-                                {summary ? 'Edit Attendance' : 'View Summary'}
+                                {summary
+                                    ? readOnly
+                                        ? 'Attendance'
+                                        : 'Edit Attendance'
+                                    : 'View Summary'}
                             </Link>
                         </Button>
                         <Button variant="outline" asChild>
@@ -86,6 +97,17 @@ export default function ChurchAttendance({
                         </Button>
                     </div>
                 </header>
+                {readOnly && (
+                    <div
+                        className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-amber-900 dark:text-amber-200"
+                        role="status"
+                    >
+                        <p className="text-sm">
+                            This event is completed. Attendance records are
+                            read-only.
+                        </p>
+                    </div>
+                )}
                 <div className="flex flex-wrap gap-3">
                     {Object.entries(counts).map(([name, count]) => (
                         <div key={name} className="bg-card rounded border p-4">
@@ -210,7 +232,7 @@ export default function ChurchAttendance({
                                             )}
                                         </td>
                                         <td className="p-3">
-                                            {summary ? (
+                                            {summary || readOnly ? (
                                                 row.status
                                             ) : (
                                                 <select

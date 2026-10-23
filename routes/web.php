@@ -44,15 +44,15 @@ Route::inertia('/', 'welcome')->name('home');
 // See docs/restructure/phase-1-navigation.md §4.
 // ============================================================
 
-Route::permanentRedirect('/services', '/events/church/services');
-Route::permanentRedirect('/services/{type}', '/events/church/services')
+Route::get('/services', fn () => redirect('/events/church/services', 301));
+Route::get('/services/{type}', fn () => redirect('/events/church/services', 301))
     ->whereIn('type', ['morning', 'midweek', 'youth', 'other']);
 
-Route::permanentRedirect('/fellowship', '/events/church/fellowship');
-Route::permanentRedirect('/fellowship/{type}', '/events/church/fellowship')
+Route::get('/fellowship', fn () => redirect('/events/church/fellowship', 301));
+Route::get('/fellowship/{type}', fn () => redirect('/events/church/fellowship', 301))
     ->whereIn('type', ['family', 'church', 'pastors', 'leaders', 'womens', 'mens']);
 
-Route::permanentRedirect('/discipleship', '/events/church/discipleship');
+Route::get('/discipleship', fn () => redirect('/events/church/discipleship', 301));
 
 // Public registration — anonymous submission surface.
 // No auth, no device trust, no email verification. The middleware
@@ -434,6 +434,9 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
         Route::get('admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
         Route::get('admin/users/create', [AdminUserController::class, 'create'])->name('admin.users.create');
         Route::post('admin/users', [AdminUserController::class, 'store'])->name('admin.users.store');
+        Route::get('admin/users/{user}/edit', [AdminUserController::class, 'edit'])->name('admin.users.edit');
+        Route::put('admin/users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
+        Route::delete('admin/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
         Route::get('admin/audit-log', [AdminAuditLogController::class, 'index'])->name('admin.audit-log.index');
     });
 });

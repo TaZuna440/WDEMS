@@ -41,12 +41,14 @@ class AttendanceController extends Controller
                 EventStatus::RegistrationClosed->value,
                 EventStatus::Ongoing->value,
                 EventStatus::Completed->value,
+                EventStatus::Cancelled->value,
             ]))
             ->when($kind === 'church', fn ($query) => $query
                 ->whereIn('church_status', [
                     ChurchEventStatus::Upcoming->value,
                     ChurchEventStatus::Ongoing->value,
                     ChurchEventStatus::Completed->value,
+                    ChurchEventStatus::Cancelled->value,
                 ])
                 ->whereIn('church_category', ChurchCategory::values()))
             ->whereDate('event_date', '<=', today()->addDay())
@@ -128,7 +130,8 @@ class AttendanceController extends Controller
         // marking window open via the query string. Not persisted, not
         // sessioned — re-evaluated on every request.
         $isAdmin = $request->user()?->isAdmin() === true;
-        $forceOpen = $isAdmin && $request->boolean('force_open');
+        $readOnly = $event->isAttendanceReadOnly();
+        $forceOpen = ! $readOnly && $isAdmin && $request->boolean('force_open');
 
         $search = trim((string) $request->input('q', ''));
         $filter = (string) $request->input('filter', 'all');
@@ -278,7 +281,8 @@ class AttendanceController extends Controller
                 'filter' => $filter,
                 'code' => $code,
             ],
-            'can_mark' => $forceOpen || $event->canRecordAttendanceNow(),
+            'can_mark' => ! $readOnly && ($forceOpen || $event->canRecordAttendanceNow()),
+            'attendance_read_only' => $readOnly,
             'is_admin' => $isAdmin,
             'force_open' => $forceOpen,
             'attendance_statuses' => collect([AttendanceStatus::Present, AttendanceStatus::Absent])
@@ -321,6 +325,7 @@ class AttendanceController extends Controller
     public function mark(Request $request, Event $event, Registration $registration): RedirectResponse
     {
         abort_unless($event->isRunningEvent(), 403);
+        $this->ensureAttendanceWritable($event);
 
         $forceOpen = $request->user()?->isAdmin() === true
             && $request->boolean('force_open');
@@ -409,6 +414,7 @@ class AttendanceController extends Controller
     public function bulkMark(BulkMarkAttendanceRequest $request, Event $event): RedirectResponse
     {
         abort_unless($event->isRunningEvent(), 403);
+        $this->ensureAttendanceWritable($event);
 
         $forceOpen = $request->user()?->isAdmin() === true
             && $request->boolean('force_open');
@@ -560,6 +566,7 @@ class AttendanceController extends Controller
     public function bulkWalkIn(BulkWalkInRegistrationRequest $request, Event $event): RedirectResponse
     {
         abort_unless($event->isRunningEvent(), 403);
+        $this->ensureAttendanceWritable($event);
 
         $forceOpen = $request->user()?->isAdmin() === true
             && $request->boolean('force_open');
@@ -833,6 +840,7 @@ class AttendanceController extends Controller
     public function encodePaper(Request $request, Event $event): RedirectResponse
     {
         abort_unless($event->isRunningEvent(), 403);
+        $this->ensureAttendanceWritable($event);
         $forceOpen = $request->user()?->isAdmin() === true && $request->boolean('force_open');
         abort_unless($forceOpen || $event->canRecordAttendanceNow(), 403);
         $timing = $request->validate([
@@ -841,6 +849,7 @@ class AttendanceController extends Controller
         ]);
         $held = DB::transaction(function () use ($event, $request, $timing, $forceOpen): bool {
             $event = Event::query()->lockForUpdate()->findOrFail($event->id);
+            $this->ensureAttendanceWritable($event);
             abort_unless($event->isRunningEvent() && ($forceOpen || $event->canRecordAttendanceNow()), 403);
             $data = PublicRegistrationRequest::validatePending($event, $request->all());
             if (app(DuplicateReview::class)->findExact($event, $data)) {
@@ -890,6 +899,7 @@ class AttendanceController extends Controller
     public function quickWalkIn(Request $request, Event $event): RedirectResponse
     {
         abort_unless($event->isRunningEvent(), 403);
+        $this->ensureAttendanceWritable($event);
         $forceOpen = $request->user()?->isAdmin() === true && $request->boolean('force_open');
         abort_unless($forceOpen || $event->canRecordAttendanceNow(), 403);
         $validated = $request->validate([
@@ -899,6 +909,8 @@ class AttendanceController extends Controller
             'suffix' => ['nullable', 'string', 'max:10'],
         ]);
         DB::transaction(function () use ($event, $validated, $request): void {
+            $lockedEvent = Event::whereKey($event->id)->lockForUpdate()->firstOrFail();
+            $this->ensureAttendanceWritable($lockedEvent);
             // A name alone cannot establish identity. Never resolve or merge it.
             $participant = Participant::create(['pool' => 'running', ...$validated, 'provisional_event_id' => $event->id]);
             $registration = Registration::create([
@@ -919,6 +931,7 @@ class AttendanceController extends Controller
     public function walkIn(WalkInRegistrationRequest $request, Event $event): RedirectResponse
     {
         abort_unless($event->isRunningEvent(), 403);
+        $this->ensureAttendanceWritable($event);
 
         $forceOpen = $request->user()?->isAdmin() === true
             && $request->boolean('force_open');
@@ -946,7 +959,8 @@ class AttendanceController extends Controller
         }
 
         DB::transaction(function () use ($validated, $event, $user, $attendanceTime): void {
-            Event::whereKey($event->id)->lockForUpdate()->firstOrFail();
+            $lockedEvent = Event::whereKey($event->id)->lockForUpdate()->firstOrFail();
+            $this->ensureAttendanceWritable($lockedEvent);
             if (app(DuplicateReview::class)->findExact($event, $validated)) {
                 throw ValidationException::withMessages(['identity' => 'This person already has a submission for this event.']);
             }
@@ -1038,6 +1052,15 @@ class AttendanceController extends Controller
         }
 
         return substr($clean, 0, 4).'-'.substr($clean, 4);
+    }
+
+    private function ensureAttendanceWritable(Event $event): void
+    {
+        abort_if(
+            $event->isAttendanceReadOnly(),
+            403,
+            'Attendance cannot be modified because this event is completed.',
+        );
     }
 
     /**

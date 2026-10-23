@@ -454,8 +454,8 @@ class Event extends Model
     /**
      * Can the event be finalized (moved from Ongoing to Completed)?
      *
-     * The only valid state to finalize from is Ongoing. Feature B of
-     * docs/attendance-encoding-and-reporting.md. Finalization is
+     * The event must be Ongoing and at least one hour past its
+     * scheduled start. Finalization is
      * terminal: the workflow's allowedTransitions() gives Completed an
      * empty list, so a finalized event cannot be reopened. The only
      * ways to change a completed event's data are admin event deletion
@@ -469,7 +469,21 @@ class Event extends Model
      */
     public function canFinalize(): bool
     {
-        return $this->isRunningEvent() && $this->status === EventStatus::Ongoing;
+        if (
+            ! $this->isRunningEvent()
+            || $this->status !== EventStatus::Ongoing
+            || $this->event_date === null
+            || $this->start_time === null
+        ) {
+            return false;
+        }
+
+        $finalizationAvailableAt = $this->event_date
+            ->copy()
+            ->setTimeFromTimeString($this->start_time->format('H:i'))
+            ->addHour();
+
+        return now()->greaterThanOrEqualTo($finalizationAvailableAt);
     }
 
     /**
@@ -486,6 +500,14 @@ class Event extends Model
             EventStatus::RegistrationClosed,
             EventStatus::Ongoing,
         ], true);
+    }
+
+    public function isAttendanceReadOnly(): bool
+    {
+        return $this->isRunningEvent()
+            ? in_array($this->status, [EventStatus::Completed, EventStatus::Cancelled], true)
+            : ($this->isChurchEvent()
+                && in_array($this->church_status, [ChurchEventStatus::Completed, ChurchEventStatus::Cancelled], true));
     }
 
     /**
@@ -560,12 +582,11 @@ class Event extends Model
     /**
      * Can the attendance page be viewed for this event?
      *
-     * Broader than canRecordAttendanceNow(). Adds Completed to the
-     * viewable set so the organizer can review attendance after the
-     * event. Marking is still gated by canRecordAttendanceNow() —
-     * this method only decides whether the page renders at all.
+     * Broader than canRecordAttendanceNow(). Adds Completed and
+     * Cancelled to the viewable set so the organizer can review
+     * attendance history. Marking is separately gated by status.
      *
-     * Excluded: draft, configured, cancelled. Their attendance data
+     * Excluded: draft and configured. Their attendance data
      * is meaningless or does not exist.
      *
      * Date gate: a future event returns false. A completed event has
@@ -587,6 +608,7 @@ class Event extends Model
             EventStatus::RegistrationClosed,
             EventStatus::Ongoing,
             EventStatus::Completed,
+            EventStatus::Cancelled,
         ];
 
         if (! in_array($this->status, $viewableStatuses, true)) {

@@ -28,7 +28,13 @@ class StoreUserRequest extends FormRequest
                 'max:255',
                 ...$this->humanNameQualityRules(),
             ],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users'),
+            ],
             'role' => ['required', 'string', Rule::in(['admin', 'staff'])],
             'password' => [
                 'required',

@@ -9,12 +9,9 @@ use App\Models\FellowshipEvent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
-use Inertia\Response;
 
 /**
- * Fellowship module -- landing, per-type event list, event creation,
- * update, deletion.
+ * Fellowship module -- event creation, update, and deletion.
  *
  * Attendance recording is in FellowshipAttendanceController.
  *
@@ -22,76 +19,6 @@ use Inertia\Response;
  */
 class FellowshipController extends Controller
 {
-    /**
-     * Landing: fellowship type cards with counts.
-     *
-     * Shows each of the six fellowship types with a small aggregate
-     * (total events, latest event date). Clicking a card navigates
-     * to show().
-     */
-    public function index(): Response
-    {
-        $types = collect(FellowshipType::cases())->map(function (FellowshipType $type) {
-            $events = FellowshipEvent::where('fellowship_type', $type->value);
-
-            return [
-                'value' => $type->value,
-                'label' => $type->label(),
-                'event_count' => (clone $events)->count(),
-                'latest_date' => (clone $events)
-                    ->orderByDesc('event_date')
-                    ->value('event_date'),
-            ];
-        })->values();
-
-        return Inertia::render('fellowship/index', [
-            'fellowship_types' => $types,
-        ]);
-    }
-
-    /**
-     * Per-type view: list events for one fellowship type, most
-     * recent first. Includes group and attendance counts so the
-     * organizer can see at a glance how full each event is.
-     */
-    public function show(Request $request, string $type): Response
-    {
-        $fellowshipType = FellowshipType::tryFrom($type);
-
-        if ($fellowshipType === null) {
-            abort(404);
-        }
-
-        $events = FellowshipEvent::query()
-            ->where('fellowship_type', $fellowshipType->value)
-            ->withCount(['groups', 'attendances'])
-            ->orderByDesc('event_date')
-            ->orderByDesc('id')
-            ->get()
-            ->map(fn (FellowshipEvent $e) => [
-                'id' => $e->id,
-                'name' => $e->name,
-                'description' => $e->description,
-                'event_date' => $e->event_date->toDateString(),
-                'start_time' => $e->start_time?->format('H:i'),
-                'end_time' => $e->end_time?->format('H:i'),
-                'venue' => $e->venue,
-                'facilitator' => $e->facilitator,
-                'notes' => $e->notes,
-                'group_count' => $e->groups_count,
-                'attendance_count' => $e->attendances_count,
-                'registration_event_id' => $e->getAttribute('registration_event_id'),
-            ]);
-
-        return Inertia::render('fellowship/show', [
-            'fellowship_type' => [
-                'value' => $fellowshipType->value,
-                'label' => $fellowshipType->label(),
-            ],
-            'events' => $events,
-        ]);
-    }
-
     /**
      * Create one Fellowship event.
      *

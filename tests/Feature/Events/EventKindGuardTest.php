@@ -226,7 +226,11 @@ test('running event: canOpenRegistration requires a saved form', function () {
 });
 
 test('running event: canFinalize is true only in ongoing', function () {
-    expect(kindguard_running_event(['status' => 'ongoing'])->canFinalize())->toBeTrue();
+    expect(kindguard_running_event([
+        'status' => 'ongoing',
+        'event_date' => today(),
+        'start_time' => now()->subHours(2)->format('H:i'),
+    ])->canFinalize())->toBeTrue();
     expect(kindguard_running_event(['status' => 'draft'])->canFinalize())->toBeFalse();
     expect(kindguard_running_event(['status' => 'completed'])->canFinalize())->toBeFalse();
 });

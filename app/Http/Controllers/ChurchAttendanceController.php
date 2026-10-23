@@ -59,7 +59,12 @@ class ChurchAttendanceController extends Controller
         }
 
         return Inertia::render('events/church/attendance', [
-            'event' => $event->only('id', 'event_name'),
+            'event' => [
+                'id' => $event->id,
+                'event_name' => $event->event_name,
+                'status' => $event->church_status->value,
+                'status_label' => $event->church_status->label(),
+            ],
             'rows' => $mapped,
             'counts' => $counts,
             'filters' => $filter,
@@ -75,11 +80,13 @@ class ChurchAttendanceController extends Controller
     public function mark(Request $request, Event $event, Registration $registration): RedirectResponse
     {
         abort_unless($event->isChurchEvent() && $registration->event_id === $event->id, 404);
+        $this->ensureAttendanceWritable($event);
         $data = $request->validate([
             'status' => ['required', 'in:present,absent,unmarked'],
         ]);
         DB::transaction(function () use ($event, $registration, $request, $data): void {
-            Event::whereKey($event->id)->lockForUpdate()->firstOrFail();
+            $lockedEvent = Event::whereKey($event->id)->lockForUpdate()->firstOrFail();
+            $this->ensureAttendanceWritable($lockedEvent);
             $row = Registration::whereKey($registration->id)->lockForUpdate()->firstOrFail();
             abort_unless(
                 $row->isActive() && Participant::findOrFail($row->participant_id)->pool === 'church',
@@ -100,5 +107,14 @@ class ChurchAttendanceController extends Controller
         });
 
         return back();
+    }
+
+    private function ensureAttendanceWritable(Event $event): void
+    {
+        abort_if(
+            $event->isAttendanceReadOnly(),
+            403,
+            'Attendance cannot be modified because this event is completed.',
+        );
     }
 }

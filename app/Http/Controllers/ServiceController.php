@@ -11,12 +11,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
 
 /**
- * Services module -- landing, per-type occurrence list, occurrence
- * creation (manual and recurring), occurrence deletion.
+ * Services module -- occurrence creation (manual and recurring) and deletion.
  *
  * Attendance recording is in ServiceAttendanceController.
  *
@@ -24,74 +21,6 @@ use Inertia\Response;
  */
 class ServiceController extends Controller
 {
-    /**
-     * Landing: service type cards with counts.
-     *
-     * Shows each of the four service types with a small aggregate
-     * (total occurrences, latest occurrence date). Clicking a card
-     * navigates to show().
-     */
-    public function index(): Response
-    {
-        $types = collect(ServiceType::cases())->map(function (ServiceType $type) {
-            $occurrences = ServiceOccurrence::where('service_type', $type->value);
-
-            return [
-                'value' => $type->value,
-                'label' => $type->label(),
-                'occurrence_count' => (clone $occurrences)->count(),
-                'latest_date' => (clone $occurrences)
-                    ->orderByDesc('occurrence_date')
-                    ->value('occurrence_date'),
-            ];
-        })->values();
-
-        return Inertia::render('services/index', [
-            'service_types' => $types,
-        ]);
-    }
-
-    /**
-     * Per-type view: list occurrences for one service type, most
-     * recent first. Includes attendance counts per occurrence so the
-     * organizer can see at a glance how many people were marked.
-     */
-    public function show(Request $request, string $type): Response
-    {
-        $serviceType = ServiceType::tryFrom($type);
-
-        if ($serviceType === null) {
-            abort(404);
-        }
-
-        $occurrences = ServiceOccurrence::query()
-            ->where('service_type', $serviceType->value)
-            ->withCount(['memberAttendances', 'firstTimerAttendances'])
-            ->orderByDesc('occurrence_date')
-            ->orderByDesc('id')
-            ->get()
-            ->map(fn (ServiceOccurrence $o) => [
-                'id' => $o->id,
-                'occurrence_date' => $o->occurrence_date->toDateString(),
-                'start_time' => $o->start_time?->format('H:i'),
-                'end_time' => $o->end_time?->format('H:i'),
-                'service_leader' => $o->service_leader,
-                'topic' => $o->topic,
-                'notes' => $o->notes,
-                'member_count' => $o->member_attendances_count,
-                'first_timer_count' => $o->first_timer_attendances_count,
-                'registration_event_id' => $o->getAttribute('registration_event_id'),
-            ]);
-
-        return Inertia::render('services/show', [
-            'service_type' => [
-                'value' => $serviceType->value,
-                'label' => $serviceType->label(),
-            ],
-            'occurrences' => $occurrences,
-        ]);
-    }
-
     /**
      * Create one occurrence manually.
      *

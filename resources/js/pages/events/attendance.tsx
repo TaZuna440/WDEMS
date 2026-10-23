@@ -111,6 +111,7 @@ type Props = {
     can_mark: boolean;
     is_admin: boolean;
     force_open: boolean;
+    attendance_read_only: boolean;
     attendance_statuses: StatusOption[];
 };
 
@@ -139,6 +140,7 @@ export default function EventsAttendance({
     check_in_summary,
     is_admin,
     force_open,
+    attendance_read_only,
     attendance_statuses,
 }: Props) {
     const [localSearch, setLocalSearch] = useState(filters.q);
@@ -291,7 +293,8 @@ export default function EventsAttendance({
         (s) => s.value !== 'present',
     );
 
-    const showForceToggle = is_admin && (!can_mark || force_open);
+    const showForceToggle =
+        is_admin && !attendance_read_only && (!can_mark || force_open);
     const isWalkInMode = mode === 'walk-in';
 
     return (
@@ -370,7 +373,20 @@ export default function EventsAttendance({
                     </div>
                 )}
 
-                {!can_mark && (
+                {attendance_read_only && (
+                    <div
+                        className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-amber-900 dark:text-amber-200"
+                        role="status"
+                    >
+                        <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+                        <p className="text-sm">
+                            This event is completed. Attendance records are
+                            read-only.
+                        </p>
+                    </div>
+                )}
+
+                {!can_mark && !attendance_read_only && (
                     <div className="glass-panel flex items-start gap-3 rounded-xl p-4">
                         <Clock className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
                         <p className="text-muted-foreground text-sm">

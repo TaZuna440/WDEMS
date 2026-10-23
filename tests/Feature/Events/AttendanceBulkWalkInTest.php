@@ -364,7 +364,7 @@ test('bulk walk-in is forbidden when the window is closed', function () {
     expect(Registration::where('event_id', $event->id)->count())->toBe(0);
 });
 
-test('bulk walk-in succeeds on a completed event with force_open for admin', function () {
+test('bulk walk-in remains forbidden on a completed event with force_open for admin', function () {
     $admin = bwt_admin();
     $event = bwt_event([
         'status' => 'completed',
@@ -375,9 +375,9 @@ test('bulk walk-in succeeds on a completed event with force_open for admin', fun
         ->post("/events/{$event->id}/attendance/bulk-walk-in?force_open=1", [
             'rows' => [bwt_row()],
         ])
-        ->assertRedirect();
+        ->assertForbidden();
 
-    expect(Registration::where('event_id', $event->id)->count())->toBe(1);
+    expect(Registration::where('event_id', $event->id)->count())->toBe(0);
 });
 
 // ---------------------------------------------------------------------------

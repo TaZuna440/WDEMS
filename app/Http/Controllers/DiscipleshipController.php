@@ -16,8 +16,8 @@ use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Discipleship module -- landing, per-program view (with search,
- * filter, and CSV export), and the participant search endpoint
+ * Discipleship module -- per-program view (with search, filter, and CSV
+ * export), and the participant search endpoint
  * used by the enrollment dialog.
  *
  * Programs are seeded, not created through the UI. There is no
@@ -33,27 +33,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class DiscipleshipController extends Controller
 {
-    public function index(): Response
-    {
-        $programs = DiscipleshipProgram::query()
-            ->withCount(['batches', 'enrollments'])
-            ->orderBy('display_order')
-            ->orderBy('id')
-            ->get()
-            ->map(fn (DiscipleshipProgram $p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-                'slug' => $p->slug,
-                'description' => $p->description,
-                'batches_count' => $p->batches_count,
-                'enrollments_count' => $p->enrollments_count,
-            ]);
-
-        return Inertia::render('discipleship/index', [
-            'programs' => $programs,
-        ]);
-    }
-
     /**
      * Per-program view: header, batches, enrollments, overview.
      *

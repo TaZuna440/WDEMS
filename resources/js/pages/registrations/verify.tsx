@@ -155,11 +155,24 @@ function ContactVerification({
     const form = useForm({ code: '' });
     const resend = useForm({});
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
+    const [cooldown, setCooldown] = useState(0);
+    const [isResending, setIsResending] = useState(false);
+    const [resendSuccess, setResendSuccess] = useState('');
+    const [resendError, setResendError] = useState('');
     const wait = state.retry_at
         ? Math.max(0, Math.ceil((Date.parse(state.retry_at) - now) / 1000))
         : 0;
+    const remainingCooldown = Math.max(cooldown, wait);
     const expired =
         state.expires_at !== null && Date.parse(state.expires_at) <= now;
+
+    useEffect(() => {
+        if (cooldown <= 0) return;
+        const timer = window.setInterval(() => {
+            setCooldown((remaining) => Math.max(0, remaining - 1));
+        }, 1000);
+        return () => window.clearInterval(timer);
+    }, [cooldown]);
 
     if (state.status === 'optional') return null;
     const submit = (event: FormEvent) => {
@@ -209,31 +222,66 @@ function ContactVerification({
                             Email code sent. Codes expire after ten minutes.
                         </p>
                     )}
-                    {(!captchaRequired || !!captchaToken) && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            disabled={
-                                wait > 0 ||
-                                resend.processing ||
-                                (captchaRequired && !captchaToken)
-                            }
-                            onClick={() => {
-                                resend.transform(() => ({
-                                    recaptcha_token: captchaToken,
-                                }));
-                                resend.post(`${url}/email/resend`, {
-                                    preserveScroll: true,
-                                    onFinish: onSent,
-                                });
-                            }}
-                        >
-                            {wait > 0
-                                ? `Request another code in ${wait}s`
-                                : state.status === 'waiting'
-                                  ? 'Send code'
-                                  : 'Send another email code'}
-                        </Button>
+                    {(state.status === 'sent' ||
+                        state.status === 'delivery_failed' ||
+                        expired) && (
+                        <p className="text-muted-foreground text-sm">
+                            Didn't receive the code?
+                        </p>
+                    )}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={
+                            remainingCooldown > 0 ||
+                            isResending ||
+                            resend.processing ||
+                            (captchaRequired && !captchaToken)
+                        }
+                        onClick={() => {
+                            setResendSuccess('');
+                            setResendError('');
+                            setIsResending(true);
+                            resend.transform(() => ({
+                                recaptcha_token: captchaToken,
+                            }));
+                            resend.post(`${url}/email/resend`, {
+                                preserveScroll: true,
+                                onSuccess: () => {
+                                    setCooldown(100);
+                                    setResendSuccess(
+                                        'A new code has been sent!',
+                                    );
+                                    onSent?.();
+                                },
+                                onError: (responseErrors) => {
+                                    setResendError(
+                                        responseErrors.email ??
+                                            responseErrors.verification ??
+                                            'We could not resend the code. Please try again.',
+                                    );
+                                },
+                                onFinish: () => setIsResending(false),
+                            });
+                        }}
+                    >
+                        {isResending || resend.processing
+                            ? 'Sending...'
+                            : remainingCooldown > 0
+                              ? `Resend in ${remainingCooldown}s...`
+                              : state.status === 'waiting'
+                                ? 'Send code'
+                                : 'Resend Code'}
+                    </Button>
+                    {resendSuccess && (
+                        <p role="status" className="text-lime-brand text-sm">
+                            {resendSuccess}
+                        </p>
+                    )}
+                    {resendError && (
+                        <p role="alert" className="text-destructive text-sm">
+                            {resendError}
+                        </p>
                     )}
                     {state.status === 'sent' && !expired && (
                         <form onSubmit={submit} className="grid gap-3">

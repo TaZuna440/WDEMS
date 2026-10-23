@@ -84,31 +84,22 @@ export default function EventsIndex({ events, filters }: Props) {
         ? (filters.church_activity ?? null)
         : null;
     const [search, setSearch] = useState('');
-    const [columns, setColumns] = useState<Record<string, string>>({});
     const [statusFilter, setStatusFilter] =
         useState<(typeof STATUS_FILTERS)[number]['value']>('all');
-    const filterColumns = [
-        ['event_name', 'Event Name'],
-        ['event_type_label', 'Type'],
-        ['event_date', 'Date'],
-        ['distance_label', 'Distance'],
-        ['venue', 'Venue'],
-        ['creator', 'Created by'],
-    ] as const;
     const visibleEvents = events.filter((event) => {
-        const values = filterColumns.map(([key]) =>
-            String(event[key] ?? '').toLowerCase(),
-        );
+        const searchTerm = search.trim().toLowerCase();
+        const searchableValues = [
+            event.event_name,
+            event.event_type_label,
+            event.event_date,
+            event.distance_label,
+            event.venue,
+            event.creator,
+        ].map((value) => String(value ?? '').toLowerCase());
+
         return (
-            values.some((value) =>
-                value.includes(search.trim().toLowerCase()),
-            ) &&
-            (statusFilter === 'all' || event.status === statusFilter) &&
-            filterColumns.every(([key], index) =>
-                values[index].includes(
-                    (columns[key] ?? '').trim().toLowerCase(),
-                ),
-            )
+            searchableValues.some((value) => value.includes(searchTerm)) &&
+            (statusFilter === 'all' || event.status === statusFilter)
         );
     });
     const visibleChurchEvents = visibleEvents.filter(
@@ -385,27 +376,6 @@ export default function EventsIndex({ events, filters }: Props) {
                                     </button>
                                 );
                             })}
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                            {filterColumns.map(([key, label]) => (
-                                <label
-                                    key={key}
-                                    className="text-muted-foreground space-y-1 text-xs"
-                                >
-                                    {label}
-                                    <Input
-                                        aria-label={`Filter ${label}`}
-                                        placeholder={label}
-                                        value={columns[key] ?? ''}
-                                        onChange={(e) =>
-                                            setColumns({
-                                                ...columns,
-                                                [key]: e.target.value,
-                                            })
-                                        }
-                                    />
-                                </label>
-                            ))}
                         </div>
                         <p className="text-muted-foreground text-sm">
                             {visibleEvents.length} matching events

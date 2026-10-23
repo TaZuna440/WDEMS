@@ -294,6 +294,7 @@ test('completed events are viewable but not markable', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('can_mark', false)
+            ->where('attendance_read_only', true)
             ->has('rows', 1)
         );
 });
@@ -317,7 +318,11 @@ test('future events return 403 on the attendance page', function () {
 });
 
 test('marking attendance on a completed event returns 403', function () {
-    $staff = att2_staff();
+    $staff = User::factory()->create([
+        'role' => 'admin',
+        'email_verified_at' => now(),
+        'email_two_factor_enabled' => false,
+    ]);
     $event = att2_event([
         'status' => 'completed',
         'event_date' => today()->subDays(3)->toDateString(),
@@ -327,8 +332,58 @@ test('marking attendance on a completed event returns 403', function () {
     $this->actingAs($staff)
         ->post("/events/{$event->id}/attendance/{$registration->id}/mark", [
             'status' => 'present',
+            'force_open' => 1,
         ])
-        ->assertForbidden();
+        ->assertForbidden()
+        ->assertSee('Attendance cannot be modified because this event is completed.');
+});
+
+test('marking attendance on a completed church event returns 403', function () {
+    $staff = att2_staff();
+    $event = Event::create([
+        'created_by' => $staff->id,
+        'event_kind' => 'church',
+        'event_type' => 'church',
+        'event_name' => 'Completed church event',
+        'event_date' => today()->subDays(3)->toDateString(),
+        'church_status' => 'completed',
+    ]);
+    $participant = att2_participant(['pool' => 'church']);
+    $registration = att2_registration($event, $participant);
+
+    $this->actingAs($staff)
+        ->get(route('church.attendance', $event))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('events/church/attendance')
+            ->where('event.status', 'completed'));
+
+    $this->actingAs($staff)
+        ->post(route('church.attendance.mark', [$event, $registration]), [
+            'status' => 'present',
+        ])
+        ->assertForbidden()
+        ->assertSee('Attendance cannot be modified because this event is completed.');
+});
+
+test('cancelled running events remain viewable but attendance is read-only', function () {
+    $staff = att2_staff();
+    $event = att2_event([
+        'status' => 'cancelled',
+        'event_date' => today()->subDays(3)->toDateString(),
+    ]);
+    $registration = att2_registration($event);
+
+    $this->actingAs($staff)
+        ->get(route('events.attendance', $event))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('attendance_read_only', true)
+            ->where('can_mark', false));
+
+    $this->post(route('events.attendance.mark', [$event, $registration]), [
+        'status' => 'present',
+    ])->assertForbidden();
 });
 
 // ---------------------------------------------------------------------------

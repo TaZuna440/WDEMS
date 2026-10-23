@@ -54,6 +54,7 @@ function finalize_event(array $overrides = []): Event
         'event_type' => 'community_run',
         'event_name' => 'Finalize Test Run',
         'event_date' => today()->toDateString(),
+        'start_time' => now()->subHours(2)->format('H:i'),
         'status' => 'ongoing',
         'registration_form_saved_at' => now(),
     ], $overrides));
@@ -78,6 +79,42 @@ it('lets admin finalize an ongoing event', function () {
     $this->actingAs($admin)
         ->withSession(['auth.password_confirmed_at' => time()])
         ->post("/events/{$event->id}/finalize")
+        ->assertRedirect();
+
+    expect($event->fresh()->status)->toBe(EventStatus::Completed);
+});
+
+it('does not allow finalizing until one hour after the event start', function () {
+    $event = finalize_event([
+        'status' => 'ongoing',
+        'event_date' => today()->toDateString(),
+        'start_time' => now()->subMinutes(30)->format('H:i'),
+    ]);
+    $staff = finalize_staff();
+
+    expect($event->canFinalize())->toBeFalse();
+
+    $this->actingAs($staff)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->post(route('events.finalize', $event))
+        ->assertForbidden();
+
+    expect($event->fresh()->status)->toBe(EventStatus::Ongoing);
+});
+
+it('allows finalizing at least one hour after the event start', function () {
+    $event = finalize_event([
+        'status' => 'ongoing',
+        'event_date' => today()->toDateString(),
+        'start_time' => now()->subHours(2)->format('H:i'),
+    ]);
+    $staff = finalize_staff();
+
+    expect($event->canFinalize())->toBeTrue();
+
+    $this->actingAs($staff)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->post(route('events.finalize', $event))
         ->assertRedirect();
 
     expect($event->fresh()->status)->toBe(EventStatus::Completed);

@@ -301,7 +301,7 @@ test('bulk mark is forbidden when the window is closed and no force_open', funct
     expect($a->fresh()->attendance)->toBeNull();
 });
 
-test('bulk mark succeeds on a completed event with force_open for admin', function () {
+test('bulk mark remains forbidden on a completed event with force_open for admin', function () {
     $admin = bmk_admin();
     $event = bmk_event([
         'status' => 'completed',
@@ -313,7 +313,7 @@ test('bulk mark succeeds on a completed event with force_open for admin', functi
         ->post("/events/{$event->id}/attendance/bulk-mark?force_open=1", [
             'registration_ids' => [$a->id],
         ])
-        ->assertRedirect();
+        ->assertForbidden();
 
-    expect($a->fresh()->attendance)->not->toBeNull();
+    expect($a->fresh()->attendance)->toBeNull();
 });

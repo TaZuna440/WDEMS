@@ -1,5 +1,7 @@
-import { Head, Link } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmDialog from '@/components/confirm-dialog';
 import { Button } from '@/components/ui/button';
 
 type UserRow = {
@@ -12,6 +14,38 @@ type UserRow = {
 };
 
 export default function AdminUsersIndex({ users }: { users: UserRow[] }) {
+    const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
+    const [deleteError, setDeleteError] = useState('');
+    const [deleting, setDeleting] = useState(false);
+
+    const closeDeleteDialog = (open: boolean) => {
+        if (!open) {
+            setSelectedUser(null);
+            setDeleteError('');
+        }
+    };
+
+    const deleteUser = () => {
+        if (!selectedUser) return;
+
+        setDeleting(true);
+        router.delete(`/admin/users/${selectedUser.id}`, {
+            preserveScroll: true,
+            onError: (errors) => {
+                setDeleteError(
+                    Object.values(errors)[0] ??
+                        'The user could not be deleted.',
+                );
+                setDeleting(false);
+            },
+            onSuccess: () => {
+                setSelectedUser(null);
+                setDeleteError('');
+                setDeleting(false);
+            },
+        });
+    };
+
     return (
         <>
             <Head title="User Management" />
@@ -49,6 +83,9 @@ export default function AdminUsersIndex({ users }: { users: UserRow[] }) {
                                 <th className="px-5 py-3 font-medium">
                                     Created At
                                 </th>
+                                <th className="px-5 py-3 font-medium">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-border divide-y">
@@ -73,12 +110,39 @@ export default function AdminUsersIndex({ users }: { users: UserRow[] }) {
                                             user.created_at,
                                         ).toLocaleString()}
                                     </td>
+                                    <td className="px-5 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                asChild
+                                                size="sm"
+                                                variant="outline"
+                                            >
+                                                <Link
+                                                    href={`/admin/users/${user.id}/edit`}
+                                                >
+                                                    <Pencil className="mr-1.5 h-4 w-4" />
+                                                    Edit
+                                                </Link>
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={() => {
+                                                    setDeleteError('');
+                                                    setSelectedUser(user);
+                                                }}
+                                            >
+                                                <Trash2 className="mr-1.5 h-4 w-4" />
+                                                Delete
+                                            </Button>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                             {users.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={5}
+                                        colSpan={6}
                                         className="text-muted-foreground px-5 py-10 text-center"
                                     >
                                         No users found.
@@ -89,6 +153,26 @@ export default function AdminUsersIndex({ users }: { users: UserRow[] }) {
                     </table>
                 </div>
             </div>
+            <ConfirmDialog
+                open={selectedUser !== null}
+                onOpenChange={closeDeleteDialog}
+                variant="danger"
+                title="Delete user?"
+                description={
+                    selectedUser
+                        ? `This will permanently delete ${selectedUser.name}'s account.`
+                        : undefined
+                }
+                confirmLabel={deleting ? 'Deleting…' : 'Delete User'}
+                confirmDisabled={deleting}
+                onConfirm={deleteUser}
+            >
+                {deleteError && (
+                    <p className="text-destructive text-sm" role="alert">
+                        {deleteError}
+                    </p>
+                )}
+            </ConfirmDialog>
         </>
     );
 }

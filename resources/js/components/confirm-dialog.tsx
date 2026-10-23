@@ -18,6 +18,7 @@ type Props = {
     description?: string;
     children?: React.ReactNode;
     confirmLabel?: string;
+    confirmDisabled?: boolean;
     cancelLabel?: string;
     onConfirm: () => void;
 };
@@ -37,6 +38,7 @@ export default function ConfirmDialog({
     description,
     children,
     confirmLabel = 'Confirm',
+    confirmDisabled = false,
     cancelLabel = 'Cancel',
     onConfirm,
 }: Props) {
@@ -65,6 +67,7 @@ export default function ConfirmDialog({
                         <Button
                             type="button"
                             variant="destructive"
+                            disabled={confirmDisabled}
                             onClick={onConfirm}
                         >
                             {confirmLabel}
@@ -73,6 +76,7 @@ export default function ConfirmDialog({
                         <Button
                             type="button"
                             className={confirmButtonStyles[variant]}
+                            disabled={confirmDisabled}
                             onClick={onConfirm}
                         >
                             {confirmLabel}
