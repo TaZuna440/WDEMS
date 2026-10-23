@@ -2,6 +2,14 @@ export const CHURCH_PARTICIPANT_TYPES = [
     { value: 'Member', label: 'Member' },
     { value: 'First-Timer', label: 'First-Timer' },
     { value: 'Guest', label: 'Guest' },
+    { value: 'Graduate', label: 'Graduate' },
+    { value: 'Ninong/Ninang', label: 'Ninong / Ninang' },
+] as const;
+
+export const PUBLIC_CHURCH_PARTICIPANT_TYPES = [
+    { value: 'Member', label: 'Member' },
+    { value: 'Guest', label: 'Guest' },
+    { value: 'First-Timer', label: 'First-Timer' },
 ] as const;
 
 export function churchParticipantTypeLabel(value: string | null): string {

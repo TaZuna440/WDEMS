@@ -22,7 +22,15 @@ class PublicRegistrationController extends Controller
     public function show(Request $request, Event $event): Response
     {
         if ($event->isChurchEvent()) {
-            return Inertia::render('registrations/church-public', ['event' => $event->only('event_name', 'church_category', 'registration_slug'), 'submit_url' => route('public-registration.store', ['event' => $event->registration_slug])]);
+            return Inertia::render('registrations/church-public', [
+                'event' => $event->only('event_name', 'church_category', 'registration_slug'),
+                'common_field_requirements' => collect(Event::COMMON_FIELDS_TOGGLEABLE)
+                    ->mapWithKeys(fn (string $field) => [$field => $event->isCommonFieldRequired($field)])
+                    ->all(),
+                'submit_url' => route('public-registration.store', ['event' => $event->registration_slug]),
+                'disclaimer_paragraphs' => RegistrationLegalText::disclaimerFor($event),
+                'privacy_consent_text' => RegistrationLegalText::privacyConsentFor($event),
+            ]);
         }
 
         return $this->renderForm($event, $request->session()->pull('success'));

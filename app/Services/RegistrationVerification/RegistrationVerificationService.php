@@ -591,7 +591,7 @@ class RegistrationVerificationService
                         // P5 compliance trail: the wizard's Step 1
                         // disclaimer + privacy consent were accepted to reach this point.
                         'consent_accepted_at' => now(),
-                        'privacy_notice_version' => RegistrationLegalText::PRIVACY_NOTICE_VERSION,
+                        'privacy_notice_version' => RegistrationLegalText::privacyNoticeVersionFor($event),
                         'emergency_contact_name' => $event->usesEmailOnlyRegistration()
                             ? trim(($payload['emergency_contact_first_name'] ?? '').' '.($payload['emergency_contact_last_name'] ?? ''))
                             : ($payload['emergency_contact_name'] ?? null),

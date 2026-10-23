@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 const STORAGE_VERSION = 1;
 const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -61,10 +61,13 @@ function readSnapshot<T>(storageKey: string): WizardSnapshot<T> | null {
 export function useWizardPersistence<T extends Record<string, unknown>>(
     storageKey: string,
 ) {
-    // Lazy initializer — runs once, pure read from localStorage
-    const [snapshot] = useState<WizardSnapshot<T> | null>(() =>
-        readSnapshot<T>(storageKey),
-    );
+    const [snapshot, setSnapshot] = useState<WizardSnapshot<T> | null>(null);
+    const [loaded, setLoaded] = useState(false);
+
+    useEffect(() => {
+        setSnapshot(readSnapshot<T>(storageKey));
+        setLoaded(true);
+    }, [storageKey]);
 
     const save = useCallback(
         (currentStep: number, data: T) => {
@@ -97,5 +100,5 @@ export function useWizardPersistence<T extends Record<string, unknown>>(
         }
     }, [storageKey]);
 
-    return { snapshot, save, clear } as const;
+    return { snapshot, loaded, save, clear } as const;
 }

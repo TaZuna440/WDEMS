@@ -147,8 +147,9 @@ export default function DatePicker({
 }: Props) {
     const [open, setOpen] = useState(false);
     const [viewDate, setViewDate] = useState<Date>(
-        () => parseISO(value) ?? new Date(),
+        () => parseISO(value) ?? new Date(2000, 0, 1),
     );
+    const [today, setToday] = useState<Date | null>(null);
     const [view, setView] = useState<'days' | 'months' | 'years'>('days');
     const [yearPage, setYearPage] = useState(0);
     const [typedValue, setTypedValue] = useState('');
@@ -158,12 +159,13 @@ export default function DatePicker({
     const hadCommitError = useRef(false);
 
     const selected = parseISO(value);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
     useEffect(() => {
         const parsed = parseISO(value);
-        if (parsed) setViewDate(parsed);
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+        setToday(currentDate);
+        setViewDate(parsed ?? currentDate);
     }, [value]);
 
     // Sync typed-entry field with the current value each time the
@@ -250,6 +252,7 @@ export default function DatePicker({
     };
 
     const canPickToday =
+        today !== null &&
         (!minDate || !isBeforeDay(today, minDate)) &&
         (!maxDate || !isAfterDay(today, maxDate));
 
@@ -597,8 +600,9 @@ export default function DatePicker({
                                         cell.date.toDateString() ===
                                             selected.toDateString();
                                     const isToday =
+                                        today !== null &&
                                         cell.date.toDateString() ===
-                                        today.toDateString();
+                                            today.toDateString();
                                     const isDisabled = isCellDisabled(
                                         cell.date,
                                     );

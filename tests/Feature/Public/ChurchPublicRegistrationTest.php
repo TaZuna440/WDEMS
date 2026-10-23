@@ -54,6 +54,23 @@ function church_public_fixture(): array
     ]];
 }
 
+it('renders the church registration wizard with church-specific legal text', function () {
+    [$event] = church_public_fixture();
+
+    $this->get('/r/'.$event->registration_slug)
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('registrations/church-public')
+            ->has('disclaimer_paragraphs')
+            ->where('common_field_requirements.email', true)
+            ->where('common_field_requirements.contact_number', false)
+            ->where('privacy_consent_text', fn (string $text) => str_contains($text, 'Church Event')
+                && ! str_contains($text, 'Community Run'))
+            ->where('disclaimer_paragraphs.0', fn (string $text) => str_contains($text, 'church staff')
+                && ! str_contains($text, 'running')
+                && ! str_contains($text, 'physical activities')));
+});
+
 it('requires server-verified recaptcha before email OTP and completes a church registration', function () {
     [$event, $payload] = church_public_fixture();
     Mail::fake();
@@ -88,6 +105,7 @@ it('requires server-verified recaptcha before email OTP and completes a church r
     $registration = Registration::sole();
     expect($registration->participant->pool)->toBe('church')
         ->and($registration->participant_type)->toBe('Guest')
+        ->and($registration->privacy_notice_version)->toBe('v2')
         ->and($registration->emergency_contact_name)->toBe('Jose Santos')
         ->and($registration->attendance_code)->toMatch('/^[A-Z0-9]{4}-[A-Z0-9]{4}$/')
         ->and($registration->attendance)->toBeNull();

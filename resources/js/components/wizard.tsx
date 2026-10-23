@@ -71,7 +71,8 @@ export default function Wizard<T extends Record<string, unknown>>({
     clearOnSubmit = true,
     children,
 }: Props<T>) {
-    const { snapshot, save, clear } = useWizardPersistence<T>(storageKey);
+    const { snapshot, loaded, save, clear } =
+        useWizardPersistence<T>(storageKey);
 
     // The furthest step the user has reached (used as the checkpoint).
     // Clamped against the current steps.length in case the step list
@@ -86,6 +87,7 @@ export default function Wizard<T extends Record<string, unknown>>({
     );
     const [stepErrors, setStepErrors] = useState<Record<string, string>>({});
     const [isReady, setIsReady] = useState(false);
+    const hasRestoredSnapshot = useRef(false);
 
     // Derived, render-time-safe indices. If state ever exceeds the
     // current step list's bounds — because the step list just shrank —
@@ -102,19 +104,25 @@ export default function Wizard<T extends Record<string, unknown>>({
     const currentStepRef = useRef(safeCurrentStep);
     currentStepRef.current = safeCurrentStep;
 
-    // Apply snapshot once on mount, then enable saving.
-    // The guard prevents the initial save effect from clobbering the
-    // stored draft with the parent form's empty defaults.
+    // Restore only after the client-side storage read completes, then
+    // enable saving so the initial defaults cannot overwrite a draft.
     useEffect(() => {
+        if (!loaded || hasRestoredSnapshot.current) return;
+        hasRestoredSnapshot.current = true;
+
         if (snapshot) {
             Object.entries(snapshot.data).forEach(([key, value]) => {
                 setData(key, value);
             });
+            const restoredStep = Math.min(
+                snapshot.currentStep,
+                Math.max(0, steps.length - 1),
+            );
+            setCurrentStep(restoredStep);
+            setMaxStep(restoredStep);
         }
         setIsReady(true);
-        // Intentionally run once on mount
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [loaded, snapshot, setData, steps.length]);
 
     // Persist on every step or data change — but only after restore.
     // We save `maxStep` (not `currentStep`) so going back doesn't
