@@ -36,6 +36,18 @@ it('keeps church events out of the registration queue', function () {
         ->assertInertia(fn ($page) => $page->has('needsForm', 0)->has('open', 0)->has('closed', 0));
 });
 
+it('links draft running events to the registration form builder', function () {
+    $staff = User::factory()->create(['role' => 'admin']);
+    $event = Event::create(['event_name' => 'Draft Run', 'event_type' => 'community_run', 'created_by' => $staff->id]);
+
+    $this->actingAs($staff)->get('/registrations')
+        ->assertInertia(fn ($page) => $page
+            ->where('needsForm.0.id', $event->id)
+            ->where('needsForm.0.action_url', route('events.registration-form.show', $event)));
+
+    $this->get(route('events.registration-form.show', $event))->assertOk();
+});
+
 it('shows a next-day run once its attendance window opens before midnight', function () {
     $this->travelTo(Carbon::parse('2026-10-21 23:45:00'));
     $staff = User::factory()->create(['role' => 'admin']);

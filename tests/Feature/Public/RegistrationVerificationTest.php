@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Requests\PublicRegistrationRequest;
 use App\Mail\RegistrationVerificationOtpMail;
 use App\Models\Event;
 use App\Models\Participant;
@@ -94,6 +95,56 @@ test('version two verifies email only even when the contact number is required',
         ->assertSessionHasNoErrors();
     $this->post($url.'/complete')->assertSessionHasNoErrors();
     expect(Registration::count())->toBe(1);
+});
+
+test('version two rejects keyboard-mashing emergency contact names', function () {
+    $event = verificationEvent();
+    $event->forceFill(['registration_form_version' => 2])->save();
+
+    try {
+        PublicRegistrationRequest::validatePending($event, verificationPayload([
+            'birthday' => '2000-01-15',
+            'emergency_contact_first_name' => 'dfgdfgd',
+            'emergency_contact_last_name' => 'dfgdfdffgfd',
+            'emergency_contact_relationship' => 'Parent',
+        ]));
+
+        $this->fail('Expected invalid emergency contact names to be rejected.');
+    } catch (ValidationException $exception) {
+        expect($exception->errors())->toHaveKeys([
+            'emergency_contact_first_name',
+            'emergency_contact_last_name',
+        ]);
+    }
+});
+
+test('version two requires a Philippine mobile number for emergency contacts', function () {
+    $event = verificationEvent();
+    $event->forceFill(['registration_form_version' => 2])->save();
+    $payload = verificationPayload([
+        'birthday' => '2000-01-15',
+        'emergency_contact_first_name' => 'Juan',
+        'emergency_contact_last_name' => 'Santos',
+        'emergency_contact_relationship' => 'Parent',
+    ]);
+
+    try {
+        PublicRegistrationRequest::validatePending($event, [
+            ...$payload,
+            'emergency_contact_number' => '1234567890',
+        ]);
+
+        $this->fail('Expected an invalid emergency contact number to be rejected.');
+    } catch (ValidationException $exception) {
+        expect($exception->errors())->toHaveKey('emergency_contact_number');
+    }
+
+    $validated = PublicRegistrationRequest::validatePending($event, [
+        ...$payload,
+        'emergency_contact_number' => '09171234567',
+    ]);
+
+    expect($validated['emergency_contact_number'])->toBe('+639171234567');
 });
 
 test('email intake stores encrypted pending data and no registration records', function () {

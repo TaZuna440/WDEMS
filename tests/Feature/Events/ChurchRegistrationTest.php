@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Requests\PublicRegistrationRequest;
 use App\Models\Attendance;
 use App\Models\Event;
 use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\User;
+use Illuminate\Validation\ValidationException;
 
 beforeEach(function () {
     $this->staff = User::factory()->create(['role' => 'admin', 'email_two_factor_enabled' => false]);
@@ -118,4 +120,31 @@ it('rejects invalid names and cross-event or running registration access', funct
     $this->delete("/events/{$other->id}/registrations/{$row->id}")->assertNotFound();
     $other->update(['event_kind' => 'running']);
     $this->post("/events/{$other->id}/registrations", $this->data)->assertNotFound();
+});
+
+it('rejects keyboard-mashing names in public church registration', function () {
+    try {
+        PublicRegistrationRequest::validatePending($this->event, [
+            'first_name' => 'gjhnvbghjhg',
+            'middle_name' => 'fghgfhfg',
+            'last_name' => 'fghfghfghfg',
+            'email' => 'participant@example.com',
+            'birthday' => '2010-01-01',
+            'address' => 'Manila City',
+            'participant_type' => 'Guest',
+            'emergency_contact_first_name' => 'Jose',
+            'emergency_contact_last_name' => 'Santos',
+            'emergency_contact_relationship' => 'Parent',
+            'emergency_contact_number' => '09171234567',
+            'consent' => true,
+        ]);
+
+        $this->fail('Expected keyboard-mashing names to be rejected.');
+    } catch (ValidationException $exception) {
+        expect($exception->errors())->toHaveKeys([
+            'first_name',
+            'middle_name',
+            'last_name',
+        ]);
+    }
 });

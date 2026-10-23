@@ -135,18 +135,11 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     Route::post('registrations/{registration}/note', [RegistrationMonitorController::class, 'saveNote'])
         ->name('registration-monitor.save-note');
 
-    // Registration deletion — Phase 9. Same admin/staff split as
-    // event deletion: admin hits DELETE, staff walk through
-    // request-otp → verify-otp. The status gate (open or closed)
-    // lives inside RegistrationDeletionController::ensureManageable().
+    // Registration deletion requires password confirmation. The
+    // status gate (open or closed) lives in the controller.
     Route::delete('registrations/{registration}', [RegistrationDeletionController::class, 'destroy'])
+        ->middleware('throttle:10,1')
         ->name('registrations.destroy');
-    Route::post('registrations/{registration}/deletion/request-otp', [RegistrationDeletionController::class, 'requestOtp'])
-        ->middleware('throttle:registration-deletion-otp-request')
-        ->name('registrations.deletion.request-otp');
-    Route::post('registrations/{registration}/deletion/verify-otp', [RegistrationDeletionController::class, 'verifyOtp'])
-        ->middleware('throttle:registration-deletion-otp-verify')
-        ->name('registrations.deletion.verify-otp');
 
     // Attendance directory — lists events eligible for attendance
     // recording. Gate: event_date <= today (see AttendanceController).

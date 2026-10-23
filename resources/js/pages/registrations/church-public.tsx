@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CHURCH_PARTICIPANT_TYPES } from '@/lib/church-participant-types';
+import { humanNameQualityError } from '@/lib/event-validation';
 
 type ChurchEvent = {
     event_name: string;
@@ -26,6 +27,9 @@ function dateYearsAgo(years: number): string {
 }
 
 export default function ChurchPublic({ event, submit_url }: Props) {
+    const [clientErrors, setClientErrors] = useState<Record<string, string>>(
+        {},
+    );
     const form = useForm({
         first_name: '',
         middle_name: '',
@@ -116,6 +120,45 @@ export default function ChurchPublic({ event, submit_url }: Props) {
                     className="space-y-5"
                     onSubmit={(e) => {
                         e.preventDefault();
+                        const validationErrors: Record<string, string> = {};
+                        for (const [key, label] of [
+                            [
+                                'emergency_contact_first_name',
+                                'Emergency contact first name',
+                            ],
+                            [
+                                'emergency_contact_last_name',
+                                'Emergency contact last name',
+                            ],
+                        ] as const) {
+                            const value = form.data[key].trim();
+                            if (
+                                value.length < 2 ||
+                                value.length > 50 ||
+                                !/^[\p{L}\p{M} '-]+$/u.test(value)
+                            ) {
+                                validationErrors[key] =
+                                    'Use 2–50 characters: letters, spaces, hyphens, or apostrophes.';
+                            } else {
+                                const qualityError = humanNameQualityError(
+                                    value,
+                                    label,
+                                );
+                                if (qualityError) {
+                                    validationErrors[key] = qualityError;
+                                }
+                            }
+                        }
+                        if (
+                            !/^(?:09|\+639)[0-9]{9}$/.test(
+                                form.data.emergency_contact_number,
+                            )
+                        ) {
+                            validationErrors.emergency_contact_number =
+                                'Enter a valid Philippine mobile number: 09xxxxxxxxx or +639xxxxxxxxx.';
+                        }
+                        setClientErrors(validationErrors);
+                        if (Object.keys(validationErrors).length > 0) return;
                         form.post(submit_url);
                     }}
                 >
@@ -232,16 +275,19 @@ export default function ChurchPublic({ event, submit_url }: Props) {
                                     id={key}
                                     value={form.data[key]}
                                     required
+                                    aria-invalid={
+                                        !!clientErrors[key] || !!errorFor(key)
+                                    }
                                     onChange={(e) =>
                                         form.setData(key, e.target.value)
                                     }
                                 />
-                                {errorFor(key) && (
+                                {(clientErrors[key] || errorFor(key)) && (
                                     <p
                                         role="alert"
                                         className="text-destructive text-xs"
                                     >
-                                        {errorFor(key)}
+                                        {clientErrors[key] || errorFor(key)}
                                     </p>
                                 )}
                             </div>
@@ -306,6 +352,10 @@ export default function ChurchPublic({ event, submit_url }: Props) {
                                 type="tel"
                                 value={form.data.emergency_contact_number}
                                 required
+                                aria-invalid={
+                                    !!clientErrors.emergency_contact_number ||
+                                    !!errorFor('emergency_contact_number')
+                                }
                                 onChange={(e) =>
                                     form.setData(
                                         'emergency_contact_number',
@@ -313,12 +363,14 @@ export default function ChurchPublic({ event, submit_url }: Props) {
                                     )
                                 }
                             />
-                            {errorFor('emergency_contact_number') && (
+                            {(clientErrors.emergency_contact_number ||
+                                errorFor('emergency_contact_number')) && (
                                 <p
                                     role="alert"
                                     className="text-destructive text-xs"
                                 >
-                                    {errorFor('emergency_contact_number')}
+                                    {clientErrors.emergency_contact_number ||
+                                        errorFor('emergency_contact_number')}
                                 </p>
                             )}
                         </div>

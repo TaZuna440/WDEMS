@@ -18,7 +18,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import EditParticipantDialog from '@/components/edit-participant-dialog';
 import NoteDialog from '@/components/note-dialog';
-import RegistrationDeletionOtpDialog from '@/components/registration-deletion-otp-dialog';
+import RegistrationDeletionPasswordDialog from '@/components/registration-deletion-password-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -85,7 +85,6 @@ type Props = {
     event: EventData;
     stats: Stats;
     registrations: RegistrationRow[];
-    is_admin: boolean;
     duplicates_url: string;
 };
 
@@ -412,7 +411,6 @@ export default function MonitorShow({
     event,
     stats,
     registrations,
-    is_admin,
     duplicates_url,
 }: Props) {
     const [filter, setFilter] = useState<Filter>('all');
@@ -499,20 +497,6 @@ export default function MonitorShow({
     };
 
     const handleDelete = (row: RegistrationRow) => {
-        if (is_admin) {
-            const name = row.participant.full_name ?? 'this participant';
-            const ok = window.confirm(
-                `Permanently delete ${name}'s registration? This cannot be undone.`,
-            );
-            if (!ok) return;
-
-            router.delete(`/registrations/${row.id}`, {
-                preserveScroll: true,
-            });
-
-            return;
-        }
-
         setDeleteRow(row);
     };
 
@@ -685,7 +669,7 @@ export default function MonitorShow({
             )}
 
             {deleteRow !== null && (
-                <RegistrationDeletionOtpDialog
+                <RegistrationDeletionPasswordDialog
                     registrationId={deleteRow.id}
                     participantName={
                         deleteRow.participant.full_name ?? 'this participant'

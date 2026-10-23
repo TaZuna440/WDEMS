@@ -6,21 +6,16 @@ use App\Enums\EventStatus;
 use App\Enums\RegistrationStatus;
 use App\Models\Registration;
 use App\Models\User;
-use App\Services\EventDeletion\OtpResendTooSoonException;
-use App\Services\EventDeletion\OtpVerificationResult;
-use App\Services\EventDeletion\RegistrationDeletionOtpService;
 use App\Services\EventDeletion\RegistrationDeletionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Delete a single registration.
  *
- * Mirrors EventDeletionController. Two role paths:
- *
- *   - Admin: DELETE /registrations/{registration} — direct, no OTP.
- *   - Staff: OTP flow via request-otp + verify-otp endpoints.
+ * Requires the authenticated user's password before deleting.
  *
  * Cascade behavior is at the schema level: field responses and
  * attendances vanish with the registration. The participant row is
@@ -34,116 +29,24 @@ use Illuminate\Support\Facades\Log;
 class RegistrationDeletionController extends Controller
 {
     /**
-     * Admin path: delete immediately. Staff get 403 — they must use
-     * the OTP flow.
+     * Validate the user's password before deleting.
      */
     public function destroy(Request $request, Registration $registration): RedirectResponse
     {
         $this->ensureManageable($registration);
 
-        if (! $request->user()->isAdmin()) {
-            abort(403, 'Staff must verify registration deletion via email OTP.');
-        }
-
-        return $this->performDeletion($registration, $request->user());
-    }
-
-    /**
-     * Staff path, step 1: send a code.
-     *
-     * Rate-limited at the route. Cooldown enforced inside the
-     * service.
-     */
-    public function requestOtp(Request $request, Registration $registration): RedirectResponse
-    {
-        $this->ensureManageable($registration);
-
-        $user = $request->user();
-
-        if ($user->isAdmin()) {
-            abort(403, 'Admins do not require OTP verification.');
-        }
-
-        $service = app(RegistrationDeletionOtpService::class);
-
-        try {
-            $service->issue($user, $registration);
-        } catch (OtpResendTooSoonException) {
-            return back()->withErrors([
-                'code' => 'Please wait before requesting another code.',
-            ]);
-        } catch (\Throwable $e) {
-            // Roll back the OTP + cooldown we just wrote, so the user
-            // isn't locked out by an OTP that was never delivered.
-            $service->invalidate($user, $registration);
-
-            Log::error('registration.deletion.otp_request_failed', [
-                'user_id' => $user->id,
-                'registration_id' => $registration->id,
-                'error' => $e->getMessage(),
-                'exception' => $e::class,
-            ]);
-
-            return back()->withErrors([
-                'code' => 'We could not send the verification code. Please try again in a moment. If this keeps happening, contact your administrator.',
-            ]);
-        }
-
-        return back();
-    }
-
-    /**
-     * Staff path, step 2: verify the code and, on success, delete.
-     *
-     * The verification result drives the response. Verified triggers
-     * the delete. Every other state surfaces a specific message under
-     * the `code` error key.
-     */
-    public function verifyOtp(Request $request, Registration $registration): RedirectResponse
-    {
-        $this->ensureManageable($registration);
-
-        $user = $request->user();
-
-        if ($user->isAdmin()) {
-            abort(403, 'Admins do not require OTP verification.');
-        }
-
         $validated = $request->validate([
-            'code' => ['required', 'string', 'digits:6'],
+            'password' => ['required', 'string'],
         ]);
 
-        try {
-            $result = app(RegistrationDeletionOtpService::class)
-                ->verify($user, $registration, $validated['code']);
-
-            return match ($result) {
-                OtpVerificationResult::Verified => $this->performDeletion($registration, $user),
-                OtpVerificationResult::Invalid => back()->withErrors([
-                    'code' => 'The verification code is incorrect.',
-                ]),
-                OtpVerificationResult::Expired => back()->withErrors([
-                    'code' => 'The verification code has expired. Please request a new one.',
-                ]),
-                OtpVerificationResult::Locked => back()->withErrors([
-                    'code' => 'Too many incorrect attempts. Please request a new code later.',
-                ]),
-                OtpVerificationResult::NotFound => back()->withErrors([
-                    'code' => 'No active verification code. Please request a new one.',
-                ]),
-            };
-        } catch (\Throwable $e) {
-            Log::error('registration.deletion.verify_failed', [
-                'user_id' => $user->id,
-                'registration_id' => $registration->id,
-                'error' => $e->getMessage(),
-                'exception' => $e::class,
-            ]);
-
-            return back()->withErrors([
-                'code' => 'Something went wrong while verifying. Please try again in a moment.',
+        $user = $request->user();
+        if (! Hash::check($validated['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => 'The provided password does not match our records.',
             ]);
         }
+
+        return $this->performDeletion($registration, $user);
     }
 
     /**
@@ -162,9 +65,9 @@ class RegistrationDeletionController extends Controller
     }
 
     /**
-     * Event status gate. Same statuses the monitor's own actions
-     * accept: open or closed. Draft, ongoing, completed, and
-     * cancelled reject with 403.
+     * Status gate. The monitor remains available while registration
+     * is open/closed and while the event is ongoing, so deletions
+     * must remain available for those same states.
      */
     private function ensureManageable(Registration $registration): void
     {
@@ -178,6 +81,7 @@ class RegistrationDeletionController extends Controller
         if (! in_array($event->status, [
             EventStatus::RegistrationOpen,
             EventStatus::RegistrationClosed,
+            EventStatus::Ongoing,
         ], true)) {
             abort(403, 'This registration can no longer be deleted.');
         }

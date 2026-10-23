@@ -448,6 +448,10 @@ export function validateRegistrationForm(
             if (ecContactError) {
                 errors.emergency_contact_number = ecContactError;
             }
+            if (!/^(?:09|\+639)[0-9]{9}$/.test(data.emergency_contact_number)) {
+                errors.emergency_contact_number =
+                    'Enter a valid Philippine mobile number: 09xxxxxxxxx or +639xxxxxxxxx.';
+            }
         }
     }
 
@@ -468,6 +472,16 @@ export function validateRegistrationForm(
             ) {
                 errors[key] =
                     'Use 2–50 characters: letters, spaces, hyphens, or apostrophes.';
+            } else if (key.startsWith('emergency_contact_')) {
+                const label = key.endsWith('first_name')
+                    ? 'Emergency contact first name'
+                    : 'Emergency contact last name';
+                const qualityError = humanNameQualityError(value, label);
+                if (qualityError) {
+                    errors[key] = qualityError;
+                } else {
+                    delete errors[key];
+                }
             } else {
                 delete errors[key];
             }
@@ -481,7 +495,7 @@ export function validateRegistrationForm(
             const value = data[key] ?? '';
             if (value && !/^(?:09|\+639)[0-9]{9}$/.test(value))
                 errors[key] =
-                    'Enter a valid Philippine mobile number: +63 9xxxxxxxxx.';
+                    'Enter a valid Philippine mobile number: 09xxxxxxxxx or +639xxxxxxxxx.';
         }
         if (
             ![

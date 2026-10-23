@@ -180,6 +180,24 @@ it('rejects unsupported church participant types from the public form', function
     expect(RegistrationVerificationChallenge::where('event_id', $event->id)->exists())->toBeFalse();
 });
 
+it('rejects invalid emergency contact names and phone numbers on the church public form', function () {
+    [$event, $payload] = church_public_fixture();
+
+    $this->post('/r/'.$event->registration_slug, [
+        ...$payload,
+        'emergency_contact_first_name' => 'dfgdfgd',
+        'emergency_contact_last_name' => 'dfgdfdffgfd',
+        'emergency_contact_number' => '1234567890',
+    ])->assertSessionHasErrors([
+        'emergency_contact_first_name',
+        'emergency_contact_last_name',
+        'emergency_contact_number',
+    ]);
+
+    expect(RegistrationVerificationChallenge::where('event_id', $event->id)->exists())
+        ->toBeFalse();
+});
+
 it('does not send an email otp without a successful recaptcha check', function () {
     [$event, $payload] = church_public_fixture();
     Mail::fake();

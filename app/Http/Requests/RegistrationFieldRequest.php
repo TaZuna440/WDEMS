@@ -38,7 +38,7 @@ class RegistrationFieldRequest extends FormRequest
             'tshirt_choices' => ['required_if:tshirt_enabled,1', 'array', 'min:3', 'max:6'],
             'tshirt_choices.*' => ['required', 'string', 'max:50', 'distinct:ignore_case'],
             'tshirt_photos' => ['sometimes', 'array', 'max:3'],
-            'tshirt_photos.*' => ['file', 'image', 'mimes:jpg,jpeg,png', 'max:25600'],
+            'tshirt_photos.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:10240'],
             'tshirt_existing_photos' => ['sometimes', 'array', 'max:3'],
             'tshirt_existing_photos.*' => ['string', 'distinct'],
         ]);

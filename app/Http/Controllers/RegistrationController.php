@@ -77,7 +77,12 @@ class RegistrationController extends Controller
                 ->filter(fn (Event $e) => $e->isChurchEvent()
                     ? $e->registration_form_saved_at === null
                     : $e->status === EventStatus::Draft)
-                ->map($map)
+                ->map(fn (Event $event): array => [
+                    ...$map($event),
+                    'action_url' => $event->isRunningEvent()
+                        ? route('events.registration-form.show', $event)
+                        : route('church.registrations.index', $event),
+                ])
                 ->values(),
             'open' => $events
                 ->filter(fn (Event $e) => $e->isChurchEvent()

@@ -34,6 +34,7 @@ import {
     type RegistrationFormData,
     type ServerField,
 } from '@/lib/public-registration-validation';
+import { humanNameQualityError } from '@/lib/event-validation';
 
 type EventPayload = {
     event_name: string;
@@ -302,6 +303,25 @@ export default function PublicRegistration({
                         'address',
                     ]);
                     const out: Record<string, string> = {};
+                    const registrationData = data as RegistrationFormData;
+                    for (const [key, label] of [
+                        ['first_name', 'First name'],
+                        ['last_name', 'Last name'],
+                        ['middle_name', 'Middle name'],
+                    ] as const) {
+                        const name = registrationData[key];
+                        if (typeof name !== 'string' || name.trim() === '') {
+                            continue;
+                        }
+
+                        const qualityError = humanNameQualityError(
+                            name.trim(),
+                            label,
+                        );
+                        if (qualityError) {
+                            out[key] = qualityError;
+                        }
+                    }
                     if (
                         !preview &&
                         (similarity?.key !== identityKey || similarity.failed)
@@ -920,6 +940,7 @@ export default function PublicRegistration({
                                     id={key}
                                     maxLength={50}
                                     value={form.data[key] ?? ''}
+                                    aria-invalid={!!stepErrors[key]}
                                     onChange={(e) =>
                                         onCommonChange(key, e.target.value)
                                     }

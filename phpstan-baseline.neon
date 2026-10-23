@@ -2053,18 +2053,6 @@ parameters:
 			path: app/Services/Discipleship/DiscipleshipProgressService.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$event_name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/EventDeletion/RegistrationDeletionOtpService.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>event_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/EventDeletion/RegistrationDeletionOtpService.php
-
-		-
 			message: '#^Instanceof between string and App\\Enums\\EventStatus will always evaluate to false\.$#'
 			identifier: instanceof.alwaysFalse
 			count: 2

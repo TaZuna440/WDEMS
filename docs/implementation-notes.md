@@ -415,3 +415,10 @@ Current Running Events uses Tiptap and JsBarcode plus server disclaimer sanitiza
 Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
 This dated addendum supersedes conflicting Running Events statements above;
 historical entries are retained under the append-only documentation policy.
+
+## Registration deletion verification addendum — 2026-10-23
+
+Registration deletion now requires the authenticated user's password in the
+`DELETE /registrations/{registration}` request. The old registration-deletion
+email OTP routes, dialog, mail, and rate limiters have been removed. Event
+deletion continues to use its separate email OTP flow.

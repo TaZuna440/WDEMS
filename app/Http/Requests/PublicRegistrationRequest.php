@@ -96,9 +96,9 @@ class PublicRegistrationRequest extends FormRequest
         $event = $this->pendingEvent ?? $this->route('event');
         if ($event instanceof Event && $event->isChurchEvent()) {
             return [
-                'first_name' => ['required', 'string', 'min:2', 'max:50', "regex:/^[\\pL\\pM '\\-]+$/u"],
-                'last_name' => ['required', 'string', 'min:2', 'max:50', "regex:/^[\\pL\\pM '\\-]+$/u"],
-                'middle_name' => ['nullable', 'string', 'max:50'], 'suffix' => ['nullable', 'string', 'max:10'],
+                'first_name' => ['required', 'string', 'min:2', 'max:50', "regex:/^[\\pL\\pM '\\-]+$/u", ...$this->humanNameQualityRules()],
+                'last_name' => ['required', 'string', 'min:2', 'max:50', "regex:/^[\\pL\\pM '\\-]+$/u", ...$this->humanNameQualityRules()],
+                'middle_name' => ['nullable', 'string', 'max:50', ...$this->humanNameQualityRules()], 'suffix' => ['nullable', 'string', 'max:10'],
                 'email' => ['required', 'email', 'max:255'],
                 'contact_number' => ['nullable', 'string', 'max:20', ...$this->contactNumberQualityRules(), 'regex:/\A(?:09|\+639)[0-9]{9}\z/'],
                 'birthday' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now()->subYears(3)->toDateString(), 'after_or_equal:'.now()->subYears(120)->toDateString()],
@@ -106,8 +106,8 @@ class PublicRegistrationRequest extends FormRequest
                 'participant_type' => ['required', Rule::enum(ChurchParticipantType::class)],
                 'guardian_name' => ['nullable', 'string', 'max:100'],
                 'guardian_contact' => ['nullable', 'string', 'max:20', ...$this->contactNumberQualityRules(), 'regex:/\A(?:09|\+639)[0-9]{9}\z/'],
-                'emergency_contact_first_name' => ['required', 'string', 'min:2', 'max:50', "regex:/\A[\pL\pM '\-]+\z/u"],
-                'emergency_contact_last_name' => ['required', 'string', 'min:2', 'max:50', "regex:/\A[\pL\pM '\-]+\z/u"],
+                'emergency_contact_first_name' => ['required', 'string', 'min:2', 'max:50', "regex:/\A[\pL\pM '\-]+\z/u", ...$this->humanNameQualityRules()],
+                'emergency_contact_last_name' => ['required', 'string', 'min:2', 'max:50', "regex:/\A[\pL\pM '\-]+\z/u", ...$this->humanNameQualityRules()],
                 'emergency_contact_relationship' => ['required', Rule::in(['Parent', 'Sibling', 'Spouse', 'Friend', 'Guardian', 'Other'])],
                 'emergency_contact_relationship_other' => ['exclude_unless:emergency_contact_relationship,Other', 'required', 'string', 'min:2', 'max:15', "regex:/\A[\pL\pM '\-]+\z/u"],
                 'emergency_contact_number' => ['required', 'string', 'max:20', ...$this->contactNumberQualityRules(), 'regex:/\A(?:09|\+639)[0-9]{9}\z/'],
@@ -141,7 +141,7 @@ class PublicRegistrationRequest extends FormRequest
             ]),
             'emergency_contact_name' => ['required', 'string', 'max:255', ...$this->humanNameQualityRules()],
             'emergency_contact_relationship' => ['required', 'string', 'max:64'],
-            'emergency_contact_number' => ['required', 'string', 'max:50', ...$this->contactNumberQualityRules()],
+            'emergency_contact_number' => ['required', 'string', 'max:50', ...$this->contactNumberQualityRules(), 'regex:/\A(?:09|\+639)[0-9]{9}\z/'],
             'responses' => ['nullable', 'array', 'max:5'],
             'responses.*' => ['nullable'],
         ];
@@ -157,8 +157,8 @@ class PublicRegistrationRequest extends FormRequest
             $rules['emergency_contact_number'][] = 'regex:/\A(?:09|\+639)[0-9]{9}\z/';
             $rules['address'] = ['required', 'string', 'min:3', 'max:255'];
             $rules['emergency_contact_name'] = ['nullable', 'string', 'max:101'];
-            $rules['emergency_contact_first_name'] = $name;
-            $rules['emergency_contact_last_name'] = $name;
+            $rules['emergency_contact_first_name'] = [...$name, ...$this->humanNameQualityRules()];
+            $rules['emergency_contact_last_name'] = [...$name, ...$this->humanNameQualityRules()];
             $rules['emergency_contact_relationship'] = ['required', Rule::in(['Parent', 'Sibling', 'Spouse', 'Friend', 'Guardian', 'Other'])];
             $rules['emergency_contact_relationship_other'] = ['exclude_unless:emergency_contact_relationship,Other', 'required', 'string', 'min:2', 'max:15', "regex:/\\A(?=.*[\\p{L}])[\\p{L}\\p{M} '\\-]+\\z/u"];
         }

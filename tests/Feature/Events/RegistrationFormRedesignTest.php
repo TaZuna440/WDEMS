@@ -50,8 +50,20 @@ test('the builder rejects missing default choices and excessive total photo size
     $this->put(route('events.registration-form.update', $this->event), redesignPayload(['tshirt_choices' => ['Small', 'Medium', 'XSmall']]))
         ->assertSessionHasErrors('tshirt_choices');
     $this->put(route('events.registration-form.update', $this->event), redesignPayload([
-        'tshirt_photos' => [redesignPhoto('one.png')->size(15000), redesignPhoto('two.png')->size(15000)],
+        'tshirt_photos' => [
+            redesignPhoto('one.png')->size(9000),
+            redesignPhoto('two.png')->size(9000),
+            redesignPhoto('three.png')->size(9000),
+        ],
     ]))->assertSessionHasErrors('tshirt_photos');
+    expect($this->event->fresh()->registration_form_saved_at)->toBeNull();
+});
+
+test('the builder rejects an individual T-shirt photo larger than 10 MB', function () {
+    $this->put(route('events.registration-form.update', $this->event), redesignPayload([
+        'tshirt_photos' => [redesignPhoto('large.png')->size(10241)],
+    ]))->assertSessionHasErrors('tshirt_photos.0');
+
     expect($this->event->fresh()->registration_form_saved_at)->toBeNull();
 });
 

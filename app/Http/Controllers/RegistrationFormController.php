@@ -10,6 +10,7 @@ use App\Support\RegistrationRichText;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -111,13 +112,21 @@ class RegistrationFormController extends Controller
         $tshirt = null;
 
         try {
-            foreach ($request->file('tshirt_photos', []) as $file) {
-                $path = $file->store('registration-tshirts/'.$event->id, 'public');
-                if (! is_string($path)) {
-                    throw new \RuntimeException('Could not store T-shirt photo.');
+            if ($request->hasFile('tshirt_photos')) {
+                foreach ($request->file('tshirt_photos', []) as $file) {
+                    if (! $file->isValid()) {
+                        throw ValidationException::withMessages([
+                            'tshirt_photos' => 'One or more T-shirt photos could not be uploaded. Please try again.',
+                        ]);
+                    }
+
+                    $path = $file->store('registration-tshirts/'.$event->id, 'public');
+                    if (! is_string($path)) {
+                        throw new \RuntimeException('Could not store T-shirt photo.');
+                    }
+                    $newPaths[] = $path;
+                    $photos[] = ['path' => $path, 'size' => $file->getSize()];
                 }
-                $newPaths[] = $path;
-                $photos[] = ['path' => $path, 'size' => $file->getSize()];
             }
             if ($request->boolean('tshirt_enabled')) {
                 $tshirt = [
