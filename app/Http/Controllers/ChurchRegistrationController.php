@@ -11,6 +11,7 @@ use App\Models\Participant;
 use App\Models\Registration;
 use App\Services\Church\RegistrationBridge;
 use App\Services\Participants\DuplicateReview;
+use App\Services\RegistrationConfirmationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -73,7 +74,7 @@ class ChurchRegistrationController extends Controller
             $this->rejectExact($review, $event, $data);
             $person = $this->resolve($data);
             $candidate = $review->findCandidate($event, $data);
-            $event->registrations()->create([
+            $registration = $event->registrations()->create([
                 ...$this->registrationData($data),
                 'participant_id' => $person->id,
                 'registration_status' => $candidate ? 'held' : 'confirmed',
@@ -83,6 +84,7 @@ class ChurchRegistrationController extends Controller
                 'contact_attested_at' => now(), 'registered_at' => now(), 'registration_date' => now(),
                 'attendance_code' => $this->code($event),
             ]);
+            app(RegistrationConfirmationService::class)->sendAfterCommit($registration);
         });
 
         return back()->with('success', 'Submission saved. Held submissions require organizer review before attendance.');

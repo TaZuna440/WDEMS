@@ -757,6 +757,8 @@ class AttendanceController extends Controller
                 'held_candidate_registration_id' => $candidate['registration']->id ?? null,
                 'source' => 'paper',
                 'registered_at' => now(),
+                'submitted_email' => $email !== '' ? $email : null,
+                'submitted_contact_number' => $phone,
             ]);
 
             foreach ($row['responses'] ?? [] as $fieldId => $value) {
@@ -988,6 +990,8 @@ class AttendanceController extends Controller
                 'held_candidate_registration_id' => $candidate['registration']->id ?? null,
                 'source' => 'walk_in',
                 'registered_at' => now(),
+                'submitted_email' => $validated['email'] ?? null,
+                'submitted_contact_number' => $validated['contact_number'] ?? null,
             ]);
 
             foreach ($validated['responses'] ?? [] as $fieldId => $value) {

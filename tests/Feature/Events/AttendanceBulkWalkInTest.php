@@ -8,6 +8,7 @@ use App\Models\RegistrationField;
 use App\Models\RegistrationFieldResponse;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
@@ -114,6 +115,23 @@ test('bulk walk-in registers a single row with attendance', function () {
     $registration = Registration::where('event_id', $event->id)->first();
     expect($registration->source)->toBe('paper');
     expect($registration->attendance)->not->toBeNull();
+});
+
+test('staff walk-in does not email an on-site registration code', function () {
+    Mail::fake();
+    $staff = bwt_staff();
+    $event = bwt_event();
+    $row = bwt_row(['email' => 'walkin@example.com']);
+
+    $this->actingAs($staff)
+        ->post("/events/{$event->id}/attendance/walk-in", $row)
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $registration = Registration::where('event_id', $event->id)->sole();
+    expect($registration->attendance_code)->toBeNull()
+        ->and($registration->submitted_email)->toBe('walkin@example.com');
+    Mail::assertNothingSent();
 });
 
 test('bulk walk-in persists multiple rows in one request', function () {

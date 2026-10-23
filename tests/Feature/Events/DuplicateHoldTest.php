@@ -1,12 +1,14 @@
 <?php
 
 use App\Enums\RegistrationStatus;
+use App\Mail\RegistrationConfirmationMail;
 use App\Models\Event;
 use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\User;
 use App\Services\Participants\DuplicateReview;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 require_once __DIR__.'/../../Support/PublicVerification.php';
@@ -84,9 +86,28 @@ it('rejects review actions on an active registration', function (string $action)
 })->with(['confirm_duplicate', 'confirm_separate', 'correct_details', 'remove']);
 
 it('releases a separate person as unmarked and audits the actor', function () {
+    Mail::fake();
+    $this->held->update(['submitted_email' => 'maria.registration@example.com']);
+
     $this->actingAs($this->staff)->post("/events/{$this->event->id}/possible-duplicates/{$this->held->id}/resolve", ['action' => 'confirm_separate', 'reason' => 'Staff checked both people'])->assertRedirect();
     expect($this->held->fresh()->isActive())->toBeTrue()->and($this->held->fresh()->attendance)->toBeNull();
     $this->assertDatabaseHas('registration_review_resolutions', ['registration_id' => $this->held->id, 'actor_id' => $this->staff->id, 'reason' => 'Staff checked both people']);
+    Mail::assertSent(RegistrationConfirmationMail::class, function (RegistrationConfirmationMail $mail) {
+        return $mail->hasTo('maria.registration@example.com')
+            && $mail->code === 'ABCD-1234'
+            && $mail->eventName === 'Recovery run';
+    });
+});
+
+it('does not resend confirmation mail when an already released registration is reviewed again', function () {
+    Mail::fake();
+    $this->held->update(['submitted_email' => 'maria.registration@example.com']);
+    $url = "/events/{$this->event->id}/possible-duplicates/{$this->held->id}/resolve";
+
+    $this->actingAs($this->staff)->post($url, ['action' => 'confirm_separate'])->assertRedirect();
+    $this->post($url, ['action' => 'confirm_separate'])->assertStatus(422);
+
+    Mail::assertSent(RegistrationConfirmationMail::class, 1);
 });
 
 it('preserves removed submissions and before and after audit snapshots', function () {

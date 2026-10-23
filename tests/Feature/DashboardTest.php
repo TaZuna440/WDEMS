@@ -18,6 +18,73 @@ test('authenticated users can visit the dashboard', function () {
     $response->assertOk();
 });
 
+test('dashboard lists held registrations across running and church events', function () {
+    $user = User::factory()->create(['role' => 'admin', 'email_two_factor_enabled' => false]);
+
+    foreach (['running', 'church'] as $kind) {
+        $event = Event::create([
+            'created_by' => $user->id,
+            'event_kind' => $kind,
+            'event_type' => $kind === 'running' ? 'community_run' : 'church',
+            'church_category' => $kind === 'church' ? 'Services' : null,
+            'event_name' => ucfirst($kind).' Dashboard Event',
+        ]);
+        $participant = Participant::create([
+            'pool' => $kind,
+            'first_name' => ucfirst($kind).' Participant',
+            'last_name' => 'Example',
+            'email' => strtolower($kind).'@example.com',
+            'contact_number' => '09171234567',
+        ]);
+        $event->registrations()->create([
+            'participant_id' => $participant->id,
+            'registration_status' => 'held',
+            'source' => $kind === 'running' ? 'form' : 'manual',
+            'held_reason' => 'Similar name match',
+        ]);
+    }
+
+    $this->actingAs($user)->get('/dashboard')->assertInertia(fn ($page) => $page
+        ->has('flagged_registrations', 2)
+        ->where('flagged_registrations.0.participant.first_name', 'Church Participant')
+        ->where('flagged_registrations.0.event.event_name', 'Church Dashboard Event')
+        ->where('flagged_registrations.0.event.event_kind', 'church')
+        ->where('flagged_registrations.0.participant.email', 'church@example.com')
+        ->where('flagged_registrations.0.participant.contact_number', '09171234567')
+        ->where('flagged_registrations.0.held_reason', 'Similar name match')
+        ->where('flagged_registrations.1.participant.first_name', 'Running Participant')
+        ->where('flagged_registrations.1.event.event_name', 'Running Dashboard Event')
+        ->where('flagged_registrations.1.event.event_kind', 'running'));
+});
+
+test('dashboard limits flagged registrations to the ten most recent', function () {
+    $user = User::factory()->create(['role' => 'admin', 'email_two_factor_enabled' => false]);
+    $event = Event::create([
+        'created_by' => $user->id,
+        'event_kind' => 'running',
+        'event_type' => 'community_run',
+        'event_name' => 'Dashboard run',
+    ]);
+
+    foreach (range(1, 11) as $number) {
+        $participant = Participant::create([
+            'pool' => 'running',
+            'first_name' => "Participant{$number}",
+            'last_name' => 'Example',
+        ]);
+        $event->registrations()->create([
+            'participant_id' => $participant->id,
+            'registration_status' => 'held',
+            'source' => 'form',
+        ]);
+    }
+
+    $this->actingAs($user)->get('/dashboard')->assertInertia(fn ($page) => $page
+        ->has('flagged_registrations', 10)
+        ->where('flagged_registrations.0.participant.first_name', 'Participant11')
+        ->missing('flagged_registrations.10'));
+});
+
 test('dashboard remembers explicit side switches while query overrides remain visit-only', function () {
     $user = User::factory()->create([
         'role' => 'admin',

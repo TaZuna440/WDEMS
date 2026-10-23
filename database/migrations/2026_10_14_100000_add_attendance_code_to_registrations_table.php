@@ -33,9 +33,10 @@ return new class extends Migration
      * events without confusion; the workspace looks up by code
      * inside one event.
      *
-     * Nullable because walk-ins never receive a code. MySQL treats
-     * NULL as distinct in unique indexes, so multiple walk-ins per
-     * event coexist without collision.
+     * Nullable for legacy/name-only walk-ins without a registration
+     * code. New staff-entered registrations receive a code when they
+     * provide an email address. MySQL treats NULL as distinct in
+     * unique indexes, so multiple code-less rows per event coexist.
      */
     public function up(): void
     {

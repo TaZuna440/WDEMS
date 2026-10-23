@@ -13,6 +13,9 @@ class AdminAuditLogController extends Controller
         'event.created',
         'event.deleted',
         'user.registered',
+        'email.sent',
+        'email.failed',
+        'event.auto_advanced',
     ];
 
     public function index(Request $request): Response
@@ -20,6 +23,7 @@ class AdminAuditLogController extends Controller
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
             'action' => ['nullable', 'string', 'in:'.implode(',', self::ACTIONS)],
+            'actor_type' => ['nullable', 'string', 'in:user,system'],
             'user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
@@ -42,6 +46,10 @@ class AdminAuditLogController extends Controller
             $query->where('action', $filters['action']);
         }
 
+        if (isset($filters['actor_type'])) {
+            $query->where('actor_type', $filters['actor_type']);
+        }
+
         if (isset($filters['user_id'])) {
             $query->where('user_id', $filters['user_id']);
         }
@@ -53,6 +61,7 @@ class AdminAuditLogController extends Controller
             'filters' => [
                 'search' => $filters['search'] ?? '',
                 'action' => $filters['action'] ?? '',
+                'actor_type' => $filters['actor_type'] ?? '',
                 'user_id' => $filters['user_id'] ?? '',
             ],
             'actions' => self::ACTIONS,

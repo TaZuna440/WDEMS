@@ -11,6 +11,7 @@ import {
 
 type AuditLogRow = {
     id: number;
+    actor_type: 'user' | 'system';
     action: string;
     target_type: string | null;
     target_id: number | null;
@@ -32,18 +33,29 @@ type PaginatedLogs = {
 
 type Props = {
     logs: PaginatedLogs;
-    filters: { search: string; action: string; user_id: string | number };
+    filters: {
+        search: string;
+        action: string;
+        actor_type: string;
+        user_id: string | number;
+    };
     actions: string[];
 };
 
 export default function AdminAuditLogIndex({ logs, filters, actions }: Props) {
     const [search, setSearch] = useState(filters.search);
     const [userId, setUserId] = useState(String(filters.user_id ?? ''));
+    const [actorType, setActorType] = useState(filters.actor_type || 'all');
 
     const applyFilters = (action = filters.action) => {
         router.get(
             '/admin/audit-log',
-            { search, action, user_id: userId },
+            {
+                search,
+                action,
+                actor_type: actorType === 'all' ? '' : actorType,
+                user_id: userId,
+            },
             { preserveState: true, preserveScroll: true, replace: true },
         );
     };
@@ -84,6 +96,40 @@ export default function AdminAuditLogIndex({ logs, filters, actions }: Props) {
                         onChange={(event) => setUserId(event.target.value)}
                         className="sm:max-w-36"
                     />
+                    <Select
+                        value={actorType}
+                        onValueChange={(value) => {
+                            setActorType(value);
+                            router.get(
+                                '/admin/audit-log',
+                                {
+                                    search,
+                                    action: filters.action,
+                                    actor_type: value === 'all' ? '' : value,
+                                    user_id: userId,
+                                },
+                                {
+                                    preserveState: true,
+                                    preserveScroll: true,
+                                    replace: true,
+                                },
+                            );
+                        }}
+                    >
+                        <SelectTrigger
+                            aria-label="Filter by actor type"
+                            className="sm:w-48"
+                        >
+                            <SelectValue placeholder="All actors" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All actors</SelectItem>
+                            <SelectItem value="user">User Actions</SelectItem>
+                            <SelectItem value="system">
+                                System Actions
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
                     <Select
                         value={filters.action || 'all'}
                         onValueChange={(value) =>
@@ -135,9 +181,15 @@ export default function AdminAuditLogIndex({ logs, filters, actions }: Props) {
                                         ).toLocaleString()}
                                     </td>
                                     <td className="px-4 py-3">
-                                        {log.user
-                                            ? `${log.user.name} (${log.user.email})`
-                                            : 'Deleted user'}
+                                        {log.actor_type === 'system' ? (
+                                            <span className="bg-muted text-muted-foreground inline-flex rounded-full px-2.5 py-1 text-xs font-medium">
+                                                System
+                                            </span>
+                                        ) : log.user ? (
+                                            `${log.user.name} (${log.user.email})`
+                                        ) : (
+                                            'Deleted user'
+                                        )}
                                     </td>
                                     <td className="px-4 py-3 font-medium">
                                         {log.action}
@@ -148,9 +200,24 @@ export default function AdminAuditLogIndex({ logs, filters, actions }: Props) {
                                             : '—'}
                                     </td>
                                     <td className="text-muted-foreground max-w-md px-4 py-3 whitespace-pre-wrap">
-                                        {log.details
-                                            ? JSON.stringify(log.details)
-                                            : '—'}
+                                        {log.action === 'email.sent' &&
+                                        Array.isArray(log.details?.to) ? (
+                                            <p className="mb-1">
+                                                Sent email to{' '}
+                                                {log.details.to.join(', ')}
+                                            </p>
+                                        ) : null}
+                                        {log.details ? (
+                                            <pre className="max-w-md overflow-x-auto font-sans text-xs whitespace-pre-wrap">
+                                                {JSON.stringify(
+                                                    log.details,
+                                                    null,
+                                                    2,
+                                                )}
+                                            </pre>
+                                        ) : (
+                                            '—'
+                                        )}
                                         {log.ip_address && (
                                             <div className="mt-1 text-xs">
                                                 IP: {log.ip_address}

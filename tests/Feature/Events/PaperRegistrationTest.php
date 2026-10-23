@@ -29,6 +29,7 @@ test('paper encoding records staff attestation and full form data without OTP', 
         ->and($registration->contact_attested_at)->not->toBeNull()
         ->and($registration->emergency_contact_name)->toBe('Jose Santos')
         ->and($registration->tshirt_choice)->toBe('Medium')
+        ->and($registration->attendance_code)->toBeNull()
         ->and($registration->attendance->attendance_time->format('H:i'))->toBe('08:15')
         ->and($registration->attendance->verified_at)->toBeNull();
     Mail::assertNothingSent();
@@ -51,4 +52,5 @@ test('paper encoding holds an additive name match without recording attendance',
     $held = Registration::held()->sole();
     expect($held->held_candidate_registration_id)->toBe($master->id)->and($held->attendance)->toBeNull()
         ->and($held->encoded_by)->toBe($this->staff->id)->and(Registration::active()->count())->toBe(1);
+    Mail::assertNothingSent();
 });

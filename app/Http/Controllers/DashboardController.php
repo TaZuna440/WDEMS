@@ -48,11 +48,40 @@ class DashboardController extends Controller
             ? []
             : app(ParticipantHistoryService::class)->topAttendees(5);
         $eventStatistics = $isRunning ? $this->getRunningEventStatistics() : null;
+        $flaggedRegistrations = Registration::query()
+            ->with([
+                'participant:id,first_name,last_name,email,contact_number',
+                'event:id,event_name,event_kind',
+            ])
+            ->where(fn ($query) => $query
+                ->where('registration_status', 'held')
+                ->orWhereNotNull('flagged_at'))
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get()
+            ->map(fn (Registration $registration) => [
+                'id' => $registration->id,
+                'participant' => [
+                    'first_name' => $registration->participant?->first_name,
+                    'last_name' => $registration->participant?->last_name,
+                    'email' => $registration->participant?->email,
+                    'contact_number' => $registration->participant?->contact_number,
+                ],
+                'event' => [
+                    'id' => $registration->event->id,
+                    'event_name' => $registration->event->event_name,
+                    'event_kind' => $registration->event->event_kind,
+                ],
+                'held_reason' => $registration->held_reason,
+            ])
+            ->all();
 
         return Inertia::render('dashboard', [
             'activeSide' => $activeSide,
             'stats' => $stats,
             'actionItems' => $actionItems,
+            'flagged_registrations' => $flaggedRegistrations,
             'upcoming' => $upcoming,
             'recentActivity' => $recentActivity,
             'churchCategories' => $churchCategories,

@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Enums\EventStatus;
 use App\Models\Event;
+use App\Services\Audit\AuditLogger;
 use App\Services\EventWorkflow;
 use Closure;
 use Illuminate\Http\Request;
@@ -78,6 +79,10 @@ class AdvanceEventStatus
         $previousStatus = $event->status;
         try {
             app(EventWorkflow::class)->start($event);
+            app(AuditLogger::class)->logSystem('event.auto_advanced', [
+                'event_name' => $event->event_name,
+                'new_status' => $event->status->value,
+            ]);
 
             Log::info('event.status.auto_advanced', [
                 'event_id' => $event->id,

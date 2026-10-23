@@ -1,12 +1,16 @@
 <?php
 
 use App\Mail\RegistrationConfirmationMail;
+use App\Models\AuditLog;
 use App\Models\Event;
+use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\RegistrationVerificationChallenge;
 use App\Models\User;
+use App\Services\RegistrationConfirmationService;
 use App\Services\RegistrationVerification\RegistrationVerificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 uses(RefreshDatabase::class);
@@ -108,7 +112,8 @@ it('sends the confirmation mail on successful finalize', function () {
 
     $registration = Registration::where('event_id', $event->id)->first();
     expect($registration)->not->toBeNull()
-        ->and($registration->attendance_code)->not->toBeNull();
+        ->and($registration->attendance_code)->not->toBeNull()
+        ->and($registration->confirmation_email_sent_at)->not->toBeNull();
 
     Mail::assertSent(
         RegistrationConfirmationMail::class,
@@ -150,4 +155,62 @@ it('does not send the confirmation mail when the participant did not provide an 
         ->and($registration->attendance_code)->not->toBeNull();
 
     Mail::assertNotSent(RegistrationConfirmationMail::class);
+});
+
+it('does not send confirmation email while a registration is held', function () {
+    Mail::fake();
+    $event = confmail_event();
+    $participant = Participant::create([
+        'pool' => 'running',
+        'first_name' => 'Held',
+        'last_name' => 'Participant',
+        'email' => 'held@example.com',
+    ]);
+    $registration = Registration::create([
+        'event_id' => $event->id,
+        'participant_id' => $participant->id,
+        'registration_status' => 'held',
+        'source' => 'form',
+        'submitted_email' => 'held@example.com',
+        'attendance_code' => 'HELD-CODE',
+    ]);
+
+    app(RegistrationConfirmationService::class)->sendAfterCommit($registration);
+
+    Mail::assertNotSent(RegistrationConfirmationMail::class);
+});
+
+it('logs a delivery failure without undoing the confirmed registration', function () {
+    $event = confmail_event();
+    $participant = Participant::create([
+        'pool' => 'running',
+        'first_name' => 'Email',
+        'last_name' => 'Failure',
+        'email' => 'failure@example.com',
+    ]);
+    $registration = Registration::create([
+        'event_id' => $event->id,
+        'participant_id' => $participant->id,
+        'registration_status' => 'confirmed',
+        'source' => 'form',
+        'submitted_email' => 'failure@example.com',
+        'attendance_code' => 'FAIL-CODE',
+    ]);
+    Mail::shouldReceive('to')->once()->with('failure@example.com')->andThrow(new RuntimeException('SMTP unavailable'));
+    Log::shouldReceive('error')->once()->with(
+        'Registration confirmation email delivery failed.',
+        Mockery::on(fn (array $context): bool => $context['registration_id'] === $registration->id
+            && $context['exception'] === RuntimeException::class),
+    );
+
+    app(RegistrationConfirmationService::class)->sendAfterCommit($registration);
+
+    expect($registration->fresh()->isActive())->toBeTrue()
+        ->and($registration->fresh()->confirmation_email_sent_at)->toBeNull()
+        ->and(AuditLog::query()
+            ->where('actor_type', 'system')
+            ->where('action', 'email.failed')
+            ->where('details->to', 'failure@example.com')
+            ->where('details->error', 'SMTP unavailable')
+            ->exists())->toBeTrue();
 });

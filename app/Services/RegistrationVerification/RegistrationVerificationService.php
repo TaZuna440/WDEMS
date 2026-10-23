@@ -6,7 +6,6 @@ use App\Enums\ChurchEventStatus;
 use App\Enums\EventStatus;
 use App\Enums\RegistrationStatus;
 use App\Http\Requests\PublicRegistrationRequest;
-use App\Mail\RegistrationConfirmationMail;
 use App\Mail\RegistrationVerificationOtpMail;
 use App\Models\EmailDeviceVerification;
 use App\Models\Event;
@@ -16,6 +15,7 @@ use App\Models\RegistrationFieldResponse;
 use App\Models\RegistrationVerificationChallenge as Challenge;
 use App\Services\Otp\OtpCode;
 use App\Services\Participants\DuplicateReview;
+use App\Services\RegistrationConfirmationService;
 use App\Support\RegistrationLegalText;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
@@ -619,30 +619,8 @@ class RegistrationVerificationService
                         'phone_code_hash' => null,
                     ])->save();
 
-                    // Capture the values the confirmation email needs.
-                    // The closure runs after the outer transaction
-                    // commits — so a transport failure cannot roll back
-                    // the registration. A failure is swallowed: the
-                    // participant has the code on the confirmation page,
-                    // and the email is a durable second copy, not a
-                    // required channel.
-                    $submittedEmail = $registration->submitted_email;
-                    $attendanceCode = $registration->attendance_code;
-
-                    if (! $isHeld && $submittedEmail !== null && $attendanceCode !== null) {
-                        DB::afterCommit(function () use ($submittedEmail, $attendanceCode, $event): void {
-                            try {
-                                Mail::to($submittedEmail)->send(
-                                    new RegistrationConfirmationMail(
-                                        $attendanceCode,
-                                        $event->event_name,
-                                    ),
-                                );
-                            } catch (\Throwable) {
-                                // Transport messages may include contact values.
-                                // Do not log or report the exception.
-                            }
-                        });
+                    if (! $isHeld) {
+                        app(RegistrationConfirmationService::class)->sendAfterCommit($registration);
                     }
                 }, 3);
 

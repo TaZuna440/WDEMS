@@ -2,11 +2,14 @@
 
 namespace App\Providers;
 
+use App\Listeners\LogSentEmail;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -23,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureRateLimiters();
         $this->configureRegistrationVerificationLimits();
+        Event::listen(MessageSent::class, LogSentEmail::class);
     }
 
     protected function configureDefaults(): void

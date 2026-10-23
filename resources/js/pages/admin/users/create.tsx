@@ -124,6 +124,10 @@ export default function AdminUsersCreate() {
                                 {errors.password}
                             </p>
                         )}
+                        <p className="text-muted-foreground text-xs">
+                            Must be at least 8 characters, include uppercase,
+                            lowercase, a number, and a special character.
+                        </p>
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="password_confirmation">
@@ -140,8 +144,14 @@ export default function AdminUsersCreate() {
                                     event.target.value,
                                 )
                             }
+                            aria-invalid={Boolean(errors.password_confirmation)}
                             required
                         />
+                        {errors.password_confirmation && (
+                            <p className="text-destructive text-sm">
+                                {errors.password_confirmation}
+                            </p>
+                        )}
                     </div>
                     <p className="text-muted-foreground text-sm">
                         The user will receive an email to verify their address

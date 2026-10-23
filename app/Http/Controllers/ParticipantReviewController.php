@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Models\Participant;
 use App\Models\Registration;
 use App\Services\Participants\DuplicateReview;
+use App\Services\RegistrationConfirmationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -106,6 +107,7 @@ class ParticipantReviewController extends Controller
             $row = Registration::whereKey($registration->id)->lockForUpdate()->firstOrFail();
             abort_unless($row->isHeld(), 422, 'Only held submissions can be resolved.');
             abort_unless($row->participant->pool === $event->event_kind, 422, 'Participant belongs to the wrong pool.');
+            $wasHeld = $row->isHeld();
             $snapshot = fn ($r) => ['registration' => $r->attributesToArray(), 'participant' => $r->participant->attributesToArray()];
             $before = $snapshot($row);
             $action = $data['action'];
@@ -160,6 +162,10 @@ class ParticipantReviewController extends Controller
                 'before_snapshot' => json_encode($before, JSON_THROW_ON_ERROR),
                 'after_snapshot' => json_encode($snapshot($row), JSON_THROW_ON_ERROR),
             ]);
+
+            if ($wasHeld && $row->isActive()) {
+                app(RegistrationConfirmationService::class)->sendAfterCommit($row);
+            }
 
             return $message;
         });

@@ -3,6 +3,7 @@
 use App\Enums\DiscipleshipAttendanceStatus;
 use App\Enums\FellowshipType;
 use App\Enums\ServiceType;
+use App\Mail\RegistrationConfirmationMail;
 use App\Models\Attendance;
 use App\Models\DiscipleshipAttendance;
 use App\Models\DiscipleshipBatch;
@@ -20,6 +21,7 @@ use App\Models\User;
 use App\Services\Church\ChurchEventBackfillService;
 use Database\Seeders\DiscipleshipProgramSeeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
     $this->staff = User::factory()->create([
@@ -71,6 +73,7 @@ it('dry runs without writing and reports the service attendance conversions', fu
 });
 
 it('maps late to present and preserves excused in the legacy row during execution', function () {
+    Mail::fake();
     $occurrence = ServiceOccurrence::create([
         'service_type' => ServiceType::Morning,
         'occurrence_date' => today()->toDateString(),
@@ -80,6 +83,7 @@ it('maps late to present and preserves excused in the legacy row during executio
         'pool' => 'church',
         'first_name' => 'Lani',
         'last_name' => 'Late',
+        'email' => 'legacy@example.com',
     ]);
     $excused = Participant::create([
         'pool' => 'church',
@@ -106,6 +110,7 @@ it('maps late to present and preserves excused in the legacy row during executio
         ->and($registrations[1]->attendance)->toBeNull()
         ->and($occurrence->fresh()->registration_event_id)->not->toBeNull()
         ->and(ServiceAttendanceMember::query()->where('attendance_status', 'excused')->exists())->toBeTrue();
+    Mail::assertNotSent(RegistrationConfirmationMail::class);
 });
 
 it('maps each discipleship enrollment to one registration per session and is resumable', function () {

@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'submitted_email',
     'submitted_contact_number',
     'attendance_code',
+    'confirmation_email_sent_at',
     'consent_accepted_at',
     'privacy_notice_version',
     'emergency_contact_name',
@@ -63,6 +64,7 @@ class Registration extends Model
             'registered_at' => 'datetime',
             'flagged_at' => 'datetime',
             'resolved_at' => 'datetime',
+            'confirmation_email_sent_at' => 'datetime',
             'registration_status' => RegistrationStatus::class,
         ];
     }

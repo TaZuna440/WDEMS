@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Requests\PublicRegistrationRequest;
+use App\Mail\RegistrationConfirmationMail;
 use App\Models\Attendance;
 use App\Models\Event;
 use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 beforeEach(function () {
@@ -17,6 +19,7 @@ beforeEach(function () {
 });
 
 it('serves the church registration page and records staff attestation and formatted code', function () {
+    Mail::fake();
     $this->get($this->url)
         ->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -43,6 +46,10 @@ it('serves the church registration page and records staff attestation and format
     expect($row->participant->pool)->toBe('church')->and($row->encoded_by)->toBe($this->staff->id)
         ->and($row->registered_at)->not->toBeNull()->and($row->contact_attested_at)->not->toBeNull()
         ->and($row->attendance_code)->toMatch('/^[A-Z0-9]{4}-[A-Z0-9]{4}$/')->and($row->attendance)->toBeNull();
+    expect($row->fresh()->confirmation_email_sent_at)->not->toBeNull();
+    Mail::assertSent(RegistrationConfirmationMail::class, fn (RegistrationConfirmationMail $mail) => $mail->hasTo('maria@example.com')
+        && $mail->code === $row->attendance_code
+        && $mail->eventName === $this->event->event_name);
 });
 
 it('blocks exact and repeat submissions and allows clearly different family members', function () {

@@ -1,6 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
-    ArrowRight,
     Calendar,
     Inbox,
     Activity,
@@ -15,16 +14,20 @@ type Stat = {
     subtext: string;
     href: string;
 };
-type ActionItem = {
-    id: number | string;
-    event_name: string;
-    event_date: string | null;
-    days_until: number | null;
-    status: string;
-    status_label: string;
-    urgency: 'needs_review' | 'overdue' | 'urgent' | 'action' | 'waiting';
-    reason: string;
-    action: { label: string; href: string };
+type FlaggedRegistration = {
+    id: number;
+    participant: {
+        first_name: string | null;
+        last_name: string | null;
+        email: string | null;
+        contact_number: string | null;
+    };
+    event: {
+        id: number;
+        event_name: string;
+        event_kind: 'running' | 'church';
+    };
+    held_reason: string | null;
 };
 type UpcomingEvent = {
     id: number;
@@ -71,54 +74,13 @@ type EventStatistics = {
 type Props = {
     activeSide: 'running' | 'church';
     stats: Stat[];
-    actionItems: ActionItem[];
+    flagged_registrations: FlaggedRegistration[];
     upcoming: UpcomingEvent[];
     recentActivity: ActivityItem[];
     churchCategories: Category[];
     churchParticipantHistory: ChurchAttendee[];
     calendarEvents: CalendarEvent[];
     eventStatistics: EventStatistics | null;
-};
-
-const URGENCY: Record<
-    string,
-    { label: string; dot: string; border: string; text: string; btn: string }
-> = {
-    needs_review: {
-        label: 'NEEDS REVIEW',
-        dot: 'bg-lime-brand',
-        border: 'border-lime-brand/30',
-        text: 'text-[#3f6212] dark:text-lime-brand',
-        btn: 'border-lime-brand/40 text-[#3f6212] hover:bg-lime-brand/15 dark:text-lime-brand',
-    },
-    overdue: {
-        label: 'OVERDUE',
-        dot: 'bg-destructive',
-        border: 'border-destructive/30',
-        text: 'text-destructive',
-        btn: 'border-destructive/40 text-destructive hover:bg-destructive hover:text-white',
-    },
-    urgent: {
-        label: 'URGENT',
-        dot: 'bg-[#13253B] dark:bg-yellow-500',
-        border: 'border-[#13253B]/25 dark:border-yellow-500/30',
-        text: 'text-[#13253B] dark:text-yellow-500',
-        btn: 'bg-[#13253B] text-white border border-[#13253B] dark:bg-transparent dark:text-yellow-500',
-    },
-    action: {
-        label: 'ACTION NEEDED',
-        dot: 'bg-lime-brand',
-        border: 'border-lime-brand/30',
-        text: 'text-lime-brand',
-        btn: 'border-lime-brand/40 text-lime-brand hover:bg-lime-brand hover:text-navy-900',
-    },
-    waiting: {
-        label: 'WAITING',
-        dot: 'bg-muted-foreground',
-        border: 'border-border',
-        text: 'text-muted-foreground',
-        btn: 'border-border text-foreground hover:bg-accent',
-    },
 };
 
 function daysText(days: number | null): string {
@@ -133,7 +95,7 @@ function daysText(days: number | null): string {
 export default function Dashboard({
     activeSide,
     stats,
-    actionItems,
+    flagged_registrations,
     upcoming,
     recentActivity,
     churchCategories,
@@ -141,7 +103,6 @@ export default function Dashboard({
     calendarEvents,
     eventStatistics,
 }: Props) {
-    let lastUrgency: string | null = null;
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedCalendarDate, setSelectedCalendarDate] = useState<
         string | null
@@ -296,76 +257,82 @@ export default function Dashboard({
 
                 {/* Main Grid */}
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-                    {/* Needs Attention */}
+                    {/* Flagged Registrations */}
                     <div className="glass-panel rounded-xl p-6 lg:col-span-7">
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
-                                Needs Attention
+                                Flagged Registrations
                             </h2>
                             <span className="text-muted-foreground bg-muted rounded-full px-2 py-0.5 text-xs font-medium">
-                                {actionItems.length}
+                                {flagged_registrations.length}
                             </span>
                         </div>
-                        {actionItems.length === 0 ? (
+                        {flagged_registrations.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-8 text-center">
                                 <Inbox className="text-muted-foreground/40 h-8 w-8" />
-                                <p className="text-foreground mt-2 text-sm">
-                                    All clear.
+                                <p className="text-muted-foreground mt-2 text-sm">
+                                    No duplicate registrations pending review.
                                 </p>
                             </div>
                         ) : (
                             <ul className="flex flex-col gap-3">
-                                {actionItems.map((item) => {
-                                    const u =
-                                        URGENCY[item.urgency] ??
-                                        URGENCY.waiting;
-                                    const showHeader =
-                                        item.urgency !== lastUrgency;
-                                    lastUrgency = item.urgency;
+                                {flagged_registrations.map((registration) => {
+                                    const participantName = [
+                                        registration.participant.first_name,
+                                        registration.participant.last_name,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' ');
                                     return (
-                                        <li key={item.id}>
-                                            {showHeader && (
-                                                <div className="mt-2 mb-2 flex items-center gap-2 first:mt-0">
-                                                    <div
-                                                        className={`h-1.5 w-1.5 rounded-full ${u.dot}`}
-                                                    />
-                                                    <span
-                                                        className={`text-xs font-semibold tracking-wider ${u.text}`}
-                                                    >
-                                                        {u.label}
-                                                    </span>
-                                                </div>
-                                            )}
-                                            <div
-                                                className={`rounded-lg border ${u.border} bg-card/40 hover:bg-accent/40 p-3 transition-colors`}
-                                            >
-                                                <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-                                                    <div>
-                                                        <Link
-                                                            href={
-                                                                item.urgency ===
-                                                                'needs_review'
-                                                                    ? item
-                                                                          .action
-                                                                          .href
-                                                                    : `/events/${item.id}`
+                                        <li
+                                            key={registration.id}
+                                            className="border-border bg-card/40 rounded-lg border p-3"
+                                        >
+                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                                <div className="min-w-0">
+                                                    <p className="text-foreground text-sm font-medium">
+                                                        {participantName ||
+                                                            'Unknown participant'}
+                                                    </p>
+                                                    <p className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                                                        <span>
+                                                            {
+                                                                registration
+                                                                    .event
+                                                                    .event_name
                                                             }
-                                                            className="text-foreground text-sm font-medium hover:underline"
-                                                        >
-                                                            {item.event_name}
-                                                        </Link>
-                                                        <p className="text-muted-foreground mt-0.5 text-xs">
-                                                            {item.reason}
-                                                        </p>
-                                                    </div>
-                                                    <Link
-                                                        href={item.action.href}
-                                                        className={`inline-flex w-fit shrink-0 items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${u.btn}`}
-                                                    >
-                                                        {item.action.label}{' '}
-                                                        <ArrowRight className="h-3 w-3" />
-                                                    </Link>
+                                                        </span>
+                                                        <span className="bg-lime-brand/10 dark:text-lime-brand rounded-full px-2 py-0.5 text-[10px] font-medium text-[#3f6212]">
+                                                            {registration.event
+                                                                .event_kind ===
+                                                            'church'
+                                                                ? 'Church'
+                                                                : 'Running'}
+                                                        </span>
+                                                    </p>
+                                                    <p className="text-muted-foreground mt-2 text-xs break-all">
+                                                        {registration
+                                                            .participant
+                                                            .email ||
+                                                            'No email'}
+                                                        {' · '}
+                                                        {registration
+                                                            .participant
+                                                            .contact_number ||
+                                                            'No phone'}
+                                                    </p>
+                                                    <p className="text-muted-foreground mt-1 text-xs">
+                                                        Reason:{' '}
+                                                        {registration.held_reason ||
+                                                            'Flagged for organizer review'}
+                                                    </p>
                                                 </div>
+                                                <Link
+                                                    href={`/events/${registration.event.id}/possible-duplicates`}
+                                                    className="text-lime-brand border-lime-brand/40 hover:bg-lime-brand/10 inline-flex w-fit shrink-0 items-center rounded-md border px-3 py-1.5 text-xs font-medium"
+                                                >
+                                                    View Details
+                                                </Link>
                                             </div>
                                         </li>
                                     );

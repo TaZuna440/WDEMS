@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-#[Fillable(['user_id', 'action', 'target_type', 'target_id', 'details', 'ip_address'])]
+#[Fillable(['user_id', 'actor_type', 'action', 'target_type', 'target_id', 'details', 'ip_address'])]
 class AuditLog extends Model
 {
     protected function casts(): array

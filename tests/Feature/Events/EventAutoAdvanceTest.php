@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\EventStatus;
+use App\Models\AuditLog;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -60,6 +61,13 @@ it('advances a registration_closed event to ongoing when start moment has passed
         ->assertOk();
 
     expect($event->fresh()->status)->toBe(EventStatus::Ongoing);
+    expect(AuditLog::query()
+        ->where('actor_type', 'system')
+        ->whereNull('user_id')
+        ->where('action', 'event.auto_advanced')
+        ->where('details->event_name', $event->event_name)
+        ->where('details->new_status', 'ongoing')
+        ->exists())->toBeTrue();
 
     Carbon::setTestNow();
 });
