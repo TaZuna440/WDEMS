@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AdminAuditLogController;
+use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Auth\DeviceVerificationController;
 use App\Http\Controllers\ChurchAttendanceController;
@@ -436,6 +438,10 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     // Admin-only routes — same trusted-device pipeline, admin gate layered on top.
     Route::middleware('admin')->group(function () {
         Route::get('admin/dashboard', DashboardController::class)->name('admin.dashboard');
+        Route::get('admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
+        Route::get('admin/users/create', [AdminUserController::class, 'create'])->name('admin.users.create');
+        Route::post('admin/users', [AdminUserController::class, 'store'])->name('admin.users.store');
+        Route::get('admin/audit-log', [AdminAuditLogController::class, 'index'])->name('admin.audit-log.index');
     });
 });
 

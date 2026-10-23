@@ -1,10 +1,12 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     BarChart3,
     CalendarDays,
     ClipboardCheck,
     ClipboardList,
     LayoutGrid,
+    ScrollText,
+    UserRoundCog,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -20,7 +22,7 @@ import {
     SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import type { NavItem } from '@/types';
+import type { Auth, NavItem } from '@/types';
 
 /**
  * Top-level navigation.
@@ -38,6 +40,23 @@ const mainNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage<{ auth: Auth }>().props;
+    const adminNavItems: NavItem[] =
+        auth.user?.role === 'admin'
+            ? [
+                  {
+                      title: 'User Management',
+                      href: '/admin/users',
+                      icon: UserRoundCog,
+                  },
+                  {
+                      title: 'Audit Log',
+                      href: '/admin/audit-log',
+                      icon: ScrollText,
+                  },
+              ]
+            : [];
+
     return (
         <Sidebar collapsible="icon" variant="sidebar">
             <SidebarHeader>
@@ -57,7 +76,7 @@ export function AppSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={[...mainNavItems, ...adminNavItems]} />
             </SidebarContent>
             <SidebarFooter>
                 <NavUser />

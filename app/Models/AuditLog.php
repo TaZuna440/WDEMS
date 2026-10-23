@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+
+#[Fillable(['user_id', 'action', 'target_type', 'target_id', 'details', 'ip_address'])]
+class AuditLog extends Model
+{
+    protected function casts(): array
+    {
+        return [
+            'details' => 'array',
+        ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function target(): MorphTo
+    {
+        return $this->morphTo();
+    }
+}

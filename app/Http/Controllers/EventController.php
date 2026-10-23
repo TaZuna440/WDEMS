@@ -8,6 +8,7 @@ use App\Enums\EventStatus;
 use App\Enums\EventType;
 use App\Http\Requests\EventRequest;
 use App\Models\Event;
+use App\Services\Audit\AuditLogger;
 use App\Services\EventWorkflow;
 use App\Support\ChurchSpecialistCatalog;
 use Illuminate\Http\RedirectResponse;
@@ -293,7 +294,7 @@ class EventController extends Controller
         ]);
     }
 
-    public function store(EventRequest $request): RedirectResponse
+    public function store(EventRequest $request, AuditLogger $auditLogger): RedirectResponse
     {
         $validated = $request->validated();
 
@@ -334,6 +335,12 @@ class EventController extends Controller
             // not nullable, so they also default to Draft. The UI reads
             // church_status for church events, not status.
             'status' => EventStatus::Draft,
+        ]);
+
+        $auditLogger->log('event.created', $event, [
+            'event_name' => $event->event_name,
+            'event_kind' => $event->event_kind,
+            'church_category' => $event->church_category,
         ]);
 
         if ($isChurch && isset($validated['church_activity_category'])) {

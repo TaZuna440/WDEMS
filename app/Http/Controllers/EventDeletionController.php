@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\User;
+use App\Services\Audit\AuditLogger;
 use App\Services\EventDeletion\EventDeletionOtpService;
 use App\Services\EventDeletion\EventDeletionService;
 use App\Services\EventDeletion\OtpResendTooSoonException;
@@ -106,7 +107,13 @@ class EventDeletionController extends Controller
 
     private function performDeletion(Event $event, User $user): RedirectResponse
     {
+        $eventName = $event->event_name;
         app(EventDeletionService::class)->delete($event, $user);
+
+        app(AuditLogger::class)->log('event.deleted', $event, [
+            'event_name' => $eventName,
+            'event_kind' => $event->event_kind,
+        ]);
 
         return redirect()->route('events.index');
     }
