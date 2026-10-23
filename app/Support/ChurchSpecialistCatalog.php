@@ -8,6 +8,31 @@ final class ChurchSpecialistCatalog
      * @var array<string, array{label: string, church_category: string, activities: array<string, string>}>
      */
     private const MINISTRIES = [
+        'services' => [
+            'label' => 'Services',
+            'church_category' => 'Services',
+            'activities' => [
+                'sunday-service' => 'Sunday Service',
+                'special-service' => 'Special Service',
+            ],
+        ],
+        'fellowship' => [
+            'label' => 'Fellowship',
+            'church_category' => 'Fellowship',
+            'activities' => [
+                'church-fellowship' => 'Church Fellowship',
+                'ministry-fellowship' => 'Ministry Fellowship',
+            ],
+        ],
+        'discipleship' => [
+            'label' => 'Discipleship',
+            'church_category' => 'Discipleship',
+            'activities' => [
+                'bible-study' => 'Bible Study',
+                'discipleship-class' => 'Discipleship Class',
+                'leadership-training' => 'Leadership Training',
+            ],
+        ],
         'youth' => [
             'label' => 'Youth Ministry',
             'church_category' => 'Youth',

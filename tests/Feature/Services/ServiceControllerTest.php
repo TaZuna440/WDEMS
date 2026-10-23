@@ -16,17 +16,19 @@ beforeEach(function () {
 // Landing (index)
 // ----------------------------------------------------------------
 
-test('the services landing page renders four service types', function () {
+test('the services landing page shows its activity cards', function () {
     $this->actingAs($this->staff)
         ->get(route('services.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('services/index')
-            ->has('service_types', 4)
-        );
+            ->component('events/church/specialist/ministry')
+            ->where('ministry.label', 'Services')
+            ->has('activities', 2)
+            ->where('activities.0.label', 'Sunday Service')
+            ->where('activities.1.label', 'Special Service'));
 });
 
-test('the landing page reports occurrence counts per type', function () {
+test('the legacy services type page redirects to the generic category list', function () {
     ServiceOccurrence::create([
         'service_type' => ServiceType::Morning->value,
         'occurrence_date' => now()->addWeek()->toDateString(),
@@ -44,21 +46,20 @@ test('the landing page reports occurrence counts per type', function () {
     ]);
 
     $this->actingAs($this->staff)
-        ->get(route('services.index'))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->where('service_types.0.value', 'morning')
-            ->where('service_types.0.occurrence_count', 2)
-            ->where('service_types.2.value', 'youth')
-            ->where('service_types.2.occurrence_count', 1)
-        );
+        ->get(route('services.show', ['type' => 'morning']))
+        ->assertRedirect(route('events.index', [
+            'kind' => 'church',
+            'church_category' => 'Services',
+        ]));
+
+    expect(ServiceOccurrence::count())->toBe(3);
 });
 
 // ----------------------------------------------------------------
 // Per-type view (show)
 // ----------------------------------------------------------------
 
-test('the per-type view lists occurrences for that type only', function () {
+test('the legacy per-type route redirects to the generic Services list', function () {
     ServiceOccurrence::create([
         'service_type' => ServiceType::Morning->value,
         'occurrence_date' => now()->addWeek()->toDateString(),
@@ -72,16 +73,13 @@ test('the per-type view lists occurrences for that type only', function () {
 
     $this->actingAs($this->staff)
         ->get(route('services.show', ['type' => 'morning']))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('services/show')
-            ->where('service_type.value', 'morning')
-            ->has('occurrences', 1)
-            ->where('occurrences.0.registration_event_id', null)
-        );
+        ->assertRedirect(route('events.index', [
+            'kind' => 'church',
+            'church_category' => 'Services',
+        ]));
 });
 
-test('the per-type view includes the registration event id after activation', function () {
+test('the legacy Services route redirects even when an occurrence was activated', function () {
     $occurrence = ServiceOccurrence::create([
         'service_type' => ServiceType::Morning->value,
         'occurrence_date' => now()->addWeek()->toDateString(),
@@ -91,10 +89,10 @@ test('the per-type view includes the registration event id after activation', fu
 
     $this->actingAs($this->staff)
         ->get(route('services.show', ['type' => 'morning']))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->where('occurrences.0.id', $occurrence->id)
-            ->where('occurrences.0.registration_event_id', $churchEvent->id));
+        ->assertRedirect(route('events.index', [
+            'kind' => 'church',
+            'church_category' => 'Services',
+        ]));
 });
 
 test('an unknown service type returns 404 from the route constraint', function () {
@@ -103,7 +101,7 @@ test('an unknown service type returns 404 from the route constraint', function (
         ->assertNotFound();
 });
 
-test('occurrences are ordered most-recent-first', function () {
+test('legacy occurrence dates remain stored after the route cutover', function () {
     ServiceOccurrence::create([
         'service_type' => ServiceType::Morning->value,
         'occurrence_date' => now()->addWeek()->toDateString(),
@@ -117,12 +115,12 @@ test('occurrences are ordered most-recent-first', function () {
 
     $this->actingAs($this->staff)
         ->get(route('services.show', ['type' => 'morning']))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->has('occurrences', 2)
-            ->where('occurrences.0.occurrence_date', now()->addWeeks(3)->toDateString())
-            ->where('occurrences.1.occurrence_date', now()->addWeek()->toDateString())
-        );
+        ->assertRedirect(route('events.index', [
+            'kind' => 'church',
+            'church_category' => 'Services',
+        ]));
+
+    expect(ServiceOccurrence::count())->toBe(2);
 });
 
 // ----------------------------------------------------------------

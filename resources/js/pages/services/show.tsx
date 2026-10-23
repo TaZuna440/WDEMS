@@ -151,7 +151,7 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
 
             <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
                 <Link
-                    href="/events/church/services"
+                    href="/events?kind=church&church_category=Services"
                     className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-2 text-sm transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
@@ -609,7 +609,10 @@ export default function ServicesShow({ service_type, occurrences }: Props) {
 
 ServicesShow.layout = {
     breadcrumbs: [
-        { title: 'Services', href: '/events/church/services' },
+        {
+            title: 'Services',
+            href: '/events?kind=church&church_category=Services',
+        },
         { title: 'Service', href: '#' },
     ],
 };

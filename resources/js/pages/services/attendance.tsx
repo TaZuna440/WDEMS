@@ -612,7 +612,10 @@ function AddAttendanceDialog({
 
 ServiceAttendance.layout = {
     breadcrumbs: [
-        { title: 'Services', href: '/events/church/services' },
+        {
+            title: 'Services',
+            href: '/events?kind=church&church_category=Services',
+        },
         { title: 'Attendance', href: '#' },
     ],
 };

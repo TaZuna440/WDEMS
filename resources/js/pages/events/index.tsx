@@ -12,6 +12,7 @@ type EventRow = {
     event_type: string;
     event_type_label: string;
     church_category: string | null;
+    church_activity_category: string | null;
     event_date: string | null;
     venue: string | null;
     distance_label: string | null;
@@ -25,6 +26,7 @@ type Filters = {
     date?: string | null;
     month?: string | null;
     church_category?: string | null;
+    church_activity?: string | null;
 };
 
 type Props = {
@@ -75,6 +77,12 @@ export default function EventsIndex({ events, filters }: Props) {
     };
 
     const isChurchTab = filters.kind === 'church';
+    const selectedChurchCategory = isChurchTab
+        ? (filters.church_category ?? null)
+        : null;
+    const selectedChurchActivity = isChurchTab
+        ? (filters.church_activity ?? null)
+        : null;
     const [search, setSearch] = useState('');
     const [columns, setColumns] = useState<Record<string, string>>({});
     const [statusFilter, setStatusFilter] =
@@ -103,10 +111,48 @@ export default function EventsIndex({ events, filters }: Props) {
             )
         );
     });
+    const visibleChurchEvents = visibleEvents.filter(
+        (event) =>
+            (!selectedChurchCategory ||
+                event.church_category === selectedChurchCategory) &&
+            (!selectedChurchActivity ||
+                event.church_activity_category === selectedChurchActivity),
+    );
+    const churchCreateSlugs: Record<string, string> = {
+        Services: 'services',
+        Fellowship: 'fellowship',
+        Discipleship: 'discipleship',
+    };
+    const activityCreateSlugs: Record<string, string> = {
+        'Sunday Service': 'sunday-service',
+        'Special Service': 'special-service',
+        'Church Fellowship': 'church-fellowship',
+        'Ministry Fellowship': 'ministry-fellowship',
+        'Bible Study': 'bible-study',
+        'Discipleship Class': 'discipleship-class',
+        'Leadership Training': 'leadership-training',
+    };
+    const createEventHref = selectedChurchCategory
+        ? churchCreateSlugs[selectedChurchCategory]
+            ? `/events/create/church/${churchCreateSlugs[selectedChurchCategory]}${
+                  selectedChurchActivity
+                      ? `/${activityCreateSlugs[selectedChurchActivity]}`
+                      : ''
+              }`
+            : '/events/create/church'
+        : isChurchTab
+          ? '/events/create/church'
+          : '/events/create';
 
     return (
         <>
-            <Head title="Events" />
+            <Head
+                title={
+                    selectedChurchCategory
+                        ? `${selectedChurchCategory} Events`
+                        : 'Events'
+                }
+            />
 
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
                 {/* Header */}
@@ -116,9 +162,13 @@ export default function EventsIndex({ events, filters }: Props) {
                             Events
                         </h1>
                         <p className="text-muted-foreground mt-1 text-sm">
-                            {isChurchTab
-                                ? 'Pick a church event category to see its events'
-                                : 'Running events — registration, attendance, and reporting'}
+                            {selectedChurchCategory
+                                ? selectedChurchActivity
+                                    ? `${selectedChurchCategory} · ${selectedChurchActivity}`
+                                    : selectedChurchCategory
+                                : isChurchTab
+                                  ? 'Pick a church event category to see its events'
+                                  : 'Running events — registration, attendance, and reporting'}
                         </p>
                     </div>
 
@@ -126,16 +176,24 @@ export default function EventsIndex({ events, filters }: Props) {
                         asChild
                         className="bg-lime-brand text-navy-900 hover:bg-lime-brand/90"
                     >
-                        <Link href="/events/create">
+                        <Link href={createEventHref}>
                             <Plus className="mr-2 h-4 w-4" />
-                            Create Event
+                            {selectedChurchCategory
+                                ? 'Add Event'
+                                : 'Create Event'}
                         </Link>
                     </Button>
                 </div>
 
-                {(filters.date || filters.month || filters.church_category) && (
+                {(filters.date ||
+                    filters.month ||
+                    filters.church_category ||
+                    filters.church_activity) && (
                     <p className="text-muted-foreground text-sm" role="status">
                         Showing {filters.church_category ?? 'all categories'}
+                        {filters.church_activity
+                            ? ` · ${filters.church_activity}`
+                            : ''}
                         {filters.date ? ` on ${filters.date}` : ''}
                         {filters.month ? ` during ${filters.month}` : ''}.
                         <Link
@@ -173,12 +231,87 @@ export default function EventsIndex({ events, filters }: Props) {
                 </div>
 
                 {/* Church tab: category cards */}
-                {isChurchTab && <ChurchCategoryCards />}
+                {isChurchTab && !selectedChurchCategory && (
+                    <ChurchCategoryCards />
+                )}
+
+                {isChurchTab && selectedChurchCategory && (
+                    <section
+                        className="space-y-4"
+                        aria-label={`${selectedChurchCategory} events`}
+                    >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <Input
+                                aria-label={`Search ${selectedChurchCategory} events`}
+                                placeholder="Search by event name or venue…"
+                                value={search}
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
+                                }
+                            />
+                            <Link
+                                href="/events?kind=church"
+                                className="text-muted-foreground hover:text-foreground text-sm underline"
+                            >
+                                All Church Categories
+                            </Link>
+                        </div>
+                        <p className="text-muted-foreground text-sm">
+                            {visibleChurchEvents.length} matching events
+                        </p>
+                        {visibleChurchEvents.length > 0 ? (
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                {visibleChurchEvents.map((event) => (
+                                    <Link
+                                        key={event.id}
+                                        href={`/events/${event.id}`}
+                                        className="glass-panel glass-panel-hover rounded-xl p-5"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <h2 className="text-foreground font-semibold">
+                                                {event.event_name}
+                                            </h2>
+                                            <span
+                                                className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                                                    statusStyles[
+                                                        event.status
+                                                    ] ??
+                                                    'bg-secondary text-foreground'
+                                                }`}
+                                            >
+                                                {event.status_label}
+                                            </span>
+                                        </div>
+                                        <p className="text-muted-foreground mt-3 flex items-center gap-2 text-sm">
+                                            <Calendar className="h-4 w-4" />
+                                            {event.event_date ?? 'Date not set'}
+                                        </p>
+                                        <p className="text-muted-foreground mt-1 flex items-center gap-2 text-sm">
+                                            <MapPin className="h-4 w-4" />
+                                            {event.venue ?? 'Venue not set'}
+                                        </p>
+                                    </Link>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="glass-panel flex flex-col items-center justify-center rounded-xl p-12 text-center">
+                                <div className="bg-lime-brand/15 mb-4 flex h-14 w-14 items-center justify-center rounded-full">
+                                    <CalendarDays className="dark:text-lime-brand h-7 w-7 text-lime-700" />
+                                </div>
+                                <h2 className="text-foreground font-semibold">
+                                    No events found
+                                </h2>
+                                <p className="text-muted-foreground mt-1 text-sm">
+                                    Add an event or adjust your search.
+                                </p>
+                            </div>
+                        )}
+                    </section>
+                )}
 
                 {isChurchTab &&
-                    (filters.date ||
-                        filters.month ||
-                        filters.church_category) && (
+                    !selectedChurchCategory &&
+                    (filters.date || filters.month) && (
                         <section
                             className="glass-panel overflow-hidden rounded-xl"
                             aria-label="Filtered church events"

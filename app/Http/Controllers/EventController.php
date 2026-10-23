@@ -51,6 +51,13 @@ class EventController extends Controller
             'date' => ['nullable', 'date_format:Y-m-d'],
             'month' => ['nullable', 'date_format:Y-m'],
             'church_category' => ['nullable', 'string', 'in:'.implode(',', ChurchCategory::values())],
+            'church_activity' => [
+                'nullable',
+                'string',
+                'in:'.implode(',', ChurchSpecialistCatalog::activityLabelsForChurchCategory(
+                    $request->input('church_category'),
+                )),
+            ],
         ]);
 
         $query = Event::query()->with('creator:id,name');
@@ -60,6 +67,9 @@ class EventController extends Controller
         }
         if ($kindFilter === Event::KIND_CHURCH && isset($filters['church_category'])) {
             $query->where('church_category', $filters['church_category']);
+        }
+        if ($kindFilter === Event::KIND_CHURCH && isset($filters['church_activity'])) {
+            $query->where('church_activity_category', $filters['church_activity']);
         }
         if (isset($filters['date'])) {
             $query->whereDate('event_date', $filters['date']);
@@ -79,6 +89,7 @@ class EventController extends Controller
                 'event_type' => $event->event_type->value,
                 'event_type_label' => $event->event_type->label(),
                 'church_category' => $event->church_category,
+                'church_activity_category' => $event->church_activity_category,
                 'event_date' => $event->event_date?->toDateString(),
                 'venue' => $event->venue,
                 'distance_label' => $event->distanceLabel(),
@@ -98,6 +109,7 @@ class EventController extends Controller
                 'date' => $filters['date'] ?? null,
                 'month' => $filters['month'] ?? null,
                 'church_category' => $filters['church_category'] ?? null,
+                'church_activity' => $filters['church_activity'] ?? null,
             ],
         ]);
     }
@@ -213,6 +225,37 @@ class EventController extends Controller
     public function createChurch(): Response
     {
         return Inertia::render('events/church/create-cards');
+    }
+
+    /**
+     * Show the shared Church Event wizard with one standard category locked.
+     */
+    public function createChurchCategory(string $categorySlug): Response
+    {
+        $category = match ($categorySlug) {
+            'services' => ChurchCategory::Services,
+            'fellowship' => ChurchCategory::Fellowship,
+            'discipleship' => ChurchCategory::Discipleship,
+            default => abort(404),
+        };
+
+        return Inertia::render('events/create', [
+            'event_types' => collect([EventType::Church])
+                ->map(fn (EventType $type) => [
+                    'value' => $type->value,
+                    'label' => $type->label(),
+                ])
+                ->values(),
+            'church_categories' => [[
+                'value' => $category->value,
+                'label' => $category->label(),
+            ]],
+            'preset_event_type' => EventType::Church->value,
+            'preset_church_category' => $category->value,
+            'lock_type' => true,
+            'lock_church_category' => true,
+            'storage_key' => "wdems-wizard-create-church-{$categorySlug}",
+        ]);
     }
 
     /**

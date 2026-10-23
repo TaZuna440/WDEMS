@@ -32,28 +32,25 @@ beforeEach(function () {
 // Landing
 // ----------------------------------------------------------------
 
-test('the discipleship landing renders six programs', function () {
+test('the discipleship landing shows its activity cards', function () {
     $this->actingAs($this->staff)
         ->get(route('discipleship.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('discipleship/index')
-            ->has('programs', 6)
-        );
+            ->component('events/church/specialist/ministry')
+            ->where('ministry.label', 'Discipleship')
+            ->has('activities', 3)
+            ->where('activities.0.label', 'Bible Study')
+            ->where('activities.1.label', 'Discipleship Class')
+            ->where('activities.2.label', 'Leadership Training'));
 });
 
-test('programs render in display order', function () {
+test('the discipleship landing preserves the seeded programs', function () {
     $this->actingAs($this->staff)
         ->get(route('discipleship.index'))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->where('programs.0.slug', 'life-class')
-            ->where('programs.1.slug', 'encounter-god-retreat')
-            ->where('programs.2.slug', 'school-of-leaders-1')
-            ->where('programs.3.slug', 'school-of-leaders-2')
-            ->where('programs.4.slug', 'school-of-leaders-3')
-            ->where('programs.5.slug', 'cell-convergence')
-        );
+        ->assertOk();
+
+    expect(DiscipleshipProgram::count())->toBe(6);
 });
 
 // ----------------------------------------------------------------

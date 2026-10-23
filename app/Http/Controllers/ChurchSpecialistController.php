@@ -21,7 +21,7 @@ class ChurchSpecialistController extends Controller
             ->get()
             ->groupBy('church_activity_category');
         $activities = collect($ministry['activities'])
-            ->map(function (string $activityLabel, string $activitySlug) use ($eventsByActivity, $ministrySlug) {
+            ->map(function (string $activityLabel, string $activitySlug) use ($eventsByActivity, $ministry) {
                 $activityEvents = $eventsByActivity->get($activityLabel, collect());
 
                 return [
@@ -29,7 +29,11 @@ class ChurchSpecialistController extends Controller
                     'label' => $activityLabel,
                     'event_count' => $activityEvents->count(),
                     'registration_count' => $activityEvents->sum('registration_count'),
-                    'href' => route('events.church.specialist.category', [$ministrySlug, $activitySlug]),
+                    'href' => route('events.index', [
+                        'kind' => 'church',
+                        'church_category' => $ministry['church_category'],
+                        'church_activity' => $activityLabel,
+                    ]),
                 ];
             })
             ->values();

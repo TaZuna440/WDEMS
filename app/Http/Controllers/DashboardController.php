@@ -279,10 +279,18 @@ class DashboardController extends Controller
         $categories = [];
         foreach (ChurchCategory::cases() as $cat) {
             $count = $events->where('church_category', $cat->value)->count();
+            $moduleSlug = match ($cat->value) {
+                'Services' => 'services',
+                'Fellowship' => 'fellowship',
+                'Discipleship' => 'discipleship',
+                default => null,
+            };
             $categories[] = [
                 'label' => $cat->label(),
                 'count' => $count,
-                'href' => '/events?kind=church&church_category='.urlencode($cat->value),
+                'href' => $moduleSlug
+                    ? "/events/church/{$moduleSlug}"
+                    : '/events?kind=church&church_category='.urlencode($cat->value),
             ];
         }
 

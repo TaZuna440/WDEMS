@@ -41,61 +41,59 @@ function fwParticipantCtrl(array $overrides = []): Participant
 // Landing (index)
 // ----------------------------------------------------------------
 
-test('the fellowship landing page renders six fellowship types', function () {
+test('the fellowship landing page shows its activity cards', function () {
     $this->actingAs($this->staff)
         ->get(route('fellowship.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('fellowship/index')
-            ->has('fellowship_types', 6)
-        );
+            ->component('events/church/specialist/ministry')
+            ->where('ministry.label', 'Fellowship')
+            ->has('activities', 2)
+            ->where('activities.0.label', 'Church Fellowship')
+            ->where('activities.1.label', 'Ministry Fellowship'));
 });
 
-test('the landing page reports event counts per type', function () {
+test('the legacy Fellowship type route redirects without changing stored events', function () {
     fwEvent(FellowshipType::Family->value);
     fwEvent(FellowshipType::Family->value, ['event_date' => now()->addWeeks(2)->toDateString()]);
     fwEvent(FellowshipType::Womens->value);
 
     $this->actingAs($this->staff)
-        ->get(route('fellowship.index'))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->where('fellowship_types.0.value', 'family')
-            ->where('fellowship_types.0.event_count', 2)
-            ->where('fellowship_types.4.value', 'womens')
-            ->where('fellowship_types.4.event_count', 1)
-        );
+        ->get(route('fellowship.show', ['type' => 'family']))
+        ->assertRedirect(route('events.index', [
+            'kind' => 'church',
+            'church_category' => 'Fellowship',
+        ]));
+
+    expect(FellowshipEvent::count())->toBe(3);
 });
 
 // ----------------------------------------------------------------
 // Per-type view (show)
 // ----------------------------------------------------------------
 
-test('the per-type view lists events for that type only', function () {
+test('the legacy per-type route redirects to the generic Fellowship list', function () {
     fwEvent(FellowshipType::Family->value);
     fwEvent(FellowshipType::Mens->value);
 
     $this->actingAs($this->staff)
         ->get(route('fellowship.show', ['type' => 'family']))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('fellowship/show')
-            ->where('fellowship_type.value', 'family')
-            ->has('events', 1)
-            ->where('events.0.registration_event_id', null)
-        );
+        ->assertRedirect(route('events.index', [
+            'kind' => 'church',
+            'church_category' => 'Fellowship',
+        ]));
 });
 
-test('the per-type view includes the registration event id after activation', function () {
+test('the legacy Fellowship route redirects after activation', function () {
     $event = fwEvent(FellowshipType::Family->value);
     $churchEvent = app(RegistrationBridge::class)->activate($event);
 
     $this->actingAs($this->staff)
         ->get(route('fellowship.show', ['type' => 'family']))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->where('events.0.id', $event->id)
-            ->where('events.0.registration_event_id', $churchEvent->id));
+        ->assertRedirect(route('events.index', [
+            'kind' => 'church',
+            'church_category' => 'Fellowship',
+        ]));
 });
 
 test('an unknown fellowship type returns 404 from the route constraint', function () {
@@ -104,18 +102,18 @@ test('an unknown fellowship type returns 404 from the route constraint', functio
         ->assertNotFound();
 });
 
-test('events are ordered most-recent-first', function () {
+test('legacy Fellowship records remain stored after route cutover', function () {
     fwEvent(FellowshipType::Family->value);
     fwEvent(FellowshipType::Family->value, ['event_date' => now()->addWeeks(3)->toDateString()]);
 
     $this->actingAs($this->staff)
         ->get(route('fellowship.show', ['type' => 'family']))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->has('events', 2)
-            ->where('events.0.event_date', now()->addWeeks(3)->toDateString())
-            ->where('events.1.event_date', now()->addWeek()->toDateString())
-        );
+        ->assertRedirect(route('events.index', [
+            'kind' => 'church',
+            'church_category' => 'Fellowship',
+        ]));
+
+    expect(FellowshipEvent::count())->toBe(2);
 });
 
 // ----------------------------------------------------------------

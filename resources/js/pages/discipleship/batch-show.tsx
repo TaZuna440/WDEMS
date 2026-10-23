@@ -681,7 +681,10 @@ function SessionFormDialog({
 
 DiscipleshipBatchShow.layout = {
     breadcrumbs: [
-        { title: 'Discipleship', href: '/events/church/discipleship' },
+        {
+            title: 'Discipleship',
+            href: '/events?kind=church&church_category=Discipleship',
+        },
         { title: 'Batch', href: '#' },
     ],
 };

@@ -102,5 +102,9 @@ it('keeps the Youth category set exact and the Services Youth route available', 
 
     $this->get('/events/church/youth/service')->assertNotFound();
     $this->get('/events/church/youth/not-a-module')->assertNotFound();
-    $this->get('/events/church/services/youth')->assertOk();
+    $this->get('/events/church/services/youth')
+        ->assertRedirect(route('events.index', [
+            'kind' => 'church',
+            'church_category' => 'Services',
+        ]));
 });

@@ -35,6 +35,18 @@ test('dashboard remembers explicit side switches while query overrides remain vi
     $this->get('/dashboard')->assertInertia(fn ($page) => $page->where('activeSide', 'running'));
 });
 
+test('church dashboard links standard modules to their ministry card pages', function () {
+    $user = User::factory()->create([
+        'role' => 'admin',
+        'email_two_factor_enabled' => false,
+    ]);
+
+    $this->actingAs($user)->get('/dashboard?side=church')->assertInertia(fn ($page) => $page
+        ->where('churchCategories.0.href', '/events/church/services')
+        ->where('churchCategories.1.href', '/events/church/fellowship')
+        ->where('churchCategories.2.href', '/events/church/discipleship'));
+});
+
 test('dashboard counts active registrations and present attendance only', function () {
     $user = User::factory()->create(['role' => 'admin', 'email_two_factor_enabled' => false]);
     $event = Event::create(['created_by' => $user->id, 'event_kind' => 'running', 'event_type' => 'community_run', 'event_name' => 'Dashboard run']);

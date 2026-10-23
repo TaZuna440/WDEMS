@@ -38,16 +38,16 @@ use Illuminate\Support\Facades\Route;
 Route::inertia('/', 'welcome')->name('home');
 
 // ============================================================
-// Legacy URLs — 301 redirects to the /events/church prefix.
+// Legacy module URLs — 301 redirects to their Church module landing pages.
 // See docs/restructure/phase-1-navigation.md §4.
 // ============================================================
 
 Route::permanentRedirect('/services', '/events/church/services');
-Route::permanentRedirect('/services/{type}', '/events/church/services/{type}')
+Route::permanentRedirect('/services/{type}', '/events/church/services')
     ->whereIn('type', ['morning', 'midweek', 'youth', 'other']);
 
 Route::permanentRedirect('/fellowship', '/events/church/fellowship');
-Route::permanentRedirect('/fellowship/{type}', '/events/church/fellowship/{type}')
+Route::permanentRedirect('/fellowship/{type}', '/events/church/fellowship')
     ->whereIn('type', ['family', 'church', 'pastors', 'leaders', 'womens', 'mens']);
 
 Route::permanentRedirect('/discipleship', '/events/church/discipleship');
@@ -155,8 +155,11 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
     Route::get('events/create', [EventController::class, 'create'])->name('events.create');
     Route::get('events/create/community-run', [EventController::class, 'createCommunityRun'])->name('events.create.community-run');
     Route::get('events/create/church', [EventController::class, 'createChurch'])->name('events.create.church');
+    Route::get('events/create/church-category/{category}', [EventController::class, 'createChurchCategory'])
+        ->whereIn('category', ['services', 'fellowship', 'discipleship'])
+        ->name('events.create.church.standard-category');
     Route::get('events/create/church/{ministry}/{activity?}', [EventController::class, 'createSpecialist'])
-        ->whereIn('ministry', ['youth', 'kids', 'young-adult', 'worship-prayer', 'church-administration', 'special-occasions'])
+        ->whereIn('ministry', ['services', 'fellowship', 'discipleship', 'youth', 'kids', 'young-adult', 'worship-prayer', 'church-administration', 'special-occasions'])
         ->name('events.create.church.category');
     Route::post('events', [EventController::class, 'store'])->name('events.store');
     Route::get('events/{event}', [EventController::class, 'show'])->name('events.show');
@@ -286,9 +289,13 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
             ->name('services.occurrences.store');
 
         // Landing and per-type view (1-2 segments) — least specific.
-        Route::get('services', [ServiceController::class, 'index'])
+        Route::get('services', [ChurchSpecialistController::class, 'ministry'])
+            ->defaults('ministrySlug', 'services')
             ->name('services.index');
-        Route::get('services/{type}', [ServiceController::class, 'show'])
+        Route::get('services/{type}', fn () => redirect()->route('events.index', [
+            'kind' => 'church',
+            'church_category' => 'Services',
+        ]))
             ->whereIn('type', ['morning', 'midweek', 'youth', 'other'])
             ->name('services.show');
 
@@ -338,9 +345,13 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
                 ->name('events.store');
 
             // Landing and per-type view -- least specific, last.
-            Route::get('/', [FellowshipController::class, 'index'])
+            Route::get('/', [ChurchSpecialistController::class, 'ministry'])
+                ->defaults('ministrySlug', 'fellowship')
                 ->name('index');
-            Route::get('{type}', [FellowshipController::class, 'show'])
+            Route::get('{type}', fn () => redirect()->route('events.index', [
+                'kind' => 'church',
+                'church_category' => 'Fellowship',
+            ]))
                 ->whereIn('type', ['family', 'church', 'pastors', 'leaders', 'womens', 'mens'])
                 ->name('show');
         });
@@ -409,16 +420,17 @@ Route::middleware(['auth', 'verified.or.admin', 'device.trusted', 'event.advance
             // the partial-reload pattern. Returns up to 20 matches.
             Route::get('programs/{program:slug}/participant-search', [DiscipleshipController::class, 'participantSearch'])
                 ->name('participants.search');
-            Route::get('/', [DiscipleshipController::class, 'index'])
+            Route::get('/', [ChurchSpecialistController::class, 'ministry'])
+                ->defaults('ministrySlug', 'discipleship')
                 ->name('index');
             Route::get('programs/{program:slug}', [DiscipleshipController::class, 'show'])
                 ->name('programs.show');
         });
         Route::get('{ministry}/{activity}', [ChurchSpecialistController::class, 'category'])
-            ->whereIn('ministry', ['youth', 'kids', 'young-adult', 'worship-prayer', 'church-administration', 'special-occasions'])
+            ->whereIn('ministry', ['services', 'fellowship', 'discipleship', 'youth', 'kids', 'young-adult', 'worship-prayer', 'church-administration', 'special-occasions'])
             ->name('events.church.specialist.category');
         Route::get('{ministry}', [ChurchSpecialistController::class, 'ministry'])
-            ->whereIn('ministry', ['youth', 'kids', 'young-adult', 'worship-prayer', 'church-administration', 'special-occasions'])
+            ->whereIn('ministry', ['services', 'fellowship', 'discipleship', 'youth', 'kids', 'young-adult', 'worship-prayer', 'church-administration', 'special-occasions'])
             ->name('events.church.specialist.ministry');
     }); // close /events/church prefix group
     // Admin-only routes — same trusted-device pipeline, admin gate layered on top.

@@ -19,6 +19,7 @@ type Category = {
     icon: LucideIcon;
     /** Categories with a dedicated module and landing page. */
     hasDedicatedPage: boolean;
+    eventCategory: string;
 };
 
 /**
@@ -35,6 +36,7 @@ const CATEGORIES: Category[] = [
         description: 'Recurring worship services',
         icon: Church,
         hasDedicatedPage: true,
+        eventCategory: 'Services',
     },
     {
         key: 'fellowship',
@@ -42,6 +44,7 @@ const CATEGORIES: Category[] = [
         description: 'Gatherings by group type',
         icon: HeartHandshake,
         hasDedicatedPage: true,
+        eventCategory: 'Fellowship',
     },
     {
         key: 'discipleship',
@@ -49,6 +52,7 @@ const CATEGORIES: Category[] = [
         description: 'Structured formation programs',
         icon: GraduationCap,
         hasDedicatedPage: true,
+        eventCategory: 'Discipleship',
     },
     {
         key: 'youth',
@@ -56,6 +60,7 @@ const CATEGORIES: Category[] = [
         description: 'Youth camps, services, ministry',
         icon: Users,
         hasDedicatedPage: true,
+        eventCategory: 'Youth',
     },
     {
         key: 'kids',
@@ -63,6 +68,7 @@ const CATEGORIES: Category[] = [
         description: 'Kids activities and outreaches',
         icon: Baby,
         hasDedicatedPage: false,
+        eventCategory: 'Kids Ministry',
     },
     {
         key: 'young-adult',
@@ -70,6 +76,7 @@ const CATEGORIES: Category[] = [
         description: 'Young adult services and seminars',
         icon: UserRound,
         hasDedicatedPage: false,
+        eventCategory: 'Young Adult',
     },
     {
         key: 'worship-prayer',
@@ -77,6 +84,7 @@ const CATEGORIES: Category[] = [
         description: 'Prayer meetings and worship nights',
         icon: Music,
         hasDedicatedPage: false,
+        eventCategory: 'Worship & Prayer',
     },
     {
         key: 'special-occasions',
@@ -84,6 +92,7 @@ const CATEGORIES: Category[] = [
         description: 'Church celebrations and events',
         icon: PartyPopper,
         hasDedicatedPage: false,
+        eventCategory: 'Special Occasions',
     },
     {
         key: 'church-administration',
@@ -91,21 +100,22 @@ const CATEGORIES: Category[] = [
         description: 'Ministry meetings and planning',
         icon: Briefcase,
         hasDedicatedPage: false,
+        eventCategory: 'Church Administration',
     },
 ];
 
 type Props = {
-    /**
-     * `browse` — every card routes to its category's browse page.
-     *
-     * `create` — the three built modules route to their landing
-     * page (where the user creates from the module's own UI), and
-     * the six unbuilt route to the wizard with the category preset.
-     */
+    /** Browse modules or open their standard/specialist creation workflow. */
     mode?: 'browse' | 'create';
 };
 
 function hrefFor(category: Category, mode: 'browse' | 'create'): string {
+    if (['services', 'fellowship', 'discipleship'].includes(category.key)) {
+        return mode === 'browse'
+            ? `/events/church/${category.key}`
+            : `/events/create/church/${category.key}`;
+    }
+
     if (mode === 'create' && !category.hasDedicatedPage) {
         return `/events/create/church/${category.key}`;
     }

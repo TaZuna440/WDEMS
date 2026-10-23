@@ -25,8 +25,8 @@ import type { NavItem } from '@/types';
 /**
  * Top-level navigation.
  *
- * Five items. The church modules (Services, Fellowship,
- * Discipleship) are reachable via Events -> Church, not from here.
+ * Five items. Church categories, including Services, Fellowship,
+ * and Discipleship, are reached through Events -> Church.
  * See docs/restructure/phase-1-navigation.md.
  */
 const mainNavItems: NavItem[] = [
