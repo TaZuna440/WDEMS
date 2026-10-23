@@ -22,6 +22,16 @@ it('serves the church registration page and records staff attestation and format
         ->assertInertia(fn ($page) => $page
             ->where('duplicates_url', route('events.possible-duplicates', $this->event))
             ->where('attendance_url', route('church.attendance', $this->event)));
+    $this->get(route('events.possible-duplicates', $this->event))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('events/duplicates')
+            ->where('event.id', $this->event->id)
+            ->where('event.event_name', $this->event->event_name)
+            ->where('event.event_kind', 'church')
+            ->has('pairs')
+            ->has('held_registrations')
+            ->has('review_status'));
     $this->get("/events/{$this->event->id}/church-attendance")
         ->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -47,7 +57,15 @@ it('holds additives and allows church review without crossing pools', function (
     $this->post($this->url, $this->data)->assertSessionHasNoErrors();
     $held = Registration::held()->sole();
     expect(Registration::active()->count())->toBe(1)->and($held->attendance)->toBeNull();
-    $this->get("/events/{$this->event->id}/possible-duplicates")->assertOk();
+    $this->get("/events/{$this->event->id}/possible-duplicates")
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('events/duplicates')
+            ->where('held_registrations.0.guardian_name', 'Jose Santos')
+            ->where('held_registrations.0.guardian_contact', '09171234567')
+            ->where('held_registrations.0.participant_type', 'Guest')
+            ->where('held_registrations.0.candidate.guardian_name', 'Jose Santos')
+            ->where('held_registrations.0.candidate.guardian_contact', '09171234567'));
     $this->post("/events/{$this->event->id}/possible-duplicates/{$held->id}/resolve", ['action' => 'confirm_separate'])->assertSessionHasNoErrors();
     expect($held->fresh()->isActive())->toBeTrue();
 });

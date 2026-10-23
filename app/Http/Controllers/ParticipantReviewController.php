@@ -56,6 +56,9 @@ class ParticipantReviewController extends Controller
                         'contact_number' => $r->submitted_contact_number ?? $r->participant?->contact_number,
                         'birthday' => $r->participant?->birthday?->toDateString(),
                     ],
+                    'participant_type' => $r->participant_type,
+                    'guardian_name' => $r->guardian_name,
+                    'guardian_contact' => $r->guardian_contact,
                     'candidate' => $r->heldCandidate ? [
                         'id' => $r->heldCandidate->id,
                         'created_at' => $r->heldCandidate->created_at?->toIso8601String(),
@@ -69,6 +72,9 @@ class ParticipantReviewController extends Controller
                             'contact_number' => $r->heldCandidate->submitted_contact_number ?? $r->heldCandidate->participant?->contact_number,
                             'birthday' => $r->heldCandidate->participant?->birthday?->toDateString(),
                         ],
+                        'participant_type' => $r->heldCandidate->participant_type,
+                        'guardian_name' => $r->heldCandidate->guardian_name,
+                        'guardian_contact' => $r->heldCandidate->guardian_contact,
                     ] : null,
                 ];
             });

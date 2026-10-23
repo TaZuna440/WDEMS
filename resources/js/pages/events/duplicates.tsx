@@ -17,6 +17,9 @@ type HeldRegistration = {
     id: number;
     created_at: string;
     held_reason: string | null;
+    participant_type: string | null;
+    guardian_name: string | null;
+    guardian_contact: string | null;
     participant: {
         id: number;
         first_name: string;
@@ -30,6 +33,9 @@ type HeldRegistration = {
     candidate: {
         id: number;
         created_at: string;
+        participant_type: string | null;
+        guardian_name: string | null;
+        guardian_contact: string | null;
         participant: {
             id: number;
             first_name: string;
@@ -53,6 +59,30 @@ type Props = {
     held_registrations?: HeldRegistration[];
     review_status?: string;
 };
+
+function ChurchRegistrationDetails({
+    participantType,
+    guardianName,
+    guardianContact,
+}: {
+    participantType: string | null;
+    guardianName: string | null;
+    guardianContact: string | null;
+}) {
+    const details = [
+        participantType ? `Type: ${participantType}` : null,
+        guardianName ? `Guardian: ${guardianName}` : null,
+        guardianContact ? `Guardian contact: ${guardianContact}` : null,
+    ].filter((detail): detail is string => detail !== null);
+
+    if (details.length === 0) return null;
+
+    return (
+        <p className="text-muted-foreground mt-1 text-xs">
+            {details.join(' · ')}
+        </p>
+    );
+}
 
 export default function Duplicates({
     event,
@@ -274,6 +304,19 @@ export default function Duplicates({
                                             {held.participant.birthday ??
                                                 'Not recorded'}
                                         </p>
+                                        {event.event_kind === 'church' && (
+                                            <ChurchRegistrationDetails
+                                                participantType={
+                                                    held.participant_type
+                                                }
+                                                guardianName={
+                                                    held.guardian_name
+                                                }
+                                                guardianContact={
+                                                    held.guardian_contact
+                                                }
+                                            />
+                                        )}
                                     </div>
 
                                     <div>
@@ -321,6 +364,23 @@ export default function Duplicates({
                                                         .birthday ??
                                                         'Not recorded'}
                                                 </p>
+                                                {event.event_kind ===
+                                                    'church' && (
+                                                    <ChurchRegistrationDetails
+                                                        participantType={
+                                                            held.candidate
+                                                                .participant_type
+                                                        }
+                                                        guardianName={
+                                                            held.candidate
+                                                                .guardian_name
+                                                        }
+                                                        guardianContact={
+                                                            held.candidate
+                                                                .guardian_contact
+                                                        }
+                                                    />
+                                                )}
                                             </>
                                         ) : (
                                             <p className="text-muted-foreground text-xs">
