@@ -115,6 +115,32 @@ trait EventValidationRules
                 'distance_unit' => ['required', Rule::in(['km', 'mi'])],
             ];
 
+        $specializedChurchRules = $isChurch
+            ? [
+                'emergency_contact_name' => ['nullable', 'string', 'max:255'],
+                'emergency_contact_number' => ['nullable', 'string', 'max:32'],
+                'medical_notes' => ['nullable', 'string', 'max:5000'],
+                'parental_consent' => ['nullable', 'boolean'],
+                'child_name' => ['nullable', 'string', 'max:255'],
+                'mother_name' => ['nullable', 'string', 'max:255'],
+                'father_name' => ['nullable', 'string', 'max:255'],
+                'officiating_pastor' => ['nullable', 'string', 'max:255'],
+                'assigned_teacher' => ['nullable', 'string', 'max:255'],
+                'program_day_session' => ['nullable', 'string', 'max:255'],
+            ]
+            : [
+                'emergency_contact_name' => ['exclude'],
+                'emergency_contact_number' => ['exclude'],
+                'medical_notes' => ['exclude'],
+                'parental_consent' => ['exclude'],
+                'child_name' => ['exclude'],
+                'mother_name' => ['exclude'],
+                'father_name' => ['exclude'],
+                'officiating_pastor' => ['exclude'],
+                'assigned_teacher' => ['exclude'],
+                'program_day_session' => ['exclude'],
+            ];
+
         return [
             'event_kind' => [
                 'nullable',
@@ -177,6 +203,7 @@ trait EventValidationRules
             'sweeper_present' => ['boolean'],
             'service_animals_allowed' => ['boolean'],
             'leashed_pets_allowed' => ['boolean'],
+            ...$specializedChurchRules,
         ];
     }
 

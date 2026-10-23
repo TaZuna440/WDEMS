@@ -52,6 +52,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'service_animals_allowed',
     'leashed_pets_allowed',
     'quiet_space_available',
+    'emergency_contact_name',
+    'emergency_contact_number',
+    'medical_notes',
+    'parental_consent',
+    'child_name',
+    'mother_name',
+    'father_name',
+    'officiating_pastor',
+    'assigned_teacher',
+    'program_day_session',
 ])]
 class Event extends Model
 {
@@ -184,6 +194,7 @@ class Event extends Model
             'service_animals_allowed' => 'boolean',
             'leashed_pets_allowed' => 'boolean',
             'quiet_space_available' => 'boolean',
+            'parental_consent' => 'boolean',
         ];
     }
 

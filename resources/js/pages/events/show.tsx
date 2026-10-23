@@ -35,6 +35,16 @@ type EventData = {
     church_activity_category: string | null;
     description: string | null;
     coordinator: string | null;
+    emergency_contact_name: string | null;
+    emergency_contact_number: string | null;
+    medical_notes: string | null;
+    parental_consent: boolean | null;
+    child_name: string | null;
+    mother_name: string | null;
+    father_name: string | null;
+    officiating_pastor: string | null;
+    assigned_teacher: string | null;
+    program_day_session: string | null;
     event_date: string | null;
     start_time: string | null;
     end_time: string | null;
@@ -271,6 +281,33 @@ export default function EventsShow({
 
     const hasPartners = event.partners !== null && event.partners.length > 0;
 
+    const specializedDetails: { label: string; value: string | null }[] = [
+        { label: 'Child name', value: event.child_name },
+        { label: "Mother's name", value: event.mother_name },
+        { label: "Father's name", value: event.father_name },
+        { label: 'Officiating pastor', value: event.officiating_pastor },
+        { label: 'Emergency contact', value: event.emergency_contact_name },
+        {
+            label: 'Emergency contact number',
+            value: event.emergency_contact_number,
+        },
+        { label: 'Medical notes', value: event.medical_notes },
+        {
+            label: 'Parental consent',
+            value:
+                event.parental_consent === null
+                    ? null
+                    : event.parental_consent
+                      ? 'Received'
+                      : 'Not received',
+        },
+        { label: 'Assigned teacher', value: event.assigned_teacher },
+        { label: 'Program day / session', value: event.program_day_session },
+    ];
+    const visibleSpecializedDetails = specializedDetails.filter(
+        ({ value }) => value !== null && value !== '',
+    );
+
     const hasCoordinates =
         event.venue_latitude !== null && event.venue_longitude !== null;
 
@@ -411,6 +448,25 @@ export default function EventsShow({
                                 }
                             />
                         </div>
+
+                        {event.event_kind === 'church' &&
+                            visibleSpecializedDetails.length > 0 && (
+                                <div className="glass-panel rounded-xl p-6">
+                                    <h2 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wider uppercase">
+                                        Specialized Details
+                                    </h2>
+                                    {visibleSpecializedDetails.map(
+                                        ({ label, value }) => (
+                                            <DetailRow
+                                                key={label}
+                                                icon={FileText}
+                                                label={label}
+                                                value={value}
+                                            />
+                                        ),
+                                    )}
+                                </div>
+                            )}
 
                         {/* Venue */}
                         {(event.venue ||

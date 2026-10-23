@@ -784,3 +784,15 @@ Events now default to the Running tab; invalid/missing kind cannot request a mix
 Current reference: [Running Events audit and contract](running-events-audit-2026-10-21.md).
 This dated addendum supersedes conflicting Running Events statements above;
 historical entries are retained under the append-only documentation policy.
+
+## Church activity details addendum — 2026-10-23
+
+The Church wizard now collects optional specialist details in `BasicsStep`,
+conditional on the selected ministry/activity: Dedication family and pastor
+details; Youth Camp/Vacation Bible School emergency, medical, and consent
+details; and Vacation Bible School/Discipleship teacher and session details.
+These values are nullable columns added by
+`2026_10_23_040000_add_specialized_church_activity_fields_to_events_table`.
+The event controller only persists each field set for its matching Church
+activity and the event details page shows saved values. Running-event requests
+exclude these fields.

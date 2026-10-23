@@ -140,6 +140,16 @@ class EventController extends Controller
                 'event_name' => $event->event_name,
                 'description' => $event->description,
                 'coordinator' => $event->coordinator,
+                'emergency_contact_name' => $event->emergency_contact_name,
+                'emergency_contact_number' => $event->emergency_contact_number,
+                'medical_notes' => $event->medical_notes,
+                'parental_consent' => $event->parental_consent,
+                'child_name' => $event->child_name,
+                'mother_name' => $event->mother_name,
+                'father_name' => $event->father_name,
+                'officiating_pastor' => $event->officiating_pastor,
+                'assigned_teacher' => $event->assigned_teacher,
+                'program_day_session' => $event->program_day_session,
                 'event_date' => $event->event_date?->toDateString(),
                 'start_time' => $event->start_time?->format('H:i'),
                 'end_time' => $event->end_time?->format('H:i'),
@@ -322,6 +332,12 @@ class EventController extends Controller
             'venue_latitude' => $validated['venue_latitude'] ?? null,
             'venue_longitude' => $validated['venue_longitude'] ?? null,
             'partners' => $isChurch ? null : ($validated['partners'] ?? null),
+            ...$this->specializedChurchDetails(
+                $validated,
+                $isChurch,
+                $validated['church_category'] ?? null,
+                $validated['church_activity_category'] ?? null,
+            ),
             'walkers_welcome' => $isChurch ? false : ($validated['walkers_welcome'] ?? false),
             'all_paces_welcome' => $isChurch ? false : ($validated['all_paces_welcome'] ?? false),
             'all_ages_welcome' => $isChurch ? false : ($validated['all_ages_welcome'] ?? false),
@@ -367,6 +383,17 @@ class EventController extends Controller
                 'event_name' => $event->event_name,
                 'description' => $event->description,
                 'coordinator' => $event->coordinator,
+                'church_activity_category' => $event->church_activity_category,
+                'emergency_contact_name' => $event->emergency_contact_name,
+                'emergency_contact_number' => $event->emergency_contact_number,
+                'medical_notes' => $event->medical_notes,
+                'parental_consent' => $event->parental_consent,
+                'child_name' => $event->child_name,
+                'mother_name' => $event->mother_name,
+                'father_name' => $event->father_name,
+                'officiating_pastor' => $event->officiating_pastor,
+                'assigned_teacher' => $event->assigned_teacher,
+                'program_day_session' => $event->program_day_session,
                 'event_date' => $event->event_date?->toDateString(),
                 'start_time' => $event->start_time?->format('H:i'),
                 'end_time' => $event->end_time?->format('H:i'),
@@ -397,7 +424,48 @@ class EventController extends Controller
                     'label' => $category->label(),
                 ])
                 ->values(),
+            'specialist_activity_options' => collect($event->church_activity_category === null
+                ? []
+                : ChurchSpecialistCatalog::activityLabelsForChurchCategory($event->church_category))
+                ->map(fn (string $activity) => [
+                    'value' => $activity,
+                    'label' => $activity,
+                ])->values(),
         ]);
+    }
+
+    /**
+     * Only retain specialist fields for the activity that owns them.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function specializedChurchDetails(
+        array $validated,
+        bool $isChurch,
+        ?string $churchCategory,
+        ?string $activity,
+    ): array {
+        $isDedication = $isChurch
+            && $churchCategory === 'Special Occasions'
+            && $activity === 'Dedication';
+        $isYouthCampOrVbs = $isChurch
+            && in_array($activity, ['Youth Camp', 'Vacation Bible School'], true);
+        $hasTeacherDetails = $isChurch
+            && ($churchCategory === 'Discipleship' || $activity === 'Vacation Bible School');
+
+        return [
+            'emergency_contact_name' => $isYouthCampOrVbs ? ($validated['emergency_contact_name'] ?? null) : null,
+            'emergency_contact_number' => $isYouthCampOrVbs ? ($validated['emergency_contact_number'] ?? null) : null,
+            'medical_notes' => $isYouthCampOrVbs ? ($validated['medical_notes'] ?? null) : null,
+            'parental_consent' => $isYouthCampOrVbs ? ($validated['parental_consent'] ?? null) : null,
+            'child_name' => $isDedication ? ($validated['child_name'] ?? null) : null,
+            'mother_name' => $isDedication ? ($validated['mother_name'] ?? null) : null,
+            'father_name' => $isDedication ? ($validated['father_name'] ?? null) : null,
+            'officiating_pastor' => $isDedication ? ($validated['officiating_pastor'] ?? null) : null,
+            'assigned_teacher' => $hasTeacherDetails ? ($validated['assigned_teacher'] ?? null) : null,
+            'program_day_session' => $hasTeacherDetails ? ($validated['program_day_session'] ?? null) : null,
+        ];
     }
 
     /**
@@ -486,6 +554,15 @@ class EventController extends Controller
             'leashed_pets_allowed' => $isChurch
                 ? $event->leashed_pets_allowed
                 : ($validated['leashed_pets_allowed'] ?? false),
+            'church_activity_category' => $isChurch
+                ? ($validated['church_activity_category'] ?? $event->church_activity_category)
+                : $event->church_activity_category,
+            ...$this->specializedChurchDetails(
+                $validated,
+                $isChurch,
+                $validated['church_category'] ?? $event->church_category,
+                $validated['church_activity_category'] ?? $event->church_activity_category,
+            ),
         ]);
 
         return redirect()->route('events.show', $event);

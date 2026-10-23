@@ -16,12 +16,23 @@ type EventData = {
     id: number;
     event_kind: string;
     church_category: string | null;
+    church_activity_category: string | null;
     church_status: string | null;
     event_type: string;
     event_type_label: string;
     event_name: string;
     description: string | null;
     coordinator: string | null;
+    emergency_contact_name: string | null;
+    emergency_contact_number: string | null;
+    medical_notes: string | null;
+    parental_consent: boolean | null;
+    child_name: string | null;
+    mother_name: string | null;
+    father_name: string | null;
+    officiating_pastor: string | null;
+    assigned_teacher: string | null;
+    program_day_session: string | null;
     event_date: string | null;
     start_time: string | null;
     end_time: string | null;
@@ -53,6 +64,7 @@ type ChurchCategoryOption = {
 type Props = {
     event: EventData;
     church_categories: ChurchCategoryOption[];
+    specialist_activity_options: ChurchCategoryOption[];
 };
 
 /**
@@ -127,6 +139,16 @@ const CHURCH_STEPS: WizardStepConfig[] = [
             'event_name',
             'description',
             'coordinator',
+            'child_name',
+            'mother_name',
+            'father_name',
+            'officiating_pastor',
+            'emergency_contact_name',
+            'emergency_contact_number',
+            'medical_notes',
+            'parental_consent',
+            'assigned_teacher',
+            'program_day_session',
         ],
         requiredFields: ['church_category', 'event_name'],
         validate: validateBasics,
@@ -171,7 +193,11 @@ function normalizeCoordinate(
     return isNaN(num) ? null : num;
 }
 
-export default function EventsEdit({ event, church_categories }: Props) {
+export default function EventsEdit({
+    event,
+    church_categories,
+    specialist_activity_options,
+}: Props) {
     const {
         data,
         setData: inertiaSetData,
@@ -184,10 +210,22 @@ export default function EventsEdit({ event, church_categories }: Props) {
         // Step 1 — Details
         event_type: event.event_type,
         church_category: event.church_category ?? '',
+        church_activity_category: event.church_activity_category ?? '',
+        specialist_workflow: event.church_activity_category !== null,
         church_status: event.church_status ?? '',
         event_name: event.event_name,
         description: event.description ?? '',
         coordinator: event.coordinator ?? '',
+        emergency_contact_name: event.emergency_contact_name ?? '',
+        emergency_contact_number: event.emergency_contact_number ?? '',
+        medical_notes: event.medical_notes ?? '',
+        parental_consent: event.parental_consent,
+        child_name: event.child_name ?? '',
+        mother_name: event.mother_name ?? '',
+        father_name: event.father_name ?? '',
+        officiating_pastor: event.officiating_pastor ?? '',
+        assigned_teacher: event.assigned_teacher ?? '',
+        program_day_session: event.program_day_session ?? '',
 
         // Step 2 — Schedule
         event_date: event.event_date ?? '',
@@ -314,6 +352,13 @@ export default function EventsEdit({ event, church_categories }: Props) {
                                             },
                                         ]}
                                         churchCategories={church_categories}
+                                        specialistActivityOptions={
+                                            specialist_activity_options
+                                        }
+                                        lockChurchCategory={
+                                            event.church_activity_category !==
+                                            null
+                                        }
                                         isEdit
                                     />
                                 );

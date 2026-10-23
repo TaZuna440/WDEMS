@@ -2,6 +2,7 @@ import AccessibilityGrid, {
     type AccessibilityField,
 } from '@/components/accessibility-grid';
 import InputError from '@/components/input-error';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -29,6 +30,16 @@ type FormData = {
     description: string;
     coordinator?: string;
     church_activity_category?: string;
+    emergency_contact_name?: string;
+    emergency_contact_number?: string;
+    medical_notes?: string;
+    parental_consent?: boolean | null;
+    child_name?: string;
+    mother_name?: string;
+    father_name?: string;
+    officiating_pastor?: string;
+    assigned_teacher?: string;
+    program_day_session?: string;
 } & Partial<Record<AccessibilityField, boolean>>;
 
 type Props = {
@@ -68,6 +79,16 @@ export default function BasicsStep({
     lockSpecialistActivity = false,
 }: Props) {
     const isChurch = data.event_type === 'church';
+    const activity = data.church_activity_category?.toLocaleLowerCase() ?? '';
+    const isDedication =
+        data.church_category === 'Special Occasions' &&
+        activity === 'dedication';
+    const isYouthCamp = activity === 'youth camp';
+    const isVacationBibleSchool =
+        activity === 'vacation bible school' || activity.includes('vbs');
+    const needsEmergencyDetails = isYouthCamp || isVacationBibleSchool;
+    const needsTeacherDetails =
+        data.church_category === 'Discipleship' || isVacationBibleSchool;
 
     const accessibilityValue: Partial<Record<AccessibilityField, boolean>> = {};
     for (const field of ACCESSIBILITY_FIELDS) {
@@ -179,6 +200,134 @@ export default function BasicsStep({
                     </Select>
                     <InputError message={errors.church_activity_category} />
                 </div>
+            )}
+
+            {isDedication && (
+                <section className="border-border flex flex-col gap-4 rounded-lg border p-4">
+                    <div>
+                        <h3 className="text-foreground text-sm font-semibold">
+                            Dedication Details
+                        </h3>
+                        <p className="text-muted-foreground mt-1 text-xs">
+                            Optional family and officiant information.
+                        </p>
+                    </div>
+                    {(
+                        [
+                            ['child_name', 'Child name'],
+                            ['mother_name', "Mother's name"],
+                            ['father_name', "Father's name"],
+                            ['officiating_pastor', 'Officiating pastor'],
+                        ] as const
+                    ).map(([field, label]) => (
+                        <div key={field} className="grid gap-2">
+                            <Label htmlFor={field}>{label}</Label>
+                            <Input
+                                id={field}
+                                value={data[field] ?? ''}
+                                onChange={(event) =>
+                                    setData(field, event.target.value)
+                                }
+                            />
+                            <InputError message={errors[field]} />
+                        </div>
+                    ))}
+                </section>
+            )}
+
+            {needsEmergencyDetails && (
+                <section className="border-border flex flex-col gap-4 rounded-lg border p-4">
+                    <div>
+                        <h3 className="text-foreground text-sm font-semibold">
+                            Emergency and Medical Details
+                        </h3>
+                        <p className="text-muted-foreground mt-1 text-xs">
+                            Optional details for this youth or children’s
+                            activity.
+                        </p>
+                    </div>
+                    {(
+                        [
+                            [
+                                'emergency_contact_name',
+                                'Emergency contact name',
+                            ],
+                            [
+                                'emergency_contact_number',
+                                'Emergency contact number',
+                            ],
+                        ] as const
+                    ).map(([field, label]) => (
+                        <div key={field} className="grid gap-2">
+                            <Label htmlFor={field}>{label}</Label>
+                            <Input
+                                id={field}
+                                value={data[field] ?? ''}
+                                onChange={(event) =>
+                                    setData(field, event.target.value)
+                                }
+                            />
+                            <InputError message={errors[field]} />
+                        </div>
+                    ))}
+                    <div className="grid gap-2">
+                        <Label htmlFor="medical_notes">Medical notes</Label>
+                        <textarea
+                            id="medical_notes"
+                            value={data.medical_notes ?? ''}
+                            onChange={(event) =>
+                                setData('medical_notes', event.target.value)
+                            }
+                            rows={3}
+                            className="border-input bg-input placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-20 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+                        />
+                        <InputError message={errors.medical_notes} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            id="parental_consent"
+                            checked={data.parental_consent === true}
+                            onCheckedChange={(checked) =>
+                                setData('parental_consent', checked === true)
+                            }
+                        />
+                        <Label htmlFor="parental_consent">
+                            Parental consent received
+                        </Label>
+                        <InputError message={errors.parental_consent} />
+                    </div>
+                </section>
+            )}
+
+            {needsTeacherDetails && (
+                <section className="border-border flex flex-col gap-4 rounded-lg border p-4">
+                    <div>
+                        <h3 className="text-foreground text-sm font-semibold">
+                            Class Details
+                        </h3>
+                        <p className="text-muted-foreground mt-1 text-xs">
+                            Optional teacher and schedule information.
+                        </p>
+                    </div>
+                    {(
+                        [
+                            ['assigned_teacher', 'Assigned teacher'],
+                            ['program_day_session', 'Program day / session'],
+                        ] as const
+                    ).map(([field, label]) => (
+                        <div key={field} className="grid gap-2">
+                            <Label htmlFor={field}>{label}</Label>
+                            <Input
+                                id={field}
+                                value={data[field] ?? ''}
+                                onChange={(event) =>
+                                    setData(field, event.target.value)
+                                }
+                            />
+                            <InputError message={errors[field]} />
+                        </div>
+                    ))}
+                </section>
             )}
 
             <div className="grid gap-2">
