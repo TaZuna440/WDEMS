@@ -132,6 +132,7 @@ export default function EventsCreate({
     const {
         data,
         setData: inertiaSetData,
+        transform,
         post,
         processing,
         errors,
@@ -214,6 +215,18 @@ export default function EventsCreate({
     };
 
     const submit = () => {
+        transform((formData) => {
+            if (!isChurch) return formData;
+
+            const {
+                distance_value: _distanceValue,
+                distance_unit: _distanceUnit,
+                ...churchData
+            } = formData;
+            void _distanceValue;
+            void _distanceUnit;
+            return churchData;
+        });
         post('/events');
     };
 
@@ -278,6 +291,7 @@ export default function EventsCreate({
                                         data={data}
                                         setData={setData}
                                         errors={stepErrors}
+                                        isChurch={isChurch}
                                     />
                                 );
                             case 'venue':

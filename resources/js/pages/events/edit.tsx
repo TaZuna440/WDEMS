@@ -175,6 +175,7 @@ export default function EventsEdit({ event, church_categories }: Props) {
     const {
         data,
         setData: inertiaSetData,
+        transform,
         put,
         processing,
         errors,
@@ -246,6 +247,18 @@ export default function EventsEdit({ event, church_categories }: Props) {
     };
 
     const submit = () => {
+        transform((formData) => {
+            if (!isChurch) return formData;
+
+            const {
+                distance_value: _distanceValue,
+                distance_unit: _distanceUnit,
+                ...churchData
+            } = formData;
+            void _distanceValue;
+            void _distanceUnit;
+            return churchData;
+        });
         put(`/events/${event.id}`);
     };
 
@@ -310,6 +323,7 @@ export default function EventsEdit({ event, church_categories }: Props) {
                                         data={data}
                                         setData={setData}
                                         errors={stepErrors}
+                                        isChurch={event.event_kind === 'church'}
                                     />
                                 );
                             case 'venue':

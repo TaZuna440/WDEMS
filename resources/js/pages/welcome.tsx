@@ -1,4 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
+import { Activity, CalendarDays, Church, Users } from 'lucide-react';
 import { dashboard, login } from '@/routes';
 import WdemsLogo from '@/components/wdems-logo';
 
@@ -19,12 +20,10 @@ export default function Welcome() {
                 </div>
 
                 <main className="relative z-10 grid w-full max-w-6xl items-center gap-12 lg:grid-cols-2">
-                    {/* Left: WD Monogram */}
                     <div className="flex items-center justify-center">
                         <WdemsLogo className="h-48 sm:h-64 lg:h-80" />
                     </div>
 
-                    {/* Right: Content */}
                     <div className="flex flex-col items-start text-left">
                         <span className="border-border bg-secondary text-muted-foreground mb-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium">
                             <span className="bg-primary h-1.5 w-1.5 rounded-full" />
@@ -34,14 +33,52 @@ export default function Welcome() {
                         <h1 className="text-foreground mb-4 text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
                             Workflow-Driven
                             <br />
-                            Event Management
+                            Event Management System
                         </h1>
 
-                        <p className="text-muted-foreground mb-8 max-w-md text-base sm:text-lg">
-                            Manage Community Run events from registration setup
-                            to attendance through a centralized workflow. Secure
-                            access for authorized personnel only.
+                        <p className="text-muted-foreground mb-7 max-w-xl text-base sm:text-lg">
+                            Plan events, manage registration, record attendance,
+                            and review results in one secure workspace for
+                            Community Runs and Church Event Management.
                         </p>
+
+                        <div className="mb-8 grid w-full gap-3 sm:grid-cols-2">
+                            <div className="border-border bg-card/70 flex items-start gap-3 rounded-xl border p-4">
+                                <Activity className="text-lime-brand mt-0.5 h-5 w-5 shrink-0" />
+                                <div>
+                                    <h2 className="text-foreground font-medium">
+                                        Community Runs
+                                    </h2>
+                                    <p className="text-muted-foreground mt-1 text-sm">
+                                        From event setup and public registration
+                                        to attendance and reports.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="border-border bg-card/70 flex items-start gap-3 rounded-xl border p-4">
+                                <Church className="text-lime-brand mt-0.5 h-5 w-5 shrink-0" />
+                                <div>
+                                    <h2 className="text-foreground font-medium">
+                                        Church Events
+                                    </h2>
+                                    <p className="text-muted-foreground mt-1 text-sm">
+                                        Manage Services, Youth, Kids,
+                                        Fellowship, Discipleship, and more.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="text-muted-foreground mb-8 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                            <span className="inline-flex items-center gap-2">
+                                <CalendarDays className="text-lime-brand h-4 w-4" />
+                                Event planning
+                            </span>
+                            <span className="inline-flex items-center gap-2">
+                                <Users className="text-lime-brand h-4 w-4" />
+                                Registration & attendance
+                            </span>
+                        </div>
 
                         <div className="flex flex-col gap-3 sm:flex-row">
                             {auth.user ? (
@@ -56,7 +93,7 @@ export default function Welcome() {
                                     href={login()}
                                     className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-11 items-center justify-center rounded-md px-8 text-sm font-medium transition-colors"
                                 >
-                                    Sign In
+                                    Log In
                                 </Link>
                             )}
                         </div>

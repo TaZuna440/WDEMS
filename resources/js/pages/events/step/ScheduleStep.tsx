@@ -19,6 +19,7 @@ type Props = {
     data: FormData;
     setData: (key: string, value: unknown) => void;
     errors: Record<string, string>;
+    isChurch?: boolean;
 };
 
 const MAX_EVENT_YEARS_AHEAD = 2;
@@ -44,7 +45,12 @@ function todayIso(): string {
     return `${y}-${m}-${day}`;
 }
 
-export default function ScheduleStep({ data, setData, errors }: Props) {
+export default function ScheduleStep({
+    data,
+    setData,
+    errors,
+    isChurch = false,
+}: Props) {
     const bounds = pickerBounds();
     const isScheduledForToday = data.event_date === todayIso();
 
@@ -55,7 +61,9 @@ export default function ScheduleStep({ data, setData, errors }: Props) {
                     Schedule
                 </h2>
                 <p className="text-muted-foreground mt-1 text-sm">
-                    When the event happens and how far it is.
+                    {isChurch
+                        ? 'When the event happens.'
+                        : 'When the event happens and how far it is.'}
                 </p>
             </div>
 
@@ -119,27 +127,29 @@ export default function ScheduleStep({ data, setData, errors }: Props) {
                 </div>
             </div>
 
-            <div className="grid gap-2">
-                <Label htmlFor="distance_value">
-                    Distance <span className="text-destructive">*</span>
-                </Label>
-                <DistancePicker
-                    id="distance_value"
-                    value={data.distance_value}
-                    unit={data.distance_unit}
-                    onChange={(value, unit) => {
-                        setData('distance_value', value);
-                        setData('distance_unit', unit);
-                    }}
-                />
-                <InputError
-                    message={errors.distance_value ?? errors.distance_unit}
-                />
-                <p className="text-muted-foreground text-xs">
-                    Choose a standard distance and switch between KM and Miles —
-                    the value converts automatically.
-                </p>
-            </div>
+            {!isChurch && (
+                <div className="grid gap-2">
+                    <Label htmlFor="distance_value">
+                        Distance <span className="text-destructive">*</span>
+                    </Label>
+                    <DistancePicker
+                        id="distance_value"
+                        value={data.distance_value}
+                        unit={data.distance_unit}
+                        onChange={(value, unit) => {
+                            setData('distance_value', value);
+                            setData('distance_unit', unit);
+                        }}
+                    />
+                    <InputError
+                        message={errors.distance_value ?? errors.distance_unit}
+                    />
+                    <p className="text-muted-foreground text-xs">
+                        Choose a standard distance and switch between KM and
+                        Miles — the value converts automatically.
+                    </p>
+                </div>
+            )}
         </div>
     );
 }
