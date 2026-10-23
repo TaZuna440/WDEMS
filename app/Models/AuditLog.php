@@ -17,11 +17,13 @@ class AuditLog extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return MorphTo<Model, $this> */
     public function target(): MorphTo
     {
         return $this->morphTo();

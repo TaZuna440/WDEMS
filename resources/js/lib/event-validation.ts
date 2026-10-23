@@ -205,6 +205,8 @@ export function validateSchedule(
     const endTime = asString(data.end_time).trim();
     const distanceValue = asNumber(data.distance_value);
     const distanceUnit = asString(data.distance_unit).trim();
+    const isChurch =
+        data.event_kind === 'church' || data.event_type === 'church';
 
     let startTimeValid = false;
 
@@ -273,20 +275,23 @@ export function validateSchedule(
         }
     }
 
-    if (distanceValue === null) {
-        errors.distance_value = 'Distance is required.';
-    } else if (distanceValue < 0.01 || distanceValue > 9999.99) {
-        errors.distance_value = 'Distance must be between 0.01 and 9999.99.';
-    }
+    if (!isChurch) {
+        if (distanceValue === null) {
+            errors.distance_value = 'Distance is required.';
+        } else if (distanceValue < 0.01 || distanceValue > 9999.99) {
+            errors.distance_value =
+                'Distance must be between 0.01 and 9999.99.';
+        }
 
-    if (!distanceUnit) {
-        errors.distance_unit = 'Distance unit is required.';
-    } else if (
-        !DISTANCE_UNITS.includes(
-            distanceUnit as (typeof DISTANCE_UNITS)[number],
-        )
-    ) {
-        errors.distance_unit = 'Distance unit must be KM or Miles.';
+        if (!distanceUnit) {
+            errors.distance_unit = 'Distance unit is required.';
+        } else if (
+            !DISTANCE_UNITS.includes(
+                distanceUnit as (typeof DISTANCE_UNITS)[number],
+            )
+        ) {
+            errors.distance_unit = 'Distance unit must be KM or Miles.';
+        }
     }
 
     return errors;

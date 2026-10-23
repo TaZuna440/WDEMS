@@ -2,9 +2,10 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { Activity, CalendarDays, Church, Users } from 'lucide-react';
 import { dashboard, login } from '@/routes';
 import WdemsLogo from '@/components/wdems-logo';
+import type { AppPageProps } from '@/types';
 
 export default function Welcome() {
-    const { auth } = usePage().props;
+    const { auth } = usePage<AppPageProps>().props;
 
     return (
         <>
