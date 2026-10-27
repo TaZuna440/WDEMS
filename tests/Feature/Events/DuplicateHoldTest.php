@@ -122,6 +122,93 @@ it('preserves removed submissions and before and after audit snapshots', functio
 it('never holds on birthdate alone or clearly different family names', function () {
     $review = app(DuplicateReview::class);
     $this->master->participant->update(['birthday' => '2000-01-01']);
-    expect($review->findCandidate($this->event, ['first_name' => 'Maria', 'last_name' => 'Santos', 'birthday' => '2000-01-01', 'email' => 'different@example.com']))->toBeNull();
-    expect($review->findCandidate($this->event, ['first_name' => 'Jose', 'last_name' => 'Santos', 'email' => 'maria@example.com']))->toBeNull();
+    $birthdayOnly = $review->findCandidates($this->event, [
+        'first_name' => 'Maria',
+        'last_name' => 'Santos',
+        'birthday' => '2000-01-01',
+        'email' => 'different@example.com',
+    ]);
+    $differentFamilyName = $review->findCandidates($this->event, [
+        'first_name' => 'Jose',
+        'last_name' => 'Santos',
+        'email' => 'maria@example.com',
+    ], excludeRegistrationId: $this->held->id, excludeParticipantId: $this->held->participant_id);
+
+    expect($birthdayOnly)->toBeEmpty()
+        ->and($review->shouldHoldCandidates($differentFamilyName))->toBeFalse();
+});
+
+it('ranks and exposes every participant sharing a family contact', function () {
+    $familyMember = Participant::create([
+        'pool' => 'running',
+        'first_name' => 'Jose',
+        'last_name' => 'Santos',
+        'email' => 'maria@example.com',
+    ]);
+    Registration::create([
+        'event_id' => $this->event->id,
+        'participant_id' => $familyMember->id,
+        'registration_status' => 'confirmed',
+        'source' => 'form',
+    ]);
+
+    $review = app(DuplicateReview::class);
+    $candidates = $review->findCandidates($this->event, [
+        'first_name' => 'Jose',
+        'last_name' => 'Santos',
+        'email' => 'maria@example.com',
+    ], excludeRegistrationId: $this->held->id, excludeParticipantId: $this->held->participant_id);
+
+    expect($candidates)->toHaveCount(2)
+        ->and($candidates[0]['participant']->id)->toBe($familyMember->id)
+        ->and($candidates[0]['strong'])->toBeTrue()
+        ->and($review->shouldHoldCandidates($candidates))->toBeTrue();
+});
+
+it('returns all ranked candidates in the audit queue and links to the selected participant', function () {
+    Mail::fake();
+    $familyMember = Participant::create([
+        'pool' => 'running',
+        'first_name' => 'Jose',
+        'last_name' => 'Santos',
+        'email' => 'maria@example.com',
+    ]);
+
+    $this->actingAs($this->staff)->get("/events/{$this->event->id}/possible-duplicates")
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('held_registrations.0.candidates.0.participant.id', $this->master->participant_id)
+            ->where('held_registrations.0.candidates.1.participant.id', $familyMember->id));
+
+    $this->actingAs($this->staff)->post("/events/{$this->event->id}/possible-duplicates/{$this->held->id}/resolve", [
+        'action' => 'link_candidate',
+        'candidate_participant_id' => $familyMember->id,
+    ])->assertSessionHasNoErrors();
+
+    expect($this->held->fresh()->participant_id)->toBe($familyMember->id)
+        ->and($this->held->fresh()->registration_status)->toBe(RegistrationStatus::Confirmed);
+});
+
+it('marks a linked registration as duplicate when the selected participant is already registered', function () {
+    $familyMember = Participant::create([
+        'pool' => 'running',
+        'first_name' => 'Jose',
+        'last_name' => 'Santos',
+        'email' => 'maria@example.com',
+    ]);
+    $existing = Registration::create([
+        'event_id' => $this->event->id,
+        'participant_id' => $familyMember->id,
+        'registration_status' => RegistrationStatus::Confirmed,
+        'source' => 'form',
+    ]);
+
+    $this->actingAs($this->staff)->post("/events/{$this->event->id}/possible-duplicates/{$this->held->id}/resolve", [
+        'action' => 'link_candidate',
+        'candidate_participant_id' => $familyMember->id,
+    ])->assertSessionHas('status', "Submission marked as a duplicate of the selected participant's registration.");
+
+    expect($this->held->fresh()->registration_status)->toBe(RegistrationStatus::Duplicate)
+        ->and($this->held->fresh()->participant_id)->not->toBe($familyMember->id)
+        ->and($this->held->fresh()->duplicate_of_registration_id)->toBe($existing->id);
 });

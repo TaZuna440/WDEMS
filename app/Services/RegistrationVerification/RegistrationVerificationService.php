@@ -509,25 +509,16 @@ class RegistrationVerificationService
                         $this->identityConflict();
                     }
 
-                    $matches = Participant::query()->matchingName($event->event_kind,
+                    $matches = Participant::findCandidatesByComposite($event->event_kind,
+                        $email, $phone,
                         $payload['first_name'], $payload['last_name'],
                         $payload['middle_name'] ?? null, $payload['suffix'] ?? null,
-                    )->where(function ($query) use ($email, $normalized) {
-                        $query->whereRaw('1 = 0');
-                        if ($email !== null) {
-                            $query->orWhere('email', $email);
-                        }
-                        if ($normalized !== null) {
-                            $query->orWhere('contact_number_normalized', $normalized);
-                        }
-                    })->orderBy('id')->lockForUpdate()->get();
-
-                    if ($matches->count() > 1) {
-                        $this->identityConflict();
-                    }
+                        lockForUpdate: true,
+                    );
+                    $participant = $matches->count() === 1 ? $matches->first() : null;
 
                     // Preserve first-write-wins. Never fill existing identities from intake.
-                    $participant = $matches->first() ?? Participant::create(['pool' => $event->event_kind,
+                    $participant ??= Participant::create(['pool' => $event->event_kind,
                         'first_name' => $payload['first_name'],
                         'last_name' => $payload['last_name'],
                         'middle_name' => $payload['middle_name'] ?? null,
@@ -558,7 +549,8 @@ class RegistrationVerificationService
                         $this->identityConflict();
                     }
 
-                    $candidateMatch = (new DuplicateReview)->findCandidate($event, [
+                    $duplicateReview = new DuplicateReview;
+                    $candidateMatches = $duplicateReview->findCandidates($event, [
                         'first_name' => $payload['first_name'] ?? null,
                         'middle_name' => $payload['middle_name'] ?? null,
                         'last_name' => $payload['last_name'] ?? null,
@@ -566,12 +558,13 @@ class RegistrationVerificationService
                         'email' => $email,
                         'contact_number' => $payload['contact_number'] ?? null,
                         'birthday' => $payload['birthday'] ?? null,
-                    ]);
+                    ], excludeParticipantId: $participant->id);
 
-                    $isHeld = $candidateMatch !== null;
+                    $isHeld = $duplicateReview->shouldHoldCandidates($candidateMatches);
                     $status = $isHeld ? RegistrationStatus::Held : RegistrationStatus::Confirmed;
-                    $heldReason = $isHeld ? implode(', ', $candidateMatch['reasons']) : null;
-                    $heldCandidateId = $isHeld ? $candidateMatch['registration']->id : null;
+                    $primaryCandidate = $candidateMatches[0] ?? null;
+                    $heldReason = $isHeld && $primaryCandidate !== null ? implode(', ', $primaryCandidate['reasons']) : null;
+                    $heldCandidateId = $isHeld ? $primaryCandidate['registration']?->id : null;
 
                     $registration = Registration::create([
                         'event_id' => $event->id,

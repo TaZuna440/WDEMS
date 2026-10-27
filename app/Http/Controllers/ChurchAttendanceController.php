@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ChurchEventStatus;
 use App\Models\Event;
 use App\Models\Participant;
 use App\Models\Registration;
@@ -58,12 +59,14 @@ class ChurchAttendanceController extends Controller
             ));
         }
 
+        $churchStatus = ChurchEventStatus::tryFrom((string) ($event->getRawOriginal('church_status') ?? $event->church_status ?? ''));
+
         return Inertia::render('events/church/attendance', [
             'event' => [
                 'id' => $event->id,
                 'event_name' => $event->event_name,
-                'status' => $event->church_status->value,
-                'status_label' => $event->church_status->label(),
+                'status' => $churchStatus?->value ?? (string) ($event->getRawOriginal('church_status') ?? ''),
+                'status_label' => $churchStatus?->label() ?? (string) ($event->getRawOriginal('church_status') ?? ''),
             ],
             'rows' => $mapped,
             'counts' => $counts,

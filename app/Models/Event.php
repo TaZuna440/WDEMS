@@ -66,6 +66,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Event extends Model
 {
     /**
+     * @property-read ?ChurchEventStatus $church_status
+     * @property-read ?EventStatus $status
+     */
+    /**
      * Common participant fields that are always required and cannot
      * be toggled off by the organizer. A participant without a name
      * or a date of birth is unusable for attendance tracking.
@@ -446,9 +450,16 @@ class Event extends Model
 
     public function canReopenRegistration(): bool
     {
-        return $this->isRunningEvent() && ($this->status === EventStatus::RegistrationClosed
-            || (in_array($this->status, [EventStatus::RegistrationOpen, EventStatus::Ongoing], true)
-                && ! $this->acceptsPublicRegistration()));
+        if (! $this->isRunningEvent()) {
+            return false;
+        }
+
+        if ($this->status === EventStatus::RegistrationClosed) {
+            return true;
+        }
+
+        return in_array($this->status, [EventStatus::RegistrationOpen, EventStatus::Ongoing], true)
+            && ! $this->acceptsPublicRegistration();
     }
 
     /**
@@ -619,7 +630,11 @@ class Event extends Model
             return false;
         }
 
-        return $this->event_date->lte(today()) || now()->greaterThanOrEqualTo($this->attendanceWindowOpensAt());
+        if ($this->event_date->lte(today())) {
+            return true;
+        }
+
+        return now()->greaterThanOrEqualTo($this->attendanceWindowOpensAt());
     }
 
     public function isCommunityRun(): bool

@@ -11,7 +11,7 @@ class LogSentEmail
     {
         $recipients = array_map(
             fn ($address): string => $address->getAddress(),
-            $event->message->getTo() ?? [],
+            $event->message->getTo(),
         );
 
         app(AuditLogger::class)->logSystem('email.sent', [

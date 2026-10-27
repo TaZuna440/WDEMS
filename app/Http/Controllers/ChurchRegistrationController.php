@@ -73,13 +73,16 @@ class ChurchRegistrationController extends Controller
             $this->assertFellowshipGroupBelongsToEvent($event, $data['fellowship_group_id'] ?? null);
             $this->rejectExact($review, $event, $data);
             $person = $this->resolve($data);
-            $candidate = $review->findCandidate($event, $data);
+            $candidates = $review->findCandidates($event, $data, excludeParticipantId: $person->id);
+            $isHeld = $review->shouldHoldCandidates($candidates);
+            $primaryCandidate = $candidates[0] ?? null;
+            /** @var Registration $registration */
             $registration = $event->registrations()->create([
                 ...$this->registrationData($data),
                 'participant_id' => $person->id,
-                'registration_status' => $candidate ? 'held' : 'confirmed',
-                'held_candidate_registration_id' => $candidate['registration']->id ?? null,
-                'held_reason' => $candidate ? implode(', ', $candidate['reasons']) : null,
+                'registration_status' => $isHeld ? 'held' : 'confirmed',
+                'held_candidate_registration_id' => $isHeld ? $primaryCandidate['registration']?->id : null,
+                'held_reason' => $isHeld && $primaryCandidate !== null ? implode(', ', $primaryCandidate['reasons']) : null,
                 'source' => 'manual', 'encoded_by' => $request->user()->id,
                 'contact_attested_at' => now(), 'registered_at' => now(), 'registration_date' => now(),
                 'attendance_code' => $this->code($event),
@@ -103,15 +106,17 @@ class ChurchRegistrationController extends Controller
             $this->rejectExact($review, $event, $data, $row->id);
             $person = $this->resolve($data, $row);
             // Identity corrections reassign this registration, never rewrite a shared person.
-            $candidate = $review->findCandidate($event, $data, $row->id);
-            if ($candidate && $row->attendance()->exists()) {
+            $candidates = $review->findCandidates($event, $data, $row->id, $person->id);
+            $isHeld = $review->shouldHoldCandidates($candidates);
+            $primaryCandidate = $candidates[0] ?? null;
+            if ($isHeld && $row->attendance()->exists()) {
                 throw ValidationException::withMessages(['identity' => 'This correction needs duplicate review but attendance is already recorded. Clear attendance before correcting the identity.']);
             }
             $row->update([
                 ...$this->registrationData($data), 'participant_id' => $person->id,
-                'registration_status' => $candidate ? 'held' : 'confirmed',
-                'held_candidate_registration_id' => $candidate['registration']->id ?? null,
-                'held_reason' => $candidate ? implode(', ', $candidate['reasons']) : null,
+                'registration_status' => $isHeld ? 'held' : 'confirmed',
+                'held_candidate_registration_id' => $isHeld ? $primaryCandidate['registration']?->id : null,
+                'held_reason' => $isHeld && $primaryCandidate !== null ? implode(', ', $primaryCandidate['reasons']) : null,
             ]);
         });
 

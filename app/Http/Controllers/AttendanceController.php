@@ -754,14 +754,17 @@ class AttendanceController extends Controller
 
             $seenParticipantIds[] = $participant->id;
 
-            $candidate = app(DuplicateReview::class)->findCandidate($event, $row);
+            $review = app(DuplicateReview::class);
+            $candidates = $review->findCandidates($event, $row, excludeParticipantId: $participant->id);
+            $isHeld = $review->shouldHoldCandidates($candidates);
+            $primaryCandidate = $candidates[0] ?? null;
             $registration = Registration::create([
                 'event_id' => $event->id,
                 'participant_id' => $participant->id,
                 'registration_date' => now(),
-                'registration_status' => ($candidate ? RegistrationStatus::Held : RegistrationStatus::Confirmed),
-                'held_reason' => $candidate ? implode(', ', $candidate['reasons']) : null,
-                'held_candidate_registration_id' => $candidate['registration']->id ?? null,
+                'registration_status' => ($isHeld ? RegistrationStatus::Held : RegistrationStatus::Confirmed),
+                'held_reason' => $isHeld && $primaryCandidate !== null ? implode(', ', $primaryCandidate['reasons']) : null,
+                'held_candidate_registration_id' => $isHeld ? $primaryCandidate['registration']?->id : null,
                 'source' => 'paper',
                 'registered_at' => now(),
                 'submitted_email' => $email !== '' ? $email : null,
@@ -860,13 +863,16 @@ class AttendanceController extends Controller
             if ($event->registrations()->where('participant_id', $participant->id)->exists()) {
                 throw ValidationException::withMessages(['identity' => 'This person is already registered for this event. Use Check-in instead.']);
             }
-            $candidate = app(DuplicateReview::class)->findCandidate($event, $data);
+            $review = app(DuplicateReview::class);
+            $candidates = $review->findCandidates($event, $data, excludeParticipantId: $participant->id);
+            $isHeld = $review->shouldHoldCandidates($candidates);
+            $primaryCandidate = $candidates[0] ?? null;
             $registration = Registration::create([
                 'event_id' => $event->id, 'participant_id' => $participant->id,
                 'registration_date' => now(), 'registered_at' => now(),
-                'registration_status' => $candidate ? RegistrationStatus::Held : RegistrationStatus::Confirmed, 'source' => 'form',
-                'held_reason' => $candidate ? implode(', ', $candidate['reasons']) : null,
-                'held_candidate_registration_id' => $candidate['registration']->id ?? null,
+                'registration_status' => $isHeld ? RegistrationStatus::Held : RegistrationStatus::Confirmed, 'source' => 'form',
+                'held_reason' => $isHeld && $primaryCandidate !== null ? implode(', ', $primaryCandidate['reasons']) : null,
+                'held_candidate_registration_id' => $isHeld ? $primaryCandidate['registration']?->id : null,
                 'encoded_by' => $request->user()->id, 'contact_attested_at' => now(),
                 'consent_accepted_at' => now(), 'privacy_notice_version' => RegistrationLegalText::PRIVACY_NOTICE_VERSION,
                 'submitted_email' => $data['email'] ?? null, 'submitted_contact_number' => $data['contact_number'] ?? null,
@@ -882,7 +888,7 @@ class AttendanceController extends Controller
             foreach ($data['responses'] ?? [] as $fieldId => $value) {
                 $registration->fieldResponses()->create(['registration_field_id' => $fieldId, 'value' => is_array($value) ? json_encode($value) : (string) $value]);
             }
-            if ($candidate) {
+            if ($isHeld) {
                 return true;
             }
             $time = $timing['encoding_mode'] === 'deferred' && $event->event_date !== null
@@ -994,14 +1000,17 @@ class AttendanceController extends Controller
                 ],
             );
 
-            $candidate = app(DuplicateReview::class)->findCandidate($event, $validated);
+            $review = app(DuplicateReview::class);
+            $candidates = $review->findCandidates($event, $validated, excludeParticipantId: $participant->id);
+            $isHeld = $review->shouldHoldCandidates($candidates);
+            $primaryCandidate = $candidates[0] ?? null;
             $registration = Registration::create([
                 'event_id' => $event->id,
                 'participant_id' => $participant->id,
                 'registration_date' => now(),
-                'registration_status' => ($candidate ? RegistrationStatus::Held : RegistrationStatus::Confirmed),
-                'held_reason' => $candidate ? implode(', ', $candidate['reasons']) : null,
-                'held_candidate_registration_id' => $candidate['registration']->id ?? null,
+                'registration_status' => ($isHeld ? RegistrationStatus::Held : RegistrationStatus::Confirmed),
+                'held_reason' => $isHeld && $primaryCandidate !== null ? implode(', ', $primaryCandidate['reasons']) : null,
+                'held_candidate_registration_id' => $isHeld ? $primaryCandidate['registration']?->id : null,
                 'source' => 'walk_in',
                 'registered_at' => now(),
                 'submitted_email' => $validated['email'] ?? null,

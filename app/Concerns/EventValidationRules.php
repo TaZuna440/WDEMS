@@ -98,9 +98,10 @@ trait EventValidationRules
                 'church_status' => ['required', Rule::enum(ChurchEventStatus::class)],
             ]
             : [
-                'event_type' => ['required', Rule::in([
-                    EventType::CommunityRun->value,
-                ])],
+                'event_type' => ['required', Rule::in(array_map(
+                    fn (EventType $type): string => $type->value,
+                    EventType::runningTypes(),
+                ))],
                 'church_category' => ['nullable', Rule::enum(ChurchCategory::class)],
                 'church_status' => ['nullable', Rule::enum(ChurchEventStatus::class)],
             ];

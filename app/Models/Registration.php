@@ -69,6 +69,7 @@ class Registration extends Model
         ];
     }
 
+    /** @return BelongsTo<Event, $this> */
     public function event(): BelongsTo
     {
         return $this->belongsTo(Event::class);
@@ -110,6 +111,7 @@ class Registration extends Model
         return $this->flagged_at !== null;
     }
 
+    /** @return BelongsTo<self, $this> */
     public function heldCandidate(): BelongsTo
     {
         return $this->belongsTo(self::class, 'held_candidate_registration_id');

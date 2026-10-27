@@ -13,6 +13,23 @@ type Person = {
     provisional: boolean;
 };
 
+type ParticipantCandidate = {
+    participant: {
+        id: number;
+        first_name: string;
+        middle_name: string | null;
+        last_name: string;
+        suffix: string | null;
+        email: string | null;
+        contact_number: string | null;
+        birthday: string | null;
+    };
+    registration_id: number | null;
+    reasons: string[];
+    score: number;
+    strong: boolean;
+};
+
 type HeldRegistration = {
     id: number;
     created_at: string;
@@ -20,6 +37,7 @@ type HeldRegistration = {
     participant_type: string | null;
     guardian_name: string | null;
     guardian_contact: string | null;
+    candidates: ParticipantCandidate[];
     participant: {
         id: number;
         first_name: string;
@@ -168,13 +186,20 @@ export default function Duplicates({
     const heldRows = held_registrations.filter((h) => {
         const pName =
             `${h.participant.first_name} ${h.participant.middle_name ?? ''} ${h.participant.last_name}`.toLowerCase();
-        const cName = h.candidate
-            ? `${h.candidate.participant.first_name} ${h.candidate.participant.last_name}`.toLowerCase()
-            : '';
+        const candidateDetails = h.candidates
+            .map(
+                (candidate) =>
+                    `${candidate.participant.first_name} ${candidate.participant.middle_name ?? ''} ${candidate.participant.last_name} ${candidate.participant.email ?? ''} ${candidate.participant.contact_number ?? ''} ${candidate.reasons.join(' ')}`,
+            )
+            .join(' ')
+            .toLowerCase();
         const query = search.trim().toLowerCase();
         return (
             pName.includes(query) ||
-            cName.includes(query) ||
+            `${h.participant.email ?? ''} ${h.participant.contact_number ?? ''}`
+                .toLowerCase()
+                .includes(query) ||
+            candidateDetails.includes(query) ||
             (h.held_reason ?? '').toLowerCase().includes(query)
         );
     });
@@ -252,10 +277,10 @@ export default function Duplicates({
                     <div className="space-y-4">
                         <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4 text-xs text-yellow-800 dark:text-yellow-300">
                             <strong>Held Registrations:</strong> These
-                            submissions have matching contact info with minor
-                            name variations (e.g. omitted middle name or
-                            suffix). They are excluded from attendance counts
-                            until you take action.
+                            submissions have strong identity matches or
+                            multiple participants sharing contact information.
+                            A shared family contact alone does not prove a
+                            duplicate; compare all candidates before deciding.
                         </div>
 
                         {heldRows.map((held) => (
@@ -319,73 +344,102 @@ export default function Duplicates({
                                         )}
                                     </div>
 
-                                    <div>
+                                    <div className="space-y-3">
                                         <p className="text-muted-foreground mb-1 text-xs font-semibold uppercase">
-                                            Candidate Existing Registration
+                                            Potential Existing Participants (
+                                            {held.candidates.length})
                                         </p>
-                                        {held.candidate ? (
-                                            <>
-                                                <p className="text-sm font-medium">
-                                                    {
-                                                        held.candidate
-                                                            .participant
-                                                            .first_name
-                                                    }{' '}
-                                                    {
-                                                        held.candidate
-                                                            .participant
-                                                            .middle_name
-                                                    }{' '}
-                                                    {
-                                                        held.candidate
-                                                            .participant
-                                                            .last_name
-                                                    }{' '}
-                                                    {
-                                                        held.candidate
-                                                            .participant.suffix
-                                                    }
-                                                    <span className="text-muted-foreground ml-2 text-xs">
-                                                        (#{held.candidate.id})
-                                                    </span>
-                                                </p>
-                                                <p className="text-muted-foreground text-xs">
-                                                    {held.candidate.participant
-                                                        .email ??
-                                                        'No email'}{' '}
-                                                    &middot;{' '}
-                                                    {held.candidate.participant
-                                                        .contact_number ??
-                                                        'No phone'}
-                                                </p>
-                                                <p className="text-muted-foreground text-xs">
-                                                    DOB:{' '}
-                                                    {held.candidate.participant
-                                                        .birthday ??
-                                                        'Not recorded'}
-                                                </p>
-                                                {event.event_kind ===
-                                                    'church' && (
-                                                    <ChurchRegistrationDetails
-                                                        participantType={
-                                                            held.candidate
-                                                                .participant_type
-                                                        }
-                                                        guardianName={
-                                                            held.candidate
-                                                                .guardian_name
-                                                        }
-                                                        guardianContact={
-                                                            held.candidate
-                                                                .guardian_contact
-                                                        }
-                                                    />
-                                                )}
-                                            </>
+                                        <p className="text-muted-foreground mb-2 text-xs">
+                                            Linking to someone already registered
+                                            marks this submission as a duplicate;
+                                            otherwise it releases the submission.
+                                        </p>
+                                        {held.candidates.length > 0 ? (
+                                            held.candidates.map((candidate) => (
+                                                <div
+                                                    key={candidate.participant.id}
+                                                    className="bg-card space-y-2 rounded-md border p-3"
+                                                >
+                                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                                        <p className="text-sm font-medium">
+                                                            {
+                                                                candidate
+                                                                    .participant
+                                                                    .first_name
+                                                            }{' '}
+                                                            {
+                                                                candidate
+                                                                    .participant
+                                                                    .middle_name
+                                                            }{' '}
+                                                            {
+                                                                candidate
+                                                                    .participant
+                                                                    .last_name
+                                                            }{' '}
+                                                            {
+                                                                candidate
+                                                                    .participant
+                                                                    .suffix
+                                                            }{' '}
+                                                            <span className="text-muted-foreground text-xs">
+                                                                (Participant #
+                                                                {
+                                                                    candidate
+                                                                        .participant
+                                                                        .id
+                                                                }
+                                                                {candidate.registration_id
+                                                                    ? ` · Registration #${candidate.registration_id}`
+                                                                    : ''}
+                                                                )
+                                                            </span>
+                                                        </p>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            disabled={processing}
+                                                            onClick={() =>
+                                                                handleAction(
+                                                                    held.id,
+                                                                    'link_candidate',
+                                                                    {
+                                                                        candidate_participant_id:
+                                                                            candidate
+                                                                                .participant
+                                                                                .id,
+                                                                    },
+                                                                )
+                                                            }
+                                                        >
+                                                            Link to participant
+                                                        </Button>
+                                                    </div>
+                                                    <p className="text-muted-foreground text-xs">
+                                                        {candidate.participant
+                                                            .email ??
+                                                            'No email'}{' '}
+                                                        &middot;{' '}
+                                                        {candidate.participant
+                                                            .contact_number ??
+                                                            'No phone'}{' '}
+                                                        &middot; DOB:{' '}
+                                                        {candidate.participant
+                                                            .birthday ??
+                                                            'Not recorded'}
+                                                    </p>
+                                                    <p className="text-muted-foreground text-xs">
+                                                        {candidate.reasons.join(
+                                                            ' · ',
+                                                        )}{' '}
+                                                        (match score{' '}
+                                                        {candidate.score})
+                                                    </p>
+                                                </div>
+                                            ))
                                         ) : (
                                             <p className="text-muted-foreground text-xs">
-                                                Candidate registration details
-                                                unavailable
+                                                No matching participants found.
                                             </p>
                                         )}
                                     </div>
@@ -493,20 +547,22 @@ export default function Duplicates({
                                     </div>
                                 ) : (
                                     <div className="flex flex-wrap items-center gap-2 pt-1">
-                                        <Button
-                                            disabled={processing}
-                                            size="sm"
-                                            variant="secondary"
-                                            onClick={() =>
-                                                handleAction(
-                                                    held.id,
-                                                    'confirm_duplicate',
-                                                )
-                                            }
-                                        >
-                                            <UserX className="text-muted-foreground mr-1 h-3.5 w-3.5" />
-                                            Confirm Duplicate (Close)
-                                        </Button>
+                                        {held.candidate && (
+                                            <Button
+                                                disabled={processing}
+                                                size="sm"
+                                                variant="secondary"
+                                                onClick={() =>
+                                                    handleAction(
+                                                        held.id,
+                                                        'confirm_duplicate',
+                                                    )
+                                                }
+                                            >
+                                                <UserX className="text-muted-foreground mr-1 h-3.5 w-3.5" />
+                                                Confirm Duplicate (Close)
+                                            </Button>
+                                        )}
 
                                         <Button
                                             disabled={processing}
@@ -562,8 +618,8 @@ export default function Duplicates({
                 {activeTab === 'audit' && (
                     <div className="space-y-4">
                         <p className="text-muted-foreground text-xs">
-                            Similar names with a shared birthdate, email, or
-                            phone. Review with the participant before taking
+                            Participants sharing a contact or similar identity
+                            details. Review with the participant before taking
                             action; a shared contact alone does not prove the
                             same person.
                         </p>

@@ -11,12 +11,30 @@ use App\Services\RegistrationConfirmationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ParticipantReviewController extends Controller
 {
+    private function formatBirthday(mixed $birthday): ?string
+    {
+        if ($birthday === null) {
+            return null;
+        }
+
+        if ($birthday instanceof \DateTimeInterface) {
+            return $birthday->format('Y-m-d');
+        }
+
+        if (is_string($birthday)) {
+            return Carbon::parse($birthday)->toDateString();
+        }
+
+        return null;
+    }
+
     public function search(Request $request, Event $event, DuplicateReview $review): JsonResponse
     {
         Participant::assertPool($event->event_kind);
@@ -42,7 +60,15 @@ class ParticipantReviewController extends Controller
             ->with(['participant', 'heldCandidate.participant'])
             ->orderByDesc('id')
             ->get()
-            ->map(function ($r) {
+            ->map(function (Registration $r) use ($event, $review): array {
+                $heldCandidate = $r->heldCandidate;
+                $candidates = $review->findCandidates(
+                    $event,
+                    $review->identity($r),
+                    excludeRegistrationId: $r->id,
+                    excludeParticipantId: $r->participant_id,
+                );
+
                 return [
                     'id' => $r->id,
                     'created_at' => $r->created_at?->toIso8601String(),
@@ -55,27 +81,43 @@ class ParticipantReviewController extends Controller
                         'suffix' => $r->participant?->suffix,
                         'email' => $r->submitted_email ?? $r->participant?->email,
                         'contact_number' => $r->submitted_contact_number ?? $r->participant?->contact_number,
-                        'birthday' => $r->participant?->birthday?->toDateString(),
+                        'birthday' => $this->formatBirthday($r->participant?->birthday),
                     ],
                     'participant_type' => $r->participant_type,
                     'guardian_name' => $r->guardian_name,
                     'guardian_contact' => $r->guardian_contact,
-                    'candidate' => $r->heldCandidate ? [
-                        'id' => $r->heldCandidate->id,
-                        'created_at' => $r->heldCandidate->created_at?->toIso8601String(),
+                    'candidates' => array_map(fn (array $candidate): array => [
                         'participant' => [
-                            'id' => $r->heldCandidate->participant?->id,
-                            'first_name' => $r->heldCandidate->participant?->first_name,
-                            'middle_name' => $r->heldCandidate->participant?->middle_name,
-                            'last_name' => $r->heldCandidate->participant?->last_name,
-                            'suffix' => $r->heldCandidate->participant?->suffix,
-                            'email' => $r->heldCandidate->submitted_email ?? $r->heldCandidate->participant?->email,
-                            'contact_number' => $r->heldCandidate->submitted_contact_number ?? $r->heldCandidate->participant?->contact_number,
-                            'birthday' => $r->heldCandidate->participant?->birthday?->toDateString(),
+                            'id' => $candidate['participant']->id,
+                            'first_name' => $candidate['participant']->first_name,
+                            'middle_name' => $candidate['participant']->middle_name,
+                            'last_name' => $candidate['participant']->last_name,
+                            'suffix' => $candidate['participant']->suffix,
+                            'email' => $candidate['participant']->email,
+                            'contact_number' => $candidate['participant']->contact_number,
+                            'birthday' => $this->formatBirthday($candidate['participant']->birthday),
                         ],
-                        'participant_type' => $r->heldCandidate->participant_type,
-                        'guardian_name' => $r->heldCandidate->guardian_name,
-                        'guardian_contact' => $r->heldCandidate->guardian_contact,
+                        'registration_id' => $candidate['registration']?->id,
+                        'reasons' => $candidate['reasons'],
+                        'score' => $candidate['score'],
+                        'strong' => $candidate['strong'],
+                    ], $candidates),
+                    'candidate' => $heldCandidate ? [
+                        'id' => $heldCandidate->id,
+                        'created_at' => $heldCandidate->created_at?->toIso8601String(),
+                        'participant' => [
+                            'id' => $heldCandidate->participant?->id,
+                            'first_name' => $heldCandidate->participant?->first_name,
+                            'middle_name' => $heldCandidate->participant?->middle_name,
+                            'last_name' => $heldCandidate->participant?->last_name,
+                            'suffix' => $heldCandidate->participant?->suffix,
+                            'email' => $heldCandidate->submitted_email ?? $heldCandidate->participant?->email,
+                            'contact_number' => $heldCandidate->submitted_contact_number ?? $heldCandidate->participant?->contact_number,
+                            'birthday' => $this->formatBirthday($heldCandidate->participant?->birthday),
+                        ],
+                        'participant_type' => $heldCandidate->participant_type,
+                        'guardian_name' => $heldCandidate->guardian_name,
+                        'guardian_contact' => $heldCandidate->guardian_contact,
                     ] : null,
                 ];
             });
@@ -92,7 +134,8 @@ class ParticipantReviewController extends Controller
     {
         abort_unless($registration->event_id === $event->id, 404);
         $data = $request->validate([
-            'action' => ['required', 'in:confirm_duplicate,confirm_separate,correct_details,remove'],
+            'action' => ['required', 'in:confirm_duplicate,confirm_separate,correct_details,link_candidate,remove'],
+            'candidate_participant_id' => ['required_if:action,link_candidate', 'nullable', 'integer'],
             'reason' => ['nullable', 'string', 'max:1000'],
             'first_name' => ['required_if:action,correct_details', 'string', 'min:2', 'max:50'],
             'last_name' => ['required_if:action,correct_details', 'string', 'min:2', 'max:50'],
@@ -104,10 +147,10 @@ class ParticipantReviewController extends Controller
         ]);
         $message = DB::transaction(function () use ($event, $registration, $request, $data, $review) {
             Event::whereKey($event->id)->lockForUpdate()->firstOrFail();
+            /** @var Registration $row */
             $row = Registration::whereKey($registration->id)->lockForUpdate()->firstOrFail();
             abort_unless($row->isHeld(), 422, 'Only held submissions can be resolved.');
             abort_unless($row->participant->pool === $event->event_kind, 422, 'Participant belongs to the wrong pool.');
-            $wasHeld = $row->isHeld();
             $snapshot = fn ($r) => ['registration' => $r->attributesToArray(), 'participant' => $r->participant->attributesToArray()];
             $before = $snapshot($row);
             $action = $data['action'];
@@ -130,21 +173,64 @@ class ParticipantReviewController extends Controller
                     $row->submitted_contact_number = $data['contact_number'];
                 }
             }
-            if (in_array($action, ['confirm_separate', 'correct_details'], true)) {
+            if ($action === 'link_candidate') {
+                $candidates = $review->findCandidates(
+                    $event,
+                    $review->identity($row),
+                    excludeRegistrationId: $row->id,
+                    excludeParticipantId: $row->participant_id,
+                );
+                $selected = collect($candidates)->first(
+                    fn (array $candidate): bool => $candidate['participant']->id === (int) $data['candidate_participant_id'],
+                );
+                abort_unless($selected !== null, 422, 'Choose one of the listed participant candidates.');
+
+                $person = Participant::query()->where('pool', $event->event_kind)
+                    ->lockForUpdate()->findOrFail((int) $data['candidate_participant_id']);
+                $existing = Registration::query()->where('event_id', $event->id)
+                    ->where('participant_id', $person->id)
+                    ->whereKeyNot($row->id)
+                    ->lockForUpdate()
+                    ->first();
+                abort_unless($existing === null || $existing->isActive(), 422, 'The selected participant already has a registration that is not available for linking.');
+                if ($existing !== null) {
+                    $row->registration_status = RegistrationStatus::Duplicate;
+                    $row->duplicate_of_registration_id = $existing->id;
+                    $row->held_candidate_registration_id = $existing->id;
+                    $row->held_reason = implode(', ', $selected['reasons']);
+                    $message = "Submission marked as a duplicate of the selected participant's registration.";
+                } else {
+                    $row->participant_id = $person->id;
+                    $row->setRelation('participant', $person);
+                    $row->registration_status = RegistrationStatus::Confirmed;
+                    $row->duplicate_of_registration_id = null;
+                    $row->held_candidate_registration_id = null;
+                    $row->held_reason = null;
+                    $message = 'Submission linked to the selected participant and released.';
+                }
+            } elseif (in_array($action, ['confirm_separate', 'correct_details'], true)) {
                 $identity = $review->identity($row);
                 $exact = $review->findExact($event, $identity, $row->id);
-                $candidate = $review->findCandidate($event, $identity, $row->id);
-                if ($exact || ($action === 'correct_details' && $candidate)) {
-                    $row->held_candidate_registration_id = $exact?->id ?? $candidate['registration']->id;
-                    $row->held_reason = $exact ? 'Exact identity already registered' : implode(', ', $candidate['reasons']);
+                $candidates = $review->findCandidates(
+                    $event,
+                    $identity,
+                    excludeRegistrationId: $row->id,
+                    excludeParticipantId: $row->participant_id,
+                );
+                $primaryCandidate = $candidates[0] ?? null;
+                if ($exact || ($action === 'correct_details' && $review->shouldHoldCandidates($candidates))) {
+                    $row->held_candidate_registration_id = $exact?->id ?? $primaryCandidate['registration']?->id;
+                    $row->held_reason = $exact ? 'Exact identity already registered' : implode(', ', $primaryCandidate['reasons']);
                     $reason .= ': still held — '.$row->held_reason;
                     $message = 'Submission remains held: '.$row->held_reason.'.';
                 } else {
                     $row->registration_status = RegistrationStatus::Confirmed;
+                    $row->held_candidate_registration_id = null;
                     $row->held_reason = null;
                     // No attendance row means Unmarked. Do not invent a check-in.
                 }
             } elseif ($action === 'confirm_duplicate') {
+                /** @var Registration|null $master */
                 $master = Registration::active()->where('event_id', $event->id)->whereKey($row->held_candidate_registration_id)->lockForUpdate()->first();
                 abort_unless($master && $master->participant->pool === $event->event_kind, 422, 'An active master registration is required.');
                 $row->registration_status = RegistrationStatus::Duplicate;
@@ -163,7 +249,7 @@ class ParticipantReviewController extends Controller
                 'after_snapshot' => json_encode($snapshot($row), JSON_THROW_ON_ERROR),
             ]);
 
-            if ($wasHeld && $row->isActive()) {
+            if ($row->isActive()) {
                 app(RegistrationConfirmationService::class)->sendAfterCommit($row);
             }
 

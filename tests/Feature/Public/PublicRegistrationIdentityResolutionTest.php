@@ -4,6 +4,7 @@ use App\Models\Event;
 use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\User;
+use App\Services\Participants\DuplicateReview;
 
 require_once __DIR__.'/../../Support/PublicVerification.php';
 
@@ -74,4 +75,51 @@ test('an existing participant record is not updated by a later verified submissi
     $participant = Participant::where('email', 'maria@example.com')->sole();
     expect($participant->first_name)->toBe('Maria');
     expect($participant->age)->toBe(28);
+});
+
+test('a family member sharing an email with multiple participants is held without merging identities', function () {
+    $event = resolution_event();
+    $mother = Participant::create([
+        'pool' => 'running',
+        'first_name' => 'Maria',
+        'last_name' => 'Santos',
+        'email' => 'parent@example.com',
+    ]);
+    $daughter = Participant::create([
+        'pool' => 'running',
+        'first_name' => 'Jose',
+        'last_name' => 'Santos',
+        'email' => 'parent@example.com',
+    ]);
+    foreach ([$mother, $daughter] as $participant) {
+        Registration::create([
+            'event_id' => $event->id,
+            'participant_id' => $participant->id,
+            'registration_status' => 'confirmed',
+            'source' => 'form',
+        ]);
+    }
+
+    completePublicRegistration($this, $event, resolution_payload([
+        'first_name' => 'Ana',
+        'email' => 'parent@example.com',
+    ]))->assertSessionHasNoErrors();
+
+    $registration = Registration::held()->sole();
+    $candidates = app(DuplicateReview::class)->findCandidates(
+        $event,
+        [
+            'first_name' => 'Ana',
+            'last_name' => 'Santos',
+            'email' => 'parent@example.com',
+        ],
+        excludeRegistrationId: $registration->id,
+        excludeParticipantId: $registration->participant_id,
+    );
+
+    expect($registration->participant_id)->not->toBe($mother->id)
+        ->and($registration->participant_id)->not->toBe($daughter->id)
+        ->and($candidates)->toHaveCount(2)
+        ->and($mother->fresh()->first_name)->toBe('Maria')
+        ->and($daughter->fresh()->first_name)->toBe('Jose');
 });

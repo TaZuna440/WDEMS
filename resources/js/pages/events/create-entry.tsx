@@ -26,18 +26,17 @@ export default function EventsCreateEntry() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Link
-                        href="/events/create/community-run"
+                        href="/events/create/running"
                         className="glass-panel glass-panel-hover flex flex-col gap-3 rounded-xl p-6"
                     >
                         <div className="bg-lime-brand/15 flex h-12 w-12 items-center justify-center rounded-full">
                             <Calendar className="dark:text-lime-brand h-6 w-6 text-lime-700" />
                         </div>
                         <h2 className="text-foreground text-lg font-semibold">
-                            Community Run
+                            Running Event
                         </h2>
                         <p className="text-muted-foreground text-sm">
-                            Running events with registration, check-in, and
-                            end-of-event reports.
+                            Community runs and other running-event formats.
                         </p>
                     </Link>
 

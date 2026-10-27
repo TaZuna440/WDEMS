@@ -78,19 +78,30 @@ class DuplicateReview
 
     public function reasons(array $left, array $right): array
     {
-        if (! $this->similar($this->name($left), $this->name($right))) {
-            return [];
-        }
         $reasons = [];
-        foreach (['birthday' => 'Same birthdate', 'email' => 'Same email', 'contact_number' => 'Same phone'] as $key => $label) {
+        $leftName = $this->name($left);
+        $rightName = $this->name($right);
+        $similarName = $this->similar($leftName, $rightName);
+        if ($leftName !== '' && $leftName === $rightName) {
+            $reasons[] = 'Exact name';
+        } elseif ($similarName) {
+            $reasons[] = 'Similar name';
+        }
+
+        foreach (['email' => 'Same email', 'contact_number' => 'Same phone'] as $key => $label) {
             $a = $this->contactKey($key, $left[$key] ?? null);
             $b = $this->contactKey($key, $right[$key] ?? null);
             if ($a !== null && $a === $b) {
                 $reasons[] = $label;
             }
         }
+        if ($similarName
+            && $this->contactKey('birthday', $left['birthday'] ?? null) !== null
+            && $this->contactKey('birthday', $left['birthday'] ?? null) === $this->contactKey('birthday', $right['birthday'] ?? null)) {
+            $reasons[] = 'Same birthdate';
+        }
 
-        return $reasons ? ['Similar name', ...$reasons] : [];
+        return $reasons;
     }
 
     private function contactKey(string $key, ?string $value): ?string
@@ -127,27 +138,142 @@ class DuplicateReview
         return null;
     }
 
-    public function findCandidate(Event $event, array $payload, ?int $excludeId = null): ?array
-    {
-        foreach ($this->registrations($event) as $r) {
-            if ($r->id === $excludeId) {
+    /**
+     * Find and rank every participant sharing a contact with this submission.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return list<array{participant: Participant, registration: Registration|null, reasons: list<string>, score: int, strong: bool}>
+     */
+    public function findCandidates(
+        Event $event,
+        array $payload,
+        ?int $excludeRegistrationId = null,
+        ?int $excludeParticipantId = null,
+    ): array {
+        Participant::assertPool($event->event_kind);
+        $email = $this->contactKey('email', $payload['email'] ?? null);
+        $phone = Participant::normalizeContactNumber($payload['contact_number'] ?? null);
+        if ($email === null && $phone === null) {
+            return [];
+        }
+
+        $participants = Participant::query()
+            ->where('pool', $event->event_kind)
+            ->where(function ($query) use ($email, $phone): void {
+                if ($email !== null) {
+                    $query->whereRaw('LOWER(email) = ?', [$email]);
+                }
+                if ($phone !== null) {
+                    if ($email !== null) {
+                        $query->orWhere('contact_number_normalized', $phone);
+                    } else {
+                        $query->where('contact_number_normalized', $phone);
+                    }
+                }
+            })
+            ->when($excludeParticipantId !== null, fn ($query) => $query->where('id', '!=', $excludeParticipantId))
+            ->orderBy('id')
+            ->get();
+
+        $eventRegistrations = $this->registrations($event);
+        $participantsById = $participants->keyBy('id');
+        foreach ($eventRegistrations as $registration) {
+            if ($registration->id === $excludeRegistrationId
+                || $registration->participant_id === $excludeParticipantId) {
                 continue;
             }
-            $reasons = $this->reasons($payload, $this->identity($r));
-            if (in_array('Same email', $reasons, true) || in_array('Same phone', $reasons, true)) {
-                return [
-                    'registration' => $r,
-                    'reasons' => $reasons,
-                ];
+            $identity = $this->identity($registration);
+            $sameEmail = $email !== null && $email === $this->contactKey('email', $identity['email']);
+            $samePhone = $phone !== null && $phone === Participant::normalizeContactNumber($identity['contact_number']);
+            if (($sameEmail || $samePhone) && $registration->participant !== null) {
+                $participantsById->put($registration->participant_id, $registration->participant);
             }
         }
 
-        return null;
+        $candidates = [];
+        foreach ($participantsById as $participant) {
+            $registration = $eventRegistrations->firstWhere('participant_id', $participant->id);
+            if ($registration?->id === $excludeRegistrationId) {
+                $registration = null;
+            }
+            $identity = $registration !== null
+                ? $this->identity($registration)
+                : [
+                    'first_name' => $participant->first_name,
+                    'middle_name' => $participant->middle_name,
+                    'last_name' => $participant->last_name,
+                    'suffix' => $participant->suffix,
+                    'birthday' => $participant->birthday?->toDateString(),
+                    'email' => $participant->email,
+                    'contact_number' => $participant->contact_number,
+                ];
+            $similarName = $this->similar($this->name($payload), $this->name($identity));
+            $sameEmail = $email !== null && $email === $this->contactKey('email', $identity['email']);
+            $samePhone = $phone !== null && $phone === Participant::normalizeContactNumber($identity['contact_number']);
+            $sameBirthday = $this->contactKey('birthday', $payload['birthday'] ?? null) !== null
+                && $this->contactKey('birthday', $payload['birthday'] ?? null) === $this->contactKey('birthday', $identity['birthday']);
+
+            if (! $sameEmail && ! $samePhone) {
+                continue;
+            }
+
+            $reasons = [];
+            $leftName = $this->name($payload);
+            $rightName = $this->name($identity);
+            if ($leftName !== '' && $leftName === $rightName) {
+                $reasons[] = 'Exact name';
+            } elseif ($similarName) {
+                $reasons[] = 'Similar name';
+            }
+            if ($sameBirthday) {
+                $reasons[] = 'Same birthdate';
+            }
+            if ($sameEmail) {
+                $reasons[] = 'Same email';
+            }
+            if ($samePhone) {
+                $reasons[] = 'Same phone';
+            }
+
+            $score = ($sameEmail ? 45 : 0)
+                + ($samePhone ? 45 : 0)
+                + ($sameBirthday ? 25 : 0)
+                + ($leftName !== '' && $leftName === $rightName ? 35 : ($similarName ? 25 : 0));
+            $candidates[] = [
+                'participant' => $participant,
+                'registration' => $registration,
+                'reasons' => $reasons,
+                'score' => $score,
+                'strong' => $score >= 70,
+            ];
+        }
+
+        usort($candidates, fn (array $left, array $right): int => $right['score'] <=> $left['score']
+            ?: $left['participant']->id <=> $right['participant']->id);
+
+        return $candidates;
+    }
+
+    /**
+     * Strong identity matches or multiple contact-sharing candidates are held
+     * for organizer review; one weak contact-only match remains advisory.
+     *
+     * @param  list<array{participant: Participant, registration: Registration|null, reasons: list<string>, score: int, strong: bool}>  $candidates
+     */
+    public function shouldHoldCandidates(array $candidates): bool
+    {
+        return count($candidates) > 1
+            || collect($candidates)->contains(fn (array $candidate): bool => $candidate['strong']);
     }
 
     public function hasSimilar(Event $event, array $payload): bool
     {
-        return $this->registrations($event)->contains(fn ($r) => $this->reasons($payload, $this->identity($r)) !== []);
+        return $this->registrations($event)->contains(function ($registration) use ($payload): bool {
+            $identity = $this->identity($registration);
+
+            return $this->similar($this->name($payload), $this->name($identity))
+                && $this->reasons($payload, $identity) !== [];
+        });
     }
 
     public function audit(Event $event): array

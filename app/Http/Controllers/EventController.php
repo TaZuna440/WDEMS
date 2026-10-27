@@ -197,12 +197,20 @@ class EventController extends Controller
     /**
      * Show the create-entry page.
      *
-     * Two cards: Community Run and Church Event. Each routes into
+     * Two cards: Running Event and Church Event. Each routes into
      * the appropriate wizard or category picker.
      */
     public function create(): Response
     {
         return Inertia::render('events/create-entry');
+    }
+
+    /**
+     * Show the running-event type selection cards.
+     */
+    public function createRunning(): Response
+    {
+        return Inertia::render('events/create-running');
     }
 
     /**

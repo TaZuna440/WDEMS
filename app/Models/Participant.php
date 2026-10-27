@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Exceptions\IdentityRequiredException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -296,32 +297,15 @@ class Participant extends Model
     }
 
     /**
-     * Find a participant by composite identity key.
+     * Find every participant matching the composite identity key.
      *
-     * Person key: normalized first + last name + contact (email OR
-     * normalized phone). Returns the matched row or null. Does not
-     * create.
+     * Name must match exactly and at least one of email or normalized
+     * phone must match. Returning the full set avoids arbitrary identity
+     * selection when family members share a contact.
      *
-     * This is the sole sanctioned lookup for participant identity
-     * outside of resolveFrom(). The composite rule lives here. Do not
-     * reimplement contact-only lookups in call sites: under the
-     * non-unique email / normalized phone rule, `where('email', ...)
-     * ->first()` returns an arbitrary row when a family shares a
-     * contact.
-     *
-     * Matching rule: name must match AND one of (email OR normalized
-     * phone). When both contact fields are provided, matching either
-     * is sufficient. The cross-contact conflict case (email matches
-     * participant A, phone matches participant B) is a separate open
-     * issue -- see ISSUE-020 / docs/composite-identity.md §7.3. This
-     * method does not enforce it.
-     *
-     * Returns null when the name is incomplete after normalization
-     * (blank first or last name) -- a participant cannot be
-     * identified without a full name. Returns null when neither
-     * contact field is provided -- there is nothing to match on.
+     * @return Collection<int, self>
      */
-    public static function findByComposite(
+    public static function findCandidatesByComposite(
         string $pool,
         ?string $email,
         ?string $rawPhone,
@@ -329,20 +313,21 @@ class Participant extends Model
         ?string $lastName,
         ?string $middleName = null,
         ?string $suffix = null,
-    ): ?self {
+        bool $lockForUpdate = false,
+    ): Collection {
         self::assertPool($pool);
         $normalizedFirst = self::normalizeName($firstName);
         $normalizedLast = self::normalizeName($lastName);
 
         if ($normalizedFirst === null || $normalizedLast === null) {
-            return null;
+            return self::newCollection();
         }
 
         $trimmedEmail = is_string($email) ? trim($email) : '';
         $normalizedPhone = self::normalizeContactNumber($rawPhone);
 
         if ($trimmedEmail === '' && $normalizedPhone === null) {
-            return null;
+            return self::newCollection();
         }
 
         $query = self::query()->matchingName($pool, $firstName, $lastName, $middleName, $suffix);
@@ -358,7 +343,35 @@ class Participant extends Model
             $query->where('contact_number_normalized', $normalizedPhone);
         }
 
-        return $query->first();
+        return $query->orderBy('id')
+            ->when($lockForUpdate, fn (Builder $query): Builder => $query->lockForUpdate())
+            ->get();
+    }
+
+    /**
+     * Find a participant only when the composite key identifies one row
+     * unambiguously. Ambiguous matches are left for organizer review.
+     */
+    public static function findByComposite(
+        string $pool,
+        ?string $email,
+        ?string $rawPhone,
+        ?string $firstName,
+        ?string $lastName,
+        ?string $middleName = null,
+        ?string $suffix = null,
+    ): ?self {
+        $matches = self::findCandidatesByComposite(
+            $pool,
+            $email,
+            $rawPhone,
+            $firstName,
+            $lastName,
+            $middleName,
+            $suffix,
+        );
+
+        return $matches->count() === 1 ? $matches->first() : null;
     }
 
     /**
@@ -369,10 +382,9 @@ class Participant extends Model
      * email, the normalized phone, or both -- matching either is
      * sufficient when both are provided. Both name parts are required.
      *
-     * Delegates matching to findByComposite(). On no match, creates a
-     * new participant row. On match, $attributes are discarded --
-     * first-write-wins. The participant record is identity, not a
-     * mutable profile.
+     * Delegates matching to findByComposite(). On no unambiguous match,
+     * creates a new participant row. On one match, $attributes are
+     * discarded -- first-write-wins. Ambiguous identities are not merged.
      *
      * Matching is global: the same person registering for a different
      * event resolves to the same row. The per-event duplicate check
