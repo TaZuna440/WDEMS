@@ -277,10 +277,10 @@ export default function Duplicates({
                     <div className="space-y-4">
                         <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4 text-xs text-yellow-800 dark:text-yellow-300">
                             <strong>Held Registrations:</strong> These
-                            submissions have strong identity matches or
-                            multiple participants sharing contact information.
-                            A shared family contact alone does not prove a
-                            duplicate; compare all candidates before deciding.
+                            submissions have strong identity matches or multiple
+                            participants sharing contact information. A shared
+                            family contact alone does not prove a duplicate;
+                            compare all candidates before deciding.
                         </div>
 
                         {heldRows.map((held) => (
@@ -350,14 +350,17 @@ export default function Duplicates({
                                             {held.candidates.length})
                                         </p>
                                         <p className="text-muted-foreground mb-2 text-xs">
-                                            Linking to someone already registered
-                                            marks this submission as a duplicate;
-                                            otherwise it releases the submission.
+                                            Linking to someone already
+                                            registered marks this submission as
+                                            a duplicate; otherwise it releases
+                                            the submission.
                                         </p>
                                         {held.candidates.length > 0 ? (
                                             held.candidates.map((candidate) => (
                                                 <div
-                                                    key={candidate.participant.id}
+                                                    key={
+                                                        candidate.participant.id
+                                                    }
                                                     className="bg-card space-y-2 rounded-md border p-3"
                                                 >
                                                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -398,7 +401,9 @@ export default function Duplicates({
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            disabled={processing}
+                                                            disabled={
+                                                                processing
+                                                            }
                                                             onClick={() =>
                                                                 handleAction(
                                                                     held.id,

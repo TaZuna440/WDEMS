@@ -320,14 +320,14 @@ class Participant extends Model
         $normalizedLast = self::normalizeName($lastName);
 
         if ($normalizedFirst === null || $normalizedLast === null) {
-            return self::newCollection();
+            return (new self)->newCollection();
         }
 
         $trimmedEmail = is_string($email) ? trim($email) : '';
         $normalizedPhone = self::normalizeContactNumber($rawPhone);
 
         if ($trimmedEmail === '' && $normalizedPhone === null) {
-            return self::newCollection();
+            return (new self)->newCollection();
         }
 
         $query = self::query()->matchingName($pool, $firstName, $lastName, $middleName, $suffix);

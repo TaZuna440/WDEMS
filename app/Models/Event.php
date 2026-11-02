@@ -66,10 +66,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Event extends Model
 {
     /**
-     * @property-read ?ChurchEventStatus $church_status
-     * @property-read ?EventStatus $status
-     */
-    /**
      * Common participant fields that are always required and cannot
      * be toggled off by the organizer. A participant without a name
      * or a date of birth is unusable for attendance tracking.
@@ -266,7 +262,7 @@ class Event extends Model
             return $this->church_status->label();
         }
 
-        return $this->status?->label() ?? '';
+        return $this->status->label();
     }
 
     /**
@@ -313,6 +309,7 @@ class Event extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** @return HasMany<RegistrationField, $this> */
     public function registrationFields(): HasMany
     {
         return $this->hasMany(RegistrationField::class);

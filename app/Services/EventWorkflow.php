@@ -21,10 +21,6 @@ class EventWorkflow
 
         $current = $event->status;
 
-        if (! $current instanceof EventStatus) {
-            $current = EventStatus::from($current);
-        }
-
         if (! $current->canTransitionTo($target)) {
             throw new InvalidArgumentException(sprintf(
                 'Cannot transition event #%d from "%s" to "%s".',
@@ -81,10 +77,6 @@ class EventWorkflow
         }
 
         $current = $event->status;
-
-        if (! $current instanceof EventStatus) {
-            $current = EventStatus::from($current);
-        }
 
         return $current->canTransitionTo($target);
     }

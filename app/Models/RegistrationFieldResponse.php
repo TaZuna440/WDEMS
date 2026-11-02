@@ -31,6 +31,7 @@ class RegistrationFieldResponse extends Model
      * silently deleted. In practice this cannot happen because the
      * form locks at Open Registration (D6).
      */
+    /** @return BelongsTo<RegistrationField, $this> */
     public function registrationField(): BelongsTo
     {
         return $this->belongsTo(RegistrationField::class);

@@ -14,7 +14,12 @@ it('audits similar names with shared evidence without treating a family email as
         Registration::create(['event_id' => $event->id, 'participant_id' => $person->id, 'registration_status' => 'confirmed', 'source' => 'form']);
     }
     $pairs = app(DuplicateReview::class)->audit($event);
-    expect($pairs)->toHaveCount(1)->and($pairs[0]['reasons'])->toBe(['Similar name', 'Same email']);
+    expect($pairs)->toHaveCount(3)
+        ->and($pairs[0]['reasons'])->toBe(['Similar name', 'Same email'])
+        ->and($pairs[1]['reasons'])->toBe(['Same email'])
+        ->and($pairs[2]['reasons'])->toBe(['Same email'])
+        ->and(Registration::active()->count())->toBe(3);
+    expect(app(DuplicateReview::class)->shouldHoldCandidates([['strong' => false]]))->toBeFalse();
     $this->actingAs($staff)->getJson("/events/{$event->id}/participant-review/search?q=Maria")->assertOk()->assertJsonCount(1, 'matches');
     $this->get("/events/{$event->id}/possible-duplicates")->assertOk();
     $event->forceFill(['event_kind' => 'church'])->save();

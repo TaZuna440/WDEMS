@@ -96,6 +96,7 @@ class Registration extends Model
      * Cascade deletes at the schema level via the FK on
      * registration_id — deleting a registration removes its responses.
      */
+    /** @return HasMany<RegistrationFieldResponse, $this> */
     public function fieldResponses(): HasMany
     {
         return $this->hasMany(RegistrationFieldResponse::class);
@@ -115,6 +116,12 @@ class Registration extends Model
     public function heldCandidate(): BelongsTo
     {
         return $this->belongsTo(self::class, 'held_candidate_registration_id');
+    }
+
+    /** @return BelongsTo<self, $this> */
+    public function duplicateOf(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'duplicate_of_registration_id');
     }
 
     public function resolver(): BelongsTo

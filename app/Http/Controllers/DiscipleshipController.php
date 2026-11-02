@@ -229,6 +229,8 @@ class DiscipleshipController extends Controller
     /**
      * Base query with q and batch filters. No status filter --
      * used by buildCounts() so statuses remain separate.
+     *
+     * @return Builder<DiscipleshipEnrollment>
      */
     private function buildFilteredQuery(
         DiscipleshipProgram $program,
@@ -261,6 +263,8 @@ class DiscipleshipController extends Controller
 
     /**
      * Enrollment query with q, status, and batch applied.
+     *
+     * @return Builder<DiscipleshipEnrollment>
      */
     private function buildEnrollmentsQuery(
         DiscipleshipProgram $program,

@@ -46,11 +46,13 @@ class DiscipleshipProgram extends Model
         ];
     }
 
+    /** @return HasMany<DiscipleshipBatch, $this> */
     public function batches(): HasMany
     {
         return $this->hasMany(DiscipleshipBatch::class, 'program_id');
     }
 
+    /** @return HasMany<DiscipleshipEnrollment, $this> */
     public function enrollments(): HasMany
     {
         return $this->hasMany(DiscipleshipEnrollment::class, 'program_id');

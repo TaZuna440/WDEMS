@@ -160,7 +160,7 @@ class PublicRegistrationController extends Controller
     {
         return [
             'event_name' => $event->event_name,
-            'event_type' => $event->event_type?->label(),
+            'event_type' => $event->event_type->label(),
             'event_date' => $event->event_date?->toDateString(),
             'start_time' => $event->start_time?->format('H:i'),
             'end_time' => $event->end_time?->format('H:i'),

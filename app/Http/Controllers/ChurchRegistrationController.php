@@ -82,7 +82,7 @@ class ChurchRegistrationController extends Controller
                 'participant_id' => $person->id,
                 'registration_status' => $isHeld ? 'held' : 'confirmed',
                 'held_candidate_registration_id' => $isHeld ? $primaryCandidate['registration']?->id : null,
-                'held_reason' => $isHeld && $primaryCandidate !== null ? implode(', ', $primaryCandidate['reasons']) : null,
+                'held_reason' => $isHeld ? implode(', ', $primaryCandidate['reasons']) : null,
                 'source' => 'manual', 'encoded_by' => $request->user()->id,
                 'contact_attested_at' => now(), 'registered_at' => now(), 'registration_date' => now(),
                 'attendance_code' => $this->code($event),
@@ -116,7 +116,7 @@ class ChurchRegistrationController extends Controller
                 ...$this->registrationData($data), 'participant_id' => $person->id,
                 'registration_status' => $isHeld ? 'held' : 'confirmed',
                 'held_candidate_registration_id' => $isHeld ? $primaryCandidate['registration']?->id : null,
-                'held_reason' => $isHeld && $primaryCandidate !== null ? implode(', ', $primaryCandidate['reasons']) : null,
+                'held_reason' => $isHeld ? implode(', ', $primaryCandidate['reasons']) : null,
             ]);
         });
 

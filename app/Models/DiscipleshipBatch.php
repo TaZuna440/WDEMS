@@ -49,6 +49,7 @@ class DiscipleshipBatch extends Model
         return $this->hasMany(DiscipleshipEnrollment::class, 'batch_id');
     }
 
+    /** @return HasMany<DiscipleshipSession, $this> */
     public function sessions(): HasMany
     {
         return $this->hasMany(DiscipleshipSession::class, 'batch_id');

@@ -55,8 +55,18 @@ it('serves the church registration page and records staff attestation and format
 it('blocks exact and repeat submissions and allows clearly different family members', function () {
     $this->post($this->url, $this->data)->assertSessionHasNoErrors();
     $this->post($this->url, $this->data)->assertSessionHasErrors('identity');
-    $this->post($this->url, [...$this->data, 'first_name' => 'Jose'])->assertSessionHasNoErrors();
+    $this->post($this->url, [...$this->data, 'first_name' => 'Jose', 'birthday' => '2012-02-02'])->assertSessionHasNoErrors();
     expect(Registration::active()->count())->toBe(2)->and(Participant::count())->toBe(2);
+});
+
+it('holds different names sharing both contact and birthdate without merging them', function () {
+    Mail::fake();
+    $this->post($this->url, $this->data)->assertSessionHasNoErrors();
+    $this->post($this->url, [...$this->data, 'first_name' => 'Jose'])->assertSessionHasNoErrors();
+
+    expect(Participant::count())->toBe(2)
+        ->and(Registration::active()->count())->toBe(1)
+        ->and(Registration::held()->sole()->participant->first_name)->toBe('Jose');
 });
 
 it('holds additives and allows church review without crossing pools', function () {
@@ -113,7 +123,7 @@ it('edits identity and per-event details without rewriting another registration'
 
 it('rejects edit collisions and preserves attendance on rejected corrections', function () {
     $this->post($this->url, $this->data);
-    $this->post($this->url, [...$this->data, 'first_name' => 'Jose']);
+    $this->post($this->url, [...$this->data, 'first_name' => 'Jose', 'birthday' => '2012-02-02']);
     $row = Registration::latest('id')->first();
     $row->attendance()->create(['attendance_status' => 'present']);
     $this->patch("{$this->url}/{$row->id}", $this->data)->assertSessionHasErrors('identity');

@@ -44,6 +44,7 @@ class DiscipleshipEnrollment extends Model
         ];
     }
 
+    /** @return BelongsTo<Participant, $this> */
     public function participant(): BelongsTo
     {
         return $this->belongsTo(Participant::class);
@@ -54,6 +55,7 @@ class DiscipleshipEnrollment extends Model
         return $this->belongsTo(DiscipleshipProgram::class, 'program_id');
     }
 
+    /** @return BelongsTo<DiscipleshipBatch, $this> */
     public function batch(): BelongsTo
     {
         return $this->belongsTo(DiscipleshipBatch::class, 'batch_id');

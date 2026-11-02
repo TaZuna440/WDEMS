@@ -195,7 +195,7 @@ class DashboardController extends Controller
         $thisMonth = $thisMonthEvents->count();
         $activeModules = $thisMonthEvents->pluck('church_category')->filter()->unique()->count();
         $totalParticipants = Participant::where('pool', 'church')->whereNull('provisional_event_id')->count();
-        $todayEventIds = $events->filter(fn (Event $event) => $event->event_date?->isToday())->modelKeys();
+        $todayEventIds = $events->filter(fn (Event $event) => $event->event_date?->isToday() ?? false)->modelKeys();
         $todayRegistrations = Registration::active()->whereIn('event_id', $todayEventIds)
             ->whereHas('participant', fn ($query) => $query->where('pool', 'church')->whereNull('provisional_event_id'))
             ->with('attendance')->get();

@@ -36,8 +36,8 @@ export default function EventsCreateRunning() {
                             Community Run
                         </h2>
                         <p className="text-muted-foreground text-sm">
-                            Create a community run with registration,
-                            check-in, and event reports.
+                            Create a community run with registration, check-in,
+                            and event reports.
                         </p>
                     </Link>
 

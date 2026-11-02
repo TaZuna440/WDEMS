@@ -162,7 +162,7 @@ class ParticipantReviewController extends Controller
                 if ($person->registrations()->where('id', '!=', $row->id)->exists()) {
                     $person = $person->replicate();
                     $person->save();
-                    $row->participant_id = $person->id;
+                    $row->participant()->associate($person);
                 }
                 $person->fill(collect($data)->only(['first_name', 'last_name', 'middle_name', 'suffix', 'email', 'contact_number', 'birthday'])->all())->save();
                 $row->setRelation('participant', $person);
@@ -195,12 +195,12 @@ class ParticipantReviewController extends Controller
                 abort_unless($existing === null || $existing->isActive(), 422, 'The selected participant already has a registration that is not available for linking.');
                 if ($existing !== null) {
                     $row->registration_status = RegistrationStatus::Duplicate;
-                    $row->duplicate_of_registration_id = $existing->id;
-                    $row->held_candidate_registration_id = $existing->id;
+                    $row->duplicateOf()->associate($existing);
+                    $row->heldCandidate()->associate($existing);
                     $row->held_reason = implode(', ', $selected['reasons']);
                     $message = "Submission marked as a duplicate of the selected participant's registration.";
                 } else {
-                    $row->participant_id = $person->id;
+                    $row->participant()->associate($person);
                     $row->setRelation('participant', $person);
                     $row->registration_status = RegistrationStatus::Confirmed;
                     $row->duplicate_of_registration_id = null;
@@ -219,7 +219,7 @@ class ParticipantReviewController extends Controller
                 );
                 $primaryCandidate = $candidates[0] ?? null;
                 if ($exact || ($action === 'correct_details' && $review->shouldHoldCandidates($candidates))) {
-                    $row->held_candidate_registration_id = $exact?->id ?? $primaryCandidate['registration']?->id;
+                    $row->heldCandidate()->associate($exact ?? $primaryCandidate['registration']);
                     $row->held_reason = $exact ? 'Exact identity already registered' : implode(', ', $primaryCandidate['reasons']);
                     $reason .= ': still held — '.$row->held_reason;
                     $message = 'Submission remains held: '.$row->held_reason.'.';
@@ -234,7 +234,7 @@ class ParticipantReviewController extends Controller
                 $master = Registration::active()->where('event_id', $event->id)->whereKey($row->held_candidate_registration_id)->lockForUpdate()->first();
                 abort_unless($master && $master->participant->pool === $event->event_kind, 422, 'An active master registration is required.');
                 $row->registration_status = RegistrationStatus::Duplicate;
-                $row->duplicate_of_registration_id = $master->id;
+                $row->duplicateOf()->associate($master);
             } else {
                 $row->registration_status = RegistrationStatus::Removed;
             }

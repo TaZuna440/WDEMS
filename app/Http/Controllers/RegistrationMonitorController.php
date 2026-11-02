@@ -187,11 +187,11 @@ class RegistrationMonitorController extends Controller
 
         $mapped = $registrations->map(function (Registration $r) use ($sharedPhoneIds, $responsesByRegistration) {
             $participant = $r->participant;
-            $otherCount = (int) ($participant?->other_events_count ?? 0);
+            $otherCount = (int) ($participant?->getAttribute('other_events_count') ?? 0);
 
             $fieldResponses = $responsesByRegistration
                 ->get($r->id, collect())
-                ->sortBy(fn ($resp) => $resp->registrationField?->display_order ?? 0)
+                ->sortBy(fn ($resp) => $resp->registrationField->display_order ?? 0)
                 ->map(function (RegistrationFieldResponse $resp) {
                     $raw = $resp->value;
 
@@ -430,7 +430,7 @@ class RegistrationMonitorController extends Controller
                     $participant?->age,
                     $participant?->address,
                     $r->source,
-                    $r->registration_status?->value,
+                    $r->registration_status->value,
                     $r->registered_at?->toDateTimeString(),
                 ];
 
