@@ -18,7 +18,7 @@ test('authenticated users can visit the dashboard', function () {
     $response->assertOk();
 });
 
-test('dashboard lists held registrations across running and church events', function () {
+test('dashboard does not assign legacy duplicate holds to organizers', function () {
     $user = User::factory()->create(['role' => 'admin', 'email_two_factor_enabled' => false]);
 
     foreach (['running', 'church'] as $kind) {
@@ -44,17 +44,7 @@ test('dashboard lists held registrations across running and church events', func
         ]);
     }
 
-    $this->actingAs($user)->get('/dashboard')->assertInertia(fn ($page) => $page
-        ->has('flagged_registrations', 2)
-        ->where('flagged_registrations.0.participant.first_name', 'Church Participant')
-        ->where('flagged_registrations.0.event.event_name', 'Church Dashboard Event')
-        ->where('flagged_registrations.0.event.event_kind', 'church')
-        ->where('flagged_registrations.0.participant.email', 'church@example.com')
-        ->where('flagged_registrations.0.participant.contact_number', '09171234567')
-        ->where('flagged_registrations.0.held_reason', 'Similar name match')
-        ->where('flagged_registrations.1.participant.first_name', 'Running Participant')
-        ->where('flagged_registrations.1.event.event_name', 'Running Dashboard Event')
-        ->where('flagged_registrations.1.event.event_kind', 'running'));
+    $this->actingAs($user)->get('/dashboard')->assertInertia(fn ($page) => $page->has('flagged_registrations', 0));
 });
 
 test('dashboard limits flagged registrations to the ten most recent', function () {
@@ -74,7 +64,8 @@ test('dashboard limits flagged registrations to the ten most recent', function (
         ]);
         $event->registrations()->create([
             'participant_id' => $participant->id,
-            'registration_status' => 'held',
+            'registration_status' => 'confirmed',
+            'flagged_at' => now(),
             'source' => 'form',
         ]);
     }
@@ -129,7 +120,7 @@ test('dashboard counts active registrations and present attendance only', functi
         ->has('recentActivity', 5));
 });
 
-test('church dashboard surfaces held registrations and unmarked events without cross-pool counts', function () {
+test('church dashboard surfaces unmarked attendance without assigning duplicate review', function () {
     $user = User::factory()->create(['role' => 'admin', 'email_two_factor_enabled' => false]);
     $event = Event::create([
         'created_by' => $user->id,
@@ -160,13 +151,10 @@ test('church dashboard surfaces held registrations and unmarked events without c
     $this->actingAs($user)->get('/dashboard?side=church')->assertInertia(fn ($page) => $page
         ->where('stats.3.value', 1)
         ->where('stats.3.href', route('church.attendance', ['event' => $event->id, 'filter' => 'unmarked']))
-        ->has('actionItems', 2)
-        ->where('actionItems.0.urgency', 'needs_review')
-        ->where('actionItems.0.reason', '1 held registration awaiting review')
-        ->where('actionItems.0.action.href', route('events.possible-duplicates', $event))
-        ->where('actionItems.1.urgency', 'urgent')
-        ->where('actionItems.1.reason', 'Today’s event — 1 participant still unmarked')
-        ->where('recentActivity.0.description', 'A registration was held for organizer review at Today service'));
+        ->has('actionItems', 1)
+        ->where('actionItems.0.urgency', 'urgent')
+        ->where('actionItems.0.reason', 'Today’s event — 1 participant still unmarked')
+        ->where('recentActivity.0.description', 'A legacy registration awaits automatic processing at Today service'));
 });
 
 test('running dashboard reports recent Community Run statistics only', function () {

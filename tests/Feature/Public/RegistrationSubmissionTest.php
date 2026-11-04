@@ -137,11 +137,10 @@ test('a verified submission creates participant registration and responses', fun
     expect(Registration::sole()->registration_status->value)->toBe('confirmed');
 });
 
-test('a duplicate verified identity for the same event is safely rejected', function () {
+test('a duplicate verified identity recovers its registration', function () {
     $event = public_event();
     completePublicRegistration($this, $event, public_payload())->assertSessionHasNoErrors();
-    $this->post('/r/'.$event->registration_slug, public_payload())
-        ->assertSessionHasErrors('identity');
+    completePublicRegistration($this, $event, public_payload())->assertSessionHasNoErrors();
     expect(Registration::where('event_id', $event->id)->count())->toBe(1);
 });
 

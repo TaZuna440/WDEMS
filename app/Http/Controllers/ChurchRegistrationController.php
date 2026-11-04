@@ -73,16 +73,11 @@ class ChurchRegistrationController extends Controller
             $this->assertFellowshipGroupBelongsToEvent($event, $data['fellowship_group_id'] ?? null);
             $this->rejectExact($review, $event, $data);
             $person = $this->resolve($data);
-            $candidates = $review->findCandidates($event, $data, excludeParticipantId: $person->id);
-            $isHeld = $review->shouldHoldCandidates($candidates);
-            $primaryCandidate = $candidates[0] ?? null;
             /** @var Registration $registration */
             $registration = $event->registrations()->create([
                 ...$this->registrationData($data),
                 'participant_id' => $person->id,
-                'registration_status' => $isHeld ? 'held' : 'confirmed',
-                'held_candidate_registration_id' => $isHeld ? $primaryCandidate['registration']?->id : null,
-                'held_reason' => $isHeld ? implode(', ', $primaryCandidate['reasons']) : null,
+                'registration_status' => 'confirmed',
                 'source' => 'manual', 'encoded_by' => $request->user()->id,
                 'contact_attested_at' => now(), 'registered_at' => now(), 'registration_date' => now(),
                 'attendance_code' => $this->code($event),
@@ -90,7 +85,7 @@ class ChurchRegistrationController extends Controller
             app(RegistrationConfirmationService::class)->sendAfterCommit($registration);
         });
 
-        return back()->with('success', 'Submission saved. Held submissions require organizer review before attendance.');
+        return back()->with('success', 'Registration saved. Identity checks completed automatically.');
     }
 
     public function update(Request $request, Event $event, Registration $registration, DuplicateReview $review): RedirectResponse
@@ -102,21 +97,13 @@ class ChurchRegistrationController extends Controller
             Event::whereKey($event->id)->lockForUpdate()->firstOrFail();
             $this->assertFellowshipGroupBelongsToEvent($event, $data['fellowship_group_id'] ?? null);
             $row = Registration::whereKey($registration->id)->lockForUpdate()->firstOrFail();
-            abort_unless($row->isActive(), 422, 'Use organizer review for held submissions.');
+            abort_unless($row->isActive(), 422, 'Only active registrations can be edited.');
             $this->rejectExact($review, $event, $data, $row->id);
             $person = $this->resolve($data, $row);
             // Identity corrections reassign this registration, never rewrite a shared person.
-            $candidates = $review->findCandidates($event, $data, $row->id, $person->id);
-            $isHeld = $review->shouldHoldCandidates($candidates);
-            $primaryCandidate = $candidates[0] ?? null;
-            if ($isHeld && $row->attendance()->exists()) {
-                throw ValidationException::withMessages(['identity' => 'This correction needs duplicate review but attendance is already recorded. Clear attendance before correcting the identity.']);
-            }
             $row->update([
                 ...$this->registrationData($data), 'participant_id' => $person->id,
-                'registration_status' => $isHeld ? 'held' : 'confirmed',
-                'held_candidate_registration_id' => $isHeld ? $primaryCandidate['registration']?->id : null,
-                'held_reason' => $isHeld ? implode(', ', $primaryCandidate['reasons']) : null,
+                'registration_status' => 'confirmed',
             ]);
         });
 

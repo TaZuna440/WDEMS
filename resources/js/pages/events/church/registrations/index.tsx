@@ -204,7 +204,9 @@ export default function ChurchRegistrations({
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         <Button variant="outline" asChild>
-                            <Link href={duplicates_url}>Organizer review</Link>
+                            <Link href={duplicates_url}>
+                                Automatic identity checks
+                            </Link>
                         </Button>
                         <Button onClick={() => edit()}>Add Participant</Button>
                         <Button variant="outline" asChild>
@@ -379,7 +381,7 @@ export default function ChurchRegistrations({
                                         <td className="p-4">{row.source}</td>
                                         <td className="p-4">
                                             {row.registration_status === 'held'
-                                                ? 'Held / For Review'
+                                                ? 'Automatic check pending'
                                                 : row.registration_status}
                                             <div className="text-muted-foreground text-xs">
                                                 {row.held_reason}

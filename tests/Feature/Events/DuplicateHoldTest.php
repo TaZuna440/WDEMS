@@ -6,7 +6,7 @@ use App\Models\Event;
 use App\Models\Participant;
 use App\Models\Registration;
 use App\Models\User;
-use App\Services\Participants\DuplicateReview;
+use App\Services\Participants\AutomaticIdentityResolution;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
@@ -28,187 +28,122 @@ beforeEach(function () {
         'attendance_code' => 'ABCD-1234']);
 });
 
-it('holds an omitted middle name through real email verification finalization', function () {
-    // Remove the unrelated review fixture; the new held row must come from the endpoints.
+it('accepts omitted middle names separately without organizer review', function () {
     $this->held->delete();
     completePublicRegistration($this, $this->event, ['first_name' => 'Maria', 'last_name' => 'Santos', 'age' => 28,
-        'email' => 'maria@example.com', 'similarity_acknowledged' => true, 'address' => 'Manila', 'emergency_contact_name' => 'Jose Santos',
-        'emergency_contact_relationship' => 'Father', 'emergency_contact_number' => '09171234567'])
-        ->assertSessionHasNoErrors();
-    $held = Registration::held()->sole();
-    expect($held->held_candidate_registration_id)->toBe($this->master->id)
-        ->and($held->attendance)->toBeNull()
-        ->and(Registration::active()->count())->toBe(1);
+        'email' => 'maria@example.com', 'address' => 'Manila', 'emergency_contact_name' => 'Jose Santos',
+        'emergency_contact_relationship' => 'Father', 'emergency_contact_number' => '09171234567'])->assertSessionHasNoErrors();
+    $row = Registration::latest('id')->firstOrFail();
+    expect($row->isActive())->toBeTrue()->and($row->participant_id)->not->toBe($this->master->participant_id)
+        ->and(Registration::held()->count())->toBe(0)->and(Registration::active()->count())->toBe(2);
+    $this->assertDatabaseHas('registration_identity_decisions', ['registration_id' => $row->id, 'action' => 'kept_separate']);
 });
 
-it('rejects explicit bulk marking and single check-in of held submissions', function () {
-    $this->actingAs($this->staff)->post("/events/{$this->event->id}/attendance/bulk-mark?force_open=1", [
-        'registration_ids' => [$this->master->id, $this->held->id],
-    ])->assertStatus(422);
-    $this->post("/events/{$this->event->id}/attendance/{$this->held->id}/mark?force_open=1", ['status' => 'present'])->assertStatus(422);
-    expect($this->master->fresh()->attendance)->toBeNull()->and($this->held->fresh()->attendance)->toBeNull();
+it('releases a legacy uncertain identity once and sends confirmation once', function () {
+    Mail::fake();
+    $resolver = app(AutomaticIdentityResolution::class);
+    expect($resolver->resolveHeld($this->held->id))->toBeTrue()
+        ->and($resolver->resolveHeld($this->held->id))->toBeFalse()
+        ->and($this->held->fresh()->isActive())->toBeTrue()
+        ->and($this->held->fresh()->attendance)->toBeNull();
+    expect(DB::table('registration_identity_decisions')->where('registration_id', $this->held->id)->count())->toBe(1);
+    Mail::assertSent(RegistrationConfirmationMail::class, 1);
 });
 
-it('makes confirmed duplicates terminal and excludes them from attendance and audit', function () {
-    $this->actingAs($this->staff)->post("/events/{$this->event->id}/possible-duplicates/{$this->held->id}/resolve", ['action' => 'confirm_duplicate'])->assertRedirect();
+it('automatically makes an exact legacy duplicate terminal and preserves both records', function () {
+    $this->held->participant->update(['middle_name' => 'Reyes']);
+    app(AutomaticIdentityResolution::class)->resolveHeld($this->held->id);
     $duplicate = $this->held->fresh();
     expect($duplicate->registration_status)->toBe(RegistrationStatus::Duplicate)
         ->and($duplicate->duplicate_of_registration_id)->toBe($this->master->id)
-        ->and(app(DuplicateReview::class)->registrations($this->event)->pluck('id')->all())->toBe([$this->master->id]);
-    $this->post("/events/{$this->event->id}/attendance/{$duplicate->id}/mark?force_open=1", ['status' => 'present'])->assertStatus(422);
-    $this->post("/events/{$this->event->id}/attendance/bulk-mark?force_open=1", ['registration_ids' => [$duplicate->id]])->assertStatus(422);
+        ->and(Registration::count())->toBe(2)
+        ->and(Participant::count())->toBe(2);
+    $this->actingAs($this->staff)->post("/events/{$this->event->id}/attendance/{$duplicate->id}/mark?force_open=1", ['status' => 'present'])->assertStatus(422);
     expect(fn () => $duplicate->update(['registration_status' => 'confirmed']))->toThrow(DomainException::class);
     expect(fn () => $duplicate->attendance()->create(['attendance_status' => 'present']))->toThrow(ValidationException::class);
 });
 
-it('rechecks corrections and preserves every review attempt', function () {
-    $url = "/events/{$this->event->id}/possible-duplicates/{$this->held->id}/resolve";
-    $this->actingAs($this->staff)->post($url, ['action' => 'correct_details', 'first_name' => 'Maria', 'last_name' => 'Santos'])
-        ->assertSessionHas('status', fn ($message) => str_contains($message, 'remains held'));
+it('keeps conflicting birthdates separate when releasing legacy holds', function () {
+    $this->master->participant->update(['birthday' => '2000-01-01']);
+    $this->held->participant->update(['middle_name' => 'Reyes', 'birthday' => '2002-01-01']);
+    app(AutomaticIdentityResolution::class)->resolveHeld($this->held->id);
+    expect($this->held->fresh()->isActive())->toBeTrue()->and($this->held->fresh()->duplicate_of_registration_id)->toBeNull();
+});
+
+it('does not resolve a legacy hold using unverified contact snapshots', function () {
+    $this->held->participant->update(['middle_name' => 'Reyes', 'email' => 'different@example.com']);
+    $this->held->update(['submitted_email' => 'maria@example.com']);
+    app(AutomaticIdentityResolution::class)->resolveHeld($this->held->id);
+    expect($this->held->fresh()->isActive())->toBeTrue();
+});
+
+it('does not reactivate cancelled or removed registrations', function (string $status) {
+    $this->held->update(['registration_status' => $status]);
+    expect(app(AutomaticIdentityResolution::class)->resolveHeld($this->held->id))->toBeFalse()
+        ->and($this->held->fresh()->registration_status->value)->toBe($status);
+})->with(['cancelled', 'removed', 'duplicate']);
+
+it('rejects manual duplicate decisions and keeps the history read only', function (string $action) {
+    $this->actingAs($this->staff)->post("/events/{$this->event->id}/possible-duplicates/{$this->held->id}/resolve", ['action' => $action])->assertStatus(410);
     expect($this->held->fresh()->isHeld())->toBeTrue();
-    $this->post($url, ['action' => 'correct_details', 'first_name' => 'Jose', 'last_name' => 'Garcia'])->assertSessionHasNoErrors();
-    expect($this->held->fresh()->isActive())->toBeTrue()->and($this->held->fresh()->attendance)->toBeNull();
-    expect(DB::table('registration_review_resolutions')->where('registration_id', $this->held->id)->count())->toBe(2);
+})->with(['confirm_duplicate', 'confirm_separate', 'correct_details', 'link_candidate', 'remove']);
+
+it('shows automatic decisions only to authenticated staff', function () {
+    $this->get("/events/{$this->event->id}/possible-duplicates")->assertRedirect('/login');
+    $this->actingAs($this->staff)->get("/events/{$this->event->id}/possible-duplicates")
+        ->assertOk()->assertInertia(fn ($page) => $page->component('events/duplicates')
+        ->where('decisions.data.0.registration_id', $this->master->id)
+        ->where('decisions.data.0.rule_version', AutomaticIdentityResolution::VERSION)
+        ->missing('held_registrations'));
 });
 
-it('keeps an exact correction held even when separate is requested afterwards', function () {
-    $url = "/events/{$this->event->id}/possible-duplicates/{$this->held->id}/resolve";
-    $this->actingAs($this->staff)->post($url, ['action' => 'correct_details', 'first_name' => 'Maria', 'middle_name' => 'Reyes', 'last_name' => 'Santos'])->assertSessionHasNoErrors();
-    $this->post($url, ['action' => 'confirm_separate'])->assertSessionHasNoErrors();
+it('supports a read only rollout count and an idempotent legacy command', function () {
+    Mail::fake();
+    $this->artisan('registrations:resolve-held --dry-run')->assertSuccessful();
     expect($this->held->fresh()->isHeld())->toBeTrue();
-});
-
-it('rejects review actions on an active registration', function (string $action) {
-    $this->actingAs($this->staff)->post("/events/{$this->event->id}/possible-duplicates/{$this->master->id}/resolve", [
-        'action' => $action, 'first_name' => 'Maria', 'last_name' => 'Santos',
-    ])->assertStatus(422);
-    expect(DB::table('registration_review_resolutions')->count())->toBe(0);
-})->with(['confirm_duplicate', 'confirm_separate', 'correct_details', 'remove']);
-
-it('releases a separate person as unmarked and audits the actor', function () {
-    Mail::fake();
-    $this->held->update(['submitted_email' => 'maria.registration@example.com']);
-
-    $this->actingAs($this->staff)->post("/events/{$this->event->id}/possible-duplicates/{$this->held->id}/resolve", ['action' => 'confirm_separate', 'reason' => 'Staff checked both people'])->assertRedirect();
-    expect($this->held->fresh()->isActive())->toBeTrue()->and($this->held->fresh()->attendance)->toBeNull();
-    $this->assertDatabaseHas('registration_review_resolutions', ['registration_id' => $this->held->id, 'actor_id' => $this->staff->id, 'reason' => 'Staff checked both people']);
-    Mail::assertSent(RegistrationConfirmationMail::class, function (RegistrationConfirmationMail $mail) {
-        return $mail->hasTo('maria.registration@example.com')
-            && $mail->code === 'ABCD-1234'
-            && $mail->eventName === 'Recovery run';
-    });
-});
-
-it('does not resend confirmation mail when an already released registration is reviewed again', function () {
-    Mail::fake();
-    $this->held->update(['submitted_email' => 'maria.registration@example.com']);
-    $url = "/events/{$this->event->id}/possible-duplicates/{$this->held->id}/resolve";
-
-    $this->actingAs($this->staff)->post($url, ['action' => 'confirm_separate'])->assertRedirect();
-    $this->post($url, ['action' => 'confirm_separate'])->assertStatus(422);
-
+    $this->artisan('registrations:resolve-held')->assertSuccessful();
+    $this->artisan('registrations:resolve-held')->assertSuccessful();
+    expect(Registration::held()->count())->toBe(0);
     Mail::assertSent(RegistrationConfirmationMail::class, 1);
 });
 
-it('preserves removed submissions and before and after audit snapshots', function () {
-    $this->actingAs($this->staff)->post("/events/{$this->event->id}/possible-duplicates/{$this->held->id}/resolve", ['action' => 'remove', 'reason' => 'Participant withdrew'])->assertRedirect();
-    expect($this->held->fresh()->registration_status)->toBe(RegistrationStatus::Removed);
-    $audit = DB::table('registration_review_resolutions')->sole();
-    expect(json_decode($audit->before_snapshot, true)['registration']['registration_status'])->toBe('held')
-        ->and(json_decode($audit->after_snapshot, true)['registration']['registration_status'])->toBe('removed')
-        ->and($audit->actor_id)->toBe($this->staff->id)->and($audit->created_at)->not->toBeNull();
+it('rejects cross-pool legacy identity resolution without changing history', function () {
+    $this->held->participant->update(['pool' => 'church']);
+    expect(fn () => app(AutomaticIdentityResolution::class)->resolveHeld($this->held->id))->toThrow(DomainException::class);
+    expect($this->held->fresh()->isHeld())->toBeTrue();
 });
 
-it('never holds on birthdate alone or clearly different family names', function () {
-    $review = app(DuplicateReview::class);
-    $this->master->participant->update(['birthday' => '2000-01-01']);
-    $birthdayOnly = $review->findCandidates($this->event, [
-        'first_name' => 'Maria',
-        'last_name' => 'Santos',
-        'birthday' => '2000-01-01',
-        'email' => 'different@example.com',
-    ]);
-    $differentFamilyName = $review->findCandidates($this->event, [
-        'first_name' => 'Jose',
-        'last_name' => 'Santos',
-        'email' => 'maria@example.com',
-    ], excludeRegistrationId: $this->held->id, excludeParticipantId: $this->held->participant_id);
-
-    expect($birthdayOnly)->toBeEmpty()
-        ->and($review->shouldHoldCandidates($differentFamilyName))->toBeFalse();
+it('preserves existing attendance while releasing a legacy hold', function () {
+    $this->held->update(['registration_status' => 'confirmed']);
+    $attendance = $this->held->attendance()->create(['attendance_status' => 'present', 'attendance_time' => now()]);
+    $this->held->update(['registration_status' => 'held']);
+    $this->held->participant->update(['middle_name' => 'Reyes']);
+    app(AutomaticIdentityResolution::class)->resolveHeld($this->held->id);
+    expect($this->held->fresh()->isActive())->toBeTrue()
+        ->and($attendance->fresh()->registration_id)->toBe($this->held->id);
 });
 
-it('ranks and exposes every participant sharing a family contact', function () {
-    $familyMember = Participant::create([
-        'pool' => 'running',
-        'first_name' => 'Jose',
-        'last_name' => 'Santos',
-        'email' => 'maria@example.com',
-    ]);
-    Registration::create([
-        'event_id' => $this->event->id,
-        'participant_id' => $familyMember->id,
-        'registration_status' => 'confirmed',
-        'source' => 'form',
-    ]);
-
-    $review = app(DuplicateReview::class);
-    $candidates = $review->findCandidates($this->event, [
-        'first_name' => 'Jose',
-        'last_name' => 'Santos',
-        'email' => 'maria@example.com',
-    ], excludeRegistrationId: $this->held->id, excludeParticipantId: $this->held->participant_id);
-
-    expect($candidates)->toHaveCount(2)
-        ->and($candidates[0]['participant']->id)->toBe($familyMember->id)
-        ->and($candidates[0]['strong'])->toBeTrue()
-        ->and($review->shouldHoldCandidates($candidates))->toBeTrue();
-});
-
-it('returns all ranked candidates in the audit queue and links to the selected participant', function () {
-    Mail::fake();
-    $familyMember = Participant::create([
-        'pool' => 'running',
-        'first_name' => 'Jose',
-        'last_name' => 'Santos',
-        'email' => 'maria@example.com',
-    ]);
-
-    $this->actingAs($this->staff)->get("/events/{$this->event->id}/possible-duplicates")
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->where('held_registrations.0.candidates.0.participant.id', $this->master->participant_id)
-            ->where('held_registrations.0.candidates.1.participant.id', $familyMember->id));
-
-    $this->actingAs($this->staff)->post("/events/{$this->event->id}/possible-duplicates/{$this->held->id}/resolve", [
-        'action' => 'link_candidate',
-        'candidate_participant_id' => $familyMember->id,
-    ])->assertSessionHasNoErrors();
-
-    expect($this->held->fresh()->participant_id)->toBe($familyMember->id)
-        ->and($this->held->fresh()->registration_status)->toBe(RegistrationStatus::Confirmed);
-});
-
-it('marks a linked registration as duplicate when the selected participant is already registered', function () {
-    $familyMember = Participant::create([
-        'pool' => 'running',
-        'first_name' => 'Jose',
-        'last_name' => 'Santos',
-        'email' => 'maria@example.com',
-    ]);
-    $existing = Registration::create([
-        'event_id' => $this->event->id,
-        'participant_id' => $familyMember->id,
-        'registration_status' => RegistrationStatus::Confirmed,
-        'source' => 'form',
-    ]);
-
-    $this->actingAs($this->staff)->post("/events/{$this->event->id}/possible-duplicates/{$this->held->id}/resolve", [
-        'action' => 'link_candidate',
-        'candidate_participant_id' => $familyMember->id,
-    ])->assertSessionHas('status', "Submission marked as a duplicate of the selected participant's registration.");
-
+it('does not bypass an inactive exact registration when processing a legacy hold', function () {
+    $this->master->update(['registration_status' => 'cancelled']);
+    $this->held->participant->update(['middle_name' => 'Reyes']);
+    app(AutomaticIdentityResolution::class)->resolveHeld($this->held->id);
     expect($this->held->fresh()->registration_status)->toBe(RegistrationStatus::Duplicate)
-        ->and($this->held->fresh()->participant_id)->not->toBe($familyMember->id)
-        ->and($this->held->fresh()->duplicate_of_registration_id)->toBe($existing->id);
+        ->and($this->master->fresh()->registration_status)->toBe(RegistrationStatus::Cancelled);
+});
+
+it('assigns a missing attendance code when releasing a legacy hold', function () {
+    $this->held->update(['attendance_code' => null]);
+    app(AutomaticIdentityResolution::class)->resolveHeld($this->held->id);
+    expect($this->held->fresh()->attendance_code)->toMatch('/^[A-Z0-9]{4}-[A-Z0-9]{4}$/');
+});
+
+it('keeps one active registration when two legacy holds match each other exactly', function () {
+    $this->master->update(['registration_status' => 'held']);
+    $this->held->participant->update(['middle_name' => 'Reyes']);
+    $this->artisan('registrations:resolve-held')->assertSuccessful();
+    expect(Registration::active()->count())->toBe(1)
+        ->and(Registration::where('registration_status', 'duplicate')->count())->toBe(1)
+        ->and(Registration::held()->count())->toBe(0);
+    $duplicate = Registration::where('registration_status', 'duplicate')->sole();
+    expect($duplicate->duplicate_of_registration_id)->toBe(Registration::active()->sole()->id);
 });

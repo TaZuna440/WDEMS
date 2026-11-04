@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 require_once __DIR__.'/../../Support/PublicVerification.php';
 
-it('registers an existing church identity as a separate running person and blocks a repeat', function () {
+it('registers an existing church identity as a separate running person and recovers a verified repeat', function () {
     $person = Participant::resolveFrom('church', 'pool@example.com', '09171234567', ['first_name' => 'Maria', 'last_name' => 'Santos']);
     $event = Event::create(['created_by' => User::factory()->create()->id, 'event_kind' => 'running', 'event_type' => 'community_run',
         'event_name' => 'Pool run', 'status' => 'registration_open', 'registration_slug' => 'pool-run', 'registration_form_saved_at' => now(),
@@ -26,7 +26,8 @@ it('registers an existing church identity as a separate running person and block
     expect(Participant::count())->toBe(2)->and(Registration::sole()->isActive())->toBeTrue()
         ->and(Registration::sole()->participant_id)->not->toBe($person->id)
         ->and(Registration::sole()->participant->pool)->toBe('running');
-    $this->post('/r/pool-run', $payload)->assertSessionHasErrors('identity');
+    completePublicRegistration($this, $event, $payload)->assertSessionHasNoErrors();
+    expect(Registration::count())->toBe(1)->and(Participant::count())->toBe(2);
 });
 
 it('rejects absent or invalid pool creation and separates resolver matches', function () {

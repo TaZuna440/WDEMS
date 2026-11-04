@@ -245,7 +245,7 @@ it('does not allow a church registration to choose phone verification', function
     expect(RegistrationVerificationChallenge::where('event_id', $event->id)->sole()->chosen_channel)->toBe('email');
 });
 
-it('rejects an exact church duplicate before creating a verification challenge', function () {
+it('requires verification before recovering an exact church registration', function () {
     [$event, $payload] = church_public_fixture();
     $person = Participant::create([
         'pool' => 'church',
@@ -262,9 +262,9 @@ it('rejects an exact church duplicate before creating a verification challenge',
         'registered_at' => now(),
     ]);
 
-    $this->post('/r/'.$event->registration_slug, $payload)->assertSessionHasErrors('identity');
+    $this->post('/r/'.$event->registration_slug, $payload)->assertSessionHasNoErrors();
 
-    expect(RegistrationVerificationChallenge::where('event_id', $event->id)->count())->toBe(0)
+    expect(RegistrationVerificationChallenge::where('event_id', $event->id)->count())->toBe(1)
         ->and(Registration::where('participant_id', $person->id)->count())->toBe(1);
 });
 
@@ -284,7 +284,7 @@ it('does not expose a church confirmation page for a pending submission', functi
     $this->get('/r/'.$event->registration_slug.'/registered')->assertNotFound();
 });
 
-it('holds a verified likely duplicate outside active attendance counts', function () {
+it('accepts a similar verified identity separately in active counts', function () {
     [$event, $payload] = church_public_fixture();
     $person = Participant::create([
         'pool' => 'church',
@@ -316,9 +316,10 @@ it('holds a verified likely duplicate outside active attendance counts', functio
     $this->post($url.'/email', ['code' => $code])->assertSessionHasNoErrors();
     $this->post($url.'/complete')->assertSessionHasNoErrors();
 
-    $held = Registration::where('event_id', $event->id)->where('registration_status', 'held')->sole();
+    $held = Registration::where('event_id', $event->id)->latest('id')->firstOrFail();
+    expect($held->isActive())->toBeTrue()->and(Registration::held()->count())->toBe(0);
     expect($held->attendance)->toBeNull()
-        ->and(Registration::active()->where('event_id', $event->id)->count())->toBe(1)
+        ->and(Registration::active()->where('event_id', $event->id)->count())->toBe(2)
         ->and($held->attendance_code)->not->toBeNull();
 });
 
@@ -401,7 +402,7 @@ it('reuses an existing participant when composite name and verified email match'
         ->and($seeded->fresh()->email)->toBe('maria-return@example.com');
 });
 
-it('holds a submission when similar name and submitted phone match an existing registration', function () {
+it('accepts a similar name separately when only an unverified phone matches', function () {
     [$event, $payload] = church_public_fixture();
     $person = Participant::create([
         'pool' => 'church',
@@ -438,9 +439,10 @@ it('holds a submission when similar name and submitted phone match an existing r
     $this->post($url.'/email', ['code' => $code])->assertSessionHasNoErrors();
     $this->post($url.'/complete')->assertSessionHasNoErrors();
 
-    $held = Registration::where('event_id', $event->id)->where('registration_status', 'held')->sole();
+    $held = Registration::where('event_id', $event->id)->latest('id')->firstOrFail();
+    expect($held->isActive())->toBeTrue()->and(Registration::held()->count())->toBe(0);
     expect($held->attendance)->toBeNull()
-        ->and(Registration::active()->where('event_id', $event->id)->count())->toBe(1)
-        ->and($held->held_reason)->toContain('Same phone')
+        ->and(Registration::active()->where('event_id', $event->id)->count())->toBe(2)
+        ->and($held->held_reason)->toBeNull()
         ->and($held->attendance_code)->not->toBeNull();
 });

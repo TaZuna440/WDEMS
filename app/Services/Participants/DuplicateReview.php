@@ -115,27 +115,37 @@ class DuplicateReview
     }
 
     /** Exact composite checks include inactive submissions to prevent re-registration bypasses. */
-    public function findExact(Event $event, array $payload, ?int $excludeId = null): ?Registration
+    public function findExact(Event $event, array $payload, ?int $excludeId = null, bool $trustedContactsOnly = false): ?Registration
     {
         Participant::assertPool($event->event_kind);
-        $rows = $event->registrations()->whereHas('participant', fn ($q) => $q->matchingName(
+        $rows = Registration::query()->where('event_id', $event->id)->whereHas('participant', fn ($q) => $q->matchingName(
             $event->event_kind, $payload['first_name'] ?? null, $payload['last_name'] ?? null,
             $payload['middle_name'] ?? null, $payload['suffix'] ?? null,
         ))->with('participant')->orderBy('id')->get();
+        $matches = [];
         foreach ($rows as $row) {
             if ($row->id === $excludeId) {
                 continue;
             }
             $identity = $this->identity($row);
+            if (! empty($payload['birthday']) && $identity['birthday'] !== null && $payload['birthday'] !== $identity['birthday']) {
+                continue;
+            }
+            if ($trustedContactsOnly) {
+                $identity['email'] = $row->participant->email;
+                $identity['contact_number'] = $row->participant->contact_number;
+            }
             foreach (['email', 'contact_number'] as $key) {
                 $contact = $this->contactKey($key, $payload[$key] ?? null);
-                if ($contact !== null && $contact === $this->contactKey($key, $identity[$key])) {
-                    return $row;
+                if ($contact !== null && ($contact === $this->contactKey($key, $identity[$key])
+                    || (! $trustedContactsOnly && $contact === $this->contactKey($key, $row->participant->{$key})))) {
+                    $matches[$row->id] = $row;
+                    break;
                 }
             }
         }
 
-        return null;
+        return count($matches) === 1 ? array_values($matches)[0] : null;
     }
 
     /**
@@ -252,18 +262,6 @@ class DuplicateReview
             ?: $left['participant']->id <=> $right['participant']->id);
 
         return $candidates;
-    }
-
-    /**
-     * Strong identity matches or multiple contact-sharing candidates are held
-     * for organizer review; one weak contact-only match remains advisory.
-     *
-     * @param  list<array{participant: Participant, registration: Registration|null, reasons: list<string>, score: int, strong: bool}>  $candidates
-     */
-    public function shouldHoldCandidates(array $candidates): bool
-    {
-        return count($candidates) > 1
-            || collect($candidates)->contains(fn (array $candidate): bool => $candidate['strong']);
     }
 
     public function hasSimilar(Event $event, array $payload): bool

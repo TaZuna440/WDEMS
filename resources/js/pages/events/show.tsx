@@ -343,7 +343,7 @@ export default function EventsShow({
                         href={`/events/${event.id}/possible-duplicates`}
                         className="text-sm underline"
                     >
-                        Review possible duplicates
+                        Automatic identity checks
                     </Link>
                 </div>
             )}

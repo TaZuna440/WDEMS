@@ -14,6 +14,7 @@ use App\Models\Registration;
 use App\Models\RegistrationFieldResponse;
 use App\Models\RegistrationVerificationChallenge as Challenge;
 use App\Services\Otp\OtpCode;
+use App\Services\Participants\AutomaticIdentityResolution;
 use App\Services\Participants\DuplicateReview;
 use App\Services\RegistrationConfirmationService;
 use App\Support\RegistrationLegalText;
@@ -104,16 +105,6 @@ class RegistrationVerificationService
                 && $existing->phone_attempts < self::MAX_ATTEMPTS
                 && $existing->payload === $payload) {
                 return ['token' => $token, 'created' => false];
-            }
-
-            // Reject early: a completed registration for this event
-            // whose participant matches the submitted email or
-            // normalized phone is a duplicate. Runs regardless of
-            // whether the contact is required — an optional contact
-            // that already belongs to a registration still counts.
-            $this->assertNoDuplicateRegistration($event, $payload);
-            if ($event->isRunningEvent() && ! ($payload['similarity_acknowledged'] ?? false) && app(DuplicateReview::class)->hasSimilar($event, $payload)) {
-                throw ValidationException::withMessages(['similarity_acknowledged' => 'Review the similar-registration warning before continuing.']);
             }
 
             if ($existing !== null && $existing->finalized_at === null) {
@@ -489,7 +480,6 @@ class RegistrationVerificationService
                     }
 
                     $payload = PublicRegistrationRequest::validatePending($event, $challenge->payload ?? []);
-                    $this->assertNoDuplicateRegistration($event, $payload);
                     // The verified (chosen) channel is the identity
                     // contact. A required-but-unverified contact is a
                     // snapshot only — stored in submitted_* below, never
@@ -509,11 +499,32 @@ class RegistrationVerificationService
                         $this->identityConflict();
                     }
 
+                    Participant::lockIdentityPool($event->event_kind);
+                    $exact = app(DuplicateReview::class)->findExact($event,
+                        [...$payload, 'email' => $email, 'contact_number' => $phone], trustedContactsOnly: true);
+                    if ($exact !== null) {
+                        if (! $exact->isActive()) {
+                            $this->identityConflict();
+                        }
+                        if ($exact->attendance_code === null) {
+                            $exact->update(['attendance_code' => $this->generateAttendanceCode($event)]);
+                        }
+                        $challenge->forceFill([
+                            'registration_id' => $exact->id, 'finalized_at' => now(), 'payload' => null,
+                            'email_code_hash' => null, 'phone_code_hash' => null,
+                        ])->save();
+                        app(AutomaticIdentityResolution::class)->record($exact,
+                            'registration_recovered', 'Exact registration recovered after verification of its identity contact.');
+
+                        return;
+                    }
+
                     $matches = Participant::findCandidatesByComposite($event->event_kind,
                         $email, $phone,
                         $payload['first_name'], $payload['last_name'],
                         $payload['middle_name'] ?? null, $payload['suffix'] ?? null,
                         lockForUpdate: true,
+                        birthday: $payload['birthday'] ?? null,
                     );
                     $participant = $matches->count() === 1 ? $matches->first() : null;
 
@@ -549,30 +560,11 @@ class RegistrationVerificationService
                         $this->identityConflict();
                     }
 
-                    $duplicateReview = new DuplicateReview;
-                    $candidateMatches = $duplicateReview->findCandidates($event, [
-                        'first_name' => $payload['first_name'] ?? null,
-                        'middle_name' => $payload['middle_name'] ?? null,
-                        'last_name' => $payload['last_name'] ?? null,
-                        'suffix' => $payload['suffix'] ?? null,
-                        'email' => $email,
-                        'contact_number' => $payload['contact_number'] ?? null,
-                        'birthday' => $payload['birthday'] ?? null,
-                    ], excludeParticipantId: $participant->id);
-
-                    $isHeld = $duplicateReview->shouldHoldCandidates($candidateMatches);
-                    $status = $isHeld ? RegistrationStatus::Held : RegistrationStatus::Confirmed;
-                    $primaryCandidate = $candidateMatches[0] ?? null;
-                    $heldReason = $isHeld && $primaryCandidate !== null ? implode(', ', $primaryCandidate['reasons']) : null;
-                    $heldCandidateId = $isHeld ? $primaryCandidate['registration']?->id : null;
-
                     $registration = Registration::create([
                         'event_id' => $event->id,
                         'participant_id' => $participant->id,
                         'registration_date' => now(),
-                        'registration_status' => $status,
-                        'held_reason' => $heldReason,
-                        'held_candidate_registration_id' => $heldCandidateId,
+                        'registration_status' => RegistrationStatus::Confirmed,
                         'source' => 'form',
                         'participant_type' => $payload['participant_type'] ?? null,
                         'guardian_name' => $payload['guardian_name'] ?? null,
@@ -612,9 +604,7 @@ class RegistrationVerificationService
                         'phone_code_hash' => null,
                     ])->save();
 
-                    if (! $isHeld) {
-                        app(RegistrationConfirmationService::class)->sendAfterCommit($registration);
-                    }
+                    app(RegistrationConfirmationService::class)->sendAfterCommit($registration);
                 }, 3);
 
                 return;
@@ -696,42 +686,6 @@ class RegistrationVerificationService
         if ($challenge === null || $this->challengeState($challenge, $event) !== 'pending') {
             throw ValidationException::withMessages([
                 'verification' => 'This verification is unavailable, expired, or already completed. Refresh the page or start a new registration.',
-            ]);
-        }
-    }
-
-    /**
-     * Reject early: a completed registration for this event whose
-     * participant matches the submitted email or normalized phone.
-     *
-     * Runs regardless of whether the contact is required by the
-     * event — an optional contact that already belongs to a
-     * registration still counts as a duplicate.
-     *
-     * A match on a DIFFERENT event is not a duplicate. Participant
-     * identity is cross-event; registration is per-event.
-     *
-     * @param  array<string, mixed>  $payload
-     */
-    /**
-     * Reject a duplicate registration under the composite rule.
-     *
-     * A duplicate is (same normalized name + same contact) on the same
-     * event. Different names sharing one email/phone are allowed — that
-     * is the family-registration case the composite rule exists for.
-     * Same name with a different contact is also allowed (name alone is
-     * not identity).
-     *
-     * The message is deliberately non-revealing: it does not say whether
-     * the email, the phone, or the name collided.
-     */
-    private function assertNoDuplicateRegistration(Event $event, #[\SensitiveParameter] array $payload): void
-    {
-        $exists = app(DuplicateReview::class)->findExact($event, $payload) !== null;
-
-        if ($exists) {
-            throw ValidationException::withMessages([
-                'identity' => 'This registration cannot be started. If you believe this is an error, contact the event organizer.',
             ]);
         }
     }
@@ -877,7 +831,7 @@ class RegistrationVerificationService
     private function identityConflict(): never
     {
         throw ValidationException::withMessages([
-            'verification' => 'You already have a registration for this event, or your verified details conflict with an existing participant. If you believe this is an error, contact the event organizer.',
+            'verification' => 'This registration cannot be activated with these details. Check the name, birthdate, and verified contact before trying again.',
         ]);
     }
 }

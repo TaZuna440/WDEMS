@@ -396,7 +396,7 @@ export default function VerifyRegistration({
                 <p className="text-muted-foreground">{event_name}</p>
                 <p role="status">
                     {verification.is_inactive
-                        ? 'Your submission is not active. Please contact the organizer for its review status.'
+                        ? 'This registration is inactive. It cannot be used for attendance.'
                         : expired
                           ? messages.expired
                           : messages[verification.status]}
@@ -412,7 +412,8 @@ export default function VerifyRegistration({
                                 </h2>
                                 <p className="text-muted-foreground mx-auto max-w-md text-sm">
                                     Your submission has been received. Please
-                                    contact the organizer for the review result.
+                                    check this page again after automatic
+                                    processing.
                                 </p>
                             </section>
                         ) : (

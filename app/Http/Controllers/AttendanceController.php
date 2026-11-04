@@ -709,6 +709,7 @@ class AttendanceController extends Controller
             $row['last_name'] ?? null,
             $row['middle_name'] ?? null,
             $row['suffix'] ?? null,
+            birthday: $row['birthday'] ?? null,
         );
 
         // Duplicate within this batch?
@@ -754,17 +755,11 @@ class AttendanceController extends Controller
 
             $seenParticipantIds[] = $participant->id;
 
-            $review = app(DuplicateReview::class);
-            $candidates = $review->findCandidates($event, $row, excludeParticipantId: $participant->id);
-            $isHeld = $review->shouldHoldCandidates($candidates);
-            $primaryCandidate = $candidates[0] ?? null;
             $registration = Registration::create([
                 'event_id' => $event->id,
                 'participant_id' => $participant->id,
                 'registration_date' => now(),
-                'registration_status' => ($isHeld ? RegistrationStatus::Held : RegistrationStatus::Confirmed),
-                'held_reason' => $isHeld && $primaryCandidate !== null ? implode(', ', $primaryCandidate['reasons']) : null,
-                'held_candidate_registration_id' => $isHeld ? $primaryCandidate['registration']?->id : null,
+                'registration_status' => RegistrationStatus::Confirmed,
                 'source' => 'paper',
                 'registered_at' => now(),
                 'submitted_email' => $email !== '' ? $email : null,
@@ -850,7 +845,7 @@ class AttendanceController extends Controller
             'encoding_mode' => ['required', 'in:live,deferred'],
             'arrival_time' => ['required_if:encoding_mode,deferred', 'nullable', 'date_format:H:i'],
         ]);
-        $held = DB::transaction(function () use ($event, $request, $timing, $forceOpen): bool {
+        DB::transaction(function () use ($event, $request, $timing, $forceOpen): void {
             $event = Event::query()->lockForUpdate()->findOrFail($event->id);
             $this->ensureAttendanceWritable($event);
             abort_unless($event->isRunningEvent() && ($forceOpen || $event->canRecordAttendanceNow()), 403);
@@ -863,16 +858,10 @@ class AttendanceController extends Controller
             if ($event->registrations()->where('participant_id', $participant->id)->exists()) {
                 throw ValidationException::withMessages(['identity' => 'This person is already registered for this event. Use Check-in instead.']);
             }
-            $review = app(DuplicateReview::class);
-            $candidates = $review->findCandidates($event, $data, excludeParticipantId: $participant->id);
-            $isHeld = $review->shouldHoldCandidates($candidates);
-            $primaryCandidate = $candidates[0] ?? null;
             $registration = Registration::create([
                 'event_id' => $event->id, 'participant_id' => $participant->id,
                 'registration_date' => now(), 'registered_at' => now(),
-                'registration_status' => $isHeld ? RegistrationStatus::Held : RegistrationStatus::Confirmed, 'source' => 'form',
-                'held_reason' => $isHeld && $primaryCandidate !== null ? implode(', ', $primaryCandidate['reasons']) : null,
-                'held_candidate_registration_id' => $isHeld ? $primaryCandidate['registration']?->id : null,
+                'registration_status' => RegistrationStatus::Confirmed, 'source' => 'form',
                 'encoded_by' => $request->user()->id, 'contact_attested_at' => now(),
                 'consent_accepted_at' => now(), 'privacy_notice_version' => RegistrationLegalText::PRIVACY_NOTICE_VERSION,
                 'submitted_email' => $data['email'] ?? null, 'submitted_contact_number' => $data['contact_number'] ?? null,
@@ -888,18 +877,14 @@ class AttendanceController extends Controller
             foreach ($data['responses'] ?? [] as $fieldId => $value) {
                 $registration->fieldResponses()->create(['registration_field_id' => $fieldId, 'value' => is_array($value) ? json_encode($value) : (string) $value]);
             }
-            if ($isHeld) {
-                return true;
-            }
             $time = $timing['encoding_mode'] === 'deferred' && $event->event_date !== null
                 ? $event->event_date->copy()->setTimeFromTimeString($timing['arrival_time']) : now();
             $registration->attendance()->create(['attendance_status' => AttendanceStatus::Present,
                 'attendance_time' => $time, 'recorded_by' => $request->user()->id]);
 
-            return false;
         });
 
-        return redirect()->route('events.attendance', $event)->with('success', $held ? 'Paper submission held for organizer review; no attendance recorded.' : 'Paper registration saved and marked present.');
+        return redirect()->route('events.attendance', $event)->with('success', 'Paper registration saved and marked present.');
     }
 
     public function quickWalkIn(Request $request, Event $event): RedirectResponse
@@ -1000,17 +985,11 @@ class AttendanceController extends Controller
                 ],
             );
 
-            $review = app(DuplicateReview::class);
-            $candidates = $review->findCandidates($event, $validated, excludeParticipantId: $participant->id);
-            $isHeld = $review->shouldHoldCandidates($candidates);
-            $primaryCandidate = $candidates[0] ?? null;
             $registration = Registration::create([
                 'event_id' => $event->id,
                 'participant_id' => $participant->id,
                 'registration_date' => now(),
-                'registration_status' => ($isHeld ? RegistrationStatus::Held : RegistrationStatus::Confirmed),
-                'held_reason' => $isHeld && $primaryCandidate !== null ? implode(', ', $primaryCandidate['reasons']) : null,
-                'held_candidate_registration_id' => $isHeld ? $primaryCandidate['registration']?->id : null,
+                'registration_status' => RegistrationStatus::Confirmed,
                 'source' => 'walk_in',
                 'registered_at' => now(),
                 'submitted_email' => $validated['email'] ?? null,

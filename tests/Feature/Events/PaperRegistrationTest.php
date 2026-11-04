@@ -45,12 +45,12 @@ test('paper encoding enforces public required fields and church isolation', func
     $this->post(route('events.attendance.encode-paper', $this->event), $this->paper)->assertForbidden();
 });
 
-test('paper encoding holds an additive name match without recording attendance', function () {
+test('paper encoding accepts an additive name separately and records attendance', function () {
     $person = Participant::create(['pool' => 'running', 'first_name' => 'Maria', 'middle_name' => 'Reyes', 'last_name' => 'Santos', 'email' => 'maria@example.com']);
     $master = Registration::create(['event_id' => $this->event->id, 'participant_id' => $person->id, 'registration_status' => 'confirmed', 'source' => 'form']);
     $this->post(route('events.attendance.encode-paper', $this->event), $this->paper)->assertSessionHasNoErrors();
-    $held = Registration::held()->sole();
-    expect($held->held_candidate_registration_id)->toBe($master->id)->and($held->attendance)->toBeNull()
-        ->and($held->encoded_by)->toBe($this->staff->id)->and(Registration::active()->count())->toBe(1);
+    $held = Registration::where('id', '!=', $master->id)->sole();
+    expect($held->participant_id)->not->toBe($master->participant_id)->and($held->attendance)->not->toBeNull()
+        ->and($held->encoded_by)->toBe($this->staff->id)->and(Registration::active()->count())->toBe(2);
     Mail::assertNothingSent();
 });

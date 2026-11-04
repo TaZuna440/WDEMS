@@ -65,18 +65,15 @@ function amendment_f_cycle_run(TestCase $test, Event $event): void
         'consent' => true,
     ];
     $publicRegistration = amendment_f_cycle_register($test, $event, $payload);
-    $test->post('/r/'.$event->registration_slug, $payload)->assertSessionHasErrors('identity');
+    $test->post('/r/'.$event->registration_slug, $payload)->assertSessionHasNoErrors();
 
     $likelyDuplicate = amendment_f_cycle_register($test, $event, [
         ...$payload,
         'middle_name' => 'Reyes',
         'email' => 'maria-reyes-cycle@example.com',
     ]);
-    expect($likelyDuplicate->isHeld())->toBeTrue()
-        ->and(Registration::active()->where('event_id', $event->id)->count())->toBe(1);
-    $test->post(route('events.possible-duplicates.resolve', [$event, $likelyDuplicate]), [
-        'action' => 'confirm_separate',
-    ])->assertSessionHasNoErrors();
+    expect($likelyDuplicate->isActive())->toBeTrue()
+        ->and(Registration::active()->where('event_id', $event->id)->count())->toBe(2);
     expect($likelyDuplicate->fresh()->isActive())->toBeTrue();
 
     $test->post(route('church.registrations.store', $event), [

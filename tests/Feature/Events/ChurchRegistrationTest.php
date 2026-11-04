@@ -32,9 +32,7 @@ it('serves the church registration page and records staff attestation and format
             ->where('event.id', $this->event->id)
             ->where('event.event_name', $this->event->event_name)
             ->where('event.event_kind', 'church')
-            ->has('pairs')
-            ->has('held_registrations')
-            ->has('review_status'));
+            ->has('decisions.data'));
     $this->get("/events/{$this->event->id}/church-attendance")
         ->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -59,32 +57,28 @@ it('blocks exact and repeat submissions and allows clearly different family memb
     expect(Registration::active()->count())->toBe(2)->and(Participant::count())->toBe(2);
 });
 
-it('holds different names sharing both contact and birthdate without merging them', function () {
+it('accepts different names sharing both contact and birthdate without merging them', function () {
     Mail::fake();
     $this->post($this->url, $this->data)->assertSessionHasNoErrors();
     $this->post($this->url, [...$this->data, 'first_name' => 'Jose'])->assertSessionHasNoErrors();
 
     expect(Participant::count())->toBe(2)
-        ->and(Registration::active()->count())->toBe(1)
-        ->and(Registration::held()->sole()->participant->first_name)->toBe('Jose');
+        ->and(Registration::active()->count())->toBe(2)
+        ->and(Registration::held()->count())->toBe(0);
 });
 
-it('holds additives and allows church review without crossing pools', function () {
+it('accepts additive names separately and records the automatic decision', function () {
     $this->post($this->url, [...$this->data, 'middle_name' => 'Reyes'])->assertSessionHasNoErrors();
     $this->post($this->url, $this->data)->assertSessionHasNoErrors();
-    $held = Registration::held()->sole();
-    expect(Registration::active()->count())->toBe(1)->and($held->attendance)->toBeNull();
+    expect(Registration::active()->count())->toBe(2)->and(Registration::held()->count())->toBe(0);
     $this->get("/events/{$this->event->id}/possible-duplicates")
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('events/duplicates')
-            ->where('held_registrations.0.guardian_name', 'Jose Santos')
-            ->where('held_registrations.0.guardian_contact', '09171234567')
-            ->where('held_registrations.0.participant_type', 'Guest')
-            ->where('held_registrations.0.candidate.guardian_name', 'Jose Santos')
-            ->where('held_registrations.0.candidate.guardian_contact', '09171234567'));
-    $this->post("/events/{$this->event->id}/possible-duplicates/{$held->id}/resolve", ['action' => 'confirm_separate'])->assertSessionHasNoErrors();
-    expect($held->fresh()->isActive())->toBeTrue();
+        ->assertOk()->assertInertia(fn ($page) => $page->component('events/duplicates')->where('decisions.data.0.action', 'kept_separate'));
+});
+
+it('does not reuse the same name and contact when birthdays conflict', function () {
+    $this->post($this->url, $this->data)->assertSessionHasNoErrors();
+    $this->post($this->url, [...$this->data, 'birthday' => '2012-02-02'])->assertSessionHasNoErrors();
+    expect(Registration::active()->count())->toBe(2)->and(Participant::count())->toBe(2);
 });
 
 it('reuses the church person across events and ignores the same running identity', function () {

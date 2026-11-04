@@ -271,7 +271,7 @@ export default function Dashboard({
                             <div className="flex flex-col items-center justify-center py-8 text-center">
                                 <Inbox className="text-muted-foreground/40 h-8 w-8" />
                                 <p className="text-muted-foreground mt-2 text-sm">
-                                    No duplicate registrations pending review.
+                                    No flagged registrations.
                                 </p>
                             </div>
                         ) : (

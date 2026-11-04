@@ -307,24 +307,6 @@ parameters:
 			path: app/Http/Controllers/FellowshipAttendanceController.php
 
 		-
-			message: '#^Property App\\Models\\Registration\:\:\$resolved_by \(int\<0, max\>\|null\) does not accept int\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Http/Controllers/ParticipantReviewController.php
-
-		-
-			message: '#^Unable to resolve the template type TKey in call to function collect$#'
-			identifier: argument.templateType
-			count: 1
-			path: app/Http/Controllers/ParticipantReviewController.php
-
-		-
-			message: '#^Unable to resolve the template type TValue in call to function collect$#'
-			identifier: argument.templateType
-			count: 1
-			path: app/Http/Controllers/ParticipantReviewController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Event\:\:\$registration_disclaimer_html\.$#'
 			identifier: property.notFound
 			count: 1
@@ -973,18 +955,6 @@ parameters:
 			path: app/Services/Discipleship/DiscipleshipProgressService.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Participants/DuplicateReview.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:matchingName\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/Participants/DuplicateReview.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:active\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -999,12 +969,6 @@ parameters:
 		-
 			message: '#^Method App\\Services\\Participants\\DuplicateReview\:\:findExact\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
-			count: 1
-			path: app/Services/Participants/DuplicateReview.php
-
-		-
-			message: '#^Method App\\Services\\Participants\\DuplicateReview\:\:findExact\(\) should return App\\Models\\Registration\|null but returns Illuminate\\Database\\Eloquent\\Model\.$#'
-			identifier: return.type
 			count: 1
 			path: app/Services/Participants/DuplicateReview.php
 
@@ -1057,20 +1021,8 @@ parameters:
 			path: app/Services/Participants/DuplicateReview.php
 
 		-
-			message: '#^Parameter \#1 \$registration of method App\\Services\\Participants\\DuplicateReview\:\:identity\(\) expects App\\Models\\Registration, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Participants/DuplicateReview.php
-
-		-
 			message: '#^Left side of && is always false\.$#'
 			identifier: booleanAnd.leftAlwaysFalse
-			count: 1
-			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
-
-		-
-			message: '#^Method App\\Services\\RegistrationVerification\\RegistrationVerificationService\:\:assertNoDuplicateRegistration\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: app/Services/RegistrationVerification/RegistrationVerificationService.php
 

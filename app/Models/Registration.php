@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RegistrationStatus;
+use App\Services\Participants\AutomaticIdentityResolution;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -49,6 +50,16 @@ class Registration extends Model
 {
     protected static function booted(): void
     {
+        static::created(function (self $registration): void {
+            if ($registration->isActive()) {
+                app(AutomaticIdentityResolution::class)->record($registration);
+            }
+        });
+        static::updated(function (self $registration): void {
+            if ($registration->isActive() && $registration->wasChanged('participant_id')) {
+                app(AutomaticIdentityResolution::class)->record($registration);
+            }
+        });
         static::updating(function (self $registration): void {
             if (in_array($registration->getRawOriginal('registration_status'), ['duplicate', 'removed'], true)
                 && $registration->isDirty('registration_status')) {

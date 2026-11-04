@@ -1,6 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { CalendarDays, CheckCircle2, ExternalLink, MapPin } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
     formatBirthdateInput,
     birthdateInputError,
@@ -131,91 +131,6 @@ export default function PublicRegistration({
         responses: {},
     });
 
-    const identityKey = JSON.stringify({
-        first_name: form.data.first_name,
-        middle_name: form.data.middle_name,
-        last_name: form.data.last_name,
-        suffix: form.data.suffix,
-        birthday: form.data.birthday,
-        email: form.data.email,
-        contact_number: form.data.contact_number,
-    });
-    const [similarity, setSimilarity] = useState<{
-        key: string;
-        similar: boolean;
-        failed: boolean;
-    } | null>(null);
-    const reviewedIdentity = form.data.similarity_reviewed_identity ?? '';
-    const setReviewedIdentity = (value: string) =>
-        form.setData('similarity_reviewed_identity', value);
-    const [retrySimilarity, setRetrySimilarity] = useState(0);
-    useEffect(() => {
-        if (
-            preview ||
-            !form.data.consent_accepted ||
-            form.data.first_name.trim().length < 2 ||
-            form.data.last_name.trim().length < 2
-        )
-            return;
-        const controller = new AbortController();
-        const timer = window.setTimeout(async () => {
-            try {
-                const csrf = document.cookie
-                    .split('; ')
-                    .find((c) => c.startsWith('XSRF-TOKEN='))
-                    ?.slice('XSRF-TOKEN='.length);
-                const response = await fetch(`${submit_url}/similarity`, {
-                    method: 'POST',
-                    signal: controller.signal,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                        'X-XSRF-TOKEN': csrf ? decodeURIComponent(csrf) : '',
-                    },
-                    body: JSON.stringify({
-                        first_name: form.data.first_name,
-                        last_name: form.data.last_name,
-                        middle_name: form.data.middle_name || null,
-                        suffix: form.data.suffix || null,
-                        birthday: form.data.birthday || null,
-                        email: form.data.email || null,
-                        contact_number: form.data.contact_number || null,
-                    }),
-                });
-                if (
-                    !response.ok ||
-                    !response.headers
-                        .get('content-type')
-                        ?.includes('application/json')
-                )
-                    throw new Error('Check failed');
-                const result = (await response.json()) as { similar: boolean };
-                setSimilarity({
-                    key: identityKey,
-                    similar: result.similar,
-                    failed: false,
-                });
-            } catch {
-                if (!controller.signal.aborted)
-                    setSimilarity({
-                        key: identityKey,
-                        similar: false,
-                        failed: true,
-                    });
-            }
-        }, 700);
-        return () => {
-            window.clearTimeout(timer);
-            controller.abort();
-        };
-    }, [
-        identityKey,
-        preview,
-        submit_url,
-        form.data.consent_accepted,
-        retrySimilarity,
-    ]);
-
     const [privacyOpen, setPrivacyOpen] = useState(false);
     const [termsOpen, setTermsOpen] = useState(false);
 
@@ -323,20 +238,6 @@ export default function PublicRegistration({
                         }
                     }
                     if (
-                        !preview &&
-                        (similarity?.key !== identityKey || similarity.failed)
-                    )
-                        out.similarity_acknowledged =
-                            'Wait for the registration check, or retry it below.';
-                    if (
-                        !preview &&
-                        similarity?.key === identityKey &&
-                        similarity.similar &&
-                        reviewedIdentity !== identityKey
-                    )
-                        out.similarity_acknowledged =
-                            'Review the warning and confirm you want to continue.';
-                    if (
                         tshirt?.required &&
                         !(data as RegistrationFormData).tshirt_choice
                     )
@@ -377,23 +278,13 @@ export default function PublicRegistration({
                 },
             },
         ],
-        [
-            fields,
-            common_field_requirements,
-            form_version,
-            tshirt,
-            preview,
-            similarity,
-            identityKey,
-            reviewedIdentity,
-        ],
+        [fields, common_field_requirements, form_version, tshirt, preview],
     );
 
     const submit = () => {
         if (preview) return;
         form.transform((data) => ({
             ...data,
-            similarity_acknowledged: reviewedIdentity === identityKey,
         }));
         form.post(submit_url);
     };
@@ -507,60 +398,6 @@ export default function PublicRegistration({
 
     const renderPersonalStep = (stepErrors: Record<string, string>) => (
         <>
-            {!preview && (
-                <aside
-                    className="space-y-2 rounded-xl border p-4 text-sm"
-                    aria-live="polite"
-                >
-                    {similarity?.key === identityKey && similarity.similar ? (
-                        <>
-                            <p className="font-medium text-amber-700 dark:text-amber-300">
-                                A similar registration may already exist. Check
-                                your name, birthdate, and contact details. If
-                                this is a different person, you can continue.
-                            </p>
-                            <label className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    checked={reviewedIdentity === identityKey}
-                                    onChange={(e) => {
-                                        setReviewedIdentity(
-                                            e.target.checked ? identityKey : '',
-                                        );
-                                        clearServerErrors(
-                                            'similarity_acknowledged',
-                                        );
-                                        form.setData(
-                                            'similarity_acknowledged',
-                                            e.target.checked,
-                                        );
-                                    }}
-                                />
-                                I reviewed my details and want to continue.
-                            </label>
-                        </>
-                    ) : (
-                        <p className="text-muted-foreground">
-                            {similarity?.key === identityKey &&
-                            !similarity.failed
-                                ? 'Registration check complete.'
-                                : 'Enter valid personal details to check for a similar registration.'}
-                        </p>
-                    )}
-                    {similarity?.key === identityKey && similarity.failed && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() =>
-                                setRetrySimilarity((value) => value + 1)
-                            }
-                        >
-                            Retry registration check
-                        </Button>
-                    )}
-                    <InputError message={stepErrors.similarity_acknowledged} />
-                </aside>
-            )}
             <section className="flex flex-col gap-4">
                 <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                     Your Details

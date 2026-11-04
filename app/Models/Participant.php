@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 
 #[Fillable([
     'provisional_event_id',
@@ -314,6 +315,7 @@ class Participant extends Model
         ?string $middleName = null,
         ?string $suffix = null,
         bool $lockForUpdate = false,
+        ?string $birthday = null,
     ): Collection {
         self::assertPool($pool);
         $normalizedFirst = self::normalizeName($firstName);
@@ -331,14 +333,17 @@ class Participant extends Model
         }
 
         $query = self::query()->matchingName($pool, $firstName, $lastName, $middleName, $suffix);
+        if ($birthday !== null && $birthday !== '') {
+            $query->where(fn (Builder $q) => $q->whereNull('birthday')->orWhereDate('birthday', $birthday));
+        }
 
         if ($trimmedEmail !== '' && $normalizedPhone !== null) {
             $query->where(function ($q) use ($trimmedEmail, $normalizedPhone): void {
-                $q->where('email', $trimmedEmail)
+                $q->whereRaw('LOWER(TRIM(email)) = ?', [mb_strtolower($trimmedEmail)])
                     ->orWhere('contact_number_normalized', $normalizedPhone);
             });
         } elseif ($trimmedEmail !== '') {
-            $query->where('email', $trimmedEmail);
+            $query->whereRaw('LOWER(TRIM(email)) = ?', [mb_strtolower($trimmedEmail)]);
         } else {
             $query->where('contact_number_normalized', $normalizedPhone);
         }
@@ -350,7 +355,7 @@ class Participant extends Model
 
     /**
      * Find a participant only when the composite key identifies one row
-     * unambiguously. Ambiguous matches are left for organizer review.
+     * unambiguously. Ambiguous matches remain separate; they never require organizer review.
      */
     public static function findByComposite(
         string $pool,
@@ -360,6 +365,7 @@ class Participant extends Model
         ?string $lastName,
         ?string $middleName = null,
         ?string $suffix = null,
+        ?string $birthday = null,
     ): ?self {
         $matches = self::findCandidatesByComposite(
             $pool,
@@ -369,6 +375,7 @@ class Participant extends Model
             $lastName,
             $middleName,
             $suffix,
+            birthday: $birthday,
         );
 
         return $matches->count() === 1 ? $matches->first() : null;
@@ -388,7 +395,7 @@ class Participant extends Model
      *
      * Matching is global: the same person registering for a different
      * event resolves to the same row. The per-event duplicate check
-     * lives in RegistrationVerificationService::assertNoDuplicateRegistration().
+     * lives in the event intake services.
      *
      * When neither email nor phone is present, or when either name
      * part is blank, the resolver throws -- the at-least-one rule is
@@ -405,55 +412,67 @@ class Participant extends Model
         ?string $rawPhone,
         array $attributes,
     ): self {
-        $existing = self::findByComposite(
-            $pool,
-            $email,
-            $rawPhone,
-            $attributes['first_name'] ?? null,
-            $attributes['last_name'] ?? null,
-            $attributes['middle_name'] ?? null,
-            $attributes['suffix'] ?? null,
-        );
-
-        if ($existing !== null) {
-            return $existing;
-        }
-
-        // Defense-in-depth. findByComposite() returns null when the
-        // name is incomplete or no contact is present. resolveFrom()
-        // cannot create a row in either of those cases -- turn the
-        // null into a real error with a specific message.
-        $normalizedFirst = self::normalizeName($attributes['first_name'] ?? null);
-        $normalizedLast = self::normalizeName($attributes['last_name'] ?? null);
-
-        if ($normalizedFirst === null || $normalizedLast === null) {
-            throw new IdentityRequiredException(
-                'A participant must be resolved with a first and last name.',
+        return DB::transaction(function () use ($pool, $email, $rawPhone, $attributes): self {
+            self::lockIdentityPool($pool);
+            $matches = self::findCandidatesByComposite(
+                $pool,
+                $email,
+                $rawPhone,
+                $attributes['first_name'] ?? null,
+                $attributes['last_name'] ?? null,
+                $attributes['middle_name'] ?? null,
+                $attributes['suffix'] ?? null,
+                lockForUpdate: true,
+                birthday: $attributes['birthday'] ?? null,
             );
-        }
 
-        $trimmedEmail = is_string($email) ? trim($email) : '';
-        $normalizedPhone = self::normalizeContactNumber($rawPhone);
+            $existing = $matches->count() === 1 ? $matches->first() : null;
+            if ($existing !== null) {
+                return $existing;
+            }
 
-        if ($trimmedEmail === '' && $normalizedPhone === null) {
-            throw new IdentityRequiredException(
-                'A participant must be resolved with at least one identity '
-                .'key: email or contact number.',
-            );
-        }
+            // Defense-in-depth. findByComposite() returns null when the
+            // name is incomplete or no contact is present. resolveFrom()
+            // cannot create a row in either of those cases -- turn the
+            // null into a real error with a specific message.
+            $normalizedFirst = self::normalizeName($attributes['first_name'] ?? null);
+            $normalizedLast = self::normalizeName($attributes['last_name'] ?? null);
 
-        // Include the identity contact in the new row. The callers pass
-        // email / phone as separate args (not in $attributes) because
-        // the old firstOrCreate() used them as the match criteria.
-        if ($trimmedEmail !== '' && ! isset($attributes['email'])) {
-            $attributes['email'] = $trimmedEmail;
-        }
-        if ($normalizedPhone !== null && ! isset($attributes['contact_number'])) {
-            $attributes['contact_number'] = $rawPhone;
-        }
-        $attributes['pool'] = $pool;
+            if ($normalizedFirst === null || $normalizedLast === null) {
+                throw new IdentityRequiredException(
+                    'A participant must be resolved with a first and last name.',
+                );
+            }
 
-        return self::create($attributes);
+            $trimmedEmail = is_string($email) ? trim($email) : '';
+            $normalizedPhone = self::normalizeContactNumber($rawPhone);
+
+            if ($trimmedEmail === '' && $normalizedPhone === null) {
+                throw new IdentityRequiredException(
+                    'A participant must be resolved with at least one identity '
+                    .'key: email or contact number.',
+                );
+            }
+
+            // Include the identity contact in the new row. The callers pass
+            // email / phone as separate args (not in $attributes) because
+            // the old firstOrCreate() used them as the match criteria.
+            if ($trimmedEmail !== '' && ! isset($attributes['email'])) {
+                $attributes['email'] = $trimmedEmail;
+            }
+            if ($normalizedPhone !== null && ! isset($attributes['contact_number'])) {
+                $attributes['contact_number'] = $rawPhone;
+            }
+            $attributes['pool'] = $pool;
+
+            return self::create($attributes);
+        }, 3);
+    }
+
+    public static function lockIdentityPool(string $pool): void
+    {
+        self::assertPool($pool);
+        DB::table('participant_identity_locks')->where('pool', $pool)->lockForUpdate()->first();
     }
 
     /**

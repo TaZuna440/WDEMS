@@ -54,9 +54,7 @@ class DashboardController extends Controller
                 'participant:id,first_name,last_name,email,contact_number',
                 'event:id,event_name,event_kind',
             ])
-            ->where(fn ($query) => $query
-                ->where('registration_status', 'held')
-                ->orWhereNotNull('flagged_at'))
+            ->whereNotNull('flagged_at')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->limit(10)
@@ -250,7 +248,7 @@ class DashboardController extends Controller
                 'id' => 'registration-'.$reg->id,
                 'type' => $reg->isHeld() ? 'review' : 'registration',
                 'description' => $reg->isHeld()
-                    ? 'A registration was held for organizer review at '.$event->event_name
+                    ? 'A legacy registration awaits automatic processing at '.$event->event_name
                     : $participant->fullName().' registered for '.$event->event_name,
                 'time' => $reg->created_at->diffForHumans(),
                 'timestamp' => $reg->created_at,
@@ -344,24 +342,6 @@ class DashboardController extends Controller
 
         foreach ($events as $event) {
             $status = $this->lifecycle($event);
-            $pool = $event->isChurchEvent() ? 'church' : 'running';
-            $heldCount = Registration::held()->where('event_id', $event->id)
-                ->whereHas('participant', fn ($query) => $query->where('pool', $pool)->whereNull('provisional_event_id'))
-                ->count();
-            if ($heldCount > 0) {
-                $items[] = [
-                    'id' => 'review-'.$event->id,
-                    'event_name' => $event->event_name,
-                    'event_date' => $event->event_date?->format('M j, Y'),
-                    'days_until' => $event->event_date ? (int) now()->startOfDay()->diffInDays($event->event_date->startOfDay(), false) : null,
-                    'status' => $status->value,
-                    'status_label' => $status->label(),
-                    'urgency' => 'needs_review',
-                    'reason' => $heldCount.' held '.($heldCount === 1 ? 'registration' : 'registrations').' awaiting review',
-                    'action' => ['label' => 'Review queue', 'href' => route('events.possible-duplicates', $event)],
-                ];
-            }
-
             if (in_array($status, [EventStatus::Completed, EventStatus::Cancelled, ChurchEventStatus::Completed, ChurchEventStatus::Cancelled], true)) {
                 continue;
             }

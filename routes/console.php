@@ -13,3 +13,5 @@ Artisan::command('inspire', function () {
 Schedule::command('model:prune', [
     '--model' => [RegistrationVerificationChallenge::class],
 ])->hourly();
+
+Schedule::command('registrations:resolve-held')->everyMinute()->withoutOverlapping();

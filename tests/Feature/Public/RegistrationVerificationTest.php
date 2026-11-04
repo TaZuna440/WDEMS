@@ -70,8 +70,8 @@ test('finalization distinguishes family members by middle name and suffix', func
 
     expect(Participant::count())->toBe(2)
         ->and(Registration::sole()->participant->suffix)->toBe('Jr.');
-    $this->post('/r/'.$event->registration_slug, verificationPayload(['middle_name' => ' REYES ', 'suffix' => 'JR.']))
-        ->assertSessionHasErrors('identity');
+    completePublicRegistration($this, $event, verificationPayload(['middle_name' => ' REYES ', 'suffix' => 'JR.']))->assertSessionHasNoErrors();
+    expect(Registration::count())->toBe(1);
 });
 
 test('version two verifies email only even when the contact number is required', function () {
@@ -599,13 +599,13 @@ test('closure never extends a pending challenge beyond its original lifetime', f
     expect(app(Verification::class)->publicState($event, $token)['status'])->toBe('expired');
 });
 
-test('step two similarity check returns only a warning and allows acknowledged intake', function () {
+test('similarity never requires acknowledgement before verified intake', function () {
     $event = verificationEvent();
     $person = Participant::create(['pool' => 'running', 'first_name' => 'Marya', 'last_name' => 'Santos', 'email' => 'maria@example.com']);
     Registration::create(['event_id' => $event->id, 'participant_id' => $person->id, 'registration_status' => 'confirmed', 'source' => 'form']);
     $this->postJson('/r/'.$event->registration_slug.'/similarity', verificationPayload())
         ->assertOk()->assertExactJson(['similar' => true]);
-    $this->post('/r/'.$event->registration_slug, verificationPayload())->assertSessionHasErrors('similarity_acknowledged');
+    $this->post('/r/'.$event->registration_slug, verificationPayload())->assertSessionHasNoErrors();
     [$challenge, $token, $url] = startVerification($this, $event, ['similarity_acknowledged' => true]);
     $challenge->forceFill(['email_verified_at' => now()])->save();
     $this->post($url.'/complete')->assertSessionHasNoErrors();
